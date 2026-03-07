@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Zap, CheckCircle, Star, CreditCard } from "lucide-react";
 import { Listing, BOOST_FEE, BOOST_DURATION, useListings } from "@/context/ListingContext";
@@ -11,25 +11,33 @@ const PAYSTACK_PUBLIC_KEY = "pk_test_7aace9866757c00def7dfc738b254232499b8032";
 type Step = "confirm" | "success";
 type Props = { listing: Listing; onClose: () => void };
 
+// Inject Paystack script once globally
+function ensurePaystackScript(): Promise<void> {
+  return new Promise((resolve) => {
+    if ((window as any).PaystackPop) { resolve(); return; }
+    const existing = document.getElementById("paystack-script");
+    if (existing) {
+      existing.addEventListener("load", () => resolve());
+      return;
+    }
+    const script = document.createElement("script");
+    script.id = "paystack-script";
+    script.src = "https://js.paystack.co/v1/inline.js";
+    script.onload = () => resolve();
+    document.head.appendChild(script);
+  });
+}
+
 const BoostModal = ({ listing, onClose }: Props) => {
   const { boostListing } = useListings();
   const { user } = useAuth();
   const [step, setStep] = useState<Step>("confirm");
   const [loading, setLoading] = useState(false);
-  const scriptReady = useRef(false);
 
-  useEffect(() => {
-    // Load script eagerly on mount
-    const existing = document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]');
-    if (existing) { scriptReady.current = true; return; }
-    const script = document.createElement("script");
-    script.src = "https://js.paystack.co/v1/inline.js";
-    script.async = true;
-    script.onload = () => { scriptReady.current = true; };
-    document.head.appendChild(script);
-  }, []);
+  // Preload script as soon as modal opens
+  useEffect(() => { ensurePaystackScript(); }, []);
 
-  const handlePay = () => {
+  const handlePay = async () => {
     if (!user?.email) {
       toast.error("You must be logged in to boost a listing");
       return;
@@ -37,25 +45,46 @@ const BoostModal = ({ listing, onClose }: Props) => {
 
     setLoading(true);
 
-    // Use Paystack standard redirect — most reliable across all browsers/devices
-    const params = new URLSearchParams({
+    try {
+      await ensurePaystackScript();
+    } catch {
+      toast.error("Could not load payment SDK. Check your internet connection.");
+      setLoading(false);
+      return;
+    }
+
+    const PaystackPop = (window as any).PaystackPop;
+    if (!PaystackPop) {
+      toast.error("Payment SDK not available. Please refresh and try again.");
+      setLoading(false);
+      return;
+    }
+
+    const ref = `boost_${listing.id.slice(0, 8)}_${Date.now()}`;
+
+    PaystackPop.newTransaction({
       key: PAYSTACK_PUBLIC_KEY,
       email: user.email,
-      amount: String(BOOST_FEE * 100),
+      amount: BOOST_FEE * 100,
       currency: "GHS",
-      ref: `boost_${listing.id}_${Date.now()}`,
-      callback_url: `${window.location.origin}/account?boost_success=${listing.id}`,
-      metadata: JSON.stringify({
-        listing_id: listing.id,
-        listing_name: listing.name,
-        seller_id: user.id,
-        custom_fields: [
-          { display_name: "Listing", variable_name: "listing_name", value: listing.name },
-        ],
-      }),
+      ref,
+      channels: ["card", "mobile_money"],
+      label: `Boost: ${listing.name}`,
+      onSuccess: async (transaction: { reference: string }) => {
+        try {
+          await boostListing(listing.id);
+          setStep("success");
+          toast.success("Listing boosted!");
+        } catch {
+          toast.error(`Payment done (ref: ${transaction.reference}) but boost failed. Contact support.`);
+        }
+        setLoading(false);
+      },
+      onCancel: () => {
+        toast("Payment cancelled");
+        setLoading(false);
+      },
     });
-
-    window.location.href = `https://checkout.paystack.com/initialize?${params.toString()}`;
   };
 
   return (
@@ -141,7 +170,7 @@ const BoostModal = ({ listing, onClose }: Props) => {
                     <motion.div animate={{ rotate: 360 }}
                       transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
                       className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
-                    Redirecting to Paystack...
+                    Opening payment...
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">
