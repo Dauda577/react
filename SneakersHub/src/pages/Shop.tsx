@@ -22,6 +22,10 @@ const Shop = () => {
   const [sort, setSort] = useState("newest");
   const [showFilters, setShowFilters] = useState(false);
 
+  const now = new Date();
+  const isActiveBoost = (l: (typeof listings)[0]) =>
+    !!l.boostedUntil && new Date(l.boostedUntil) > now;
+
   const filtered = listings
     .filter((l) => {
       const matchesCategory = category === "All" || l.category === category;
@@ -31,9 +35,14 @@ const Shop = () => {
       return matchesCategory && matchesSearch;
     })
     .sort((a, b) => {
+      // Featured always floats to top regardless of sort mode
+      const aFeatured = isActiveBoost(a) ? 1 : 0;
+      const bFeatured = isActiveBoost(b) ? 1 : 0;
+      if (bFeatured !== aFeatured) return bFeatured - aFeatured;
+
+      // Then apply selected sort within each group
       if (sort === "price_asc") return a.price - b.price;
       if (sort === "price_desc") return b.price - a.price;
-      if (sort === "featured") return (b.boosted ? 1 : 0) - (a.boosted ? 1 : 0);
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
