@@ -5,7 +5,7 @@ import {
   User, LayoutGrid, ShoppingBag, Heart, Settings,
   MapPin, Eye, Pencil, Trash2, Plus, CheckCircle, ArrowRight, LogOut,
   Store, Tag, Package, Phone, Zap, Star,
-  Bell, Moon, Sun, Shield, Globe, Lock, Trash, ChevronRight, ToggleLeft,
+  Bell, Shield, Lock, Trash, ChevronRight,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -59,9 +59,9 @@ const Account = () => {
   const { getSellerStats, hasReviewed, reviews, fetchReviews } = useRatings();
   const [boostingListing, setBoostingListing] = useState<import("@/context/ListingContext").Listing | null>(null);
   const [ratingOrderId, setRatingOrderId] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
-  // Settings state — all persisted to localStorage
-  const [darkMode, setDarkMode] = useState(false); // unused, kept for future
+  // Settings state
   const [notifOrders, setNotifOrders] = useState(() => localStorage.getItem("notif_orders") !== "false");
   const [notifMessages, setNotifMessages] = useState(() => localStorage.getItem("notif_messages") !== "false");
   const [notifPromotions, setNotifPromotions] = useState(() => localStorage.getItem("notif_promotions") === "true");
@@ -70,42 +70,22 @@ const Account = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // Apply dark mode on mount
+  // Fetch Google avatar from auth metadata
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", darkMode);
-  }, []);
-
-  const toggleDarkMode = () => {
-    const isDark = !darkMode;
-    setDarkMode(isDark);
-    document.documentElement.classList.toggle("dark", isDark);
-    localStorage.setItem("sneakershub_darkmode", String(isDark));
-    toast.success(isDark ? "Dark mode on" : "Light mode on");
-  };
+    import("@/lib/supabase").then(({ supabase }) => {
+      supabase.auth.getUser().then(({ data }) => {
+        const photo =
+          data?.user?.user_metadata?.avatar_url ??
+          data?.user?.user_metadata?.picture ??
+          null;
+        setAvatarUrl(photo);
+      });
+    });
+  }, [user?.id]);
 
   const toggleNotif = (key: string, value: boolean, set: (v: boolean) => void) => {
     set(value);
     localStorage.setItem(key, String(value));
-  };
-
-  const handleLanguageChange = async (lang: string) => {
-    setLanguage(lang);
-    localStorage.setItem("sneakershub_language", lang);
-    if (user?.id) {
-      const { supabase } = await import("@/lib/supabase");
-      await supabase.from("profiles").update({ language: lang }).eq("id", user.id);
-    }
-    toast.success("Language updated");
-  };
-
-  const handleCurrencyChange = async (cur: string) => {
-    setCurrency(cur);
-    localStorage.setItem("sneakershub_currency", cur);
-    if (user?.id) {
-      const { supabase } = await import("@/lib/supabase");
-      await supabase.from("profiles").update({ currency: cur }).eq("id", user.id);
-    }
-    toast.success("Currency updated");
   };
 
   const handleChangePassword = async () => {
@@ -127,7 +107,6 @@ const Account = () => {
   const handleDeleteAccount = async () => {
     try {
       const { supabase } = await import("@/lib/supabase");
-      // Sign out first, then let user know — full deletion requires a server-side function
       await supabase.auth.signOut();
       toast.success("Account deletion requested. You have been signed out.");
       navigate("/");
@@ -214,8 +193,11 @@ const Account = () => {
             className="flex items-center gap-5 pb-8"
           >
             <div className="relative flex-shrink-0">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                <span className="font-display text-xl font-bold text-primary">{initials}</span>
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                {avatarUrl
+                  ? <img src={avatarUrl} alt={user?.name ?? "avatar"} className="w-full h-full object-cover" />
+                  : <span className="font-display text-xl font-bold text-primary">{initials}</span>
+                }
               </div>
               <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-green-500 border-2 border-background" />
             </div>

@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,29 +12,35 @@ import { ListingProvider } from "@/context/ListingContext";
 import { RatingProvider } from "@/context/RatingContext";
 import { PublicListingsProvider } from "@/context/PublicListingsContext";
 import ScrollToTop from "@/components/ScrollToTop";
+import InstallPrompt from "@/components/InstallPrompt";
+
+// Always loaded immediately (lightweight / needed on first paint)
 import Index from "./pages/Index";
-import Shop from "./pages/Shop";
-import ProductDetail from "./pages/ProductDetail";
-import Cart from "./pages/Cart";
-import Checkout from "./pages/Checkout";
-import OrderConfirmation from "./pages/OrderConfirmation";
-import About from "./pages/About";
-import Account from "./pages/Account";
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
-import CreateListing from "./pages/CreateListing";
 import NotFound from "./pages/NotFound";
-import InstallPrompt from "@/components/InstallPrompt";
+
+// Lazy loaded — only downloaded when the user navigates to them
+const Shop = lazy(() => import("./pages/Shop"));
+const ProductDetail = lazy(() => import("./pages/ProductDetail"));
+const Cart = lazy(() => import("./pages/Cart"));
+const Checkout = lazy(() => import("./pages/Checkout"));
+const OrderConfirmation = lazy(() => import("./pages/OrderConfirmation"));
+const About = lazy(() => import("./pages/About"));
+const Account = lazy(() => import("./pages/Account"));
+const CreateListing = lazy(() => import("./pages/CreateListing"));
 
 const queryClient = new QueryClient();
 
+const Spinner = () => (
+  <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+  </div>
+);
+
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
-  if (loading) return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-    </div>
-  );
+  if (loading) return <Spinner />;
   return user ? <>{children}</> : <Navigate to="/auth" replace />;
 };
 
@@ -51,50 +58,53 @@ const App = () => (
           <RatingProvider>
             <PublicListingsProvider>
               <ListingProvider>
-            <SavedProvider>
-              <CartProvider>
-                <Toaster />
-                <Sonner />
-                <InstallPrompt />
-                <BrowserRouter>
-                  <ScrollToTop />
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/shop" element={<Shop />} />
-                    <Route path="/product/:id" element={<ProductDetail />} />
-                    <Route path="/cart" element={<Cart />} />
-                    <Route path="/checkout" element={<Checkout />} />
-                    <Route path="/order-confirmation" element={<OrderConfirmation />} />
-                    <Route path="/about" element={<About />} />
-                    <Route
-                      path="/auth"
-                      element={
-                        <GuestRoute>
-                          <Auth />
-                        </GuestRoute>
-                      }
-                    />
-                    <Route
-                      path="/account"
-                      element={
-                        <ProtectedRoute>
-                          <Account />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/listings/new"
-                      element={
-                        <ProtectedRoute>
-                          <CreateListing />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route path="/auth/callback" element={<AuthCallback />} />
-                  </Routes>
-                </BrowserRouter>
-              </CartProvider>
-            </SavedProvider>
+                <SavedProvider>
+                  <CartProvider>
+                    <Toaster />
+                    <Sonner />
+                    <InstallPrompt />
+                    <BrowserRouter>
+                      <ScrollToTop />
+                      <Suspense fallback={<Spinner />}>
+                        <Routes>
+                          <Route path="/" element={<Index />} />
+                          <Route path="/shop" element={<Shop />} />
+                          <Route path="/product/:id" element={<ProductDetail />} />
+                          <Route path="/cart" element={<Cart />} />
+                          <Route path="/checkout" element={<Checkout />} />
+                          <Route path="/order-confirmation" element={<OrderConfirmation />} />
+                          <Route path="/about" element={<About />} />
+                          <Route
+                            path="/auth"
+                            element={
+                              <GuestRoute>
+                                <Auth />
+                              </GuestRoute>
+                            }
+                          />
+                          <Route
+                            path="/account"
+                            element={
+                              <ProtectedRoute>
+                                <Account />
+                              </ProtectedRoute>
+                            }
+                          />
+                          <Route
+                            path="/listings/new"
+                            element={
+                              <ProtectedRoute>
+                                <CreateListing />
+                              </ProtectedRoute>
+                            }
+                          />
+                          <Route path="/auth/callback" element={<AuthCallback />} />
+                          <Route path="*" element={<NotFound />} />
+                        </Routes>
+                      </Suspense>
+                    </BrowserRouter>
+                  </CartProvider>
+                </SavedProvider>
               </ListingProvider>
             </PublicListingsProvider>
           </RatingProvider>
