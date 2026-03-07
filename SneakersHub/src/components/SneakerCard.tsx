@@ -2,12 +2,12 @@ import { motion } from "framer-motion";
 import { Sneaker } from "@/data/sneakers";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { Heart } from "lucide-react";
+import { Heart, Zap } from "lucide-react";
 import { useSaved } from "@/context/SavedContext";
 import { toast } from "sonner";
 
 interface SneakerCardProps {
-  sneaker: Sneaker;
+  sneaker: Sneaker & { isBoosted?: boolean };
   index: number;
 }
 
@@ -19,15 +19,11 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
     toggleSaved({
       id: sneaker.id,
       title: sneaker.name,
-      price: `$${sneaker.price}`,
+      price: `GHS ${sneaker.price}`,
       image: sneaker.image,
       brand: sneaker.brand,
     });
-    if (saved) {
-      toast.success(`${sneaker.name} removed from saved`);
-    } else {
-      toast.success(`${sneaker.name} added to saved`);
-    }
+    toast.success(saved ? `${sneaker.name} removed from saved` : `${sneaker.name} added to saved`);
   };
 
   return (
@@ -38,7 +34,7 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
       transition={{ duration: 0.5, delay: index * 0.1 }}
       className="relative"
     >
-      {/* Heart button — sits outside the Link so clicks don't navigate */}
+      {/* Heart button */}
       <button
         onClick={handleSave}
         className={`absolute top-3 right-3 z-10 w-8 h-8 rounded-full flex items-center justify-center
@@ -61,13 +57,16 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
 
       <Link to={`/product/${sneaker.id}`} className="sneaker-card block group">
         <div className="relative aspect-square bg-secondary overflow-hidden flex items-center justify-center p-8">
-          <img
-            src={sneaker.image}
-            alt={sneaker.name}
-            className="sneaker-image w-full h-full object-contain"
-            loading="lazy"
-          />
-          <div className="absolute top-3 left-3 flex gap-2">
+          {sneaker.image
+            ? <img src={sneaker.image} alt={sneaker.name} className="sneaker-image w-full h-full object-contain" loading="lazy" />
+            : <span className="text-6xl">👟</span>
+          }
+          <div className="absolute top-3 left-3 flex gap-2 flex-wrap">
+            {sneaker.isBoosted && (
+              <Badge className="bg-gradient-to-r from-amber-400 to-orange-500 text-white text-[10px] uppercase tracking-wider font-display flex items-center gap-1 border-0 shadow-md">
+                <Zap className="w-2.5 h-2.5" /> Featured
+              </Badge>
+            )}
             {sneaker.isNew && (
               <Badge className="bg-primary text-primary-foreground text-[10px] uppercase tracking-wider font-display">
                 New
@@ -80,7 +79,7 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
           <h3 className="font-display font-semibold mt-1 text-foreground group-hover:text-primary transition-colors">
             {sneaker.name}
           </h3>
-          <p className="text-foreground font-display font-bold mt-2">${sneaker.price}</p>
+          <p className="text-foreground font-display font-bold mt-2">GHS {sneaker.price}</p>
         </div>
       </Link>
     </motion.div>

@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Trash2, ShoppingBag, ArrowRight } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import Navbar from "@/components/Navbar";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 
 const Cart = () => {
   const { items, removeItem, totalPrice, totalItems } = useCart();
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-background">
@@ -59,7 +60,7 @@ const Cart = () => {
                     <p className="text-sm text-muted-foreground">Size {item.size} · Qty {item.quantity}</p>
                   </div>
                   <div className="flex items-center gap-4">
-                    <p className="font-display font-bold">${item.sneaker.price * item.quantity}</p>
+                    <p className="font-display font-bold">GHS {item.sneaker.price * item.quantity}</p>
                     <button
                       onClick={() => removeItem(item.sneaker.id, item.size)}
                       className="text-muted-foreground hover:text-destructive transition-colors"
@@ -72,15 +73,15 @@ const Cart = () => {
             </AnimatePresence>
 
             {/* Summary */}
-            <motion.div
-              layout
-              className="border-t border-border pt-6 mt-6"
-            >
+            <motion.div layout className="border-t border-border pt-6 mt-6">
               <div className="flex justify-between items-center mb-6">
                 <span className="text-muted-foreground">Total</span>
-                <span className="font-display text-2xl font-bold">${totalPrice}</span>
+                <span className="font-display text-2xl font-bold">GHS {totalPrice}</span>
               </div>
-              <Button className="btn-primary w-full h-14 rounded-full text-sm">
+              <Button
+                onClick={() => navigate("/checkout")}
+                className="btn-primary w-full h-14 rounded-full text-sm"
+              >
                 Checkout <ArrowRight className="ml-2 w-4 h-4" />
               </Button>
             </motion.div>

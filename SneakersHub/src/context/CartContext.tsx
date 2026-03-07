@@ -1,27 +1,33 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
-import { Sneaker } from "@/data/sneakers";
+import { createContext, useContext, useState, ReactNode } from "react";
 
-interface CartItem {
-  sneaker: Sneaker;
+export type CartItem = {
+  sneaker: {
+    id: string;
+    name: string;
+    brand: string;
+    price: number;
+    image: string;
+    sellerId: string; // ← real seller's user id
+  };
   size: number;
   quantity: number;
-}
+};
 
-interface CartContextType {
+type CartContextType = {
   items: CartItem[];
-  addItem: (sneaker: Sneaker, size: number) => void;
+  addItem: (sneaker: CartItem["sneaker"], size: number) => void;
   removeItem: (id: string, size: number) => void;
   clearCart: () => void;
-  totalItems: number;
   totalPrice: number;
-}
+  totalItems: number;
+};
 
-const CartContext = createContext<CartContextType | undefined>(undefined);
+const CartContext = createContext<CartContextType | null>(null);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [items, setItems] = useState<CartItem[]>([]);
 
-  const addItem = (sneaker: Sneaker, size: number) => {
+  const addItem = (sneaker: CartItem["sneaker"], size: number) => {
     setItems((prev) => {
       const existing = prev.find((i) => i.sneaker.id === sneaker.id && i.size === size);
       if (existing) {
@@ -41,11 +47,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const clearCart = () => setItems([]);
 
-  const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
   const totalPrice = items.reduce((sum, i) => sum + i.sneaker.price * i.quantity, 0);
+  const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
 
   return (
-    <CartContext.Provider value={{ items, addItem, removeItem, clearCart, totalItems, totalPrice }}>
+    <CartContext.Provider value={{ items, addItem, removeItem, clearCart, totalPrice, totalItems }}>
       {children}
     </CartContext.Provider>
   );
@@ -53,6 +59,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
 export const useCart = () => {
   const ctx = useContext(CartContext);
-  if (!ctx) throw new Error("useCart must be used within CartProvider");
+  if (!ctx) throw new Error("useCart must be used inside CartProvider");
   return ctx;
 };

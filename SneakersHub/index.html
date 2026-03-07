@@ -1,24 +1,40 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>SneakerHub</title>
-    <meta name="description" content="SneakersHUb" />
-    <meta name="author" content="SneakerHub" />
 
-    <meta property="og:title" content="SneakerHUb" />
-    <meta property="og:description" content="SneakersHUb Project" />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://yourdomain.com/og-image.png" />
+    <!-- Primary meta -->
+    <title>SneakersHub — Buy & Sell Premium Sneakers in Ghana</title>
+    <meta name="description" content="Buy and sell premium sneakers in Ghana. Authentic, verified, fast delivery." />
+    <meta name="theme-color" content="#ff5c1a" />
 
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@SneakerHub" />
-    <meta name="twitter:image" content="https://yourdomain.com/og-image.png" />
+    <!-- PWA manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Apple PWA support (iOS doesn't fully use the manifest yet) -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="SneakersHub" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-192.png" />
   </head>
-
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Register service worker -->
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("/sw.js")
+            .then((reg) => console.log("SW registered:", reg.scope))
+            .catch((err) => console.warn("SW registration failed:", err));
+        });
+      }
+    </script>
   </body>
 </html>
