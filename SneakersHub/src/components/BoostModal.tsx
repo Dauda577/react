@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Zap, CheckCircle, Star, CreditCard } from "lucide-react";
 import { Listing, BOOST_FEE, BOOST_DURATION, useListings } from "@/context/ListingContext";
@@ -9,93 +9,76 @@ import { toast } from "sonner";
 const PAYSTACK_PUBLIC_KEY = "pk_test_7aace9866757c00def7dfc738b254232499b8032";
 
 type Step = "confirm" | "success";
-
-type Props = {
-  listing: Listing;
-  onClose: () => void;
-};
-
-declare global {
-  interface Window {
-    PaystackPop: {
-      setup: (options: {
-        key: string;
-        email: string;
-        amount: number;
-        currency: string;
-        ref: string;
-        metadata?: object;
-        callback: (response: { reference: string }) => void;
-        onClose: () => void;
-      }) => { openIframe: () => void };
-    };
-  }
-}
-
-const loadPaystack = (): Promise<void> =>
-  new Promise((resolve, reject) => {
-    if (window.PaystackPop) { resolve(); return; }
-    const script = document.createElement("script");
-    script.src = "https://js.paystack.co/v1/inline.js";
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Failed to load Paystack"));
-    document.head.appendChild(script);
-  });
+type Props = { listing: Listing; onClose: () => void };
 
 const BoostModal = ({ listing, onClose }: Props) => {
   const { boostListing } = useListings();
   const { user } = useAuth();
   const [step, setStep] = useState<Step>("confirm");
   const [loading, setLoading] = useState(false);
+  const paystackLoaded = useRef(false);
 
-  const handlePay = async () => {
+  // Load Paystack script on mount
+  useEffect(() => {
+    if (paystackLoaded.current) return;
+    const existing = document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]');
+    if (existing) { paystackLoaded.current = true; return; }
+    const script = document.createElement("script");
+    script.src = "https://js.paystack.co/v1/inline.js";
+    script.async = true;
+    script.onload = () => { paystackLoaded.current = true; };
+    document.head.appendChild(script);
+  }, []);
+
+  const handlePay = () => {
     if (!user?.email) {
       toast.error("You must be logged in to boost a listing");
       return;
     }
 
-    setLoading(true);
-
-    try {
-      await loadPaystack();
-    } catch {
-      toast.error("Could not load payment. Check your connection.");
-      setLoading(false);
+    // Wait for script if still loading
+    if (!(window as any).PaystackPop) {
+      toast.error("Payment is still loading, please try again in a moment");
       return;
     }
 
+    setLoading(true);
+
     const ref = `boost_${listing.id}_${Date.now()}`;
 
-    const handler = window.PaystackPop.setup({
-      key: PAYSTACK_PUBLIC_KEY,
-      email: user.email,
-      // Paystack amount is in kobo/pesewas — multiply GHS by 100
-      amount: BOOST_FEE * 100,
-      currency: "GHS",
-      ref,
-      metadata: {
-        listing_id: listing.id,
-        listing_name: listing.name,
-        seller_id: user.id,
-      },
-      callback: async (response) => {
-        // Payment successful — activate boost
-        try {
-          await boostListing(listing.id);
-          setStep("success");
-          toast.success("Listing boosted successfully!");
-        } catch {
-          toast.error("Payment received but boost failed. Contact support.");
-        }
-        setLoading(false);
-      },
-      onClose: () => {
-        toast("Payment cancelled");
-        setLoading(false);
-      },
-    });
+    try {
+      const handler = (window as any).PaystackPop.setup({
+        key: PAYSTACK_PUBLIC_KEY,
+        email: user.email,
+        amount: BOOST_FEE * 100, // in pesewas
+        currency: "GHS",
+        ref,
+        channels: ["card", "mobile_money", "bank"],
+        metadata: {
+          listing_id: listing.id,
+          listing_name: listing.name,
+          seller_id: user.id,
+        },
+        callback: async (response: { reference: string }) => {
+          try {
+            await boostListing(listing.id);
+            setStep("success");
+          } catch {
+            toast.error("Payment received but boost failed. Contact support with ref: " + response.reference);
+          }
+          setLoading(false);
+        },
+        onClose: () => {
+          toast("Payment window closed");
+          setLoading(false);
+        },
+      });
 
-    handler.openIframe();
+      handler.openIframe();
+    } catch (err) {
+      toast.error("Could not open payment. Please try again.");
+      setLoading(false);
+    }
   };
 
   return (
@@ -116,7 +99,6 @@ const BoostModal = ({ listing, onClose }: Props) => {
           transition={{ type: "spring", stiffness: 300, damping: 28 }}
           className="relative bg-card border border-border rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl"
         >
-          {/* Close */}
           {step !== "success" && (
             <button onClick={onClose}
               className="absolute top-4 right-4 w-7 h-7 rounded-full border border-border flex items-center justify-center
@@ -125,7 +107,7 @@ const BoostModal = ({ listing, onClose }: Props) => {
             </button>
           )}
 
-          {/* ── Step 1: Confirm ── */}
+          {/* ── Confirm ── */}
           {step === "confirm" && (
             <div className="p-6">
               <div className="flex items-center gap-3 mb-5">
@@ -138,7 +120,6 @@ const BoostModal = ({ listing, onClose }: Props) => {
                 </div>
               </div>
 
-              {/* Listing preview */}
               <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50 border border-border mb-5">
                 <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0 overflow-hidden">
                   {listing.image
@@ -152,12 +133,11 @@ const BoostModal = ({ listing, onClose }: Props) => {
                 </div>
               </div>
 
-              {/* Benefits */}
               <div className="space-y-2.5 mb-6">
                 {[
                   { icon: Star, text: "Featured on the homepage for 7 days" },
                   { icon: Zap, text: `"Featured" badge on your listing` },
-                  { icon: CheckCircle, text: "First in search results for all buyers" },
+                  { icon: CheckCircle, text: "First in all search results" },
                   { icon: CheckCircle, text: "Higher visibility to all buyers" },
                 ].map(({ icon: Icon, text }) => (
                   <div key={text} className="flex items-center gap-2.5">
@@ -169,13 +149,11 @@ const BoostModal = ({ listing, onClose }: Props) => {
                 ))}
               </div>
 
-              {/* Price */}
               <div className="flex items-center justify-between p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 mb-4">
                 <span className="text-sm font-medium text-amber-700 dark:text-amber-400">Boost fee</span>
                 <span className="font-display font-bold text-xl text-amber-600">GHS {BOOST_FEE}</span>
               </div>
 
-              {/* Pay button */}
               <Button
                 onClick={handlePay}
                 disabled={loading}
@@ -187,7 +165,7 @@ const BoostModal = ({ listing, onClose }: Props) => {
                     <motion.div animate={{ rotate: 360 }}
                       transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
                       className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
-                    Loading payment...
+                    Opening payment...
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">
@@ -202,7 +180,7 @@ const BoostModal = ({ listing, onClose }: Props) => {
             </div>
           )}
 
-          {/* ── Step 2: Success ── */}
+          {/* ── Success ── */}
           {step === "success" && (
             <div className="p-8 text-center">
               <motion.div
@@ -213,14 +191,13 @@ const BoostModal = ({ listing, onClose }: Props) => {
               >
                 <Zap className="w-8 h-8 text-amber-500" />
               </motion.div>
-
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
                 <p className="font-display font-bold text-xl tracking-tight mb-2">You're Featured! 🎉</p>
                 <p className="text-sm text-muted-foreground leading-relaxed mb-1">
                   <span className="font-semibold text-foreground">{listing.name}</span> is now live in the Featured section.
                 </p>
                 <p className="text-xs text-muted-foreground mb-6">
-                  Your boost runs for {BOOST_DURATION} days. It will appear first in all search results.
+                  Your boost runs for {BOOST_DURATION} days and appears first in all search results.
                 </p>
                 <Button onClick={onClose} className="btn-primary rounded-full h-10 px-8 text-sm font-display">
                   Done
