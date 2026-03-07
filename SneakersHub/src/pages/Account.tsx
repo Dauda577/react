@@ -55,7 +55,7 @@ const Account = () => {
 
   const { saved, toggleSaved } = useSaved();
   const { orders, unseenCount, markOrdersSeen, confirmAsSeller, confirmAsBuyer } = useOrders();
-  const { listings, deleteListing, markSold } = useListings();
+  const { listings, deleteListing, markSold, boostListing } = useListings();
   const { getSellerStats, hasReviewed, reviews, fetchReviews } = useRatings();
   const [boostingListing, setBoostingListing] = useState<import("@/context/ListingContext").Listing | null>(null);
   const [ratingOrderId, setRatingOrderId] = useState<string | null>(null);
@@ -168,6 +168,20 @@ const Account = () => {
   useEffect(() => {
     if (role === "seller" && activeTab === "orders") markOrdersSeen();
   }, [role, activeTab]);
+
+  // Handle Paystack redirect callback — activate boost after successful payment
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const boostListingId = params.get("boost_success");
+    if (!boostListingId || !user?.id) return;
+    window.history.replaceState({}, "", window.location.pathname);
+    boostListing(boostListingId).then(() => {
+      toast.success("🎉 Listing boosted! It's now featured for 7 days.");
+      setActiveTab("listings");
+    }).catch(() => {
+      toast.error("Payment received but boost failed. Please contact support.");
+    });
+  }, [user?.id]);
 
   useEffect(() => {
     if (role === "seller" && activeTab === "profile" && user?.id) {

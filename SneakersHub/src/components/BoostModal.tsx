@@ -16,17 +16,16 @@ const BoostModal = ({ listing, onClose }: Props) => {
   const { user } = useAuth();
   const [step, setStep] = useState<Step>("confirm");
   const [loading, setLoading] = useState(false);
-  const paystackLoaded = useRef(false);
+  const scriptReady = useRef(false);
 
-  // Load Paystack script on mount
   useEffect(() => {
-    if (paystackLoaded.current) return;
+    // Load script eagerly on mount
     const existing = document.querySelector('script[src="https://js.paystack.co/v1/inline.js"]');
-    if (existing) { paystackLoaded.current = true; return; }
+    if (existing) { scriptReady.current = true; return; }
     const script = document.createElement("script");
     script.src = "https://js.paystack.co/v1/inline.js";
     script.async = true;
-    script.onload = () => { paystackLoaded.current = true; };
+    script.onload = () => { scriptReady.current = true; };
     document.head.appendChild(script);
   }, []);
 
@@ -36,49 +35,27 @@ const BoostModal = ({ listing, onClose }: Props) => {
       return;
     }
 
-    // Wait for script if still loading
-    if (!(window as any).PaystackPop) {
-      toast.error("Payment is still loading, please try again in a moment");
-      return;
-    }
-
     setLoading(true);
 
-    const ref = `boost_${listing.id}_${Date.now()}`;
+    // Use Paystack standard redirect — most reliable across all browsers/devices
+    const params = new URLSearchParams({
+      key: PAYSTACK_PUBLIC_KEY,
+      email: user.email,
+      amount: String(BOOST_FEE * 100),
+      currency: "GHS",
+      ref: `boost_${listing.id}_${Date.now()}`,
+      callback_url: `${window.location.origin}/account?boost_success=${listing.id}`,
+      metadata: JSON.stringify({
+        listing_id: listing.id,
+        listing_name: listing.name,
+        seller_id: user.id,
+        custom_fields: [
+          { display_name: "Listing", variable_name: "listing_name", value: listing.name },
+        ],
+      }),
+    });
 
-    try {
-      const handler = (window as any).PaystackPop.setup({
-        key: PAYSTACK_PUBLIC_KEY,
-        email: user.email,
-        amount: BOOST_FEE * 100, // in pesewas
-        currency: "GHS",
-        ref,
-        channels: ["card", "mobile_money", "bank"],
-        metadata: {
-          listing_id: listing.id,
-          listing_name: listing.name,
-          seller_id: user.id,
-        },
-        callback: async (response: { reference: string }) => {
-          try {
-            await boostListing(listing.id);
-            setStep("success");
-          } catch {
-            toast.error("Payment received but boost failed. Contact support with ref: " + response.reference);
-          }
-          setLoading(false);
-        },
-        onClose: () => {
-          toast("Payment window closed");
-          setLoading(false);
-        },
-      });
-
-      handler.openIframe();
-    } catch (err) {
-      toast.error("Could not open payment. Please try again.");
-      setLoading(false);
-    }
+    window.location.href = `https://checkout.paystack.com/initialize?${params.toString()}`;
   };
 
   return (
@@ -107,7 +84,6 @@ const BoostModal = ({ listing, onClose }: Props) => {
             </button>
           )}
 
-          {/* ── Confirm ── */}
           {step === "confirm" && (
             <div className="p-6">
               <div className="flex items-center gap-3 mb-5">
@@ -165,7 +141,7 @@ const BoostModal = ({ listing, onClose }: Props) => {
                     <motion.div animate={{ rotate: 360 }}
                       transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
                       className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
-                    Opening payment...
+                    Redirecting to Paystack...
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">
@@ -180,7 +156,6 @@ const BoostModal = ({ listing, onClose }: Props) => {
             </div>
           )}
 
-          {/* ── Success ── */}
           {step === "success" && (
             <div className="p-8 text-center">
               <motion.div
