@@ -11,6 +11,7 @@ const Navbar = () => {
   const links = [
     { to: "/", label: "Home" },
     { to: "/shop", label: "Shop" },
+    { to: "/account", label: "Account" },
     { to: "/about", label: "About" },
   ];
 
@@ -23,7 +24,7 @@ const Navbar = () => {
     >
       <div className="section-padding flex items-center justify-between h-16 max-w-7xl mx-auto">
         <Link to="/" className="font-display text-xl font-bold tracking-tighter">
-          SNKR<span className="text-gradient">S</span>
+          Sneakers<span className="text-gradient">Hub</span>
         </Link>
 
         {/* Desktop nav */}

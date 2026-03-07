@@ -12,7 +12,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <h3 className="font-display text-xl font-bold tracking-tighter mb-4">
-              SNKR<span className="text-gradient">S</span>
+              Sneakers<span className="text-gradient">Hub</span>
             </h3>
             <p className="text-sm text-muted-foreground leading-relaxed">
               Premium sneakers for those who demand the best. Curated collections from top brands.
@@ -38,7 +38,7 @@ const Footer = () => {
           ))}
         </div>
         <div className="border-t border-border mt-10 pt-6 text-center text-xs text-muted-foreground">
-          © 2026 SNKRS. All rights reserved.
+          © 2026 Sneakers Hub. All rights reserved.
         </div>
       </div>
     </motion.footer>

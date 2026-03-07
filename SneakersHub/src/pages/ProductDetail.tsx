@@ -1,7 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, ShoppingBag, Check } from "lucide-react";
+import { ArrowLeft, ShoppingBag, Check, MapPin, Phone, CheckCircle, Store } from "lucide-react";
 import { sneakers } from "@/data/sneakers";
 import { useCart } from "@/context/CartContext";
 import Navbar from "@/components/Navbar";
@@ -10,12 +10,28 @@ import SneakerCard from "@/components/SneakerCard";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
+// Mock seller data — replace with real data from your backend later
+const mockSeller = {
+  name: "Kwame Asante",
+  initials: "KA",
+  phone: "+233 24 000 0000",
+  location: "Accra, Ghana",
+  verified: true,
+  shopName: "Kwame's Sneaker Vault",
+  totalListings: 12,
+  rating: 4.9,
+  memberSince: "2023",
+};
+
 const ProductDetail = () => {
   const { id } = useParams();
   const sneaker = sneakers.find((s) => s.id === id);
   const { addItem } = useCart();
   const [selectedSize, setSelectedSize] = useState<number | null>(null);
   const [added, setAdded] = useState(false);
+
+  // In a real app this would come from auth context — e.g. const { role } = useAuth()
+  const role = "buyer";
 
   if (!sneaker) {
     return (
@@ -109,6 +125,73 @@ const ProductDetail = () => {
                 <span className="flex items-center gap-2"><ShoppingBag className="w-4 h-4" /> Add to Cart</span>
               )}
             </Button>
+
+            {/* ── Seller Info (buyer only) ── */}
+            {role === "buyer" && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="mt-6 rounded-2xl border border-border p-5"
+              >
+                <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-4">
+                  Sold by
+                </p>
+
+                <div className="flex items-center gap-3">
+                  {/* Avatar */}
+                  <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <span className="font-display text-sm font-bold text-primary">{mockSeller.initials}</span>
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-display font-semibold text-sm">{mockSeller.name}</p>
+                      {mockSeller.verified && (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-green-600 bg-green-500/10 px-2 py-0.5 rounded-full">
+                          <CheckCircle className="w-3 h-3" /> Verified
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <Store className="w-3 h-3 text-muted-foreground" />
+                      <p className="text-xs text-muted-foreground">{mockSeller.shopName}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contact details */}
+                <div className="mt-4 space-y-2 border-t border-border pt-4">
+                  <div className="flex items-center gap-2.5">
+                    <Phone className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                    <a
+                      href={`tel:${mockSeller.phone}`}
+                      className="text-sm text-foreground hover:text-primary transition-colors"
+                    >
+                      {mockSeller.phone}
+                    </a>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <MapPin className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                    <p className="text-sm text-muted-foreground">{mockSeller.location}</p>
+                  </div>
+                </div>
+
+                {/* Seller stats */}
+                <div className="mt-4 grid grid-cols-3 gap-2 border-t border-border pt-4">
+                  {[
+                    { label: "Listings", value: mockSeller.totalListings },
+                    { label: "Rating", value: `${mockSeller.rating} ★` },
+                    { label: "Since", value: mockSeller.memberSince },
+                  ].map((stat) => (
+                    <div key={stat.label} className="text-center">
+                      <p className="font-display font-bold text-sm">{stat.value}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{stat.label}</p>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
           </motion.div>
         </div>
 

@@ -2,6 +2,9 @@ import { motion } from "framer-motion";
 import { Sneaker } from "@/data/sneakers";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { Heart } from "lucide-react";
+import { useSaved } from "@/context/SavedContext";
+import { toast } from "sonner";
 
 interface SneakerCardProps {
   sneaker: Sneaker;
@@ -9,13 +12,53 @@ interface SneakerCardProps {
 }
 
 const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
+  const { toggleSaved, isSaved } = useSaved();
+  const saved = isSaved(sneaker.id);
+
+  const handleSave = () => {
+    toggleSaved({
+      id: sneaker.id,
+      title: sneaker.name,
+      price: `$${sneaker.price}`,
+      image: sneaker.image,
+      brand: sneaker.brand,
+    });
+    if (saved) {
+      toast.success(`${sneaker.name} removed from saved`);
+    } else {
+      toast.success(`${sneaker.name} added to saved`);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 40 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-50px" }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
+      className="relative"
     >
+      {/* Heart button — sits outside the Link so clicks don't navigate */}
+      <button
+        onClick={handleSave}
+        className={`absolute top-3 right-3 z-10 w-8 h-8 rounded-full flex items-center justify-center
+          backdrop-blur-sm border transition-all duration-200
+          ${saved
+            ? "bg-red-500/10 border-red-300 text-red-500"
+            : "bg-background/70 border-border text-muted-foreground hover:text-red-400 hover:border-red-200"
+          }`}
+        aria-label={saved ? "Remove from saved" : "Save item"}
+      >
+        <motion.div
+          key={saved ? "saved" : "unsaved"}
+          initial={{ scale: 0.7 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", stiffness: 400, damping: 15 }}
+        >
+          <Heart className="w-4 h-4" fill={saved ? "currentColor" : "none"} />
+        </motion.div>
+      </button>
+
       <Link to={`/product/${sneaker.id}`} className="sneaker-card block group">
         <div className="relative aspect-square bg-secondary overflow-hidden flex items-center justify-center p-8">
           <img

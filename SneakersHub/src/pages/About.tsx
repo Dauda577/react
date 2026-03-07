@@ -27,7 +27,7 @@ const About = () => {
           className="space-y-6 text-muted-foreground leading-relaxed text-lg"
         >
           <p>
-            SNKRS was born from an obsession with footwear culture. We believe every pair of sneakers tells a story — of innovation, self-expression, and the relentless pursuit of excellence.
+            Sneakers Hub was born from an obsession with footwear culture. We believe every pair of sneakers tells a story — of innovation, self-expression, and the relentless pursuit of excellence.
           </p>
           <p>
             Our team hand-picks every product in our collection, ensuring authenticity and quality that meets the highest standards. From performance runners to timeless classics, we curate for those who appreciate craft.
