@@ -12,15 +12,24 @@ const ResetPassword = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
-  const [validSession, setValidSession] = useState(false);
+  const [ready, setReady] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Supabase puts the recovery token in the URL hash — getSession picks it up
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setValidSession(true);
-      else navigate("/auth", { replace: true });
+    // Listen for the PASSWORD_RECOVERY event — Supabase fires this
+    // when it detects a recovery token in the URL hash
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" && session) {
+        setReady(true);
+      }
     });
+
+    // Also check if session already exists (page refresh case)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) setReady(true);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleReset = async () => {
@@ -35,12 +44,9 @@ const ResetPassword = () => {
       setTimeout(() => navigate("/"), 2000);
     } catch (err: any) {
       toast.error(err.message ?? "Failed to update password");
-    } finally {
       setLoading(false);
     }
   };
-
-  if (!validSession) return null;
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center relative overflow-hidden">
@@ -60,7 +66,13 @@ const ResetPassword = () => {
           {done ? (
             <div className="flex flex-col items-center gap-3 py-4">
               <CheckCircle className="w-10 h-10 text-green-500" />
-              <p className="text-sm font-medium text-center">Password updated! Redirecting you home...</p>
+              <p className="text-sm font-medium text-center">Password updated! Redirecting...</p>
+            </div>
+          ) : !ready ? (
+            <div className="flex flex-col items-center gap-3 py-6">
+              <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="w-8 h-8 border-2 border-border border-t-primary rounded-full" />
+              <p className="text-sm text-muted-foreground">Verifying reset link...</p>
             </div>
           ) : (
             <>
@@ -68,13 +80,9 @@ const ResetPassword = () => {
                 <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">New Password</label>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
-                  />
+                  <input type={showPassword ? "text" : "password"} value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)} placeholder="••••••••"
+                    className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]" />
                   <button type="button" onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -86,13 +94,9 @@ const ResetPassword = () => {
                 <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Confirm Password</label>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
-                  />
+                  <input type={showPassword ? "text" : "password"} value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]" />
                 </div>
               </div>
 
