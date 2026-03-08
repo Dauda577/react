@@ -21,6 +21,7 @@ type AuthContextType = {
   assignRole: (role: "buyer" | "seller") => Promise<void>;
   continueAsGuest: () => void;
   logout: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -144,6 +145,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
   };
 
+  const resetPassword = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) throw new Error(error.message);
+  };
+
   const logout = async () => {
     await supabase.auth.signOut();
     setUser(null);
@@ -157,7 +165,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       user, isGuest,
       isAuthenticated: !!user || isGuest,
       loading, needsRole,
-      login, signup, signInWithGoogle, assignRole, continueAsGuest, logout,
+      login, signup, signInWithGoogle, assignRole, continueAsGuest, logout, resetPassword,
     }}>
       {loading ? <Spinner /> : children}
     </AuthContext.Provider>

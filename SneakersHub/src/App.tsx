@@ -20,6 +20,7 @@ import InstallPrompt from "@/components/InstallPrompt";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 // Lazy loaded — only downloaded when the user navigates to them
@@ -105,6 +106,7 @@ const App = () => (
                               }
                             />
                             <Route path="/auth/callback" element={<AuthCallback />} />
+                            <Route path="/reset-password" element={<ResetPassword />} />
                             <Route path="*" element={<NotFound />} />
                           </Routes>
                         </Suspense>
