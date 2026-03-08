@@ -92,7 +92,6 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     if (!user) { setOrders([]); return; }
     setLoading(true);
 
-    // Fetch orders where user is buyer or seller
     const { data: orderData, error } = await supabase
       .from("orders")
       .select("*")
@@ -101,7 +100,6 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
 
     if (error || !orderData) { setLoading(false); return; }
 
-    // Fetch all items for these orders
     const orderIds = orderData.map((o: OrderRow) => o.id);
     const { data: itemData } = await supabase
       .from("order_items")
@@ -120,7 +118,6 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => { fetchOrders(); }, [user?.id]);
 
-  // Real-time: refetch whenever orders table changes for this user
   useEffect(() => {
     if (!user?.id) return;
     const channel = supabase
@@ -136,12 +133,14 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     return () => { supabase.removeChannel(channel); };
   }, [user?.id]);
 
-  const placeOrder = async (order: Omit<Order, "id" | "placedAt" | "seen" | "sellerConfirmed" | "buyerConfirmed" | "status"> & { sellerId: string }) => {
+  const placeOrder = async (
+    order: Omit<Order, "id" | "placedAt" | "seen" | "sellerConfirmed" | "buyerConfirmed" | "status"> & { sellerId: string }
+  ) => {
     if (!user) throw new Error("Not authenticated");
 
     const { data: orderRow, error } = await supabase.from("orders").insert({
       buyer_id: user.id,
-      seller_id: order.sellerId,  // ← real seller id from listing
+      seller_id: order.sellerId,
       subtotal: order.subtotal,
       delivery_fee: order.deliveryFee,
       total: order.total,
@@ -159,7 +158,6 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
 
     if (error) throw new Error(error.message);
 
-    // Insert order items
     const itemsToInsert = order.items.map((item) => ({
       order_id: orderRow.id,
       name: item.name,
@@ -170,46 +168,47 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       quantity: item.quantity,
     }));
 
-   await supabase.from("order_items").insert(itemsToInsert);
+    await supabase.from("order_items").insert(itemsToInsert);
 
-await triggerSMS({
-  type: "order.created",
-  record: orderRow
-});
+    // SMS: notify seller of new order
+    await triggerSMS({ type: "order.created", record: orderRow });
 
-await fetchOrders();
+    await fetchOrders();
+  };
 
   const confirmAsSeller = async (orderId: string) => {
     const order = orders.find((o) => o.id === orderId);
     const newStatus = order?.buyerConfirmed ? "delivered" : "shipped";
+
     const { error } = await supabase.from("orders").update({
       seller_confirmed: true,
       status: newStatus,
     }).eq("id", orderId);
+
     if (error) throw new Error(error.message);
 
-await triggerSMS({
-  type: "order.shipped",
-  record: { id: orderId }
-});
+    // SMS: notify buyer that order is shipped
+    await triggerSMS({ type: "order.shipped", record: { id: orderId, ...order } });
 
-await fetchOrders();
+    await fetchOrders();
+  };
 
   const confirmAsBuyer = async (orderId: string) => {
     const order = orders.find((o) => o.id === orderId);
     const newStatus = order?.sellerConfirmed ? "delivered" : "pending";
+
     const { error } = await supabase.from("orders").update({
       buyer_confirmed: true,
       status: newStatus,
     }).eq("id", orderId);
+
     if (error) throw new Error(error.message);
 
-await triggerSMS({
-  type: "order.delivered",
-  record: { id: orderId }
-});
+    // SMS: notify buyer of delivery confirmation
+    await triggerSMS({ type: "order.delivered", record: { id: orderId, ...order } });
 
-await fetchOrders();
+    await fetchOrders();
+  };
 
   const markOrdersSeen = async () => {
     if (!user) return;
