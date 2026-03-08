@@ -11,6 +11,7 @@ import { OrderProvider } from "@/context/OrderContext";
 import { ListingProvider } from "@/context/ListingContext";
 import { RatingProvider } from "@/context/RatingContext";
 import { PublicListingsProvider } from "@/context/PublicListingsContext";
+import { MessageProvider } from "@/context/MessageContext";
 import ScrollToTop from "@/components/ScrollToTop";
 import InstallPrompt from "@/components/InstallPrompt";
 
@@ -62,49 +63,51 @@ const App = () => (
               <ListingProvider>
                 <SavedProvider>
                   <CartProvider>
-                    <Toaster />
-                    <Sonner />
-                    <InstallPrompt />
-                    <BrowserRouter>
-                      <ScrollToTop />
-                      <Suspense fallback={<Spinner />}>
-                        <Routes>
-                          <Route path="/" element={<Index />} />
-                          <Route path="/shop" element={<Shop />} />
-                          <Route path="/product/:id" element={<ProductDetail />} />
-                          <Route path="/cart" element={<Cart />} />
-                          <Route path="/checkout" element={<Checkout />} />
-                          <Route path="/order-confirmation" element={<OrderConfirmation />} />
-                          <Route path="/about" element={<About />} />
-                          <Route
-                            path="/auth"
-                            element={
-                              <GuestRoute>
-                                <Auth />
-                              </GuestRoute>
-                            }
-                          />
-                          <Route
-  path="/account"
-  element={
-    <ProtectedRoute allowGuest>
-      <Account />
-    </ProtectedRoute>
-  }
-/>
-                          <Route
-                            path="/listings/new"
-                            element={
-                              <ProtectedRoute>
-                                <CreateListing />
-                              </ProtectedRoute>
-                            }
-                          />
-                          <Route path="/auth/callback" element={<AuthCallback />} />
-                          <Route path="*" element={<NotFound />} />
-                        </Routes>
-                      </Suspense>
-                    </BrowserRouter>
+                    <MessageProvider>
+                      <Toaster />
+                      <Sonner />
+                      <InstallPrompt />
+                      <BrowserRouter>
+                        <ScrollToTop />
+                        <Suspense fallback={<Spinner />}>
+                          <Routes>
+                            <Route path="/" element={<Index />} />
+                            <Route path="/shop" element={<Shop />} />
+                            <Route path="/product/:id" element={<ProductDetail />} />
+                            <Route path="/cart" element={<Cart />} />
+                            <Route path="/checkout" element={<Checkout />} />
+                            <Route path="/order-confirmation" element={<OrderConfirmation />} />
+                            <Route path="/about" element={<About />} />
+                            <Route
+                              path="/auth"
+                              element={
+                                <GuestRoute>
+                                  <Auth />
+                                </GuestRoute>
+                              }
+                            />
+                            <Route
+                              path="/account"
+                              element={
+                                <ProtectedRoute allowGuest>
+                                  <Account />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route
+                              path="/listings/new"
+                              element={
+                                <ProtectedRoute>
+                                  <CreateListing />
+                                </ProtectedRoute>
+                              }
+                            />
+                            <Route path="/auth/callback" element={<AuthCallback />} />
+                            <Route path="*" element={<NotFound />} />
+                          </Routes>
+                        </Suspense>
+                      </BrowserRouter>
+                    </MessageProvider>
                   </CartProvider>
                 </SavedProvider>
               </ListingProvider>

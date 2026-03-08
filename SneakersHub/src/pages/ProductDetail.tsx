@@ -1,14 +1,15 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ShoppingBag, Check, MapPin, Phone, CheckCircle, Store, X, UserPlus, LogIn, Star, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ShoppingBag, Check, MapPin, Phone, CheckCircle, X, UserPlus, LogIn, Star, ShieldCheck, MessageCircle } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-import { usePublicListings, PublicListing } from "@/context/PublicListingsContext";
+import { usePublicListings } from "@/context/PublicListingsContext";
 import { useRatings } from "@/context/RatingContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import SneakerCard from "@/components/SneakerCard";
+import ChatModal from "@/components/ChatModal";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -46,13 +47,14 @@ const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { listings, loading, incrementViews } = usePublicListings();
-  const { getSellerStats, fetchReviews, reviews } = useRatings();
+  const { getSellerStats, fetchReviews } = useRatings();
   const { addItem } = useCart();
   const { user, isGuest, loading: authLoading } = useAuth();
 
   const [selectedSize, setSelectedSize] = useState<number | null>(null);
   const [added, setAdded] = useState(false);
   const [showGuestModal, setShowGuestModal] = useState(false);
+  const [showChat, setShowChat] = useState(false);
 
   const listing = listings.find((l) => l.id === id);
   const related = listings.filter((l) => l.id !== id && l.category === listing?.category).slice(0, 3);
@@ -122,9 +124,19 @@ const ProductDetail = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <AnimatePresence>{showGuestModal && <GuestPromptModal onClose={() => setShowGuestModal(false)} />}</AnimatePresence>
+      <AnimatePresence>
+        {showChat && (
+          <ChatModal
+            receiverId={listing.sellerId}
+            receiverName={listing.sellerName}
+            listingId={listing.id}
+            listingName={listing.name}
+            onClose={() => setShowChat(false)}
+          />
+        )}
+      </AnimatePresence>
 
       <div className="section-padding max-w-6xl mx-auto pt-28 pb-20">
-        {/* Back */}
         <button onClick={() => navigate(-1)}
           className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8 group text-sm">
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Back
@@ -170,21 +182,17 @@ const ProductDetail = () => {
                     className={`w-11 h-11 rounded-xl border text-sm font-semibold transition-all
                       ${selectedSize === size
                         ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border hover:border-primary/50 text-foreground"
-                      }`}>
+                        : "border-border hover:border-primary/50 text-foreground"}`}>
                     {size}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Escrow notice for verified sellers */}
+            {/* Escrow notice */}
             {listing.sellerVerified && (
-              <motion.div
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-start gap-3 p-4 rounded-xl border border-green-500/30 bg-green-500/5"
-              >
+              <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                className="flex items-start gap-3 p-4 rounded-xl border border-green-500/30 bg-green-500/5">
                 <ShieldCheck className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="text-xs font-semibold text-green-700 dark:text-green-400">Escrow Protected Payment</p>
@@ -195,10 +203,9 @@ const ProductDetail = () => {
               </motion.div>
             )}
 
-            {/* Add to cart — hidden for sellers */}
+            {/* Add to cart */}
             {user?.role !== "seller" && (
-              <Button onClick={handleAddToCart}
-                disabled={authLoading}
+              <Button onClick={handleAddToCart} disabled={authLoading}
                 className={`w-full h-12 rounded-full font-display text-sm transition-all ${added ? "bg-green-500 hover:bg-green-500" : "btn-primary"}`}>
                 {authLoading
                   ? <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> Loading...</span>
@@ -207,6 +214,15 @@ const ProductDetail = () => {
                     : <><ShoppingBag className="w-4 h-4 mr-2" /> Add to Cart</>
                 }
               </Button>
+            )}
+
+            {/* Message Seller button — only for logged-in buyers */}
+            {user && !isGuest && user.role !== "seller" && (
+              <button onClick={() => setShowChat(true)}
+                className="w-full h-12 rounded-full border border-border text-sm font-semibold
+                  hover:bg-primary/5 hover:border-primary/40 transition-all flex items-center justify-center gap-2 text-foreground">
+                <MessageCircle className="w-4 h-4" /> Message Seller
+              </button>
             )}
 
             {/* Seller card */}
@@ -221,9 +237,7 @@ const ProductDetail = () => {
 
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <span className="font-display text-sm font-bold text-primary">
-                    {listing.sellerName[0].toUpperCase()}
-                  </span>
+                  <span className="font-display text-sm font-bold text-primary">{listing.sellerName[0].toUpperCase()}</span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
