@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { triggerSMS } from "@/lib/sms";
+
 
 export interface Message {
   id: string;
@@ -145,6 +147,11 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
 
     const { data, error } = await supabase.from("messages").insert(newMsg).select().single();
     if (error || !data) return;
+
+    // Trigger SMS notification to receiver
+    if (data.receiver_id !== user.id) {
+  await triggerSMS({ type: "message.created", record: data });
+}
 
     setMessages(prev => ({
       ...prev,

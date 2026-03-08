@@ -90,7 +90,9 @@ const Account = () => {
   const { listings, deleteListing, markSold, boostListing } = useListings();
   const { getSellerStats, hasReviewed, reviews, fetchReviews } = useRatings();
   const { totalUnread } = useMessages();
-  const { requestPermission, isSupported: pushSupported, permission: pushPermission } = usePush();
+  const { requestPermission, isSupported: pushSupported, permission: pushPermission } = (() => {
+    try { return usePush(); } catch { return { requestPermission: async () => false, isSupported: false, permission: "denied" as NotificationPermission }; }
+  })();
   const [boostingListing, setBoostingListing] = useState<import("@/context/ListingContext").Listing | null>(null);
   const [ratingOrderId, setRatingOrderId] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);

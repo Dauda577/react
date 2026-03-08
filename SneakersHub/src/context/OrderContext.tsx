@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase, OrderRow, OrderItemRow } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import { triggerSMS } from "@/lib/sms";
 
 export type OrderItem = {
   id: string;
@@ -169,9 +170,14 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       quantity: item.quantity,
     }));
 
-    await supabase.from("order_items").insert(itemsToInsert);
-    await fetchOrders();
-  };
+   await supabase.from("order_items").insert(itemsToInsert);
+
+await triggerSMS({
+  type: "order.created",
+  record: orderRow
+});
+
+await fetchOrders();
 
   const confirmAsSeller = async (orderId: string) => {
     const order = orders.find((o) => o.id === orderId);
@@ -181,8 +187,13 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       status: newStatus,
     }).eq("id", orderId);
     if (error) throw new Error(error.message);
-    await fetchOrders();
-  };
+
+await triggerSMS({
+  type: "order.shipped",
+  record: { id: orderId }
+});
+
+await fetchOrders();
 
   const confirmAsBuyer = async (orderId: string) => {
     const order = orders.find((o) => o.id === orderId);
@@ -192,8 +203,13 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       status: newStatus,
     }).eq("id", orderId);
     if (error) throw new Error(error.message);
-    await fetchOrders();
-  };
+
+await triggerSMS({
+  type: "order.delivered",
+  record: { id: orderId }
+});
+
+await fetchOrders();
 
   const markOrdersSeen = async () => {
     if (!user) return;
