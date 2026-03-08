@@ -3,7 +3,7 @@
   "short_name": "SneakersHub",
   "description": "Buy and sell premium sneakers in Ghana",
   "start_url": "/",
-  "display": "standalone",
+  "display": "minimal-ui",
   "background_color": "#0a0a0a",
   "theme_color": "#ff5c1a",
   "orientation": "portrait-primary",
