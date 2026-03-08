@@ -74,7 +74,7 @@ const Auth = () => {
     }
   };
 
-  const handleSkip = () => { continueAsGuest(); navigate("/"); };
+  const handleSkip = () => { continueAsGuest(); navigate("/account"); };
   const switchMode = (newMode: Mode) => { setMode(newMode); setForm({ name: "", email: "", password: "" }); };
 
   // ── Role picker screen for new Google users ──

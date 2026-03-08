@@ -38,10 +38,12 @@ const Spinner = () => (
   </div>
 );
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
+const ProtectedRoute = ({ children, allowGuest = false }: { children: React.ReactNode; allowGuest?: boolean }) => {
+  const { user, isGuest, loading } = useAuth();
   if (loading) return <Spinner />;
-  return user ? <>{children}</> : <Navigate to="/auth" replace />;
+  if (user) return <>{children}</>;
+  if (allowGuest && isGuest) return <>{children}</>;
+  return <Navigate to="/auth" replace />;
 };
 
 const GuestRoute = ({ children }: { children: React.ReactNode }) => {
@@ -83,13 +85,13 @@ const App = () => (
                             }
                           />
                           <Route
-                            path="/account"
-                            element={
-                              <ProtectedRoute>
-                                <Account />
-                              </ProtectedRoute>
-                            }
-                          />
+  path="/account"
+  element={
+    <ProtectedRoute allowGuest>
+      <Account />
+    </ProtectedRoute>
+  }
+/>
                           <Route
                             path="/listings/new"
                             element={
