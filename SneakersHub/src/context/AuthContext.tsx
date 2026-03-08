@@ -14,7 +14,7 @@ type AuthContextType = {
   isGuest: boolean;
   isAuthenticated: boolean;
   loading: boolean;
-  needsRole: boolean; // true for new Google users who haven't picked a role yet
+  needsRole: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string, role: "buyer" | "seller") => Promise<void>;
   signInWithGoogle: () => Promise<void>;
@@ -24,6 +24,12 @@ type AuthContextType = {
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
+
+const Spinner = () => (
+  <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+  </div>
+);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -54,11 +60,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const profile = await fetchProfile(session.user.id, session.user.email ?? "");
 
     if (!profile) {
-      // New Google user — no profile yet, needs role assignment
-      const name = session.user.user_metadata?.full_name
-        ?? session.user.user_metadata?.name
-        ?? session.user.email?.split("@")[0]
-        ?? "User";
+      const name =
+        session.user.user_metadata?.full_name ??
+        session.user.user_metadata?.name ??
+        session.user.email?.split("@")[0] ??
+        "User";
       setPendingSession({ id: session.user.id, email: session.user.email ?? "", name });
       setNeedsRole(true);
       setUser(null);
@@ -70,18 +76,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
+    // Timeout fallback — if Supabase takes too long, unblock the UI
+    const timeout = setTimeout(() => {
+      setLoading(false);
+    }, 3000);
+
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      clearTimeout(timeout);
       await handleSession(session);
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session: Session | null) => {
-        await handleSession(session);
-      }
-    );
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session: Session | null) => {
+      await handleSession(session);
+    });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -90,7 +105,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsGuest(false);
   };
 
-  const signup = async (name: string, email: string, password: string, role: "buyer" | "seller") => {
+  const signup = async (
+    name: string,
+    email: string,
+    password: string,
+    role: "buyer" | "seller"
+  ) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -111,17 +131,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (error) throw new Error(error.message);
   };
 
-  // Called after Google sign-in when user selects their role
   const assignRole = async (role: "buyer" | "seller") => {
     if (!pendingSession) return;
     const { id, email, name } = pendingSession;
 
-    // Upsert profile with chosen role
-    const { error } = await supabase.from("profiles").upsert({
-      id,
-      name,
-      role,
-    });
+    const { error } = await supabase.from("profiles").upsert({ id, name, role });
     if (error) throw new Error(error.message);
 
     setUser({ id, name, email, role });
@@ -130,7 +144,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsGuest(false);
   };
 
-  const continueAsGuest = () => { setIsGuest(true); setUser(null); };
+  const continueAsGuest = () => {
+    setIsGuest(true);
+    setUser(null);
+  };
 
   const logout = async () => {
     await supabase.auth.signOut();
@@ -141,11 +158,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{
-      user, isGuest, isAuthenticated: !!user || isGuest, loading, needsRole,
-      login, signup, signInWithGoogle, assignRole, continueAsGuest, logout,
-    }}>
-      {!loading && children}
+    <AuthContext.Provider
+      value={{
+        user,
+        isGuest,
+        isAuthenticated: !!user || isGuest,
+        loading,
+        needsRole,
+        login,
+        signup,
+        signInWithGoogle,
+        assignRole,
+        continueAsGuest,
+        logout,
+      }}
+    >
+      {loading ? <Spinner /> : children}
     </AuthContext.Provider>
   );
 };
