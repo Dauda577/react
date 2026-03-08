@@ -16,17 +16,37 @@ const ResetPassword = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Listen for the PASSWORD_RECOVERY event — Supabase fires this
-    // when it detects a recovery token in the URL hash
+    // Supabase puts tokens in the URL hash: #access_token=...&type=recovery
+    const hash = window.location.hash;
+    
+    if (hash && hash.includes("type=recovery")) {
+      // Let Supabase parse the hash and set the session
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          setReady(true);
+        } else {
+          // Hash not yet parsed — wait a moment and retry
+          setTimeout(() => {
+            supabase.auth.getSession().then(({ data: { session: s } }) => {
+              if (s) setReady(true);
+              else toast.error("Reset link expired. Please request a new one.");
+            });
+          }, 1500);
+        }
+      });
+    } else {
+      // No hash — check if already has valid session
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) setReady(true);
+        else toast.error("Invalid reset link. Please request a new one.");
+      });
+    }
+
+    // Also listen for PASSWORD_RECOVERY event as backup
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "PASSWORD_RECOVERY" && session) {
+      if ((event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") && session) {
         setReady(true);
       }
-    });
-
-    // Also check if session already exists (page refresh case)
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setReady(true);
     });
 
     return () => subscription.unsubscribe();

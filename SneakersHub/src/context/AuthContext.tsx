@@ -62,8 +62,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const profile = await fetchProfile(session.user.id, session.user.email ?? "");
 
-    console.log("[Auth] user id:", session.user.id, "profile:", profile);
-
     if (!profile) {
       // No profile or no role — show role picker
       const name =
@@ -91,7 +89,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session: Session | null) => {
+      async (event, session: Session | null) => {
+        if (event === "PASSWORD_RECOVERY") return;
         await handleSession(session);
       }
     );
