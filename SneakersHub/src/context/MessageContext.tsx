@@ -49,6 +49,10 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
   const profileCacheRef = useRef<Record<string, string>>({});
   const channelRef = useRef<any>(null);
+  const messagesRef = useRef<Record<string, Message[]>>({});
+
+  // Keep ref in sync for use in realtime handlers
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
 
   const getOrCreateConversationId = (userA: string, userB: string, listingId?: string) => {
     const sorted = [userA, userB].sort().join("_");
@@ -57,7 +61,6 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
 
   const totalUnread = conversations.reduce((sum, c) => sum + c.unread_count, 0);
 
-  // ── Fetch profile name (cached) ───────────────────────────────────────────
   const getProfileName = useCallback(async (id: string): Promise<string> => {
     if (profileCacheRef.current[id]) return profileCacheRef.current[id];
     const { data } = await supabase.from("profiles").select("name").eq("id", id).single();
@@ -66,43 +69,37 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
     return name;
   }, []);
 
-  // ── Rebuild conversations from flat messages state ────────────────────────
-  const rebuildConversations = useCallback(
-    async (allMessages: Record<string, Message[]>) => {
-      if (!user?.id) return;
+  const buildConversations = useCallback(async (allMessages: Record<string, Message[]>) => {
+    if (!user?.id) return;
 
-      const convList: Conversation[] = await Promise.all(
-        Object.entries(allMessages).map(async ([conv_id, msgs]) => {
-          const sorted = [...msgs].sort(
-            (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          );
-          const latest = sorted[0];
-          const otherId = latest.sender_id === user.id ? latest.receiver_id : latest.sender_id;
-          const otherName = await getProfileName(otherId);
-          const unread = msgs.filter((m) => m.receiver_id === user.id && !m.seen).length;
+    const convList: Conversation[] = await Promise.all(
+      Object.entries(allMessages).map(async ([conv_id, msgs]) => {
+        const sorted = [...msgs].sort((a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        const latest = sorted[0];
+        const otherId = latest.sender_id === user.id ? latest.receiver_id : latest.sender_id;
+        const otherName = await getProfileName(otherId);
+        const unread = msgs.filter((m) => m.receiver_id === user.id && !m.seen).length;
+        return {
+          conversation_id: conv_id,
+          other_user_id: otherId,
+          other_user_name: otherName,
+          listing_id: latest.listing_id,
+          listing_name: undefined,
+          last_message: latest.content,
+          last_message_at: latest.created_at,
+          unread_count: unread,
+        };
+      })
+    );
 
-          return {
-            conversation_id: conv_id,
-            other_user_id: otherId,
-            other_user_name: otherName,
-            listing_id: latest.listing_id,
-            listing_name: undefined,
-            last_message: latest.content,
-            last_message_at: latest.created_at,
-            unread_count: unread,
-          };
-        })
-      );
+    convList.sort((a, b) =>
+      new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime()
+    );
+    setConversations(convList);
+  }, [user?.id, getProfileName]);
 
-      convList.sort(
-        (a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime()
-      );
-      setConversations(convList);
-    },
-    [user?.id, getProfileName]
-  );
-
-  // ── Initial fetch ─────────────────────────────────────────────────────────
   const fetchConversations = useCallback(async () => {
     if (!user?.id) return;
 
@@ -121,12 +118,11 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
     });
 
     setMessages(grouped);
-    await rebuildConversations(grouped);
-  }, [user?.id, rebuildConversations]);
+    await buildConversations(grouped);
+  }, [user?.id, buildConversations]);
 
   const fetchMessages = useCallback(async (conversationId: string) => {
     if (!user?.id) return;
-
     const { data, error } = await supabase
       .from("messages")
       .select("*")
@@ -134,66 +130,55 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
       .order("created_at", { ascending: true });
 
     if (error || !data) return;
-
     setMessages((prev) => {
       const updated = { ...prev, [conversationId]: data };
-      rebuildConversations(updated);
+      buildConversations(updated);
       return updated;
     });
-  }, [user?.id, rebuildConversations]);
+  }, [user?.id, buildConversations]);
 
-  // ── Handle an incoming realtime message (works for both sender & receiver) ─
-  const handleIncomingMessage = useCallback(
-    async (msg: Message) => {
-      setMessages((prev) => {
-        const existing = prev[msg.conversation_id] ?? [];
-        // Avoid duplicates (optimistic messages already added)
-        if (existing.some((m) => m.id === msg.id)) return prev;
-        const updated = {
-          ...prev,
-          [msg.conversation_id]: [...existing, msg],
-        };
-        rebuildConversations(updated);
-        return updated;
-      });
-    },
-    [rebuildConversations]
-  );
-
-  // ── Realtime subscription ─────────────────────────────────────────────────
+  // ── Realtime ──────────────────────────────────────────────────────────────
+  // NO filter: param — we filter client-side so both sender and receiver see updates
   useEffect(() => {
     if (!user?.id) return;
 
     fetchConversations();
 
-    // Subscribe to ALL messages where the user is involved (both sender and receiver)
     channelRef.current = supabase
-      .channel(`messages:user:${user.id}`)
-      .on("postgres_changes", {
-        event: "INSERT",
-        schema: "public",
-        table: "messages",
-        filter: `receiver_id=eq.${user.id}`,
-      }, (payload: any) => {
-        handleIncomingMessage(payload.new as Message);
-      })
-      .on("postgres_changes", {
-        event: "UPDATE",
-        schema: "public",
-        table: "messages",
-        filter: `receiver_id=eq.${user.id}`,
-      }, (payload: any) => {
-        // Handle seen status updates
-        const updated = payload.new as Message;
-        setMessages((prev) => {
-          const conv = prev[updated.conversation_id];
-          if (!conv) return prev;
-          const newConv = conv.map((m) => (m.id === updated.id ? { ...m, ...updated } : m));
-          const newMessages = { ...prev, [updated.conversation_id]: newConv };
-          rebuildConversations(newMessages);
-          return newMessages;
-        });
-      })
+      .channel(`messages:${user.id}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" },
+        (payload: any) => {
+          const msg = payload.new as Message;
+          // Only handle messages involving this user
+          if (msg.sender_id !== user.id && msg.receiver_id !== user.id) return;
+
+          setMessages((prev) => {
+            const existing = prev[msg.conversation_id] ?? [];
+            // Avoid duplicates (optimistic messages use temp ids)
+            if (existing.some((m) => m.id === msg.id)) return prev;
+            // Replace any optimistic placeholder that matches content + sender
+            const withoutOptimistic = existing.filter(
+              (m) => !(m.id.startsWith("optimistic-") && m.content === msg.content && m.sender_id === msg.sender_id)
+            );
+            const updated = { ...prev, [msg.conversation_id]: [...withoutOptimistic, msg] };
+            buildConversations(updated);
+            return updated;
+          });
+        }
+      )
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" },
+        (payload: any) => {
+          const msg = payload.new as Message;
+          if (msg.sender_id !== user.id && msg.receiver_id !== user.id) return;
+          setMessages((prev) => {
+            const conv = prev[msg.conversation_id];
+            if (!conv) return prev;
+            const updated = { ...prev, [msg.conversation_id]: conv.map((m) => m.id === msg.id ? msg : m) };
+            buildConversations(updated);
+            return updated;
+          });
+        }
+      )
       .subscribe((status: string) => console.log("[Messages] realtime:", status));
 
     return () => {
@@ -201,19 +186,18 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [user?.id]);
 
-  // ── Send message ──────────────────────────────────────────────────────────
   const sendMessage = useCallback(async (
     receiverId: string,
     content: string,
     listingId?: string,
-    _listingName?: string
   ) => {
     if (!user?.id || !content.trim()) return;
 
     const conversationId = getOrCreateConversationId(user.id, receiverId, listingId);
+    const tempId = `optimistic-${Date.now()}`;
 
     const optimisticMsg: Message = {
-      id: `optimistic-${Date.now()}`,
+      id: tempId,
       conversation_id: conversationId,
       sender_id: user.id,
       receiver_id: receiverId,
@@ -223,13 +207,10 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
       seen: false,
     };
 
-    // Optimistic: show message instantly on sender's side
+    // Show instantly on sender's side
     setMessages((prev) => {
-      const updated = {
-        ...prev,
-        [conversationId]: [...(prev[conversationId] ?? []), optimisticMsg],
-      };
-      rebuildConversations(updated);
+      const updated = { ...prev, [conversationId]: [...(prev[conversationId] ?? []), optimisticMsg] };
+      buildConversations(updated);
       return updated;
     });
 
@@ -247,62 +228,50 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
       .single();
 
     if (error || !data) {
-      // Revert optimistic message
+      // Revert optimistic on failure
       setMessages((prev) => {
-        const conv = (prev[conversationId] ?? []).filter((m) => m.id !== optimisticMsg.id);
+        const conv = (prev[conversationId] ?? []).filter((m) => m.id !== tempId);
         const updated = { ...prev, [conversationId]: conv };
-        rebuildConversations(updated);
+        buildConversations(updated);
         return updated;
       });
       return;
     }
 
-    // Replace optimistic message with real one
+    // Replace optimistic with real message
     setMessages((prev) => {
-      const conv = (prev[conversationId] ?? []).map((m) =>
-        m.id === optimisticMsg.id ? (data as Message) : m
-      );
+      const conv = (prev[conversationId] ?? []).map((m) => m.id === tempId ? (data as Message) : m);
       const updated = { ...prev, [conversationId]: conv };
-      rebuildConversations(updated);
+      buildConversations(updated);
       return updated;
     });
 
     if (data.receiver_id !== user.id) {
       await triggerSMS({ type: "message.created", record: data });
     }
-  }, [user?.id, rebuildConversations]);
+  }, [user?.id, buildConversations]);
 
-  // ── Mark conversation as seen ─────────────────────────────────────────────
   const markConversationSeen = useCallback(async (conversationId: string) => {
     if (!user?.id) return;
-
-    // Optimistic
     setMessages((prev) => {
       const conv = (prev[conversationId] ?? []).map((m) =>
         m.receiver_id === user.id ? { ...m, seen: true } : m
       );
       const updated = { ...prev, [conversationId]: conv };
-      rebuildConversations(updated);
+      buildConversations(updated);
       return updated;
     });
-
-    await supabase
-      .from("messages")
+    await supabase.from("messages")
       .update({ seen: true })
       .eq("conversation_id", conversationId)
       .eq("receiver_id", user.id)
       .eq("seen", false);
-  }, [user?.id, rebuildConversations]);
+  }, [user?.id, buildConversations]);
 
   return (
     <MessageContext.Provider value={{
-      conversations,
-      messages,
-      totalUnread,
-      sendMessage,
-      fetchMessages,
-      markConversationSeen,
-      getOrCreateConversationId,
+      conversations, messages, totalUnread,
+      sendMessage, fetchMessages, markConversationSeen, getOrCreateConversationId,
     }}>
       {children}
     </MessageContext.Provider>

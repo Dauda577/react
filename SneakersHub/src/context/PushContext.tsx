@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, ReactNode } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabase";
 
 interface PushContextType {
   requestPermission: () => Promise<boolean>;
@@ -16,188 +17,208 @@ export const usePush = () => {
   return ctx;
 };
 
-const isSupported = () =>
+const checkSupported = () =>
   typeof window !== "undefined" &&
-  "Notification" in window &&
-  "serviceWorker" in navigator;
+  "Notification" in window;
 
 export const PushProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
+  const channelsRef = useRef<any[]>([]);
 
-  const permission: NotificationPermission = isSupported()
+  const permission: NotificationPermission = checkSupported()
     ? Notification.permission
     : "denied";
 
   const requestPermission = async (): Promise<boolean> => {
-    if (!isSupported()) return false;
+    if (!checkSupported()) return false;
     const result = await Notification.requestPermission();
     return result === "granted";
   };
 
-  const showLocalNotification = (title: string, body: string, url = "/") => {
-    if (!isSupported() || Notification.permission !== "granted") return;
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.ready.then((reg) => {
-        reg.showNotification(title, {
-          body,
-          icon: "/icons/icon-192.png",
-          badge: "/icons/icon-192.png",
-          vibrate: [100, 50, 100],
-          data: { url },
-          tag: "sneakershub",
-          renotify: true,
-        } as NotificationOptions);
-      });
+  // ── Core notification function ─────────────────────────────────────────
+  // Works in BOTH browser tabs AND installed PWA.
+  // Strategy:
+  //   1. Try service worker (works in PWA + modern browsers with active SW)
+  //   2. Fall back to new Notification() (works in any browser with permission)
+  const showLocalNotification = (title: string, body: string, url = "/account") => {
+    if (!checkSupported() || Notification.permission !== "granted") return;
+
+    const options = {
+      body,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      vibrate: [100, 50, 100],
+      data: { url },
+      tag: `sneakershub-${Date.now()}`,
+      renotify: true,
+    };
+
+    // Try SW first — if it's not available or fails, fall back
+    if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.ready
+        .then((reg) => reg.showNotification(title, options as NotificationOptions))
+        .catch(() => {
+          // SW failed — use plain Notification API
+          new Notification(title, { body, icon: "/icons/icon-192.png" });
+        });
     } else {
+      // No active service worker — plain Notification API
+      // This is the path that runs in regular browser tabs
       new Notification(title, { body, icon: "/icons/icon-192.png" });
     }
   };
 
-  // ── Seller: verification status ──────────────────────────────────────────
-  useEffect(() => {
-    if (!user?.id || user.role !== "seller") return;
-    if (!isSupported() || Notification.permission !== "granted") return;
+  // ── Clean up all channels on unmount / user change ────────────────────
+  const clearChannels = () => {
+    channelsRef.current.forEach((ch) => supabase.removeChannel(ch));
+    channelsRef.current = [];
+  };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let channel: any;
-    import("@/lib/supabase").then(({ supabase }) => {
-      channel = supabase
-        .channel(`push:seller:verified:${user.id}`)
+  // ── Subscribe to all push events for this user ────────────────────────
+  useEffect(() => {
+    if (!user?.id || !checkSupported() || Notification.permission !== "granted") return;
+
+    clearChannels();
+
+    // ── SELLER channels ──────────────────────────────────────────────────
+    if (user.role === "seller") {
+
+      // 1. Seller verified badge
+      const verifiedCh = supabase
+        .channel(`push:verified:${user.id}`)
         .on("postgres_changes", {
           event: "UPDATE",
           schema: "public",
           table: "profiles",
+          // profiles filter is safe — filtering by primary key always works
           filter: `id=eq.${user.id}`,
-        }, 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (payload: any) => {
-          const wasVerified = payload.old?.verified;
-          const isNowVerified = payload.new?.verified;
-          if (!wasVerified && isNowVerified) {
+        }, (payload: any) => {
+          if (!payload.old?.verified && payload.new?.verified) {
             showLocalNotification(
               "✅ Account Verified!",
-              "Congratulations! Your SneakersHub seller account has been verified.",
+              "Your SneakersHub seller account is now verified.",
               "/account"
             );
           }
         })
-        .subscribe((status: string) => console.log("[Push] verified:", status));
-    });
-    return () => {
-      import("@/lib/supabase").then(({ supabase }) => {
-        if (channel) supabase.removeChannel(channel);
-      });
-    };
-  }, [user?.id, user?.role]);
+        .subscribe((s: string) => console.log("[Push] verified:", s));
 
-  // ── Seller: new orders ───────────────────────────────────────────────────
-  useEffect(() => {
-    if (!user?.id || user.role !== "seller") return;
-    if (!isSupported() || Notification.permission !== "granted") return;
-    if (localStorage.getItem("notif_orders") === "false") return;
+      channelsRef.current.push(verifiedCh);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let channel: any;
-    import("@/lib/supabase").then(({ supabase }) => {
-      channel = supabase
-        .channel(`push:seller:orders:${user.id}`)
-        .on("postgres_changes", {
-          event: "INSERT",
-          schema: "public",
-          table: "orders",
-          filter: `seller_id=eq.${user.id}`,
-        }, 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (payload: any) => {
-          showLocalNotification(
-            "🛒 New Order!",
-            `You received a new order worth GHS ${payload.new.total}`,
-            "/account"
-          );
-        })
-        .subscribe((status: string) => console.log("[Push] seller:", status));
-    });
-    return () => {
-      import("@/lib/supabase").then(({ supabase }) => {
-        if (channel) supabase.removeChannel(channel);
-      });
-    };
-  }, [user?.id, user?.role]);
+      // 2. New orders for seller — NO filter (client-side check instead)
+      if (localStorage.getItem("notif_orders") !== "false") {
+        const orderCh = supabase
+          .channel(`push:orders:${user.id}`)
+          .on("postgres_changes", {
+            event: "INSERT",
+            schema: "public",
+            table: "orders",
+          }, (payload: any) => {
+            // Client-side filter — only notify this seller
+            if (payload.new.seller_id !== user.id) return;
+            showLocalNotification(
+              "🛒 New Order!",
+              `You received a new order worth GHS ${payload.new.total}`,
+              "/account"
+            );
+          })
+          .subscribe((s: string) => console.log("[Push] seller orders:", s));
 
-  // ── Buyer: order status updates ──────────────────────────────────────────
-  useEffect(() => {
-    if (!user?.id || user.role !== "buyer") return;
-    if (!isSupported() || Notification.permission !== "granted") return;
-    if (localStorage.getItem("notif_orders") === "false") return;
+        channelsRef.current.push(orderCh);
+      }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let channel: any;
-    import("@/lib/supabase").then(({ supabase }) => {
-      channel = supabase
-        .channel(`push:buyer:orders:${user.id}`)
-        .on("postgres_changes", {
-          event: "UPDATE",
-          schema: "public",
-          table: "orders",
-          filter: `buyer_id=eq.${user.id}`,
-        },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any 
-        (payload: any) => {
-          const { status } = payload.new;
-          if (status === "shipped") {
-            showLocalNotification("📦 Order Shipped!", "Your order is on its way.", "/account");
-          } else if (status === "delivered") {
-            showLocalNotification("✅ Order Delivered!", "Your order has been delivered. Enjoy your kicks!", "/account");
-          }
-        })
-        .subscribe((status: string) => console.log("[Push] buyer:", status));
-    });
-    return () => {
-      import("@/lib/supabase").then(({ supabase }) => {
-        if (channel) supabase.removeChannel(channel);
-      });
-    };
-  }, [user?.id, user?.role]);
-
-  // ── Both: new messages ───────────────────────────────────────────────────
-  useEffect(() => {
-    if (!user?.id) return;
-    if (!isSupported() || Notification.permission !== "granted") return;
-    if (localStorage.getItem("notif_messages") === "false") return;
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let channel: any;
-    import("@/lib/supabase").then(({ supabase }) => {
-      channel = supabase
-        .channel(`push:messages:${user.id}`)
-        .on("postgres_changes", {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `receiver_id=eq.${user.id}`,
-        },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (payload: any) => {
-          if (document.visibilityState === "hidden") {
-            const content = payload.new.content;
+      // 3. New messages to seller — NO filter
+      if (localStorage.getItem("notif_messages") !== "false") {
+        const msgCh = supabase
+          .channel(`push:seller:msgs:${user.id}`)
+          .on("postgres_changes", {
+            event: "INSERT",
+            schema: "public",
+            table: "messages",
+          }, (payload: any) => {
+            // Client-side filter — only messages sent TO this seller
+            if (payload.new.receiver_id !== user.id) return;
+            const content: string = payload.new.content ?? "";
             showLocalNotification(
               "💬 New Message",
               content.length > 60 ? content.slice(0, 60) + "..." : content,
               "/account"
             );
-          }
-        })
-        .subscribe((status: string) => console.log("[Push] messages:", status));
-    });
-    return () => {
-      import("@/lib/supabase").then(({ supabase }) => {
-        if (channel) supabase.removeChannel(channel);
-      });
-    };
-  }, [user?.id]);
+          })
+          .subscribe((s: string) => console.log("[Push] seller msgs:", s));
+
+        channelsRef.current.push(msgCh);
+      }
+    }
+
+    // ── BUYER channels ───────────────────────────────────────────────────
+    if (user.role === "buyer") {
+
+      // 1. Order status updates for buyer — NO filter
+      if (localStorage.getItem("notif_orders") !== "false") {
+        const orderCh = supabase
+          .channel(`push:buyer:orders:${user.id}`)
+          .on("postgres_changes", {
+            event: "UPDATE",
+            schema: "public",
+            table: "orders",
+          }, (payload: any) => {
+            // Client-side filter — only this buyer's orders
+            if (payload.new.buyer_id !== user.id) return;
+            const { status } = payload.new;
+            if (status === "shipped") {
+              showLocalNotification(
+                "📦 Order Shipped!",
+                "Your order is on its way.",
+                "/account"
+              );
+            } else if (status === "delivered") {
+              showLocalNotification(
+                "✅ Order Delivered!",
+                "Your order has been delivered. Enjoy your kicks!",
+                "/account"
+              );
+            }
+          })
+          .subscribe((s: string) => console.log("[Push] buyer orders:", s));
+
+        channelsRef.current.push(orderCh);
+      }
+
+      // 2. New messages to buyer — NO filter
+      if (localStorage.getItem("notif_messages") !== "false") {
+        const msgCh = supabase
+          .channel(`push:buyer:msgs:${user.id}`)
+          .on("postgres_changes", {
+            event: "INSERT",
+            schema: "public",
+            table: "messages",
+          }, (payload: any) => {
+            // Client-side filter
+            if (payload.new.receiver_id !== user.id) return;
+            const content: string = payload.new.content ?? "";
+            showLocalNotification(
+              "💬 New Message",
+              content.length > 60 ? content.slice(0, 60) + "..." : content,
+              "/account"
+            );
+          })
+          .subscribe((s: string) => console.log("[Push] buyer msgs:", s));
+
+        channelsRef.current.push(msgCh);
+      }
+    }
+
+    return clearChannels;
+  }, [user?.id, user?.role]);
 
   return (
-    <PushContext.Provider value={{ requestPermission, isSupported: isSupported(), permission, showLocalNotification }}>
+    <PushContext.Provider value={{
+      requestPermission,
+      isSupported: checkSupported(),
+      permission,
+      showLocalNotification,
+    }}>
       {children}
     </PushContext.Provider>
   );

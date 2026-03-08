@@ -13,17 +13,11 @@ import { useListings } from "@/context/ListingContext";
 import { useRatings } from "@/context/RatingContext";
 import { useAuth } from "@/context/AuthContext";
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
 const GHS = (n: number) =>
   n >= 1000 ? `GHS ${(n / 1000).toFixed(1)}k` : `GHS ${n}`;
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-const COLORS = ["#6366f1", "#8b5cf6", "#a78bfa", "#c4b5fd", "#ddd6fe"];
-
-// ─── Stat Card ──────────────────────────────────────────────────────────────
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const COLORS = ["#6366f1","#8b5cf6","#a78bfa","#c4b5fd","#ddd6fe"];
 
 const StatCard = ({
   icon: Icon, label, value, sub, trend, color,
@@ -32,8 +26,7 @@ const StatCard = ({
   trend?: { value: number; positive: boolean }; color: string;
 }) => (
   <motion.div
-    initial={{ opacity: 0, y: 8 }}
-    animate={{ opacity: 1, y: 0 }}
+    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
     className="rounded-2xl border border-border bg-card p-4"
   >
     <div className="flex items-start justify-between gap-3">
@@ -54,8 +47,6 @@ const StatCard = ({
   </motion.div>
 );
 
-// ─── Custom Tooltip ─────────────────────────────────────────────────────────
-
 const ChartTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
@@ -70,105 +61,82 @@ const ChartTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-// ─── Main Component ─────────────────────────────────────────────────────────
-
 const SellerDashboard = () => {
   const { user } = useAuth();
   const { orders } = useOrders();
   const { listings } = useListings();
   const { getSellerStats } = useRatings();
 
+  // ── Fix: getSellerStats returns { average, count } not { avg, count } ──
   const stats = user?.id ? getSellerStats(user.id) : null;
-  const safeAvg = stats?.avg != null && !isNaN(stats.avg) ? stats.avg : 0;
+  const safeAvg = stats?.average != null && !isNaN(stats.average) ? stats.average : 0;
   const safeCount = stats?.count ?? 0;
 
-  // Only seller's orders
+  // Only this seller's orders — works with both buyer_id/seller_id shape
   const myOrders = useMemo(() =>
-    orders.filter((o: any) => o.sellerId === user?.id || o.items?.some((i: any) => i.sellerId === user?.id)),
+    orders.filter((o) => o.sellerId === user?.id),
     [orders, user?.id]
   );
 
-  // ── Key metrics ───────────────────────────────────────────────────────────
   const totalRevenue = useMemo(() =>
-    myOrders.reduce((sum: number, o: any) => sum + (Number(o.total) || 0), 0),
+    myOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0),
     [myOrders]
   );
 
-  const completedOrders = useMemo(() =>
-    myOrders.filter((o: any) => o.status === "delivered").length,
-    [myOrders]
-  );
-
-  const pendingOrders = useMemo(() =>
-    myOrders.filter((o: any) => o.status === "pending").length,
-    [myOrders]
-  );
-
-  const activeListings = listings.filter((l: any) => l.status === "active").length;
-  const soldListings = listings.filter((l: any) => l.status === "sold").length;
-  const totalViews = listings.reduce((sum: number, l: any) => sum + (l.views || 0), 0);
+  const completedOrders = myOrders.filter((o) => o.status === "delivered").length;
+  const pendingOrders   = myOrders.filter((o) => o.status === "pending").length;
+  const activeListings  = listings.filter((l) => l.status === "active").length;
+  const soldListings    = listings.filter((l) => l.status === "sold").length;
+  const totalViews      = listings.reduce((sum, l) => sum + (l.views || 0), 0);
 
   // ── Revenue over last 6 months ────────────────────────────────────────────
   const revenueByMonth = useMemo(() => {
     const now = new Date();
-    const months: { month: string; Revenue: number; Orders: number }[] = [];
-
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const label = MONTHS[d.getMonth()];
-      const monthOrders = myOrders.filter((o: any) => {
+    return Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+      const monthOrders = myOrders.filter((o) => {
         const od = new Date(o.placedAt);
         return od.getMonth() === d.getMonth() && od.getFullYear() === d.getFullYear();
       });
-      months.push({
-        month: label,
-        Revenue: monthOrders.reduce((sum: number, o: any) => sum + (Number(o.total) || 0), 0),
+      return {
+        month: MONTHS[d.getMonth()],
+        Revenue: monthOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0),
         Orders: monthOrders.length,
-      });
-    }
-    return months;
+      };
+    });
   }, [myOrders]);
 
-  // ── Top listings by views / sales ────────────────────────────────────────
   const topListings = useMemo(() =>
-    [...listings]
-      .sort((a: any, b: any) => (b.views || 0) - (a.views || 0))
-      .slice(0, 5),
+    [...listings].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5),
     [listings]
   );
 
-  // ── Buyer city distribution ───────────────────────────────────────────────
   const cityData = useMemo(() => {
     const cityMap: Record<string, number> = {};
-    myOrders.forEach((o: any) => {
+    myOrders.forEach((o) => {
       const city = o.buyer?.city || o.buyer?.region || "Other";
       cityMap[city] = (cityMap[city] || 0) + 1;
     });
     return Object.entries(cityMap)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
+      .sort((a, b) => b[1] - a[1]).slice(0, 5)
       .map(([name, value]) => ({ name, value }));
   }, [myOrders]);
 
-  // ── Category breakdown ────────────────────────────────────────────────────
   const categoryData = useMemo(() => {
     const catMap: Record<string, number> = {};
-    listings.forEach((l: any) => {
+    listings.forEach((l) => {
       const cat = l.category || l.brand || "Other";
       catMap[cat] = (catMap[cat] || 0) + 1;
     });
     return Object.entries(catMap)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
+      .sort((a, b) => b[1] - a[1]).slice(0, 5)
       .map(([name, value]) => ({ name, value }));
   }, [listings]);
 
-  // ── Conversion rate ───────────────────────────────────────────────────────
-  const conversionRate = totalViews > 0 && soldListings >= 0
+  const conversionRate = totalViews > 0
     ? ((soldListings / totalViews) * 100).toFixed(1)
     : "0.0";
 
-  // ── This vs last month ────────────────────────────────────────────────────
   const thisMonth = revenueByMonth[5]?.Revenue ?? 0;
   const lastMonth = revenueByMonth[4]?.Revenue ?? 0;
   const revTrend = lastMonth > 0
@@ -180,35 +148,21 @@ const SellerDashboard = () => {
 
       {/* ── Stat Cards ── */}
       <div className="grid grid-cols-2 gap-3">
-        <StatCard
-          icon={TrendingUp} label="Total Revenue" value={GHS(totalRevenue)}
-          sub={`${completedOrders} completed orders`}
-          trend={revTrend}
-          color="bg-indigo-500/10 text-indigo-500"
-        />
-        <StatCard
-          icon={ShoppingBag} label="Orders" value={`${myOrders.length}`}
-          sub={`${pendingOrders} pending`}
-          color="bg-violet-500/10 text-violet-500"
-        />
-        <StatCard
-          icon={Package} label="Listings" value={`${activeListings} active`}
-          sub={`${soldListings} sold`}
-          color="bg-purple-500/10 text-purple-500"
-        />
-        <StatCard
-          icon={Users} label="Total Views" value={totalViews.toLocaleString()}
-          sub={`${conversionRate}% conversion`}
-          color="bg-fuchsia-500/10 text-fuchsia-500"
-        />
+        <StatCard icon={TrendingUp} label="Total Revenue" value={GHS(totalRevenue)}
+          sub={`${completedOrders} completed orders`} trend={revTrend}
+          color="bg-indigo-500/10 text-indigo-500" />
+        <StatCard icon={ShoppingBag} label="Orders" value={`${myOrders.length}`}
+          sub={`${pendingOrders} pending`} color="bg-violet-500/10 text-violet-500" />
+        <StatCard icon={Package} label="Listings" value={`${activeListings} active`}
+          sub={`${soldListings} sold`} color="bg-purple-500/10 text-purple-500" />
+        <StatCard icon={Users} label="Total Views" value={totalViews.toLocaleString()}
+          sub={`${conversionRate}% conversion`} color="bg-fuchsia-500/10 text-fuchsia-500" />
       </div>
 
       {/* ── Rating summary ── */}
       {safeCount > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border border-border bg-card p-4 flex items-center gap-4"
-        >
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl border border-border bg-card p-4 flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-yellow-500/10 flex items-center justify-center flex-shrink-0">
             <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
           </div>
@@ -217,7 +171,7 @@ const SellerDashboard = () => {
             <p className="text-xs text-muted-foreground">{safeCount} {safeCount === 1 ? "review" : "reviews"} from buyers</p>
           </div>
           <div className="flex gap-0.5">
-            {[1, 2, 3, 4, 5].map((s) => (
+            {[1,2,3,4,5].map((s) => (
               <Star key={s} className={`w-4 h-4 ${s <= Math.round(safeAvg) ? "text-yellow-500 fill-yellow-500" : "text-border"}`} />
             ))}
           </div>
@@ -225,10 +179,8 @@ const SellerDashboard = () => {
       )}
 
       {/* ── Revenue chart ── */}
-      <motion.div
-        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl border border-border bg-card p-4"
-      >
+      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+        className="rounded-2xl border border-border bg-card p-4">
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="font-display font-bold text-sm">Revenue & Orders</p>
@@ -259,12 +211,10 @@ const SellerDashboard = () => {
         )}
       </motion.div>
 
-      {/* ── Orders per month bar chart ── */}
+      {/* ── Orders per month ── */}
       {myOrders.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border border-border bg-card p-4"
-        >
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl border border-border bg-card p-4">
           <p className="font-display font-bold text-sm mb-1">Orders per Month</p>
           <p className="text-xs text-muted-foreground mb-4">Last 6 months</p>
           <ResponsiveContainer width="100%" height={120}>
@@ -280,14 +230,12 @@ const SellerDashboard = () => {
 
       {/* ── Top listings ── */}
       {listings.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border border-border bg-card p-4"
-        >
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl border border-border bg-card p-4">
           <p className="font-display font-bold text-sm mb-1">Top Listings</p>
           <p className="text-xs text-muted-foreground mb-4">Ranked by views</p>
           <div className="space-y-3">
-            {topListings.map((listing: any, i) => {
+            {topListings.map((listing, i) => {
               const maxViews = topListings[0]?.views || 1;
               const pct = Math.max(4, ((listing.views || 0) / maxViews) * 100);
               return (
@@ -318,30 +266,26 @@ const SellerDashboard = () => {
         </motion.div>
       )}
 
-      {/* ── Buyer cities + Category breakdown side by side ── */}
+      {/* ── Buyer cities + Category breakdown ── */}
       {(cityData.length > 0 || categoryData.length > 0) && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-
-          {/* Buyer locations */}
           {cityData.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-              className="rounded-2xl border border-border bg-card p-4"
-            >
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+              className="rounded-2xl border border-border bg-card p-4">
               <p className="font-display font-bold text-sm mb-1">Buyer Locations</p>
               <p className="text-xs text-muted-foreground mb-4">By city / region</p>
               <div className="flex items-center justify-center mb-3">
                 <PieChart width={120} height={120}>
                   <Pie data={cityData} cx={55} cy={55} innerRadius={30} outerRadius={52}
                     dataKey="value" paddingAngle={3}>
-                    {cityData.map((_: any, index: number) => (
+                    {cityData.map((_, index) => (
                       <Cell key={index} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
                 </PieChart>
               </div>
               <div className="space-y-1.5">
-                {cityData.map((item: any, i: number) => (
+                {cityData.map((item, i) => (
                   <div key={item.name} className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
@@ -354,26 +298,23 @@ const SellerDashboard = () => {
             </motion.div>
           )}
 
-          {/* Category breakdown */}
           {categoryData.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-              className="rounded-2xl border border-border bg-card p-4"
-            >
+            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+              className="rounded-2xl border border-border bg-card p-4">
               <p className="font-display font-bold text-sm mb-1">Listing Categories</p>
               <p className="text-xs text-muted-foreground mb-4">Your inventory mix</p>
               <div className="flex items-center justify-center mb-3">
                 <PieChart width={120} height={120}>
                   <Pie data={categoryData} cx={55} cy={55} innerRadius={30} outerRadius={52}
                     dataKey="value" paddingAngle={3}>
-                    {categoryData.map((_: any, index: number) => (
+                    {categoryData.map((_, index) => (
                       <Cell key={index} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
                 </PieChart>
               </div>
               <div className="space-y-1.5">
-                {categoryData.map((item: any, i: number) => (
+                {categoryData.map((item, i) => (
                   <div key={item.name} className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
@@ -388,7 +329,7 @@ const SellerDashboard = () => {
         </div>
       )}
 
-      {/* Empty state */}
+      {/* ── Empty state ── */}
       {listings.length === 0 && myOrders.length === 0 && (
         <div className="text-center py-12">
           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">

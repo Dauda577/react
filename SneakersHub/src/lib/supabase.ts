@@ -7,9 +7,17 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     storageKey: "sneakershub-auth",
-    storage: window.localStorage,
+    storage: typeof window !== "undefined" ? window.localStorage : undefined,
     autoRefreshToken: true,
     detectSessionInUrl: true,
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
+    },
+  },
+  db: {
+    schema: "public",
   },
 });
 
