@@ -5,7 +5,7 @@ import {
   User, LayoutGrid, ShoppingBag, Heart, Settings,
   MapPin, Eye, Pencil, Trash2, Plus, CheckCircle, ArrowRight, LogOut,
   Store, Tag, Package, Phone, Zap, Star,
-  Bell, ShieldCheck, Shield, Lock, Trash, ChevronRight, MessageCircle,
+  Bell, ShieldCheck, Shield, Lock, Trash, ChevronRight, MessageCircle, BarChart2,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -19,12 +19,15 @@ import { useMessages } from "@/context/MessageContext";
 import BoostModal from "@/components/BoostModal";
 import RatingModal from "@/components/RatingModal";
 import MessagesInbox from "@/components/MessagesInbox";
+import SellerDashboard from "@/components/SellerDashboard";
+import { usePush } from "@/context/PushContext";
 import { toast } from "sonner";
 
 const sellerTabs = [
   { id: "profile", label: "Profile", icon: User },
   { id: "orders", label: "Orders", icon: ShoppingBag },
   { id: "listings", label: "Listings", icon: LayoutGrid },
+  { id: "analytics", label: "Analytics", icon: BarChart2 },
   { id: "messages", label: "Messages", icon: MessageCircle },
   { id: "settings", label: "Settings", icon: Settings },
 ];
@@ -87,6 +90,7 @@ const Account = () => {
   const { listings, deleteListing, markSold, boostListing } = useListings();
   const { getSellerStats, hasReviewed, reviews, fetchReviews } = useRatings();
   const { totalUnread } = useMessages();
+  const { requestPermission, isSupported: pushSupported, permission: pushPermission } = usePush();
   const [boostingListing, setBoostingListing] = useState<import("@/context/ListingContext").Listing | null>(null);
   const [ratingOrderId, setRatingOrderId] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -851,6 +855,9 @@ const Account = () => {
             )}
 
             {/* ── Messages ── */}
+            {/* ── Analytics (sellers only) ── */}
+            {activeTab === "analytics" && role === "seller" && !isGuest && <SellerDashboard />}
+
             {activeTab === "messages" && isGuest && <GuestAuthBanner action="view messages" />}
             {activeTab === "messages" && !isGuest && <MessagesInbox />}
 
@@ -864,6 +871,31 @@ const Account = () => {
                     <p className="font-display font-semibold text-sm">Notifications</p>
                   </div>
                   <div className="divide-y divide-border">
+                    {/* Push permission prompt */}
+                    {pushSupported && pushPermission === "default" && (
+                      <div className="px-5 py-4 flex items-center justify-between gap-4 bg-primary/5">
+                        <div>
+                          <p className="text-sm font-semibold text-primary">Enable Push Notifications</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">Get notified even when the app is closed</p>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            const granted = await requestPermission();
+                            if (granted) toast.success("Push notifications enabled!");
+                            else toast.error("Permission denied");
+                          }}
+                          className="px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold flex-shrink-0 hover:opacity-90 transition-opacity"
+                        >
+                          Enable
+                        </button>
+                      </div>
+                    )}
+                    {pushSupported && pushPermission === "granted" && (
+                      <div className="px-5 py-3 flex items-center gap-2 bg-green-500/5">
+                        <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                        <p className="text-xs text-green-600 font-medium">Push notifications are active</p>
+                      </div>
+                    )}
                     {[
                       { label: "Order updates", sub: "Confirmations, dispatch and delivery", key: "notif_orders", value: notifOrders, set: setNotifOrders },
                       { label: "Messages", sub: "Replies from buyers or sellers", key: "notif_messages", value: notifMessages, set: setNotifMessages },

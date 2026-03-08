@@ -12,6 +12,7 @@ import { ListingProvider } from "@/context/ListingContext";
 import { RatingProvider } from "@/context/RatingContext";
 import { PublicListingsProvider } from "@/context/PublicListingsContext";
 import { MessageProvider } from "@/context/MessageContext";
+import { PushProvider } from "@/context/PushContext";
 import ScrollToTop from "@/components/ScrollToTop";
 import InstallPrompt from "@/components/InstallPrompt";
 
@@ -64,6 +65,7 @@ const App = () => (
                 <SavedProvider>
                   <CartProvider>
                     <MessageProvider>
+                      <PushProvider>
                       <Toaster />
                       <Sonner />
                       <InstallPrompt />
@@ -107,6 +109,7 @@ const App = () => (
                           </Routes>
                         </Suspense>
                       </BrowserRouter>
+                      </PushProvider>
                     </MessageProvider>
                   </CartProvider>
                 </SavedProvider>
