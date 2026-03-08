@@ -21,10 +21,18 @@ serve(async (req) => {
 
     console.log("Deleting account for user:", user_id);
 
-    // Delete profile first
-    await adminClient.from("profiles").delete().eq("id", user_id);
+    // Delete profile first (so fetchProfile returns null on next login)
+    const { error: profileError } = await adminClient
+      .from("profiles")
+      .delete()
+      .eq("id", user_id);
 
-    // Delete auth user
+    if (profileError) console.warn("Profile delete warning:", profileError.message);
+
+    // Also clear any listings
+    await adminClient.from("listings").delete().eq("seller_id", user_id);
+
+    // Delete the auth user
     const { error } = await adminClient.auth.admin.deleteUser(user_id);
     if (error) {
       console.error("Delete error:", error.message);
