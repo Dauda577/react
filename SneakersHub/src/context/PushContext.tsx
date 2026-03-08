@@ -53,6 +53,40 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // ── Seller: verification status ──────────────────────────────────────────
+  useEffect(() => {
+    if (!user?.id || user.role !== "seller") return;
+    if (!isSupported() || Notification.permission !== "granted") return;
+
+    let channel: any;
+    import("@/lib/supabase").then(({ supabase }) => {
+      channel = supabase
+        .channel(`push:seller:verified:${user.id}`)
+        .on("postgres_changes", {
+          event: "UPDATE",
+          schema: "public",
+          table: "profiles",
+          filter: `id=eq.${user.id}`,
+        }, (payload: any) => {
+          const wasVerified = payload.old?.verified;
+          const isNowVerified = payload.new?.verified;
+          if (!wasVerified && isNowVerified) {
+            showLocalNotification(
+              "✅ Account Verified!",
+              "Congratulations! Your SneakersHub seller account has been verified.",
+              "/account"
+            );
+          }
+        })
+        .subscribe((status: string) => console.log("[Push] verified:", status));
+    });
+    return () => {
+      import("@/lib/supabase").then(({ supabase }) => {
+        if (channel) supabase.removeChannel(channel);
+      });
+    };
+  }, [user?.id, user?.role]);
+
   // ── Seller: new orders ───────────────────────────────────────────────────
   useEffect(() => {
     if (!user?.id || user.role !== "seller") return;
