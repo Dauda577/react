@@ -4,14 +4,27 @@ import { supabase } from "@/lib/supabase";
 import App from "./App.tsx";
 import "./index.css";
 
-// Unregister all service workers and clear caches permanently
+// Register service worker for push notifications + auto-updates
 if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.getRegistrations().then((registrations) => {
-    registrations.forEach((reg) => reg.unregister());
-  });
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/sw.js")
+      .then((reg) => {
+        console.log("SW registered:", reg.scope);
 
-  caches.keys().then((cacheNames) => {
-    cacheNames.forEach((cacheName) => caches.delete(cacheName));
+        // When a new SW is waiting, activate it immediately
+        reg.addEventListener("updatefound", () => {
+          const newWorker = reg.installing;
+          if (!newWorker) return;
+          newWorker.addEventListener("statechange", () => {
+            if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+              // New version available — reload to get it
+              window.location.reload();
+            }
+          });
+        });
+      })
+      .catch((err) => console.warn("SW registration failed:", err));
   });
 }
 
