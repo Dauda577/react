@@ -1,44 +1,22 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 import { motion } from "framer-motion";
 
 const AuthCallback = () => {
   const navigate = useNavigate();
+  const { user, needsRole, loading } = useAuth();
 
   useEffect(() => {
-    const handle = async () => {
-      // Wait for Supabase to parse the OAuth tokens from the URL
-      const { data: { session }, error } = await supabase.auth.getSession();
-
-      console.log("AuthCallback - session:", session?.user?.id, "error:", error?.message);
-
-      if (error || !session) {
-        console.log("No session, redirecting to /auth");
-        navigate("/auth", { replace: true });
-        return;
-      }
-
-      // Check if this user has a profile with a role
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", session.user.id)
-        .single();
-
-      console.log("AuthCallback - profile:", profile, "profileError:", profileError?.message);
-
-      if (!profile?.role) {
-        console.log("No role found, going to /auth for role picker");
-        navigate("/auth", { replace: true });
-      } else {
-        console.log("Has role:", profile.role, "going to /");
-        navigate("/", { replace: true });
-      }
-    };
-
-    handle();
-  }, []);
+    if (loading) return;
+    if (needsRole) {
+      navigate("/auth", { replace: true });
+    } else if (user) {
+      navigate("/", { replace: true });
+    } else {
+      navigate("/auth", { replace: true });
+    }
+  }, [user, needsRole, loading]);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
