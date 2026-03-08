@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, ReactNode } from "react";
+import { createContext, useContext, useEffect, ReactNode } from "react";
 import { useAuth } from "@/context/AuthContext";
 
 interface PushContextType {
@@ -16,19 +16,13 @@ export const usePush = () => {
   return ctx;
 };
 
-// ─── Utility ────────────────────────────────────────────────────────────────
-
 const isSupported = () =>
   typeof window !== "undefined" &&
   "Notification" in window &&
   "serviceWorker" in navigator;
 
-// ─── Provider ───────────────────────────────────────────────────────────────
-
 export const PushProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
-  const prevOrderCount = useRef<number>(0);
-  const prevMessageCount = useRef<number>(0);
 
   const permission: NotificationPermission = isSupported()
     ? Notification.permission
@@ -42,8 +36,6 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
 
   const showLocalNotification = (title: string, body: string, url = "/") => {
     if (!isSupported() || Notification.permission !== "granted") return;
-
-    // Prefer service worker notification (shows even when tab is backgrounded)
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.ready.then((reg) => {
         reg.showNotification(title, {
@@ -61,101 +53,96 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // ── Watch orders via Supabase realtime ───────────────────────────────────
+  // ── Seller: new orders ───────────────────────────────────────────────────
   useEffect(() => {
-    if (!user?.id || !isSupported() || Notification.permission !== "granted") return;
+    if (!user?.id || user.role !== "seller") return;
+    if (!isSupported() || Notification.permission !== "granted") return;
     if (localStorage.getItem("notif_orders") === "false") return;
 
     let channel: any;
     import("@/lib/supabase").then(({ supabase }) => {
       channel = supabase
-        .channel(`push:orders:${user.id}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "orders",
-            filter: `seller_id=eq.${user.id}`,
-          },
-          (payload: any) => {
-            const order = payload.new;
-            showLocalNotification(
-              "🛒 New Order!",
-              `You received a new order worth GHS ${order.total}`,
-              "/account"
-            );
-          }
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "orders",
-            filter: `buyer_id=eq.${user.id}`,
-          },
-          (payload: any) => {
-            const order = payload.new;
-            if (order.status === "shipped") {
-              showLocalNotification(
-                "📦 Order Shipped!",
-                `Your order has been shipped and is on its way.`,
-                "/account"
-              );
-            } else if (order.status === "delivered") {
-              showLocalNotification(
-                "✅ Order Delivered!",
-                `Your order has been delivered. Enjoy your kicks!`,
-                "/account"
-              );
-            }
-          }
-        )
-        .subscribe();
+        .channel(`push:seller:orders:${user.id}`)
+        .on("postgres_changes", {
+          event: "INSERT",
+          schema: "public",
+          table: "orders",
+          filter: `seller_id=eq.${user.id}`,
+        }, (payload: any) => {
+          showLocalNotification(
+            "🛒 New Order!",
+            `You received a new order worth GHS ${payload.new.total}`,
+            "/account"
+          );
+        })
+        .subscribe((status: string) => console.log("[Push] seller:", status));
     });
-
     return () => {
       import("@/lib/supabase").then(({ supabase }) => {
         if (channel) supabase.removeChannel(channel);
       });
     };
-  }, [user?.id]);
+  }, [user?.id, user?.role]);
 
-  // ── Watch messages ───────────────────────────────────────────────────────
+  // ── Buyer: order status updates ──────────────────────────────────────────
   useEffect(() => {
-    if (!user?.id || !isSupported() || Notification.permission !== "granted") return;
+    if (!user?.id || user.role !== "buyer") return;
+    if (!isSupported() || Notification.permission !== "granted") return;
+    if (localStorage.getItem("notif_orders") === "false") return;
+
+    let channel: any;
+    import("@/lib/supabase").then(({ supabase }) => {
+      channel = supabase
+        .channel(`push:buyer:orders:${user.id}`)
+        .on("postgres_changes", {
+          event: "UPDATE",
+          schema: "public",
+          table: "orders",
+          filter: `buyer_id=eq.${user.id}`,
+        }, (payload: any) => {
+          const { status } = payload.new;
+          if (status === "shipped") {
+            showLocalNotification("📦 Order Shipped!", "Your order is on its way.", "/account");
+          } else if (status === "delivered") {
+            showLocalNotification("✅ Order Delivered!", "Your order has been delivered. Enjoy your kicks!", "/account");
+          }
+        })
+        .subscribe((status: string) => console.log("[Push] buyer:", status));
+    });
+    return () => {
+      import("@/lib/supabase").then(({ supabase }) => {
+        if (channel) supabase.removeChannel(channel);
+      });
+    };
+  }, [user?.id, user?.role]);
+
+  // ── Both: new messages ───────────────────────────────────────────────────
+  useEffect(() => {
+    if (!user?.id) return;
+    if (!isSupported() || Notification.permission !== "granted") return;
     if (localStorage.getItem("notif_messages") === "false") return;
 
     let channel: any;
     import("@/lib/supabase").then(({ supabase }) => {
       channel = supabase
         .channel(`push:messages:${user.id}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "messages",
-            filter: `receiver_id=eq.${user.id}`,
-          },
-          (payload: any) => {
-            const msg = payload.new;
-            // Only notify if tab is hidden
-            if (document.visibilityState === "hidden") {
-              showLocalNotification(
-                "💬 New Message",
-                msg.content.length > 60
-                  ? msg.content.slice(0, 60) + "..."
-                  : msg.content,
-                "/account"
-              );
-            }
+        .on("postgres_changes", {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `receiver_id=eq.${user.id}`,
+        }, (payload: any) => {
+          if (document.visibilityState === "hidden") {
+            const content = payload.new.content;
+            showLocalNotification(
+              "💬 New Message",
+              content.length > 60 ? content.slice(0, 60) + "..." : content,
+              "/account"
+            );
           }
-        )
-        .subscribe();
+        })
+        .subscribe((status: string) => console.log("[Push] messages:", status));
     });
-
     return () => {
       import("@/lib/supabase").then(({ supabase }) => {
         if (channel) supabase.removeChannel(channel);
@@ -164,14 +151,7 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
   }, [user?.id]);
 
   return (
-    <PushContext.Provider
-      value={{
-        requestPermission,
-        isSupported: isSupported(),
-        permission,
-        showLocalNotification,
-      }}
-    >
+    <PushContext.Provider value={{ requestPermission, isSupported: isSupported(), permission, showLocalNotification }}>
       {children}
     </PushContext.Provider>
   );
