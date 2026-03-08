@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { supabase, OrderRow, OrderItemRow } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { triggerSMS } from "@/lib/sms";
@@ -31,6 +31,7 @@ export type Order = {
   placedAt: string;
   seen: boolean;
   sellerId: string;
+  buyerId: string;
 };
 
 type OrderContextType = {
@@ -38,7 +39,7 @@ type OrderContextType = {
   latestOrder: Order | null;
   unseenCount: number;
   loading: boolean;
-  placeOrder: (order: Omit<Order, "id" | "placedAt" | "seen" | "sellerConfirmed" | "buyerConfirmed" | "status"> & { sellerId: string }) => Promise<void>;
+  placeOrder: (order: Omit<Order, "id" | "placedAt" | "seen" | "sellerConfirmed" | "buyerConfirmed" | "status" | "buyerId"> & { sellerId: string }) => Promise<void>;
   confirmAsSeller: (orderId: string) => Promise<void>;
   confirmAsBuyer: (orderId: string) => Promise<void>;
   markOrdersSeen: () => Promise<void>;
@@ -81,14 +82,16 @@ const rowToOrder = (row: OrderRow, items: OrderItemRow[]): Order => ({
   placedAt: row.placed_at,
   seen: row.seen_by_seller,
   sellerId: row.seller_id,
+  buyerId: row.buyer_id,
 });
 
 export const OrderProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [itemsCache, setItemsCache] = useState<Record<string, OrderItem[]>>({});
   const [loading, setLoading] = useState(false);
 
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     if (!user) { setOrders([]); return; }
     setLoading(true);
 
@@ -112,29 +115,95 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       itemsByOrder[item.order_id].push(item);
     });
 
-    setOrders((orderData as OrderRow[]).map((row) => rowToOrder(row, itemsByOrder[row.id] ?? [])));
+    // Cache items so realtime updates can reuse them
+    const newItemsCache: Record<string, OrderItem[]> = {};
+    const mapped = (orderData as OrderRow[]).map((row) => {
+      const order = rowToOrder(row, itemsByOrder[row.id] ?? []);
+      newItemsCache[row.id] = order.items;
+      return order;
+    });
+
+    setItemsCache(newItemsCache);
+    setOrders(mapped);
     setLoading(false);
-  };
+  }, [user?.id]);
 
   useEffect(() => { fetchOrders(); }, [user?.id]);
 
+  // ── Realtime: in-place updates (no full refetch) ──────────────────────────
   useEffect(() => {
     if (!user?.id) return;
+
     const channel = supabase
-      .channel("orders-realtime")
+      .channel(`orders-realtime:${user.id}`)
       .on("postgres_changes", {
-        event: "*",
+        event: "INSERT",
         schema: "public",
         table: "orders",
-      }, () => {
-        fetchOrders();
+        filter: `seller_id=eq.${user.id}`,
+      }, async (payload) => {
+        // New order came in — fetch its items then prepend
+        const newRow = payload.new as OrderRow;
+        const { data: itemData } = await supabase
+          .from("order_items")
+          .select("*")
+          .eq("order_id", newRow.id);
+
+        const items = itemData as OrderItemRow[] ?? [];
+        const newOrder = rowToOrder(newRow, items);
+        setItemsCache((prev) => ({ ...prev, [newRow.id]: newOrder.items }));
+        setOrders((prev) => [newOrder, ...prev]);
+      })
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "orders",
+        filter: `buyer_id=eq.${user.id}`,
+      }, async (payload) => {
+        const newRow = payload.new as OrderRow;
+        const { data: itemData } = await supabase
+          .from("order_items")
+          .select("*")
+          .eq("order_id", newRow.id);
+        const items = itemData as OrderItemRow[] ?? [];
+        const newOrder = rowToOrder(newRow, items);
+        setItemsCache((prev) => ({ ...prev, [newRow.id]: newOrder.items }));
+        setOrders((prev) => {
+          if (prev.some((o) => o.id === newRow.id)) return prev;
+          return [newOrder, ...prev];
+        });
+      })
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "orders",
+      }, (payload) => {
+        // Status/confirmation changed — update in place using cached items
+        const updatedRow = payload.new as OrderRow;
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === updatedRow.id
+              ? rowToOrder(updatedRow, itemsCache[updatedRow.id]?.map((item) => ({
+                  id: item.id,
+                  order_id: updatedRow.id,
+                  name: item.name,
+                  brand: item.brand,
+                  image_url: item.image,
+                  price: item.price,
+                  size: item.size,
+                  quantity: item.quantity,
+                } as OrderItemRow)) ?? [])
+              : o
+          )
+        );
       })
       .subscribe();
+
     return () => { supabase.removeChannel(channel); };
-  }, [user?.id]);
+  }, [user?.id, itemsCache]);
 
   const placeOrder = async (
-    order: Omit<Order, "id" | "placedAt" | "seen" | "sellerConfirmed" | "buyerConfirmed" | "status"> & { sellerId: string }
+    order: Omit<Order, "id" | "placedAt" | "seen" | "sellerConfirmed" | "buyerConfirmed" | "status" | "buyerId"> & { sellerId: string }
   ) => {
     if (!user) throw new Error("Not authenticated");
 
@@ -168,58 +237,81 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       quantity: item.quantity,
     }));
 
-    await supabase.from("order_items").insert(itemsToInsert);
+    const { data: insertedItems } = await supabase
+      .from("order_items")
+      .insert(itemsToInsert)
+      .select();
 
-    // SMS: notify seller of new order
+    // Optimistic: add to state immediately without waiting for realtime
+    const newOrder = rowToOrder(orderRow, insertedItems as OrderItemRow[] ?? []);
+    setItemsCache((prev) => ({ ...prev, [orderRow.id]: newOrder.items }));
+    setOrders((prev) => [newOrder, ...prev]);
+
     await triggerSMS({ type: "order.created", record: orderRow });
-
-    await fetchOrders();
   };
 
   const confirmAsSeller = async (orderId: string) => {
     const order = orders.find((o) => o.id === orderId);
     const newStatus = order?.buyerConfirmed ? "delivered" : "shipped";
 
+    // Optimistic update
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId ? { ...o, sellerConfirmed: true, status: newStatus as Order["status"] } : o
+      )
+    );
+
     const { error } = await supabase.from("orders").update({
       seller_confirmed: true,
       status: newStatus,
     }).eq("id", orderId);
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      // Revert on failure
+      await fetchOrders();
+      throw new Error(error.message);
+    }
 
-    // SMS: notify buyer that order is shipped
     await triggerSMS({ type: "order.shipped", record: { id: orderId, ...order } });
-
-    await fetchOrders();
   };
 
   const confirmAsBuyer = async (orderId: string) => {
     const order = orders.find((o) => o.id === orderId);
     const newStatus = order?.sellerConfirmed ? "delivered" : "pending";
 
+    // Optimistic update
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId ? { ...o, buyerConfirmed: true, status: newStatus as Order["status"] } : o
+      )
+    );
+
     const { error } = await supabase.from("orders").update({
       buyer_confirmed: true,
       status: newStatus,
     }).eq("id", orderId);
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      await fetchOrders();
+      throw new Error(error.message);
+    }
 
-    // SMS: notify buyer of delivery confirmation
     await triggerSMS({ type: "order.delivered", record: { id: orderId, ...order } });
-
-    await fetchOrders();
   };
 
   const markOrdersSeen = async () => {
     if (!user) return;
+    // Optimistic
+    setOrders((prev) =>
+      prev.map((o) => (o.sellerId === user.id && !o.seen ? { ...o, seen: true } : o))
+    );
     await supabase.from("orders")
       .update({ seen_by_seller: true })
       .eq("seller_id", user.id)
       .eq("seen_by_seller", false);
-    await fetchOrders();
   };
 
-  const unseenCount = orders.filter((o) => !o.seen).length;
+  const unseenCount = orders.filter((o) => o.sellerId === user?.id && !o.seen).length;
   const latestOrder = orders[0] ?? null;
 
   return (

@@ -1,7 +1,7 @@
-import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from "react";
+import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { triggerSMS } from "@/lib/sms";
-
 
 export interface Message {
   id: string;
@@ -47,7 +47,8 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
-  const subscriptionRef = useRef<any>(null);
+  const profileCacheRef = useRef<Record<string, string>>({});
+  const channelRef = useRef<any>(null);
 
   const getOrCreateConversationId = (userA: string, userB: string, listingId?: string) => {
     const sorted = [userA, userB].sort().join("_");
@@ -56,63 +57,75 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
 
   const totalUnread = conversations.reduce((sum, c) => sum + c.unread_count, 0);
 
-  const fetchConversations = async () => {
+  // ── Fetch profile name (cached) ───────────────────────────────────────────
+  const getProfileName = useCallback(async (id: string): Promise<string> => {
+    if (profileCacheRef.current[id]) return profileCacheRef.current[id];
+    const { data } = await supabase.from("profiles").select("name").eq("id", id).single();
+    const name = data?.name ?? "Unknown";
+    profileCacheRef.current[id] = name;
+    return name;
+  }, []);
+
+  // ── Rebuild conversations from flat messages state ────────────────────────
+  const rebuildConversations = useCallback(
+    async (allMessages: Record<string, Message[]>) => {
+      if (!user?.id) return;
+
+      const convList: Conversation[] = await Promise.all(
+        Object.entries(allMessages).map(async ([conv_id, msgs]) => {
+          const sorted = [...msgs].sort(
+            (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
+          const latest = sorted[0];
+          const otherId = latest.sender_id === user.id ? latest.receiver_id : latest.sender_id;
+          const otherName = await getProfileName(otherId);
+          const unread = msgs.filter((m) => m.receiver_id === user.id && !m.seen).length;
+
+          return {
+            conversation_id: conv_id,
+            other_user_id: otherId,
+            other_user_name: otherName,
+            listing_id: latest.listing_id,
+            listing_name: undefined,
+            last_message: latest.content,
+            last_message_at: latest.created_at,
+            unread_count: unread,
+          };
+        })
+      );
+
+      convList.sort(
+        (a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime()
+      );
+      setConversations(convList);
+    },
+    [user?.id, getProfileName]
+  );
+
+  // ── Initial fetch ─────────────────────────────────────────────────────────
+  const fetchConversations = useCallback(async () => {
     if (!user?.id) return;
-    const { supabase } = await import("@/lib/supabase");
 
     const { data, error } = await supabase
       .from("messages")
       .select("*")
       .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: true });
 
     if (error || !data) return;
 
-    // Group by conversation_id
-    const convMap: Record<string, Message[]> = {};
+    const grouped: Record<string, Message[]> = {};
     data.forEach((msg: Message) => {
-      if (!convMap[msg.conversation_id]) convMap[msg.conversation_id] = [];
-      convMap[msg.conversation_id].push(msg);
+      if (!grouped[msg.conversation_id]) grouped[msg.conversation_id] = [];
+      grouped[msg.conversation_id].push(msg);
     });
 
-    // Fetch profile names
-    const otherUserIds = [...new Set(data.map((m: Message) =>
-      m.sender_id === user.id ? m.receiver_id : m.sender_id
-    ))];
+    setMessages(grouped);
+    await rebuildConversations(grouped);
+  }, [user?.id, rebuildConversations]);
 
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("id, name")
-      .in("id", otherUserIds);
-
-    const profileMap: Record<string, string> = {};
-    profiles?.forEach((p: { id: string; name: string }) => {
-      profileMap[p.id] = p.name ?? "Unknown";
-    });
-
-    const convList: Conversation[] = Object.entries(convMap).map(([conv_id, msgs]) => {
-      const latest = msgs[0];
-      const otherId = latest.sender_id === user.id ? latest.receiver_id : latest.sender_id;
-      const unread = msgs.filter(m => m.receiver_id === user.id && !m.seen).length;
-      return {
-        conversation_id: conv_id,
-        other_user_id: otherId,
-        other_user_name: profileMap[otherId] ?? "Unknown",
-        listing_id: latest.listing_id,
-        listing_name: undefined,
-        last_message: latest.content,
-        last_message_at: latest.created_at,
-        unread_count: unread,
-      };
-    });
-
-    convList.sort((a, b) => new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime());
-    setConversations(convList);
-  };
-
-  const fetchMessages = async (conversationId: string) => {
+  const fetchMessages = useCallback(async (conversationId: string) => {
     if (!user?.id) return;
-    const { supabase } = await import("@/lib/supabase");
 
     const { data, error } = await supabase
       .from("messages")
@@ -122,48 +135,156 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
 
     if (error || !data) return;
 
-    setMessages(prev => ({ ...prev, [conversationId]: data }));
-  };
+    setMessages((prev) => {
+      const updated = { ...prev, [conversationId]: data };
+      rebuildConversations(updated);
+      return updated;
+    });
+  }, [user?.id, rebuildConversations]);
 
-  const sendMessage = async (
+  // ── Handle an incoming realtime message (works for both sender & receiver) ─
+  const handleIncomingMessage = useCallback(
+    async (msg: Message) => {
+      setMessages((prev) => {
+        const existing = prev[msg.conversation_id] ?? [];
+        // Avoid duplicates (optimistic messages already added)
+        if (existing.some((m) => m.id === msg.id)) return prev;
+        const updated = {
+          ...prev,
+          [msg.conversation_id]: [...existing, msg],
+        };
+        rebuildConversations(updated);
+        return updated;
+      });
+    },
+    [rebuildConversations]
+  );
+
+  // ── Realtime subscription ─────────────────────────────────────────────────
+  useEffect(() => {
+    if (!user?.id) return;
+
+    fetchConversations();
+
+    // Subscribe to ALL messages where the user is involved (both sender and receiver)
+    channelRef.current = supabase
+      .channel(`messages:user:${user.id}`)
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "messages",
+        filter: `receiver_id=eq.${user.id}`,
+      }, (payload: any) => {
+        handleIncomingMessage(payload.new as Message);
+      })
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "messages",
+        filter: `receiver_id=eq.${user.id}`,
+      }, (payload: any) => {
+        // Handle seen status updates
+        const updated = payload.new as Message;
+        setMessages((prev) => {
+          const conv = prev[updated.conversation_id];
+          if (!conv) return prev;
+          const newConv = conv.map((m) => (m.id === updated.id ? { ...m, ...updated } : m));
+          const newMessages = { ...prev, [updated.conversation_id]: newConv };
+          rebuildConversations(newMessages);
+          return newMessages;
+        });
+      })
+      .subscribe((status: string) => console.log("[Messages] realtime:", status));
+
+    return () => {
+      if (channelRef.current) supabase.removeChannel(channelRef.current);
+    };
+  }, [user?.id]);
+
+  // ── Send message ──────────────────────────────────────────────────────────
+  const sendMessage = useCallback(async (
     receiverId: string,
     content: string,
     listingId?: string,
-    listingName?: string
+    _listingName?: string
   ) => {
     if (!user?.id || !content.trim()) return;
-    const { supabase } = await import("@/lib/supabase");
 
     const conversationId = getOrCreateConversationId(user.id, receiverId, listingId);
 
-    const newMsg = {
+    const optimisticMsg: Message = {
+      id: `optimistic-${Date.now()}`,
       conversation_id: conversationId,
       sender_id: user.id,
       receiver_id: receiverId,
-      listing_id: listingId ?? null,
+      listing_id: listingId,
       content: content.trim(),
+      created_at: new Date().toISOString(),
       seen: false,
     };
 
-    const { data, error } = await supabase.from("messages").insert(newMsg).select().single();
-    if (error || !data) return;
+    // Optimistic: show message instantly on sender's side
+    setMessages((prev) => {
+      const updated = {
+        ...prev,
+        [conversationId]: [...(prev[conversationId] ?? []), optimisticMsg],
+      };
+      rebuildConversations(updated);
+      return updated;
+    });
 
-    // Trigger SMS notification to receiver
+    const { data, error } = await supabase
+      .from("messages")
+      .insert({
+        conversation_id: conversationId,
+        sender_id: user.id,
+        receiver_id: receiverId,
+        listing_id: listingId ?? null,
+        content: content.trim(),
+        seen: false,
+      })
+      .select()
+      .single();
+
+    if (error || !data) {
+      // Revert optimistic message
+      setMessages((prev) => {
+        const conv = (prev[conversationId] ?? []).filter((m) => m.id !== optimisticMsg.id);
+        const updated = { ...prev, [conversationId]: conv };
+        rebuildConversations(updated);
+        return updated;
+      });
+      return;
+    }
+
+    // Replace optimistic message with real one
+    setMessages((prev) => {
+      const conv = (prev[conversationId] ?? []).map((m) =>
+        m.id === optimisticMsg.id ? (data as Message) : m
+      );
+      const updated = { ...prev, [conversationId]: conv };
+      rebuildConversations(updated);
+      return updated;
+    });
+
     if (data.receiver_id !== user.id) {
-  await triggerSMS({ type: "message.created", record: data });
-}
+      await triggerSMS({ type: "message.created", record: data });
+    }
+  }, [user?.id, rebuildConversations]);
 
-    setMessages(prev => ({
-      ...prev,
-      [conversationId]: [...(prev[conversationId] ?? []), data],
-    }));
-
-    await fetchConversations();
-  };
-
-  const markConversationSeen = async (conversationId: string) => {
+  // ── Mark conversation as seen ─────────────────────────────────────────────
+  const markConversationSeen = useCallback(async (conversationId: string) => {
     if (!user?.id) return;
-    const { supabase } = await import("@/lib/supabase");
+
+    // Optimistic
+    setMessages((prev) => {
+      const conv = (prev[conversationId] ?? []).map((m) =>
+        m.receiver_id === user.id ? { ...m, seen: true } : m
+      );
+      const updated = { ...prev, [conversationId]: conv };
+      rebuildConversations(updated);
+      return updated;
+    });
 
     await supabase
       .from("messages")
@@ -171,48 +292,7 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
       .eq("conversation_id", conversationId)
       .eq("receiver_id", user.id)
       .eq("seen", false);
-
-    setConversations(prev =>
-      prev.map(c => c.conversation_id === conversationId ? { ...c, unread_count: 0 } : c)
-    );
-  };
-
-  // Subscribe to real-time messages
-  useEffect(() => {
-    if (!user?.id) return;
-
-    fetchConversations();
-
-    let channel: any;
-    import("@/lib/supabase").then(({ supabase }) => {
-      channel = supabase
-        .channel(`messages:${user.id}`)
-        .on("postgres_changes", {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `receiver_id=eq.${user.id}`,
-        }, (payload: any) => {
-          const msg = payload.new as Message;
-          setMessages(prev => ({
-            ...prev,
-            [msg.conversation_id]: [...(prev[msg.conversation_id] ?? []), msg],
-          }));
-          fetchConversations();
-        })
-        .subscribe();
-
-      subscriptionRef.current = channel;
-    });
-
-    return () => {
-      if (subscriptionRef.current) {
-        import("@/lib/supabase").then(({ supabase }) => {
-          supabase.removeChannel(subscriptionRef.current);
-        });
-      }
-    };
-  }, [user?.id]);
+  }, [user?.id, rebuildConversations]);
 
   return (
     <MessageContext.Provider value={{

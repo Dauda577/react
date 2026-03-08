@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { supabase, ReviewRow } from "@/lib/supabase";
 
 export type Review = {
@@ -35,17 +35,36 @@ const rowToReview = (r: ReviewRow): Review => ({
 
 export const RatingProvider = ({ children }: { children: ReactNode }) => {
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [watchedSellerIds, setWatchedSellerIds] = useState<Set<string>>(new Set());
 
-  const fetchReviews = async (sellerId: string) => {
+  const fetchReviews = useCallback(async (sellerId: string) => {
     const { data, error } = await supabase
       .from("reviews")
       .select("*")
       .eq("seller_id", sellerId)
       .order("created_at", { ascending: false });
-    if (!error && data) setReviews((data as ReviewRow[]).map(rowToReview));
-  };
+
+    if (!error && data) {
+      const fetched = (data as ReviewRow[]).map(rowToReview);
+      setReviews((prev) => {
+        // Merge: replace existing reviews for this seller, keep others
+        const others = prev.filter((r) => r.sellerId !== sellerId);
+        return [...fetched, ...others];
+      });
+      // Track this seller for realtime
+      setWatchedSellerIds((prev) => new Set([...prev, sellerId]));
+    }
+  }, []);
 
   const addReview = async (review: Omit<Review, "id" | "createdAt">) => {
+    // Optimistic
+    const optimistic: Review = {
+      ...review,
+      id: `optimistic-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+    };
+    setReviews((prev) => [optimistic, ...prev]);
+
     const { data, error } = await supabase.from("reviews").insert({
       order_id: review.orderId,
       seller_id: review.sellerId,
@@ -54,18 +73,69 @@ export const RatingProvider = ({ children }: { children: ReactNode }) => {
       stars: review.stars,
       comment: review.comment,
     }).select().single();
-    if (error) throw new Error(error.message);
-    setReviews((prev) => [rowToReview(data as ReviewRow), ...prev]);
+
+    if (error) {
+      // Revert optimistic
+      setReviews((prev) => prev.filter((r) => r.id !== optimistic.id));
+      throw new Error(error.message);
+    }
+
+    // Replace optimistic with real
+    setReviews((prev) =>
+      prev.map((r) => r.id === optimistic.id ? rowToReview(data as ReviewRow) : r)
+    );
   };
 
-  const getSellerStats = (sellerId: string) => {
+  // ── Realtime: listen for new reviews on watched sellers ───────────────────
+  useEffect(() => {
+    if (watchedSellerIds.size === 0) return;
+
+    const channel = supabase
+      .channel(`reviews-realtime`)
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "reviews",
+      }, (payload) => {
+        const newReview = rowToReview(payload.new as ReviewRow);
+        // Only add if it's for a seller we've loaded
+        if (!watchedSellerIds.has(newReview.sellerId)) return;
+        setReviews((prev) => {
+          if (prev.some((r) => r.id === newReview.id)) return prev;
+          return [newReview, ...prev];
+        });
+      })
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "reviews",
+      }, (payload) => {
+        const updated = rowToReview(payload.new as ReviewRow);
+        setReviews((prev) =>
+          prev.map((r) => r.id === updated.id ? updated : r)
+        );
+      })
+      .on("postgres_changes", {
+        event: "DELETE",
+        schema: "public",
+        table: "reviews",
+      }, (payload) => {
+        setReviews((prev) => prev.filter((r) => r.id !== payload.old.id));
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [watchedSellerIds.size]);
+
+  const getSellerStats = useCallback((sellerId: string) => {
     const sellerReviews = reviews.filter((r) => r.sellerId === sellerId);
     if (sellerReviews.length === 0) return { average: 0, count: 0 };
     const average = sellerReviews.reduce((sum, r) => sum + r.stars, 0) / sellerReviews.length;
     return { average: Math.round(average * 10) / 10, count: sellerReviews.length };
-  };
+  }, [reviews]);
 
-  const hasReviewed = (orderId: string) => reviews.some((r) => r.orderId === orderId);
+  const hasReviewed = useCallback((orderId: string) =>
+    reviews.some((r) => r.orderId === orderId), [reviews]);
 
   return (
     <RatingContext.Provider value={{ reviews, addReview, getSellerStats, hasReviewed, fetchReviews }}>

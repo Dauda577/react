@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { supabase, ListingRow } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 
@@ -78,7 +78,7 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchListings = async () => {
+  const fetchListings = useCallback(async () => {
     if (!user) { setListings([]); setLoading(false); return; }
     setLoading(true);
     const { data, error } = await supabase
@@ -88,24 +88,49 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
       .order("created_at", { ascending: false });
     if (!error && data) setListings((data as ListingRow[]).map(rowToListing));
     setLoading(false);
-  };
+  }, [user?.id]);
 
   useEffect(() => { fetchListings(); }, [user?.id]);
 
-  // Real-time: refetch seller's own listings when they change
+  // ── Realtime: in-place updates ────────────────────────────────────────────
   useEffect(() => {
     if (!user?.id) return;
+
     const channel = supabase
-      .channel("seller-listings-realtime")
+      .channel(`seller-listings-realtime:${user.id}`)
       .on("postgres_changes", {
-        event: "*",
+        event: "INSERT",
         schema: "public",
         table: "listings",
         filter: `seller_id=eq.${user.id}`,
-      }, () => {
-        fetchListings();
+      }, (payload) => {
+        const newListing = rowToListing(payload.new as ListingRow);
+        setListings((prev) => {
+          if (prev.some((l) => l.id === newListing.id)) return prev;
+          return [newListing, ...prev];
+        });
+      })
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "listings",
+        filter: `seller_id=eq.${user.id}`,
+      }, (payload) => {
+        const updated = rowToListing(payload.new as ListingRow);
+        setListings((prev) =>
+          prev.map((l) => (l.id === updated.id ? updated : l))
+        );
+      })
+      .on("postgres_changes", {
+        event: "DELETE",
+        schema: "public",
+        table: "listings",
+        filter: `seller_id=eq.${user.id}`,
+      }, (payload) => {
+        setListings((prev) => prev.filter((l) => l.id !== payload.old.id));
       })
       .subscribe();
+
     return () => { supabase.removeChannel(channel); };
   }, [user?.id]);
 
@@ -116,7 +141,7 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
     imageFile?: File
   ) => {
     if (!user) throw new Error("Not authenticated");
-    // Insert first to get the id
+
     const { data, error } = await supabase.from("listings").insert({
       seller_id: user.id,
       name: listing.name,
@@ -126,6 +151,7 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
       sizes: listing.sizes,
       description: listing.description,
     }).select().single();
+
     if (error) throw new Error(error.message);
 
     let imageUrl: string | null = null;
@@ -133,9 +159,12 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
       imageUrl = await uploadImage(imageFile, data.id);
       if (imageUrl) {
         await supabase.from("listings").update({ image_url: imageUrl }).eq("id", data.id);
+        // Update the row in state with the image URL
+        setListings((prev) =>
+          prev.map((l) => l.id === data.id ? { ...l, image: imageUrl } : l)
+        );
       }
     }
-    await fetchListings();
   };
 
   const updateListing = async (id: string, updates: Partial<Listing>, imageFile?: File) => {
@@ -157,24 +186,34 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
       dbUpdates.image_url = updates.image;
     }
 
+    // Optimistic update
+    setListings((prev) =>
+      prev.map((l) => l.id === id ? { ...l, ...updates } : l)
+    );
+
     const { error } = await supabase.from("listings").update(dbUpdates).eq("id", id);
-    if (error) throw new Error(error.message);
-    await fetchListings();
+    if (error) {
+      // Revert on failure
+      await fetchListings();
+      throw new Error(error.message);
+    }
   };
 
   const deleteListing = async (id: string) => {
-    const { error } = await supabase.from("listings").delete().eq("id", id);
-    if (error) throw new Error(error.message);
+    // Optimistic removal
     setListings((prev) => prev.filter((l) => l.id !== id));
+    const { error } = await supabase.from("listings").delete().eq("id", id);
+    if (error) {
+      await fetchListings();
+      throw new Error(error.message);
+    }
   };
 
-  const markSold = async (id: string) => {
-    await updateListing(id, { status: "sold" });
-  };
+  const markSold = (id: string) => updateListing(id, { status: "sold" });
 
-  const boostListing = async (id: string) => {
+  const boostListing = (id: string) => {
     const expiresAt = new Date(Date.now() + BOOST_DURATION * 24 * 60 * 60 * 1000).toISOString();
-    await updateListing(id, { boosted: true, boostExpiresAt: expiresAt });
+    return updateListing(id, { boosted: true, boostExpiresAt: expiresAt });
   };
 
   return (
