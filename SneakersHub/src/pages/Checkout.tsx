@@ -167,28 +167,25 @@ const Checkout = () => {
 
       const ref = `order_${Date.now()}`;
 
+      const onPaymentSuccess = function(response: { reference: string }) {
+        toast.success("Payment received — held in escrow until delivery!");
+        submitOrder(response.reference);
+      };
+
+      const onPaymentClose = function() {
+        toast("Payment cancelled");
+        setLoading(false);
+      };
+
       const handler = PaystackPop.setup({
         key: PAYSTACK_PUBLIC_KEY,
         email: user?.email ?? form.phone + "@sneakershub.gh",
         amount: orderTotal * 100,
         currency: "GHS",
-        ref,
+        ref: ref,
         channels: ["card", "mobile_money"],
-        label: `SneakersHub Order — ${items[0]?.sneaker.name}`,
-        metadata: {
-          custom_fields: [
-            { display_name: "Buyer", variable_name: "buyer", value: `${form.firstName} ${form.lastName}` },
-            { display_name: "Seller", variable_name: "seller", value: sellerListing?.sellerName ?? "" },
-          ],
-        },
-        callback: async (response: { reference: string }) => {
-          toast.success("Payment received — held in escrow until delivery!");
-          await submitOrder(response.reference);
-        },
-        onClose: () => {
-          toast("Payment cancelled");
-          setLoading(false);
-        },
+        callback: onPaymentSuccess,
+        onClose: onPaymentClose,
       });
 
       handler.openIframe();
@@ -286,8 +283,8 @@ const Checkout = () => {
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[
-                  { name: "firstName", label: "First Name", placeholder: "Kwame", icon: User },
-                  { name: "lastName", label: "Last Name", placeholder: "Asante", icon: User },
+                  { name: "firstName", label: "First Name", placeholder: "Dauda", icon: User },
+                  { name: "lastName", label: "Last Name", placeholder: "Qarsim", icon: User },
                 ].map(({ name, label, placeholder, icon: Icon }) => (
                   <div key={name}>
                     <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">{label}</label>

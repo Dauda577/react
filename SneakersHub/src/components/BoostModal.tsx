@@ -57,28 +57,35 @@ const BoostModal = ({ listing, onClose }: Props) => {
 
     const ref = `boost_${listing.id.slice(0, 8)}_${Date.now()}`;
 
+    const onPaymentSuccess = function(response: { reference: string }) {
+      boostListing(listing.id)
+        .then(() => {
+          setStep("success");
+          toast.success("Listing boosted!");
+        })
+        .catch(() => {
+          toast.error(`Payment done (ref: ${response.reference}) but boost failed. Contact support.`);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    };
+
+    const onPaymentClose = function() {
+      toast("Payment cancelled");
+      setLoading(false);
+    };
+
     const handler = PaystackPop.setup({
       key: PAYSTACK_PUBLIC_KEY,
       email: user.email,
       amount: BOOST_FEE * 100,
       currency: "GHS",
-      ref,
+      ref: ref,
       channels: ["card", "mobile_money"],
       label: `Boost: ${listing.name}`,
-      callback: async (response: { reference: string }) => {
-        try {
-          await boostListing(listing.id);
-          setStep("success");
-          toast.success("Listing boosted!");
-        } catch {
-          toast.error(`Payment done (ref: ${response.reference}) but boost failed. Contact support.`);
-        }
-        setLoading(false);
-      },
-      onClose: () => {
-        toast("Payment cancelled");
-        setLoading(false);
-      },
+      callback: onPaymentSuccess,
+      onClose: onPaymentClose,
     });
 
     handler.openIframe();

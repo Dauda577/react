@@ -193,7 +193,7 @@ const Auth = () => {
                   <div className="relative">
                     <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <input name="name" autoComplete="name" value={form.name} onChange={handleChange}
-                      placeholder="Kwame Asante"
+                      placeholder="Dauda Qarsim"
                       className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm
                         focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]" />
                   </div>
