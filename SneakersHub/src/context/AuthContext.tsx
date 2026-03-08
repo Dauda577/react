@@ -33,7 +33,18 @@ const Spinner = () => (
 );
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUserState] = useState<User | null>(() => {
+    try {
+      const cached = localStorage.getItem("sneakershub-user");
+      return cached ? JSON.parse(cached) : null;
+    } catch { return null; }
+  });
+
+  const setUser = (u: User | null) => {
+    setUserState(u);
+    if (u) localStorage.setItem("sneakershub-user", JSON.stringify(u));
+    else localStorage.removeItem("sneakershub-user");
+  };
   const [isGuest, setIsGuest] = useState(false);
   const [loading, setLoading] = useState(true);
   const [needsRole, setNeedsRole] = useState(false);
@@ -80,10 +91,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    const timeout = setTimeout(() => setLoading(false), 3000);
-
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      clearTimeout(timeout);
       await handleSession(session);
       setLoading(false);
     });
@@ -95,10 +103,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    return () => {
-      clearTimeout(timeout);
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, password: string) => {
