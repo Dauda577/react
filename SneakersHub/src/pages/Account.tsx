@@ -139,8 +139,19 @@ const Account = () => {
   const handleDeleteAccount = async () => {
     try {
       const { supabase } = await import("@/lib/supabase");
+      // Delete account via admin API through edge function, fallback to just signing out
+      const { error } = await supabase.functions.invoke("delete-account", {
+        body: { user_id: user?.id },
+      });
+      if (error) {
+        // Fallback: sign out and show message to contact support
+        await supabase.auth.signOut();
+        toast.success("You have been signed out. Contact support to complete account deletion.");
+        navigate("/");
+        return;
+      }
       await supabase.auth.signOut();
-      toast.success("Account deletion requested. You have been signed out.");
+      toast.success("Account deleted successfully.");
       navigate("/");
     } catch (err: any) {
       toast.error(err.message ?? "Failed to delete account");
@@ -965,15 +976,45 @@ const Account = () => {
                           </div>
                         </button>
                       ) : (
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
-                          <p className="text-sm font-medium text-red-500">Are you sure? This cannot be undone.</p>
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+                          {/* Warning header */}
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0">
+                              <Trash className="w-4 h-4 text-red-500" />
+                            </div>
+                            <p className="text-sm font-bold text-red-500">Delete Account</p>
+                          </div>
+
+                          {/* Warning details */}
+                          <div className="rounded-xl bg-red-500/5 border border-red-500/20 p-4 space-y-2">
+                            <p className="text-xs font-semibold text-red-500 uppercase tracking-wide">This will permanently delete:</p>
+                            <div className="space-y-1.5 mt-2">
+                              {[
+                                "Your profile and personal information",
+                                "All your active and past listings",
+                                "Your saved items and preferences",
+                                "Access to all your order history",
+                                "Your messages and conversations",
+                              ].map((item) => (
+                                <div key={item} className="flex items-start gap-2">
+                                  <span className="text-red-400 text-xs mt-0.5 flex-shrink-0">✕</span>
+                                  <p className="text-xs text-muted-foreground">{item}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          <p className="text-xs text-muted-foreground">
+                            This action is <span className="font-semibold text-foreground">permanent and cannot be undone</span>. You will not be able to recover your account or any associated data.
+                          </p>
+
                           <div className="flex gap-2">
                             <button onClick={handleDeleteAccount}
-                              className="flex-1 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 text-sm font-semibold hover:bg-red-500/20 transition-colors">
-                              Yes, delete
+                              className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition-colors">
+                              Yes, delete forever
                             </button>
                             <button onClick={() => setShowDeleteConfirm(false)}
-                              className="flex-1 px-4 py-2 rounded-xl border border-border text-sm font-medium hover:bg-muted/40 transition-colors">
+                              className="flex-1 px-4 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-muted/40 transition-colors">
                               Cancel
                             </button>
                           </div>
