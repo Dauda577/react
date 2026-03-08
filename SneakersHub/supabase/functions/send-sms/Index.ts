@@ -50,12 +50,6 @@ serve(async (req) => {
     return new Response("Method not allowed", { status: 405 });
   }
 
-  // Verify request is from Supabase (basic auth)
-  const authHeader = req.headers.get("Authorization");
-  if (authHeader !== `Bearer ${SUPABASE_SERVICE_KEY}`) {
-    return new Response("Unauthorized", { status: 401 });
-  }
-
   const body = await req.json();
   const { type, record } = body;
 
