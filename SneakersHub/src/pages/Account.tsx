@@ -247,7 +247,9 @@ const Account = () => {
                 {isGuest ? "Ghana" : [profileForm.city, "Ghana"].filter(Boolean).join(", ") || "Ghana"}
               </p>
               {!isGuest && role === "seller" && (() => {
-                const { average, count } = getSellerStats(user?.id ?? "");
+                const result = getSellerStats(user?.id ?? "");
+                const average = result?.average ?? 0;
+                const count = result?.count ?? 0;
                 return count > 0 ? (
                   <div className="flex items-center gap-1.5 mt-1.5">
                     {[1,2,3,4,5].map((n) => (
@@ -422,7 +424,9 @@ const Account = () => {
 
                     {role === "seller" && (() => {
                       const sellerReviews = reviews.filter((r) => r.sellerId === (user?.id ?? ""));
-                      const { average, count } = getSellerStats(user?.id ?? "");
+                      const result = getSellerStats(user?.id ?? "");
+                      const average = result?.average ?? 0;
+                      const count = result?.count ?? 0;
                       return (
                         <div className="mt-8 pt-6 border-t border-border">
                           <div className="flex items-center justify-between mb-4">

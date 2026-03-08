@@ -79,6 +79,8 @@ const SellerDashboard = () => {
   const { getSellerStats } = useRatings();
 
   const stats = user?.id ? getSellerStats(user.id) : null;
+  const safeAvg = stats?.avg != null && !isNaN(stats.avg) ? stats.avg : 0;
+  const safeCount = stats?.count ?? 0;
 
   // Only seller's orders
   const myOrders = useMemo(() =>
@@ -162,7 +164,7 @@ const SellerDashboard = () => {
   }, [listings]);
 
   // ── Conversion rate ───────────────────────────────────────────────────────
-  const conversionRate = totalViews > 0
+  const conversionRate = totalViews > 0 && soldListings >= 0
     ? ((soldListings / totalViews) * 100).toFixed(1)
     : "0.0";
 
@@ -202,7 +204,7 @@ const SellerDashboard = () => {
       </div>
 
       {/* ── Rating summary ── */}
-      {stats && stats.count > 0 && (
+      {safeCount > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
           className="rounded-2xl border border-border bg-card p-4 flex items-center gap-4"
@@ -211,12 +213,12 @@ const SellerDashboard = () => {
             <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
           </div>
           <div className="flex-1">
-            <p className="font-display text-xl font-bold">{stats.avg.toFixed(1)} / 5.0</p>
-            <p className="text-xs text-muted-foreground">{stats.count} {stats.count === 1 ? "review" : "reviews"} from buyers</p>
+            <p className="font-display text-xl font-bold">{safeAvg.toFixed(1)} / 5.0</p>
+            <p className="text-xs text-muted-foreground">{safeCount} {safeCount === 1 ? "review" : "reviews"} from buyers</p>
           </div>
           <div className="flex gap-0.5">
             {[1, 2, 3, 4, 5].map((s) => (
-              <Star key={s} className={`w-4 h-4 ${s <= Math.round(stats.avg) ? "text-yellow-500 fill-yellow-500" : "text-border"}`} />
+              <Star key={s} className={`w-4 h-4 ${s <= Math.round(safeAvg) ? "text-yellow-500 fill-yellow-500" : "text-border"}`} />
             ))}
           </div>
         </motion.div>
