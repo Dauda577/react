@@ -33,6 +33,11 @@ const buyerTabs = [
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
+const guestTabs = [
+  { id: "profile", label: "Profile", icon: User },
+  { id: "saved", label: "Saved", icon: Heart },
+];
+
 const statusColors: Record<string, string> = {
   pending: "bg-yellow-500/10 text-yellow-600",
   shipped: "bg-purple-500/10 text-purple-600",
@@ -44,14 +49,35 @@ const formatOrderId = (id: string) => {
   return `#${num.toString().padStart(9, "0")}`;
 };
 
+// Banner shown to guests when they try to access auth-only features
+const GuestAuthBanner = ({ action }: { action: string }) => {
+  const navigate = useNavigate();
+  return (
+    <div className="text-center py-20">
+      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+        <User className="w-5 h-5 text-primary" />
+      </div>
+      <h3 className="font-display text-lg font-bold tracking-tight mb-2">Sign in required</h3>
+      <p className="text-muted-foreground text-sm max-w-xs mx-auto mb-6">
+        You need an account to {action}. It only takes a minute.
+      </p>
+      <div className="flex gap-3 justify-center flex-wrap">
+        <Button className="btn-primary rounded-full h-9 px-6 text-sm" onClick={() => navigate("/auth")}>
+          Sign In / Sign Up
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 const Account = () => {
-  const { user, logout } = useAuth();
+  const { user, isGuest, logout } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("profile");
   const [editMode, setEditMode] = useState(false);
 
   const role = user?.role ?? "buyer";
-  const tabs = role === "seller" ? sellerTabs : buyerTabs;
+  const tabs = isGuest ? guestTabs : role === "seller" ? sellerTabs : buyerTabs;
 
   const { saved, toggleSaved } = useSaved();
   const { orders, unseenCount, markOrdersSeen, confirmAsSeller, confirmAsBuyer } = useOrders();
@@ -72,6 +98,7 @@ const Account = () => {
 
   // Fetch Google avatar from auth metadata
   useEffect(() => {
+    if (!user?.id) return;
     import("@/lib/supabase").then(({ supabase }) => {
       supabase.auth.getUser().then(({ data }) => {
         const photo =
@@ -117,12 +144,14 @@ const Account = () => {
   };
 
   const [profileForm, setProfileForm] = useState({
-    name: user?.name ?? "",
+    name: user?.name ?? "Guest",
     phone: "",
     city: "",
-    bio: role === "seller"
-      ? "Trusted seller based in Accra. Quality sneakers, fair prices."
-      : "Sneaker enthusiast based in Accra.",
+    bio: isGuest
+      ? "Browsing as guest."
+      : role === "seller"
+        ? "Trusted seller based in Accra. Quality sneakers, fair prices."
+        : "Sneaker enthusiast based in Accra.",
   });
 
   const handleLogout = async () => {
@@ -191,7 +220,7 @@ const Account = () => {
 
   const initials = user?.name
     ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-    : "?";
+    : isGuest ? "G" : "?";
 
   return (
     <div className="min-h-screen bg-background">
@@ -218,24 +247,28 @@ const Account = () => {
 
             <div className="flex-1">
               <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold mb-2
-                ${role === "seller"
-                  ? "bg-primary/10 text-primary border border-primary/20"
-                  : "bg-secondary text-muted-foreground border border-border"
+                ${isGuest
+                  ? "bg-muted text-muted-foreground border border-border"
+                  : role === "seller"
+                    ? "bg-primary/10 text-primary border border-primary/20"
+                    : "bg-secondary text-muted-foreground border border-border"
                 }`}>
-                {role === "seller"
-                  ? <><Store className="w-3 h-3" /> Seller Account</>
-                  : <><Tag className="w-3 h-3" /> Buyer Account</>
+                {isGuest
+                  ? <><User className="w-3 h-3" /> Guest</>
+                  : role === "seller"
+                    ? <><Store className="w-3 h-3" /> Seller Account</>
+                    : <><Tag className="w-3 h-3" /> Buyer Account</>
                 }
               </div>
 
               <h1 className="font-display text-2xl font-bold tracking-tight">
-                {profileForm.name || user?.name || "Guest"}
+                {isGuest ? "Guest" : profileForm.name || user?.name || "User"}
               </h1>
               <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
                 <MapPin className="w-3 h-3 text-primary" />
-                {[profileForm.city, "Ghana"].filter(Boolean).join(", ") || "Ghana"}
+                {isGuest ? "Ghana" : [profileForm.city, "Ghana"].filter(Boolean).join(", ") || "Ghana"}
               </p>
-              {role === "seller" && (() => {
+              {!isGuest && role === "seller" && (() => {
                 const { average, count } = getSellerStats(user?.id ?? "");
                 return count > 0 ? (
                   <div className="flex items-center gap-1.5 mt-1.5">
@@ -251,16 +284,18 @@ const Account = () => {
               })()}
             </div>
 
-            <Button
-              onClick={() => { setActiveTab("profile"); setEditMode(!editMode); }}
-              variant="outline"
-              className="rounded-full h-9 px-5 text-sm hidden sm:flex"
-            >
-              {editMode
-                ? <><CheckCircle className="mr-1.5 w-3.5 h-3.5" /> Done</>
-                : <><Pencil className="mr-1.5 w-3.5 h-3.5" /> Edit</>
-              }
-            </Button>
+            {!isGuest && (
+              <Button
+                onClick={() => { setActiveTab("profile"); setEditMode(!editMode); }}
+                variant="outline"
+                className="rounded-full h-9 px-5 text-sm hidden sm:flex"
+              >
+                {editMode
+                  ? <><CheckCircle className="mr-1.5 w-3.5 h-3.5" /> Done</>
+                  : <><Pencil className="mr-1.5 w-3.5 h-3.5" /> Edit</>
+                }
+              </Button>
+            )}
           </motion.div>
 
           {/* Tabs */}
@@ -309,145 +344,179 @@ const Account = () => {
             {/* ── Profile ── */}
             {activeTab === "profile" && (
               <div className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {isGuest ? (
+                  /* Guest profile — limited view with sign-in prompt */
                   <div>
-                    <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Full Name</label>
-                    <input
-                      value={editMode ? profileForm.name : (user?.name ?? "")}
-                      onChange={(e) => setProfileForm((p) => ({ ...p, name: e.target.value }))}
-                      disabled={!editMode}
-                      className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
-                        focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20
-                        disabled:opacity-50 disabled:cursor-not-allowed transition-all font-[inherit]"
-                    />
-                  </div>
-                  <div>
-                    <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Email</label>
-                    <input
-                      value={user?.email ?? ""}
-                      disabled
-                      className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
-                        opacity-50 cursor-not-allowed font-[inherit]"
-                    />
-                  </div>
-                  <div>
-                    <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Phone</label>
-                    <input
-                      value={profileForm.phone}
-                      onChange={(e) => setProfileForm((p) => ({ ...p, phone: e.target.value }))}
-                      disabled={!editMode}
-                      placeholder="+233 24 000 0000"
-                      className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
-                        focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20
-                        disabled:opacity-50 disabled:cursor-not-allowed transition-all font-[inherit]"
-                    />
-                  </div>
-                  <div>
-                    <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">City</label>
-                    <input
-                      value={profileForm.city}
-                      onChange={(e) => setProfileForm((p) => ({ ...p, city: e.target.value }))}
-                      disabled={!editMode}
-                      placeholder="Accra"
-                      className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
-                        focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20
-                        disabled:opacity-50 disabled:cursor-not-allowed transition-all font-[inherit]"
-                    />
-                  </div>
-                  <div className="col-span-full">
-                    <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Bio</label>
-                    <textarea
-                      value={profileForm.bio}
-                      onChange={(e) => setProfileForm((p) => ({ ...p, bio: e.target.value }))}
-                      disabled={!editMode}
-                      rows={3}
-                      className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
-                        focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20
-                        disabled:opacity-50 disabled:cursor-not-allowed resize-none transition-all font-[inherit]"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-2">
-                  {editMode ? (
-                    <Button className="btn-primary rounded-full h-9 px-6 text-sm" onClick={handleSaveProfile}>
-                      Save Changes <CheckCircle className="ml-1.5 w-3.5 h-3.5" />
-                    </Button>
-                  ) : (
-                    <Button variant="outline" className="rounded-full h-9 px-6 text-sm" onClick={() => setEditMode(true)}>
-                      <Pencil className="mr-1.5 w-3.5 h-3.5" /> Edit Profile
-                    </Button>
-                  )}
-                  <button onClick={handleLogout} className="text-sm text-red-500 flex items-center gap-1.5 hover:opacity-70 transition-opacity">
-                    <LogOut className="w-3.5 h-3.5" /> Sign out
-                  </button>
-                </div>
-
-                {/* ── Seller: Reviews ── */}
-                {role === "seller" && (() => {
-                  const sellerReviews = reviews.filter((r) => r.sellerId === (user?.id ?? ""));
-                  const { average, count } = getSellerStats(user?.id ?? "");
-                  return (
-                    <div className="mt-8 pt-6 border-t border-border">
-                      <div className="flex items-center justify-between mb-4">
-                        <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Buyer Reviews</p>
-                        {count > 0 && (
-                          <div className="flex items-center gap-1.5">
-                            {[1,2,3,4,5].map((n) => (
-                              <Star key={n} className={`w-3.5 h-3.5 ${n <= Math.round(average) ? "text-amber-400 fill-amber-400" : "text-muted-foreground/30"}`} />
-                            ))}
-                            <span className="text-sm font-bold ml-1">{average}</span>
-                            <span className="text-xs text-muted-foreground">/ 5 · {count} {count === 1 ? "review" : "reviews"}</span>
-                          </div>
-                        )}
+                    <div className="rounded-2xl border border-border p-6 text-center mb-6">
+                      <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                        <User className="w-6 h-6 text-primary" />
                       </div>
-                      {sellerReviews.length === 0 ? (
-                        <div className="text-center py-10">
-                          <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-3">
-                            <Star className="w-5 h-5 text-amber-400" />
-                          </div>
-                          <p className="text-sm text-muted-foreground">No reviews yet. Complete orders to get rated by buyers.</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          <AnimatePresence>
-                            {sellerReviews.map((review, i) => (
-                              <motion.div key={review.id}
-                                initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: i * 0.05 }}
-                                className="rounded-xl border border-border p-4">
-                                <div className="flex items-center justify-between gap-3 mb-2">
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                      <span className="text-xs font-bold text-primary">{review.buyerName[0]}</span>
-                                    </div>
-                                    <p className="text-sm font-medium">{review.buyerName}</p>
-                                  </div>
-                                  <div className="flex items-center gap-0.5">
-                                    {[1,2,3,4,5].map((n) => (
-                                      <Star key={n} className={`w-3 h-3 ${n <= review.stars ? "text-amber-400 fill-amber-400" : "text-muted-foreground/20"}`} />
-                                    ))}
-                                  </div>
-                                </div>
-                                {review.comment && (
-                                  <p className="text-sm text-muted-foreground leading-relaxed">{review.comment}</p>
-                                )}
-                                <p className="text-[10px] text-muted-foreground mt-2">
-                                  {new Date(review.createdAt).toLocaleDateString("en-GH", { day: "numeric", month: "short", year: "numeric" })}
-                                </p>
-                              </motion.div>
-                            ))}
-                          </AnimatePresence>
-                        </div>
-                      )}
+                      <h3 className="font-display text-lg font-bold mb-1">You're browsing as a guest</h3>
+                      <p className="text-sm text-muted-foreground mb-5 max-w-xs mx-auto">
+                        Create an account to buy, sell, track orders, and save your favourite sneakers.
+                      </p>
+                      <div className="flex gap-3 justify-center flex-wrap">
+                        <Button className="btn-primary rounded-full h-9 px-6 text-sm" onClick={() => navigate("/auth")}>
+                          Sign In / Sign Up <ArrowRight className="ml-1.5 w-3.5 h-3.5" />
+                        </Button>
+                      </div>
                     </div>
-                  );
-                })()}
+                    <button
+                      onClick={handleLogout}
+                      className="text-sm text-red-500 flex items-center gap-1.5 hover:opacity-70 transition-opacity"
+                    >
+                      <LogOut className="w-3.5 h-3.5" /> Exit guest mode
+                    </button>
+                  </div>
+                ) : (
+                  /* Authenticated profile */
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Full Name</label>
+                        <input
+                          value={editMode ? profileForm.name : (user?.name ?? "")}
+                          onChange={(e) => setProfileForm((p) => ({ ...p, name: e.target.value }))}
+                          disabled={!editMode}
+                          className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
+                            focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20
+                            disabled:opacity-50 disabled:cursor-not-allowed transition-all font-[inherit]"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Email</label>
+                        <input
+                          value={user?.email ?? ""}
+                          disabled
+                          className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
+                            opacity-50 cursor-not-allowed font-[inherit]"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Phone</label>
+                        <input
+                          value={profileForm.phone}
+                          onChange={(e) => setProfileForm((p) => ({ ...p, phone: e.target.value }))}
+                          disabled={!editMode}
+                          placeholder="+233 24 000 0000"
+                          className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
+                            focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20
+                            disabled:opacity-50 disabled:cursor-not-allowed transition-all font-[inherit]"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">City</label>
+                        <input
+                          value={profileForm.city}
+                          onChange={(e) => setProfileForm((p) => ({ ...p, city: e.target.value }))}
+                          disabled={!editMode}
+                          placeholder="Accra"
+                          className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
+                            focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20
+                            disabled:opacity-50 disabled:cursor-not-allowed transition-all font-[inherit]"
+                        />
+                      </div>
+                      <div className="col-span-full">
+                        <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Bio</label>
+                        <textarea
+                          value={profileForm.bio}
+                          onChange={(e) => setProfileForm((p) => ({ ...p, bio: e.target.value }))}
+                          disabled={!editMode}
+                          rows={3}
+                          className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
+                            focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20
+                            disabled:opacity-50 disabled:cursor-not-allowed resize-none transition-all font-[inherit]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2">
+                      {editMode ? (
+                        <Button className="btn-primary rounded-full h-9 px-6 text-sm" onClick={handleSaveProfile}>
+                          Save Changes <CheckCircle className="ml-1.5 w-3.5 h-3.5" />
+                        </Button>
+                      ) : (
+                        <Button variant="outline" className="rounded-full h-9 px-6 text-sm" onClick={() => setEditMode(true)}>
+                          <Pencil className="mr-1.5 w-3.5 h-3.5" /> Edit Profile
+                        </Button>
+                      )}
+                      <button onClick={handleLogout} className="text-sm text-red-500 flex items-center gap-1.5 hover:opacity-70 transition-opacity">
+                        <LogOut className="w-3.5 h-3.5" /> Sign out
+                      </button>
+                    </div>
+
+                    {/* ── Seller: Reviews ── */}
+                    {role === "seller" && (() => {
+                      const sellerReviews = reviews.filter((r) => r.sellerId === (user?.id ?? ""));
+                      const { average, count } = getSellerStats(user?.id ?? "");
+                      return (
+                        <div className="mt-8 pt-6 border-t border-border">
+                          <div className="flex items-center justify-between mb-4">
+                            <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Buyer Reviews</p>
+                            {count > 0 && (
+                              <div className="flex items-center gap-1.5">
+                                {[1,2,3,4,5].map((n) => (
+                                  <Star key={n} className={`w-3.5 h-3.5 ${n <= Math.round(average) ? "text-amber-400 fill-amber-400" : "text-muted-foreground/30"}`} />
+                                ))}
+                                <span className="text-sm font-bold ml-1">{average}</span>
+                                <span className="text-xs text-muted-foreground">/ 5 · {count} {count === 1 ? "review" : "reviews"}</span>
+                              </div>
+                            )}
+                          </div>
+                          {sellerReviews.length === 0 ? (
+                            <div className="text-center py-10">
+                              <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-3">
+                                <Star className="w-5 h-5 text-amber-400" />
+                              </div>
+                              <p className="text-sm text-muted-foreground">No reviews yet. Complete orders to get rated by buyers.</p>
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              <AnimatePresence>
+                                {sellerReviews.map((review, i) => (
+                                  <motion.div key={review.id}
+                                    initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: i * 0.05 }}
+                                    className="rounded-xl border border-border p-4">
+                                    <div className="flex items-center justify-between gap-3 mb-2">
+                                      <div className="flex items-center gap-2">
+                                        <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                          <span className="text-xs font-bold text-primary">{review.buyerName[0]}</span>
+                                        </div>
+                                        <p className="text-sm font-medium">{review.buyerName}</p>
+                                      </div>
+                                      <div className="flex items-center gap-0.5">
+                                        {[1,2,3,4,5].map((n) => (
+                                          <Star key={n} className={`w-3 h-3 ${n <= review.stars ? "text-amber-400 fill-amber-400" : "text-muted-foreground/20"}`} />
+                                        ))}
+                                      </div>
+                                    </div>
+                                    {review.comment && (
+                                      <p className="text-sm text-muted-foreground leading-relaxed">{review.comment}</p>
+                                    )}
+                                    <p className="text-[10px] text-muted-foreground mt-2">
+                                      {new Date(review.createdAt).toLocaleDateString("en-GH", { day: "numeric", month: "short", year: "numeric" })}
+                                    </p>
+                                  </motion.div>
+                                ))}
+                              </AnimatePresence>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </>
+                )}
               </div>
             )}
 
+            {/* ── Orders tab — guests see sign-in prompt ── */}
+            {activeTab === "orders" && isGuest && (
+              <GuestAuthBanner action="view or place orders" />
+            )}
+
             {/* ── Seller: Incoming Orders ── */}
-            {role === "seller" && activeTab === "orders" && (
+            {!isGuest && role === "seller" && activeTab === "orders" && (
               <div>
                 <div className="flex items-center justify-between mb-6">
                   <p className="text-sm text-muted-foreground">
@@ -581,7 +650,7 @@ const Account = () => {
             )}
 
             {/* ── Buyer: Orders ── */}
-            {role === "buyer" && activeTab === "orders" && (
+            {!isGuest && role === "buyer" && activeTab === "orders" && (
               <div>
                 {orders.length === 0 ? (
                   <div className="text-center py-20">
@@ -718,7 +787,7 @@ const Account = () => {
             )}
 
             {/* ── Seller: Listings ── */}
-            {role === "seller" && activeTab === "listings" && (
+            {!isGuest && role === "seller" && activeTab === "listings" && (
               <div>
                 <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
                   <div>
@@ -848,8 +917,8 @@ const Account = () => {
               </div>
             )}
 
-            {/* ── Buyer: Saved ── */}
-            {role === "buyer" && activeTab === "saved" && (
+            {/* ── Saved — available to guests too ── */}
+            {activeTab === "saved" && (
               <div>
                 {saved.length === 0 ? (
                   <div className="text-center py-20">
@@ -909,11 +978,14 @@ const Account = () => {
               </div>
             )}
 
-            {/* ── Settings ── */}
-            {activeTab === "settings" && (
-              <div className="space-y-6 max-w-lg">
+            {/* ── Settings — guests see sign-in prompt ── */}
+            {activeTab === "settings" && isGuest && (
+              <GuestAuthBanner action="access settings" />
+            )}
 
-                {/* Notifications */}
+            {/* ── Settings ── */}
+            {activeTab === "settings" && !isGuest && (
+              <div className="space-y-6 max-w-lg">
                 <div className="rounded-2xl border border-border overflow-hidden">
                   <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border bg-muted/20">
                     <Bell className="w-4 h-4 text-primary" />
@@ -943,15 +1015,12 @@ const Account = () => {
                   </div>
                 </div>
 
-                {/* Privacy & Security */}
                 <div className="rounded-2xl border border-border overflow-hidden">
                   <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border bg-muted/20">
                     <Shield className="w-4 h-4 text-primary" />
                     <p className="font-display font-semibold text-sm">Privacy & Security</p>
                   </div>
                   <div className="divide-y divide-border">
-
-                    {/* Change password */}
                     <div className="px-5 py-4">
                       <button
                         onClick={() => setShowChangePassword(!showChangePassword)}
@@ -992,10 +1061,7 @@ const Account = () => {
                                 className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm
                                   focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
                               />
-                              <Button
-                                className="btn-primary rounded-full h-9 px-5 text-sm"
-                                onClick={handleChangePassword}
-                              >
+                              <Button className="btn-primary rounded-full h-9 px-5 text-sm" onClick={handleChangePassword}>
                                 Update Password
                               </Button>
                             </div>
@@ -1004,13 +1070,9 @@ const Account = () => {
                       </AnimatePresence>
                     </div>
 
-                    {/* Delete account */}
                     <div className="px-5 py-4">
                       {!showDeleteConfirm ? (
-                        <button
-                          onClick={() => setShowDeleteConfirm(true)}
-                          className="w-full flex items-center gap-3 group"
-                        >
+                        <button onClick={() => setShowDeleteConfirm(true)} className="w-full flex items-center gap-3 group">
                           <Trash className="w-4 h-4 text-muted-foreground group-hover:text-red-500 transition-colors" />
                           <div className="text-left">
                             <p className="text-sm font-medium group-hover:text-red-500 transition-colors">Delete account</p>
@@ -1021,16 +1083,12 @@ const Account = () => {
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
                           <p className="text-sm font-medium text-red-500">Are you sure? This cannot be undone.</p>
                           <div className="flex gap-2">
-                            <button
-                              onClick={handleDeleteAccount}
-                              className="flex-1 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 text-sm font-semibold hover:bg-red-500/20 transition-colors"
-                            >
+                            <button onClick={handleDeleteAccount}
+                              className="flex-1 px-4 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-500 text-sm font-semibold hover:bg-red-500/20 transition-colors">
                               Yes, delete
                             </button>
-                            <button
-                              onClick={() => setShowDeleteConfirm(false)}
-                              className="flex-1 px-4 py-2 rounded-xl border border-border text-sm font-medium hover:bg-muted/40 transition-colors"
-                            >
+                            <button onClick={() => setShowDeleteConfirm(false)}
+                              className="flex-1 px-4 py-2 rounded-xl border border-border text-sm font-medium hover:bg-muted/40 transition-colors">
                               Cancel
                             </button>
                           </div>
@@ -1040,7 +1098,6 @@ const Account = () => {
                   </div>
                 </div>
 
-                {/* App info */}
                 <p className="text-center text-xs text-muted-foreground pb-4">SneakersHub v1.0 · Made in Ghana 🇬🇭</p>
               </div>
             )}
