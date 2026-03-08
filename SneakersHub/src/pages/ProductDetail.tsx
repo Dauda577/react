@@ -1,7 +1,7 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ShoppingBag, Check, MapPin, Phone, CheckCircle, Store, X, UserPlus, LogIn, Star } from "lucide-react";
+import { ArrowLeft, ShoppingBag, Check, MapPin, Phone, CheckCircle, Store, X, UserPlus, LogIn, Star, ShieldCheck } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { usePublicListings, PublicListing } from "@/context/PublicListingsContext";
@@ -57,7 +57,6 @@ const ProductDetail = () => {
   const listing = listings.find((l) => l.id === id);
   const related = listings.filter((l) => l.id !== id && l.category === listing?.category).slice(0, 3);
 
-  // Increment views + fetch seller reviews on mount
   useEffect(() => {
     if (id) incrementViews(id);
   }, [id]);
@@ -69,7 +68,7 @@ const ProductDetail = () => {
   const { average, count } = listing ? getSellerStats(listing.sellerId) : { average: 0, count: 0 };
 
   const handleAddToCart = () => {
-    if (authLoading) return; // still restoring session, wait
+    if (authLoading) return;
     if (!user || isGuest) { setShowGuestModal(true); return; }
     if (user.role === "seller") { toast.error("Sellers cannot buy"); return; }
     if (!selectedSize) { toast.error("Please select a size"); return; }
@@ -179,6 +178,23 @@ const ProductDetail = () => {
               </div>
             </div>
 
+            {/* Escrow notice for verified sellers */}
+            {listing.sellerVerified && (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-start gap-3 p-4 rounded-xl border border-green-500/30 bg-green-500/5"
+              >
+                <ShieldCheck className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-semibold text-green-700 dark:text-green-400">Escrow Protected Payment</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Your payment is held securely and only released to the seller after you confirm receipt.
+                  </p>
+                </div>
+              </motion.div>
+            )}
+
             {/* Add to cart — hidden for sellers */}
             {user?.role !== "seller" && (
               <Button onClick={handleAddToCart}
@@ -203,7 +219,6 @@ const ProductDetail = () => {
                 </div>
               </div>
 
-              {/* Seller identity */}
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                   <span className="font-display text-sm font-bold text-primary">
@@ -235,7 +250,6 @@ const ProductDetail = () => {
                 </div>
               </div>
 
-              {/* Location + phone */}
               <div className="border-t border-border pt-3 space-y-2">
                 {(listing.sellerCity || listing.sellerRegion) && (
                   <p className="text-xs text-muted-foreground flex items-center gap-2">
@@ -251,7 +265,6 @@ const ProductDetail = () => {
                 )}
               </div>
 
-              {/* Stats row */}
               <div className="grid grid-cols-2 gap-2 border-t border-border pt-3">
                 <div className="text-center px-2 py-2 rounded-xl bg-muted/30">
                   <p className="font-display font-bold text-sm">{count > 0 ? average : "—"}</p>
@@ -276,6 +289,7 @@ const ProductDetail = () => {
                   id: l.id, name: l.name, brand: l.brand, price: l.price,
                   image: l.image ?? "", category: l.category, sizes: l.sizes,
                   description: l.description, isBoosted: l.boosted,
+                  sellerVerified: l.sellerVerified,
                 }} index={i} />
               ))}
             </div>

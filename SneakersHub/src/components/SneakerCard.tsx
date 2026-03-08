@@ -2,12 +2,12 @@ import { motion } from "framer-motion";
 import { Sneaker } from "@/data/sneakers";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { Heart, Zap } from "lucide-react";
+import { Heart, Zap, CheckCircle } from "lucide-react";
 import { useSaved } from "@/context/SavedContext";
 import { toast } from "sonner";
 
 interface SneakerCardProps {
-  sneaker: Sneaker & { isBoosted?: boolean };
+  sneaker: Sneaker & { isBoosted?: boolean; sellerVerified?: boolean };
   index: number;
 }
 
@@ -79,7 +79,14 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
           <h3 className="font-display font-semibold mt-1 text-foreground group-hover:text-primary transition-colors">
             {sneaker.name}
           </h3>
-          <p className="text-foreground font-display font-bold mt-2">GHS {sneaker.price}</p>
+          <div className="flex items-center justify-between mt-2 gap-2">
+            <p className="text-foreground font-display font-bold">GHS {sneaker.price}</p>
+            {sneaker.sellerVerified && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-600 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20 flex-shrink-0">
+                <CheckCircle className="w-2.5 h-2.5" /> Verified
+              </span>
+            )}
+          </div>
         </div>
       </Link>
     </motion.div>

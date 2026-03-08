@@ -6,20 +6,16 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
-const PAYSTACK_PUBLIC_KEY = "pk_test_7aace9866757c00def7dfc738b254232499b8032";
+const PAYSTACK_PUBLIC_KEY = "pk_live_9e1705a04e21f148e758dc11c1e920ed6393702b";
 
 type Step = "confirm" | "success";
 type Props = { listing: Listing; onClose: () => void };
 
-// Inject Paystack script once globally
 function ensurePaystackScript(): Promise<void> {
   return new Promise((resolve) => {
     if ((window as any).PaystackPop) { resolve(); return; }
     const existing = document.getElementById("paystack-script");
-    if (existing) {
-      existing.addEventListener("load", () => resolve());
-      return;
-    }
+    if (existing) { existing.addEventListener("load", () => resolve()); return; }
     const script = document.createElement("script");
     script.id = "paystack-script";
     script.src = "https://js.paystack.co/v1/inline.js";
@@ -34,7 +30,6 @@ const BoostModal = ({ listing, onClose }: Props) => {
   const [step, setStep] = useState<Step>("confirm");
   const [loading, setLoading] = useState(false);
 
-  // Preload script as soon as modal opens
   useEffect(() => { ensurePaystackScript(); }, []);
 
   const handlePay = async () => {
@@ -62,7 +57,7 @@ const BoostModal = ({ listing, onClose }: Props) => {
 
     const ref = `boost_${listing.id.slice(0, 8)}_${Date.now()}`;
 
-    PaystackPop.newTransaction({
+    const handler = PaystackPop.setup({
       key: PAYSTACK_PUBLIC_KEY,
       email: user.email,
       amount: BOOST_FEE * 100,
@@ -70,21 +65,23 @@ const BoostModal = ({ listing, onClose }: Props) => {
       ref,
       channels: ["card", "mobile_money"],
       label: `Boost: ${listing.name}`,
-      onSuccess: async (transaction: { reference: string }) => {
+      callback: async (response: { reference: string }) => {
         try {
           await boostListing(listing.id);
           setStep("success");
           toast.success("Listing boosted!");
         } catch {
-          toast.error(`Payment done (ref: ${transaction.reference}) but boost failed. Contact support.`);
+          toast.error(`Payment done (ref: ${response.reference}) but boost failed. Contact support.`);
         }
         setLoading(false);
       },
-      onCancel: () => {
+      onClose: () => {
         toast("Payment cancelled");
         setLoading(false);
       },
     });
+
+    handler.openIframe();
   };
 
   return (

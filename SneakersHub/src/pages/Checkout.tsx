@@ -1,16 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, MapPin, Phone, User, CheckCircle,
   ShoppingBag, ChevronDown, ArrowRight, ShieldAlert, X,
+  ShieldCheck, CreditCard, Lock,
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useOrders } from "@/context/OrderContext";
+import { usePublicListings } from "@/context/PublicListingsContext";
+import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+
+const PAYSTACK_PUBLIC_KEY = "pk_live_9e1705a04e21f148e758dc11c1e920ed6393702b";
 
 const regions = [
   "Greater Accra", "Ashanti", "Western", "Central", "Eastern",
@@ -18,39 +23,47 @@ const regions = [
   "Bono East", "Ahafo", "Savannah", "North East", "Oti", "Western North",
 ];
 
-// Seller location — replace with real seller data from backend
-const SELLER_REGION = "Greater Accra";
 const SELLER_PHONE = "+233 24 000 0000";
 
-// Delivery estimate tiers based on buyer region vs seller region
 const getDeliveryEstimate = (buyerRegion: string) => {
-  if (!buyerRegion) return null; // no region selected yet
-
-  if (buyerRegion === SELLER_REGION) {
+  if (!buyerRegion) return null;
+  if (buyerRegion === "Greater Accra") {
     return {
       standard: { label: "Local Delivery", range: "GHS 15–25", days: "1–2 business days" },
-      express:  { label: "Same-Day Delivery", range: "GHS 40–60", days: "Today (order before 12pm)" },
+      express: { label: "Same-Day Delivery", range: "GHS 40–60", days: "Today (order before 12pm)" },
     };
   }
-
   const nearbyRegions = ["Central", "Eastern", "Volta", "Ashanti", "Western"];
   if (nearbyRegions.includes(buyerRegion)) {
     return {
       standard: { label: "Regional Delivery", range: "GHS 30–50", days: "2–4 business days" },
-      express:  { label: "Express Regional", range: "GHS 70–100", days: "Next day" },
+      express: { label: "Express Regional", range: "GHS 70–100", days: "Next day" },
     };
   }
-
-  // Far/northern regions
   return {
     standard: { label: "Inter-Region Delivery", range: "GHS 60–120", days: "4–7 business days" },
-    express:  { label: "Express Inter-Region", range: "GHS 120–180", days: "2–3 business days" },
+    express: { label: "Express Inter-Region", range: "GHS 120–180", days: "2–3 business days" },
   };
 };
+
+function ensurePaystackScript(): Promise<void> {
+  return new Promise((resolve) => {
+    if ((window as any).PaystackPop) { resolve(); return; }
+    const existing = document.getElementById("paystack-script");
+    if (existing) { existing.addEventListener("load", () => resolve()); return; }
+    const script = document.createElement("script");
+    script.id = "paystack-script";
+    script.src = "https://js.paystack.co/v1/inline.js";
+    script.onload = () => resolve();
+    document.head.appendChild(script);
+  });
+}
 
 const Checkout = () => {
   const { items, totalPrice, clearCart } = useCart();
   const { placeOrder } = useOrders();
+  const { listings } = usePublicListings();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [delivery, setDelivery] = useState("standard");
@@ -59,12 +72,67 @@ const Checkout = () => {
     firstName: "", lastName: "", phone: "", address: "", city: "", region: "",
   });
 
+  const sellerListing = listings.find((l) => l.sellerId === items[0]?.sneaker.sellerId);
+  const isVerifiedSeller = sellerListing?.sellerVerified ?? false;
+
+  useEffect(() => {
+    if (isVerifiedSeller) ensurePaystackScript();
+  }, [isVerifiedSeller]);
+
   const deliveryEstimate = getDeliveryEstimate(form.region);
-  // Fee is 0 for display purposes since it's estimated — actual cost agreed with seller
   const orderTotal = totalPrice;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const buildDeliveryInfo = () => {
+    if (delivery === "pickup") {
+      return { label: "Pickup at Hub", estimatedCost: "Free", days: "Ready in 24hrs" };
+    }
+    const estimate = getDeliveryEstimate(form.region);
+    const opt = estimate?.[delivery as "standard" | "express"];
+    return {
+      label: opt?.label ?? delivery,
+      estimatedCost: opt?.range ?? "Contact seller",
+      days: opt?.days ?? "",
+    };
+  };
+
+  const submitOrder = async (paystackRef?: string) => {
+    const deliveryInfo = buildDeliveryInfo();
+    await placeOrder({
+      sellerId: items[0]?.sneaker.sellerId ?? "",
+      items: items.map((i) => ({
+        id: i.sneaker.id,
+        name: i.sneaker.name,
+        brand: i.sneaker.brand,
+        image: i.sneaker.image,
+        price: i.sneaker.price,
+        size: i.size,
+        quantity: i.quantity,
+      })),
+      buyer: {
+        firstName: form.firstName,
+        lastName: form.lastName,
+        phone: form.phone,
+        address: form.address,
+        city: form.city,
+        region: form.region,
+      },
+      delivery,
+      deliveryInfo,
+      subtotal: totalPrice,
+      deliveryFee: 0,
+      total: orderTotal,
+      ...(paystackRef ? {
+        escrow_status: "held",
+        paystack_reference: paystackRef,
+      } : {}),
+    });
+    clearCart();
+    setLoading(false);
+    navigate("/order-confirmation");
   };
 
   const handlePlaceOrder = async () => {
@@ -79,45 +147,57 @@ const Checkout = () => {
     }
 
     setLoading(true);
-    await new Promise((res) => setTimeout(res, 1200));
 
-    const deliveryInfo = (() => {
-      if (delivery === "pickup") {
-        return { label: "Pickup at Hub", estimatedCost: "Free", days: "Ready in 24hrs" };
+    // ── Verified seller → Paystack escrow ──
+    if (isVerifiedSeller) {
+      try {
+        await ensurePaystackScript();
+      } catch {
+        toast.error("Could not load payment SDK. Check your connection.");
+        setLoading(false);
+        return;
       }
-      const estimate = getDeliveryEstimate(region);
-      const opt = estimate?.[delivery as "standard" | "express"];
-      return {
-        label: opt?.label ?? delivery,
-        estimatedCost: opt?.range ?? "Contact seller",
-        days: opt?.days ?? "",
-      };
-    })();
 
-    console.log("seller id being used:", items[0]?.sneaker.sellerId);
-    
-    placeOrder({
-      sellerId: items[0]?.sneaker.sellerId ?? "",
-      items: items.map((i) => ({
-        id: i.sneaker.id,
-        name: i.sneaker.name,
-        brand: i.sneaker.brand,
-        image: i.sneaker.image,
-        price: i.sneaker.price,
-        size: i.size,
-        quantity: i.quantity,
-      })),
-      buyer: { firstName, lastName, phone, address, city, region },
-      delivery,
-      deliveryInfo,
-      subtotal: totalPrice,
-      deliveryFee: 0,
-      total: orderTotal,
-    });
+      const PaystackPop = (window as any).PaystackPop;
+      if (!PaystackPop) {
+        toast.error("Payment SDK not available. Please refresh and try again.");
+        setLoading(false);
+        return;
+      }
 
-    clearCart();
-    setLoading(false);
-    navigate("/order-confirmation");
+      const ref = `order_${Date.now()}`;
+
+      const handler = PaystackPop.setup({
+        key: PAYSTACK_PUBLIC_KEY,
+        email: user?.email ?? form.phone + "@sneakershub.gh",
+        amount: orderTotal * 100,
+        currency: "GHS",
+        ref,
+        channels: ["card", "mobile_money"],
+        label: `SneakersHub Order — ${items[0]?.sneaker.name}`,
+        metadata: {
+          custom_fields: [
+            { display_name: "Buyer", variable_name: "buyer", value: `${form.firstName} ${form.lastName}` },
+            { display_name: "Seller", variable_name: "seller", value: sellerListing?.sellerName ?? "" },
+          ],
+        },
+        callback: async (response: { reference: string }) => {
+          toast.success("Payment received — held in escrow until delivery!");
+          await submitOrder(response.reference);
+        },
+        onClose: () => {
+          toast("Payment cancelled");
+          setLoading(false);
+        },
+      });
+
+      handler.openIframe();
+      return;
+    }
+
+    // ── Unverified seller → pay on delivery ──
+    await new Promise((res) => setTimeout(res, 1200));
+    await submitOrder();
   };
 
   if (items.length === 0) {
@@ -141,7 +221,6 @@ const Checkout = () => {
       <Navbar />
 
       <div className="pt-24 section-padding max-w-5xl mx-auto pb-20">
-
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
           <Link to="/cart" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6">
             <ArrowLeft className="w-4 h-4" /> Back to Cart
@@ -155,36 +234,50 @@ const Checkout = () => {
           {/* ── Left: Form ── */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="space-y-6">
 
-            {/* ⚠️ Payment safety alert */}
-            <AnimatePresence>
-              {!alertDismissed && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                  transition={{ duration: 0.25 }}
-                  className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 flex items-start gap-3"
-                >
-                  <ShieldAlert className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-sm font-display font-semibold text-amber-700 dark:text-amber-400 mb-1">
-                      Important Payment Notice
-                    </p>
-                    <p className="text-xs text-amber-600 dark:text-amber-500 leading-relaxed">
-                      <span className="font-semibold">Do not make any payment</span> until you have physically received and verified your order.
-                      SneakersHub is a marketplace platform and will <span className="font-semibold">not be held liable</span> for any payments made before delivery is confirmed.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setAlertDismissed(true)}
-                    className="text-amber-500 hover:text-amber-700 transition-colors flex-shrink-0 mt-0.5"
-                    aria-label="Dismiss"
+            {isVerifiedSeller ? (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-2xl border border-green-500/30 bg-green-500/5 p-4 flex items-start gap-3"
+              >
+                <ShieldCheck className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-display font-semibold text-green-700 dark:text-green-400 mb-1">
+                    Verified Seller — Escrow Protected
+                  </p>
+                  <p className="text-xs text-green-600 dark:text-green-500 leading-relaxed">
+                    Your payment will be <span className="font-semibold">held securely by SneakersHub</span> and only released to the seller after you confirm receipt. You're fully protected.
+                  </p>
+                </div>
+              </motion.div>
+            ) : (
+              <AnimatePresence>
+                {!alertDismissed && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 flex items-start gap-3"
                   >
-                    <X className="w-4 h-4" />
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                    <ShieldAlert className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-display font-semibold text-amber-700 dark:text-amber-400 mb-1">
+                        Important Payment Notice
+                      </p>
+                      <p className="text-xs text-amber-600 dark:text-amber-500 leading-relaxed">
+                        <span className="font-semibold">Do not make any payment</span> until you have physically received and verified your order.
+                        SneakersHub is a marketplace platform and will <span className="font-semibold">not be held liable</span> for any payments made before delivery is confirmed.
+                      </p>
+                    </div>
+                    <button onClick={() => setAlertDismissed(true)}
+                      className="text-amber-500 hover:text-amber-700 transition-colors flex-shrink-0 mt-0.5">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            )}
 
             {/* Delivery info */}
             <div className="rounded-2xl border border-border p-6">
@@ -262,20 +355,15 @@ const Checkout = () => {
                 )}
               </div>
 
-              {/* No region selected yet */}
               {!form.region && (
                 <div className="flex items-center gap-3 px-4 py-3.5 rounded-xl border border-dashed border-border bg-muted/20">
                   <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                  <p className="text-sm text-muted-foreground">
-                    Select your region above to see delivery estimates.
-                  </p>
+                  <p className="text-sm text-muted-foreground">Select your region above to see delivery estimates.</p>
                 </div>
               )}
 
-              {/* Dynamic options based on region */}
               {form.region && deliveryEstimate && (
                 <div className="space-y-2">
-                  {/* Standard */}
                   {(["standard", "express"] as const).map((type) => {
                     const opt = deliveryEstimate[type];
                     return (
@@ -304,7 +392,6 @@ const Checkout = () => {
                     );
                   })}
 
-                  {/* Pickup */}
                   <button onClick={() => setDelivery("pickup")}
                     className={`w-full flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-200
                       ${delivery === "pickup" ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}>
@@ -327,13 +414,12 @@ const Checkout = () => {
                 </div>
               )}
 
-              {/* Contact seller note */}
               {form.region && (
                 <div className="mt-4 flex items-start gap-2.5 px-4 py-3 rounded-xl bg-primary/5 border border-primary/10">
                   <Phone className="w-3.5 h-3.5 text-primary flex-shrink-0 mt-0.5" />
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     Delivery fees are <span className="font-semibold text-foreground">estimates only</span> and may vary.
-                    For exact pricing or special arrangements,{" "}
+                    For exact pricing,{" "}
                     <a href={`tel:${SELLER_PHONE}`} className="text-primary font-semibold hover:opacity-70 transition-opacity">
                       contact the seller
                     </a>.
@@ -342,15 +428,20 @@ const Checkout = () => {
               )}
             </div>
 
-            {/* Payment note */}
+            {/* Payment method note */}
             <div className="rounded-2xl border border-border p-5 flex items-start gap-3">
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-sm">💳</span>
+                {isVerifiedSeller ? <Lock className="w-4 h-4 text-primary" /> : <span className="text-sm">💳</span>}
               </div>
               <div>
-                <p className="font-display text-sm font-semibold">Payment on Delivery</p>
+                <p className="font-display text-sm font-semibold">
+                  {isVerifiedSeller ? "Secure Escrow Payment" : "Payment on Delivery"}
+                </p>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  Pay with cash or Mobile Money (MTN MoMo / Telecel Cash) when your order arrives.
+                  {isVerifiedSeller
+                    ? "Pay now via card or Mobile Money. Your payment is held by SneakersHub and released to the seller only after you confirm receipt."
+                    : "Pay with cash or Mobile Money (MTN MoMo / Telecel Cash) when your order arrives."
+                  }
                 </p>
               </div>
             </div>
@@ -378,6 +469,13 @@ const Checkout = () => {
               </AnimatePresence>
             </div>
 
+            {isVerifiedSeller && (
+              <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-xl bg-green-500/5 border border-green-500/20">
+                <ShieldCheck className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+                <p className="text-xs font-semibold text-green-600">Verified Seller · Escrow Protected</p>
+              </div>
+            )}
+
             <div className="border-t border-border pt-4 space-y-2.5">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Subtotal</span>
@@ -403,30 +501,37 @@ const Checkout = () => {
               </div>
             </div>
 
-            {/* Compact safety reminder */}
-            <div className="flex items-start gap-2 mt-5 mb-1 px-1">
-              <ShieldAlert className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
-              <p className="text-[11px] text-amber-600 dark:text-amber-500 leading-relaxed">
-                Only pay after you've received and verified your order. SneakersHub is not liable for advance payments.
-              </p>
-            </div>
+            {!isVerifiedSeller && (
+              <div className="flex items-start gap-2 mt-5 mb-1 px-1">
+                <ShieldAlert className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
+                <p className="text-[11px] text-amber-600 dark:text-amber-500 leading-relaxed">
+                  Only pay after you've received and verified your order. SneakersHub is not liable for advance payments.
+                </p>
+              </div>
+            )}
 
             <Button onClick={handlePlaceOrder} disabled={loading} className="btn-primary w-full h-12 rounded-full text-sm mt-3">
               {loading ? (
                 <span className="flex items-center gap-2">
                   <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
                     className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full" />
-                  Placing order...
+                  {isVerifiedSeller ? "Opening payment..." : "Placing order..."}
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4" /> Place Order
+                  {isVerifiedSeller
+                    ? <><CreditCard className="w-4 h-4" /> Pay GHS {orderTotal} — Escrow</>
+                    : <><CheckCircle className="w-4 h-4" /> Place Order</>
+                  }
                 </span>
               )}
             </Button>
 
             <p className="text-xs text-muted-foreground text-center mt-3">
-              By placing your order you agree to our terms of service.
+              {isVerifiedSeller
+                ? "Secured by Paystack · Card & MoMo accepted"
+                : "By placing your order you agree to our terms of service."
+              }
             </p>
           </motion.div>
         </div>

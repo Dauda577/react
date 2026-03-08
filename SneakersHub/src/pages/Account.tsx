@@ -5,7 +5,7 @@ import {
   User, LayoutGrid, ShoppingBag, Heart, Settings,
   MapPin, Eye, Pencil, Trash2, Plus, CheckCircle, ArrowRight, LogOut,
   Store, Tag, Package, Phone, Zap, Star,
-  Bell, Shield, Lock, Trash, ChevronRight,
+  Bell, ShieldCheck, Shield, Lock, Trash, ChevronRight,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -49,7 +49,6 @@ const formatOrderId = (id: string) => {
   return `#${num.toString().padStart(9, "0")}`;
 };
 
-// Banner shown to guests when they try to access auth-only features
 const GuestAuthBanner = ({ action }: { action: string }) => {
   const navigate = useNavigate();
   return (
@@ -86,6 +85,7 @@ const Account = () => {
   const [boostingListing, setBoostingListing] = useState<import("@/context/ListingContext").Listing | null>(null);
   const [ratingOrderId, setRatingOrderId] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [isVerified, setIsVerified] = useState(false);
 
   // Settings state
   const [notifOrders, setNotifOrders] = useState(() => localStorage.getItem("notif_orders") !== "false");
@@ -96,7 +96,7 @@ const Account = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // Fetch Google avatar from auth metadata
+  // Fetch Google avatar
   useEffect(() => {
     if (!user?.id) return;
     import("@/lib/supabase").then(({ supabase }) => {
@@ -179,17 +179,21 @@ const Account = () => {
     }
   };
 
+  // Fetch profile including verified status
   useEffect(() => {
     if (!user?.id) return;
     import("@/lib/supabase").then(({ supabase }) => {
-      supabase.from("profiles").select("name, phone, city").eq("id", user.id).single()
+      supabase.from("profiles").select("name, phone, city, verified").eq("id", user.id).single()
         .then(({ data }) => {
-          if (data) setProfileForm((p) => ({
-            ...p,
-            name: data.name ?? p.name,
-            phone: data.phone ?? "",
-            city: data.city ?? "",
-          }));
+          if (data) {
+            setProfileForm((p) => ({
+              ...p,
+              name: data.name ?? p.name,
+              phone: data.phone ?? "",
+              city: data.city ?? "",
+            }));
+            setIsVerified(data.verified ?? false);
+          }
         });
     });
   }, [user?.id]);
@@ -198,7 +202,6 @@ const Account = () => {
     if (role === "seller" && activeTab === "orders") markOrdersSeen();
   }, [role, activeTab]);
 
-  // Handle Paystack redirect callback — activate boost after successful payment
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const boostListingId = params.get("boost_success");
@@ -226,7 +229,6 @@ const Account = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      {/* Profile Header */}
       <section className="relative pt-16 border-b border-border">
         <div className="section-padding max-w-4xl mx-auto pt-14 pb-0">
           <motion.div
@@ -298,7 +300,6 @@ const Account = () => {
             )}
           </motion.div>
 
-          {/* Tabs */}
           <div className="flex overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
             {tabs.map((tab) => (
               <button
@@ -330,7 +331,6 @@ const Account = () => {
         </div>
       </section>
 
-      {/* Content */}
       <section className="section-padding max-w-4xl mx-auto py-10">
         <AnimatePresence mode="wait">
           <motion.div
@@ -345,7 +345,6 @@ const Account = () => {
             {activeTab === "profile" && (
               <div className="space-y-6">
                 {isGuest ? (
-                  /* Guest profile — limited view with sign-in prompt */
                   <div>
                     <div className="rounded-2xl border border-border p-6 text-center mb-6">
                       <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
@@ -369,7 +368,6 @@ const Account = () => {
                     </button>
                   </div>
                 ) : (
-                  /* Authenticated profile */
                   <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
@@ -444,6 +442,54 @@ const Account = () => {
                         <LogOut className="w-3.5 h-3.5" /> Sign out
                       </button>
                     </div>
+
+                    {/* ── Get Verified nudge — only for unverified sellers ── */}
+                    {role === "seller" && !isVerified && (
+                      <motion.a
+                        href="https://wa.me/233256221777?text=Hi%2C%20I%27d%20like%20to%20get%20verified%20as%20a%20seller%20on%20SneakersHub.%20My%20account%20email%20is%3A%20"
+                        target="_blank"
+                        rel="noreferrer"
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex items-start gap-4 p-5 rounded-2xl border border-green-500/30 bg-green-500/5 hover:bg-green-500/10 transition-colors"
+                      >
+                        <div className="w-9 h-9 rounded-xl bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                          <ShieldCheck className="w-4 h-4 text-green-500" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-display font-semibold text-sm text-green-700 dark:text-green-400 mb-1">
+                            Get Verified — Build Trust with Buyers
+                          </p>
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            Verified sellers get a ✅ badge on all listings, escrow-protected payments, and significantly more sales. It's free and takes less than 24hrs.
+                          </p>
+                          <span className="inline-flex items-center gap-1.5 mt-3 text-xs font-semibold text-green-600">
+                            Apply on WhatsApp <ArrowRight className="w-3 h-3" />
+                          </span>
+                        </div>
+                      </motion.a>
+                    )}
+
+                    {/* ── Already verified badge ── */}
+                    {role === "seller" && isVerified && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex items-center gap-3 p-4 rounded-2xl border border-green-500/30 bg-green-500/5"
+                      >
+                        <div className="w-9 h-9 rounded-xl bg-green-500/10 flex items-center justify-center flex-shrink-0">
+                          <ShieldCheck className="w-4 h-4 text-green-500" />
+                        </div>
+                        <div>
+                          <p className="font-display font-semibold text-sm text-green-700 dark:text-green-400">
+                            Verified Seller ✅
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Your listings show the verified badge and buyers are protected by escrow payments.
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
 
                     {/* ── Seller: Reviews ── */}
                     {role === "seller" && (() => {
@@ -675,7 +721,6 @@ const Account = () => {
                         initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.06 }}
                         className="rounded-2xl border border-border p-5">
-
                         <div className="flex items-start justify-between gap-3 mb-4">
                           <div>
                             <div className="flex items-center gap-2 flex-wrap">
@@ -790,13 +835,11 @@ const Account = () => {
             {!isGuest && role === "seller" && activeTab === "listings" && (
               <div>
                 <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      <span className="text-foreground font-semibold">{listings.filter(l => l.status === "active").length}</span> active
-                      {" · "}
-                      <span className="text-muted-foreground">{listings.filter(l => l.status === "sold").length} sold</span>
-                    </p>
-                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    <span className="text-foreground font-semibold">{listings.filter(l => l.status === "active").length}</span> active
+                    {" · "}
+                    <span className="text-muted-foreground">{listings.filter(l => l.status === "sold").length} sold</span>
+                  </p>
                   <Button className="btn-primary rounded-full h-9 px-5 text-sm flex-shrink-0"
                     onClick={() => navigate("/listings/new")}>
                     <Plus className="w-3.5 h-3.5 mr-1.5" /> New Listing
@@ -828,7 +871,6 @@ const Account = () => {
                         transition={{ delay: i * 0.05 }}
                         className={`rounded-2xl border p-4 transition-colors group
                           ${listing.status === "sold" ? "border-border opacity-60" : "border-border hover:border-primary/30 hover:bg-primary/5"}`}>
-
                         <div className="flex items-center gap-4">
                           <div className="w-16 h-16 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0 overflow-hidden">
                             {listing.image
@@ -917,7 +959,7 @@ const Account = () => {
               </div>
             )}
 
-            {/* ── Saved — available to guests too ── */}
+            {/* ── Saved ── */}
             {activeTab === "saved" && (
               <div>
                 {saved.length === 0 ? (
@@ -1035,7 +1077,6 @@ const Account = () => {
                         </div>
                         <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${showChangePassword ? "rotate-90" : ""}`} />
                       </button>
-
                       <AnimatePresence>
                         {showChangePassword && (
                           <motion.div
