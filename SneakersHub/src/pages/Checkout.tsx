@@ -172,9 +172,20 @@ const Checkout = () => {
         submitOrder(response.reference);
       };
 
+      let paymentAttempted = false;
+
       const onPaymentClose = function() {
-        toast("Payment cancelled");
         setLoading(false);
+        if (!paymentAttempted) {
+          // User closed without attempting payment
+          toast("Payment cancelled.");
+          return;
+        }
+        // Payment was attempted but popup closed — could be failed or insufficient funds
+        toast.error(
+          "Payment was not completed. This could be due to insufficient funds, a declined card, or a network issue. Please try again.",
+          { duration: 6000 }
+        );
       };
 
       const handler = PaystackPop.setup({
@@ -188,6 +199,8 @@ const Checkout = () => {
         onClose: onPaymentClose,
       });
 
+      // Mark that user opened the payment iframe
+      paymentAttempted = true;
       handler.openIframe();
       return;
     }

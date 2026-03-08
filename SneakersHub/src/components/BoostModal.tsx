@@ -72,9 +72,18 @@ const BoostModal = ({ listing, onClose }: Props) => {
     };
 
     const onPaymentClose = function() {
-      toast("Payment cancelled");
       setLoading(false);
+      if (!paymentAttempted) {
+        toast("Payment cancelled.");
+        return;
+      }
+      toast.error(
+        "Payment was not completed. This could be due to insufficient funds, a declined card, or a network issue. Please try again.",
+        { duration: 6000 }
+      );
     };
+
+    let paymentAttempted = false;
 
     const handler = PaystackPop.setup({
       key: PAYSTACK_PUBLIC_KEY,
@@ -88,6 +97,7 @@ const BoostModal = ({ listing, onClose }: Props) => {
       onClose: onPaymentClose,
     });
 
+    paymentAttempted = true;
     handler.openIframe();
   };
 

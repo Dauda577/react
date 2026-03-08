@@ -58,6 +58,7 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
     if (!user?.id || user.role !== "seller") return;
     if (!isSupported() || Notification.permission !== "granted") return;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let channel: any;
     import("@/lib/supabase").then(({ supabase }) => {
       channel = supabase
@@ -67,7 +68,9 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
           schema: "public",
           table: "profiles",
           filter: `id=eq.${user.id}`,
-        }, (payload: any) => {
+        }, 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (payload: any) => {
           const wasVerified = payload.old?.verified;
           const isNowVerified = payload.new?.verified;
           if (!wasVerified && isNowVerified) {
@@ -93,6 +96,7 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
     if (!isSupported() || Notification.permission !== "granted") return;
     if (localStorage.getItem("notif_orders") === "false") return;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let channel: any;
     import("@/lib/supabase").then(({ supabase }) => {
       channel = supabase
@@ -102,7 +106,9 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
           schema: "public",
           table: "orders",
           filter: `seller_id=eq.${user.id}`,
-        }, (payload: any) => {
+        }, 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (payload: any) => {
           showLocalNotification(
             "🛒 New Order!",
             `You received a new order worth GHS ${payload.new.total}`,
@@ -124,6 +130,7 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
     if (!isSupported() || Notification.permission !== "granted") return;
     if (localStorage.getItem("notif_orders") === "false") return;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let channel: any;
     import("@/lib/supabase").then(({ supabase }) => {
       channel = supabase
@@ -133,7 +140,9 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
           schema: "public",
           table: "orders",
           filter: `buyer_id=eq.${user.id}`,
-        }, (payload: any) => {
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any 
+        (payload: any) => {
           const { status } = payload.new;
           if (status === "shipped") {
             showLocalNotification("📦 Order Shipped!", "Your order is on its way.", "/account");
@@ -156,6 +165,7 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
     if (!isSupported() || Notification.permission !== "granted") return;
     if (localStorage.getItem("notif_messages") === "false") return;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let channel: any;
     import("@/lib/supabase").then(({ supabase }) => {
       channel = supabase
@@ -165,7 +175,9 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
           schema: "public",
           table: "messages",
           filter: `receiver_id=eq.${user.id}`,
-        }, (payload: any) => {
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (payload: any) => {
           if (document.visibilityState === "hidden") {
             const content = payload.new.content;
             showLocalNotification(
