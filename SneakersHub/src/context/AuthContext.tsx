@@ -1,3 +1,5 @@
+// src/context/AuthContext.tsx - Fix the loading logic
+
 import { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
 import { supabase, Profile } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
@@ -41,33 +43,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const [isGuest, setIsGuest] = useState(false);
-  // Start as false if we have a cached user — avoids flash of spinner on return visits
-  const [loading, setLoading] = useState(() => {
-    try {
-      return !localStorage.getItem("sneakershub-user");
-    } catch { return true; }
-  });
+  // Start with loading = true regardless of cache
+  const [loading, setLoading] = useState(true);
   const [needsRole, setNeedsRole] = useState(false);
   const [pendingSession, setPendingSession] = useState<{ id: string; email: string; name: string } | null>(null);
 
-  // Prevent setLoading(false) running twice
-  const loadingDone = useRef(false);
-  const doneLoading = () => {
-    if (loadingDone.current) return;
-    loadingDone.current = true;
-    setLoading(false);
-  };
-
-  // Safety net — if nothing resolves in 5s, stop the spinner anyway
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (!loadingDone.current) {
-        console.warn("[Auth] Loading timeout — forcing done");
-        doneLoading();
-      }
-    }, 5000);
-    return () => clearTimeout(timeout);
-  }, []);
+  // Track if we've completed initial session check
+  const initialCheckDone = useRef(false);
 
   const fetchProfile = async (id: string, email: string): Promise<User | null> => {
     try {
@@ -81,7 +63,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!profile.role) return null;
       return { id: profile.id, name: profile.name, email, role: profile.role };
     } catch {
-      // Network error — return null so loading still completes
       return null;
     }
   };
@@ -112,8 +93,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setPendingSession(null);
       }
     } catch (err) {
-      // Never let an error keep the app stuck on the spinner
       console.error("[Auth] handleSession error:", err);
+    } finally {
+      // Only mark loading as done after first session check
+      if (!initialCheckDone.current) {
+        initialCheckDone.current = true;
+        setLoading(false);
+      }
     }
   };
 
@@ -121,24 +107,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // 1. Get current session immediately
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       await handleSession(session);
-      doneLoading(); // ← always called, even if handleSession throws (caught above)
     }).catch((err) => {
       console.error("[Auth] getSession error:", err);
-      doneLoading(); // ← still unblock the app
+      if (!initialCheckDone.current) {
+        initialCheckDone.current = true;
+        setLoading(false);
+      }
     });
 
-    // 2. Listen for future auth changes (login, logout, token refresh)
+    // 2. Listen for future auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session: Session | null) => {
         if (event === "PASSWORD_RECOVERY") return;
         await handleSession(session);
-        // Also call doneLoading here in case onAuthStateChange fires before getSession resolves
-        doneLoading();
       }
     );
 
     return () => subscription.unsubscribe();
   }, []);
+
+// Add this to your AuthProvider to refresh session periodically
+useEffect(() => {
+  // Refresh session every 10 minutes to keep it alive
+  const interval = setInterval(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      await supabase.auth.refreshSession();
+    }
+  }, 10 * 60 * 1000); // 10 minutes
+
+  return () => clearInterval(interval);
+}, []);
+
 
   const login = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -179,6 +179,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const continueAsGuest = () => {
     setIsGuest(true);
     setUser(null);
+    setLoading(false); // Guest mode should stop loading
   };
 
   const resetPassword = async (email: string) => {
@@ -203,7 +204,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       loading, needsRole,
       login, signup, signInWithGoogle, assignRole, continueAsGuest, logout, resetPassword,
     }}>
-      {/* ── Render children always — Spinner is handled by ProtectedRoute/App ── */}
       {children}
     </AuthContext.Provider>
   );

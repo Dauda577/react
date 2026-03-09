@@ -34,19 +34,34 @@ const CreateListing = lazy(() => import("./pages/CreateListing"));
 
 const queryClient = new QueryClient();
 
+// In your App.tsx, update the ProtectedRoute:
+
 const ProtectedRoute = ({ children, allowGuest = false }: { children: React.ReactNode; allowGuest?: boolean }) => {
   const { user, isGuest, loading } = useAuth();
+  
+  // Show spinner while loading
   if (loading) return <Spinner />;
+  
+  // If we have a user, show the page
   if (user) return <>{children}</>;
+  
+  // If guests are allowed and user is a guest, show the page
   if (allowGuest && isGuest) return <>{children}</>;
+  
+  // Otherwise redirect to login
   return <Navigate to="/auth" replace />;
 };
 
 const GuestRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
+  
+  // Show nothing while loading (or spinner if you prefer)
   if (loading) return null;
+  
+  // If user exists, redirect to home
   return user ? <Navigate to="/" replace /> : <>{children}</>;
 };
+
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
