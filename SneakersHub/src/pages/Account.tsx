@@ -237,7 +237,7 @@ const NotificationSettings = ({
         <div>
           <p className="text-sm font-semibold text-foreground">Notifications Blocked</p>
           <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-            Click the 🔒 lock icon in your browser's address bar → Site settings → Notifications → Allow
+            You've blocked notifications for this site. To re-enable, go to your browser's site settings and set Notifications to Allow.
           </p>
         </div>
       </div>
@@ -418,7 +418,7 @@ const Account = () => {
     if (!boostListingId || !user?.id) return;
     window.history.replaceState({}, "", window.location.pathname);
     boostListing(boostListingId).then(() => {
-      toast.success("🎉 Listing boosted! It's now featured for 7 days.");
+      toast.success("🎉 Listing boosted! It's now featured for 10 days.");
       setActiveTab("listings");
     }).catch(() => toast.error("Payment received but boost failed. Please contact support."));
   }, [user?.id]);
@@ -979,17 +979,40 @@ const Account = () => {
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-primary/10 hover:border-primary/30 transition-colors text-muted-foreground hover:text-foreground">
                             <Pencil className="w-3 h-3" /> Edit
                           </button>
-                          {listing.status === "active" && !isBoostActive(listing) && (
+                          {/* Boost button — not boosted */}
+                          {listing.status === "active" && !isBoostActive(listing) && !listing.boostExpiresAt && (
                             <button onClick={() => setBoostingListing(listing)}
                               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/5 text-xs font-medium hover:bg-amber-500/15 transition-colors text-amber-600 dark:text-amber-400">
                               <Zap className="w-3 h-3" /> Boost · GHS 5
                             </button>
                           )}
-                          {listing.status === "active" && isBoostActive(listing) && listing.boostExpiresAt && (
-                            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs font-semibold text-amber-600 dark:text-amber-400">
-                              <Zap className="w-3 h-3 fill-current" /> Boosted · {boostDaysLeft(listing)}d left
-                            </span>
+                          {/* Re-boost button — previously boosted but now expired */}
+                          {listing.status === "active" && !isBoostActive(listing) && listing.boostExpiresAt && (
+                            <button onClick={() => setBoostingListing(listing)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/5 text-xs font-medium hover:bg-amber-500/15 transition-colors text-amber-600 dark:text-amber-400">
+                              <Zap className="w-3 h-3" /> Re-boost · GHS 5
+                            </button>
                           )}
+                          {/* Currently boosted — show days left with progress feel */}
+                          {listing.status === "active" && isBoostActive(listing) && listing.boostExpiresAt && (
+                            <div className="flex items-center gap-2">
+                              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                                <Zap className="w-3 h-3 fill-current" />
+                                {boostDaysLeft(listing) === 0
+                                  ? "Boost expires today"
+                                  : boostDaysLeft(listing) === 1
+                                  ? "1 day left"
+                                  : `${boostDaysLeft(listing)} days left`}
+                              </span>
+                              {boostDaysLeft(listing) <= 3 && (
+                                <button onClick={() => setBoostingListing(listing)}
+                                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-amber-500/40 text-[10px] font-semibold text-amber-600 hover:bg-amber-500/15 transition-colors">
+                                  Extend
+                                </button>
+                              )}
+                            </div>
+                          )}
+                          {/* Official — always featured */}
                           {listing.status === "active" && isBoostActive(listing) && !listing.boostExpiresAt && (
                             <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
                               style={{ background: "rgba(109,40,217,0.1)", border: "1px solid rgba(109,40,217,0.25)", color: "#a78bfa" }}>

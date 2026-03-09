@@ -117,7 +117,7 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
         .subscribe();
       channelsRef.current.push(listingCh);
 
-      // New orders — client-side filter (no DB filter needed)
+      // New orders — DB-level filter so only this seller's orders fire
       if (localStorage.getItem("notif_orders") !== "false") {
         const orderCh = supabase
           .channel(`push:orders:${user.id}`)
@@ -125,8 +125,8 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
             event: "INSERT",
             schema: "public",
             table: "orders",
+            filter: `seller_id=eq.${user.id}`,
           }, (payload: any) => {
-            if (payload.new.seller_id !== user.id) return;
             showLocalNotification(
               "🛒 New Order!",
               `You received a new order worth GHS ${payload.new.total}`,
@@ -137,7 +137,7 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
         channelsRef.current.push(orderCh);
       }
 
-      // New messages to seller
+      // New messages to seller — DB-level filter
       if (localStorage.getItem("notif_messages") !== "false") {
         const msgCh = supabase
           .channel(`push:seller:msgs:${user.id}`)
@@ -145,8 +145,8 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
             event: "INSERT",
             schema: "public",
             table: "messages",
+            filter: `receiver_id=eq.${user.id}`,
           }, (payload: any) => {
-            if (payload.new.receiver_id !== user.id) return;
             const content: string = payload.new.content ?? "";
             showLocalNotification(
               "💬 New Message",
@@ -162,7 +162,7 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
     // ── BUYER ────────────────────────────────────────────────────────────────
     if (user.role === "buyer") {
 
-      // Order status updates
+      // Order status updates — DB-level filter
       if (localStorage.getItem("notif_orders") !== "false") {
         const orderCh = supabase
           .channel(`push:buyer:orders:${user.id}`)
@@ -170,8 +170,8 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
             event: "UPDATE",
             schema: "public",
             table: "orders",
+            filter: `buyer_id=eq.${user.id}`,
           }, (payload: any) => {
-            if (payload.new.buyer_id !== user.id) return;
             const { status } = payload.new;
             if (status === "shipped") {
               showLocalNotification("📦 Order Shipped!", "Your order is on its way.", "/account");
@@ -183,7 +183,7 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
         channelsRef.current.push(orderCh);
       }
 
-      // New messages to buyer
+      // New messages to buyer — DB-level filter
       if (localStorage.getItem("notif_messages") !== "false") {
         const msgCh = supabase
           .channel(`push:buyer:msgs:${user.id}`)
@@ -191,8 +191,8 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
             event: "INSERT",
             schema: "public",
             table: "messages",
+            filter: `receiver_id=eq.${user.id}`,
           }, (payload: any) => {
-            if (payload.new.receiver_id !== user.id) return;
             const content: string = payload.new.content ?? "";
             showLocalNotification(
               "💬 New Message",

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ShoppingBag, Menu, X, Bell } from "lucide-react";
+import { ShoppingBag, Menu, X, Bell, Zap } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useOrders } from "@/context/OrderContext";
 import { useMessages } from "@/context/MessageContext";
@@ -24,6 +24,7 @@ const Navbar = () => {
   const links = [
     { to: "/", label: "Home" },
     { to: "/shop", label: "Shop" },
+    { to: "/featured", label: "Featured" },
     { to: "/account", label: "Account" },
     { to: "/about", label: "About" },
   ];
@@ -40,11 +41,12 @@ const Navbar = () => {
           Sneakers<span className="text-gradient">Hub</span>
         </Link>
 
-        {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-8">
           {links.map((link) => (
             <Link key={link.to} to={link.to}
-              className="nav-link text-sm font-medium tracking-wide uppercase relative">
+              className={`text-sm font-medium tracking-wide uppercase relative flex items-center gap-1
+                ${link.to === "/featured" ? "text-amber-500 hover:text-amber-400 transition-colors" : "nav-link"}`}>
+              {link.to === "/featured" && <Zap className="w-3 h-3 fill-current" />}
               {link.label}
               {link.to === "/account" && showBell && (
                 <motion.span
@@ -112,7 +114,9 @@ const Navbar = () => {
               {links.map((link) => (
                 <Link key={link.to} to={link.to}
                   onClick={() => setMobileOpen(false)}
-                  className="nav-link text-sm font-medium tracking-wide uppercase flex items-center gap-2">
+                  className={`text-sm font-medium tracking-wide uppercase flex items-center gap-2
+                    ${link.to === "/featured" ? "text-amber-500" : "nav-link"}`}>
+                  {link.to === "/featured" && <Zap className="w-3.5 h-3.5 fill-current" />}
                   {link.label}
                   {link.to === "/account" && showBell && (
                     <span className="w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] flex items-center justify-center font-bold">
