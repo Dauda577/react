@@ -6,7 +6,9 @@ type SMSEvent =
   | { type: "order.shipped"; record: any }
   | { type: "order.delivered"; record: any }
   | { type: "message.created"; record: any }
-  | { type: "listing.created"; record: any };
+  | { type: "listing.created"; record: any }
+  | { type: "payout.released"; record: any }
+  | { type: "order.dispute_reminder"; record: any };
 
 export async function triggerSMS(event: SMSEvent) {
   try {

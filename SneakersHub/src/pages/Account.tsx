@@ -6,7 +6,7 @@ import {
   MapPin, Eye, Pencil, Trash2, Plus, CheckCircle, ArrowRight, LogOut,
   Store, Tag, Package, Phone, Zap, Star, Sparkles,
   Bell, ShieldCheck, Shield, Lock, Trash, ChevronRight, MessageCircle, BarChart2, Share,
-  Camera, Image, Type, DollarSign, Ruler, X,
+  Camera, Image, Type, DollarSign, Ruler, X, AlertTriangle, Wallet, CreditCard,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -254,6 +254,93 @@ const NotificationSettings = ({
   return null;
 };
 
+// ── Payout status badge ───────────────────────────────────────────────────────
+const PayoutBadge = ({ status, releaseAt }: { status: string; releaseAt: string | null }) => {
+  if (status === "released") return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-500/10 text-green-600 border border-green-500/20">
+      <Wallet className="w-2.5 h-2.5" /> Paid out
+    </span>
+  );
+  if (status === "auto_released") return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-600 border border-blue-500/20">
+      <Wallet className="w-2.5 h-2.5" /> Auto-paid
+    </span>
+  );
+  if (status === "disputed") return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/10 text-red-600 border border-red-500/20">
+      <AlertTriangle className="w-2.5 h-2.5" /> Disputed
+    </span>
+  );
+  if (releaseAt && status === "pending") {
+    const ms = new Date(releaseAt).getTime() - Date.now();
+    const days = Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
+    const urgent = days <= 1;
+    if (days === 0) return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/10 text-red-600 border border-red-500/20 animate-pulse">
+        ⏰ Releases TODAY
+      </span>
+    );
+    return (
+      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border
+        ${urgent ? "bg-red-500/10 text-red-600 border-red-500/20" : "bg-amber-500/10 text-amber-600 border-amber-500/20"}`}>
+        ⏰ {days}d to confirm
+      </span>
+    );
+  }
+  return null;
+};
+
+// ── Escrow countdown bar (buyer-facing) ───────────────────────────────────────
+const EscrowCountdown = ({ releaseAt, payoutStatus, onDispute }: {
+  releaseAt: string | null;
+  payoutStatus: string;
+  onDispute: () => void;
+}) => {
+  if (!releaseAt || payoutStatus !== "pending") return null;
+
+  const total = 3 * 24 * 60 * 60 * 1000; // 3 days in ms
+  const remaining = Math.max(0, new Date(releaseAt).getTime() - Date.now());
+  const elapsed = total - remaining;
+  const pct = Math.min(100, Math.round((elapsed / total) * 100));
+  const daysLeft = Math.max(0, Math.ceil(remaining / (1000 * 60 * 60 * 24)));
+  const urgent = daysLeft <= 1;
+  const releaseStr = new Date(releaseAt).toLocaleDateString("en-GH", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+      className={`mt-3 p-4 rounded-xl border space-y-3
+        ${urgent ? "bg-red-500/5 border-red-500/20" : "bg-amber-500/5 border-amber-500/20"}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <AlertTriangle className={`w-3.5 h-3.5 flex-shrink-0 ${urgent ? "text-red-500" : "text-amber-500"}`} />
+          <div>
+            <p className={`text-xs font-bold ${urgent ? "text-red-600" : "text-amber-600"}`}>
+              {urgent ? "⚠️ Last chance to dispute!" : "Confirm receipt or raise a dispute"}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Payment auto-releases to seller on <span className="font-semibold text-foreground">{releaseStr}</span>
+            </p>
+          </div>
+        </div>
+        <span className={`text-xs font-bold flex-shrink-0 ${urgent ? "text-red-600" : "text-amber-600"}`}>
+          {daysLeft === 0 ? "Today" : `${daysLeft}d left`}
+        </span>
+      </div>
+      {/* Progress bar */}
+      <div className="w-full h-1.5 rounded-full bg-border overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${urgent ? "bg-red-500" : "bg-amber-500"}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <button onClick={onDispute}
+        className="w-full text-xs font-semibold text-red-500 hover:text-red-600 transition-colors flex items-center justify-center gap-1.5 py-1">
+        <AlertTriangle className="w-3 h-3" /> Raise a dispute — freeze payment
+      </button>
+    </motion.div>
+  );
+};
+
 const Account = () => {
   const { user, isGuest, logout } = useAuth();
   const navigate = useNavigate();
@@ -264,7 +351,7 @@ const Account = () => {
   const tabs = isGuest ? guestTabs : role === "seller" ? sellerTabs : buyerTabs;
 
   const { saved, toggleSaved } = useSaved();
-  const { orders, unseenCount, markOrdersSeen, confirmAsSeller, confirmAsBuyer } = useOrders();
+  const { orders, unseenCount, markOrdersSeen, confirmAsSeller, confirmAsBuyer, raiseDispute } = useOrders();
   const { listings, deleteListing, markSold, boostListing } = useListings();
   const { getSellerStats, hasReviewed, reviews, fetchReviews } = useRatings();
   const { totalUnread } = useMessages();
@@ -282,6 +369,11 @@ const Account = () => {
   const [notifMessages, setNotifMessages] = useState(() => localStorage.getItem("notif_messages") !== "false");
   const [notifPromotions, setNotifPromotions] = useState(() => localStorage.getItem("notif_promotions") === "true");
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [disputeOrderId, setDisputeOrderId] = useState<string | null>(null);
+  const [disputeReason, setDisputeReason] = useState("");
+  const [disputeLoading, setDisputeLoading] = useState(false);
+  const [payoutForm, setPayoutForm] = useState({ method: "", number: "", name: "" });
+  const [payoutSaved, setPayoutSaved] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -398,11 +490,14 @@ const Account = () => {
   useEffect(() => {
     if (!user?.id) return;
     import("@/lib/supabase").then(({ supabase }) => {
-      supabase.from("profiles").select("name, phone, city, verified").eq("id", user.id).single()
+      supabase.from("profiles").select("name, phone, city, verified, payout_method, payout_number, payout_name").eq("id", user.id).single()
         .then(({ data }) => {
           if (data) {
             setProfileForm((p) => ({ ...p, name: data.name ?? p.name, phone: data.phone ?? "", city: data.city ?? "" }));
             setIsVerified(data.verified ?? false);
+            if (data.payout_method) {
+              setPayoutForm({ method: data.payout_method ?? "", number: data.payout_number ?? "", name: data.payout_name ?? "" });
+            }
           }
         });
     });
@@ -706,6 +801,7 @@ const Account = () => {
                               <p className="font-display font-bold text-sm">{formatOrderId(order.id)}</p>
                               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${statusColors[order.status]}`}>{order.status}</span>
                               {!order.seen && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary text-primary-foreground">New</span>}
+                              <PayoutBadge status={order.payoutStatus ?? "pending"} releaseAt={order.releaseAt ?? null} />
                             </div>
                             <p className="text-xs text-muted-foreground mt-1">
                               {new Date(order.placedAt).toLocaleDateString("en-GH", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
@@ -815,6 +911,7 @@ const Account = () => {
                             <div className="flex items-center gap-2 flex-wrap">
                               <p className="font-display font-bold text-sm">{formatOrderId(order.id)}</p>
                               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize ${statusColors[order.status]}`}>{order.status}</span>
+                              <PayoutBadge status={order.payoutStatus ?? "pending"} releaseAt={order.releaseAt ?? null} />
                             </div>
                             <p className="text-xs text-muted-foreground mt-1">
                               {new Date(order.placedAt).toLocaleDateString("en-GH", { day: "numeric", month: "short", year: "numeric" })}
@@ -888,6 +985,24 @@ const Account = () => {
                               <p className="text-xs font-semibold text-green-600">Order complete — enjoy your sneakers! 🎉</p>
                             </motion.div>
                           )}
+                          {/* Escrow countdown — shown when seller confirmed but buyer hasn't yet */}
+                          {order.sellerConfirmed && !order.buyerConfirmed && (
+                            <EscrowCountdown
+                              releaseAt={order.releaseAt ?? null}
+                              payoutStatus={order.payoutStatus ?? "pending"}
+                              onDispute={() => setDisputeOrderId(order.id)}
+                            />
+                          )}
+                          {(order.payoutStatus ?? "pending") === "disputed" && (
+                            <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+                              className="mt-3 px-4 py-3 rounded-xl bg-red-500/5 border border-red-500/20 flex items-start gap-2">
+                              <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                              <div>
+                                <p className="text-xs font-semibold text-red-600">Dispute raised — payment frozen</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">We'll review and contact you within 24hrs.</p>
+                              </div>
+                            </motion.div>
+                          )}
                         </div>
                       </motion.div>
                     ))}
@@ -904,6 +1019,71 @@ const Account = () => {
                 onConfirmed={() => confirmAsBuyer(ratingOrderId)}
               />
             )}
+
+            {/* ── Dispute Modal ── */}
+            <AnimatePresence>
+              {disputeOrderId && (
+                <motion.div
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center px-4"
+                  onClick={() => setDisputeOrderId(null)}>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.92, y: 16 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.92 }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center">
+                          <AlertTriangle className="w-4 h-4 text-red-500" />
+                        </div>
+                        <p className="font-display font-bold text-sm">Raise a Dispute</p>
+                      </div>
+                      <button onClick={() => setDisputeOrderId(null)}
+                        className="w-7 h-7 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Explain what went wrong. Payment will be frozen and we'll review within 24hrs.
+                    </p>
+                    <textarea
+                      value={disputeReason}
+                      onChange={(e) => setDisputeReason(e.target.value)}
+                      placeholder="e.g. Item not received, wrong item sent, item damaged..."
+                      rows={4}
+                      className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400/20 resize-none transition-all font-[inherit]"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={async () => {
+                          if (!disputeReason.trim()) { toast.error("Please describe the issue"); return; }
+                          setDisputeLoading(true);
+                          try {
+                            await raiseDispute(disputeOrderId, disputeReason.trim());
+                            toast.success("Dispute raised — payment frozen. We'll be in touch within 24hrs.");
+                            setDisputeOrderId(null);
+                            setDisputeReason("");
+                          } catch (err: any) {
+                            toast.error(err.message ?? "Failed to raise dispute");
+                          } finally {
+                            setDisputeLoading(false);
+                          }
+                        }}
+                        disabled={disputeLoading}
+                        className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition-colors disabled:opacity-50">
+                        {disputeLoading ? "Submitting..." : "Submit Dispute"}
+                      </button>
+                      <button onClick={() => setDisputeOrderId(null)}
+                        className="flex-1 px-4 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-muted/40 transition-colors">
+                        Cancel
+                      </button>
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* ── Seller: Listings ── */}
             {!isGuest && role === "seller" && activeTab === "listings" && (
@@ -1206,6 +1386,81 @@ const Account = () => {
                     </div>
                   </div>
                 </div>
+                {role === "seller" && (
+                  <div className="rounded-2xl border border-border overflow-hidden">
+                    <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border bg-muted/20">
+                      <Wallet className="w-4 h-4 text-primary" />
+                      <p className="font-display font-semibold text-sm">Payout Details</p>
+                    </div>
+                    <div className="p-5 space-y-4">
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Where should we send your earnings? We transfer automatically after each confirmed order.{" "}
+                        <span className="font-semibold text-foreground">SneakersHub takes 5% commission</span> per sale.
+                      </p>
+                      <div>
+                        <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-2">Payout Method</label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {([ 
+                            { value: "momo_mtn", label: "MTN MoMo" },
+                            { value: "momo_telecel", label: "Telecel Cash" },
+                            { value: "bank", label: "Bank Transfer" },
+                          ] as const).map(({ value, label }) => (
+                            <button key={value}
+                              onClick={() => setPayoutForm(p => ({ ...p, method: value }))}
+                              className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition-all text-xs font-semibold
+                                ${payoutForm.method === value ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground hover:border-primary/40"}`}>
+                              <CreditCard className={`w-4 h-4 ${payoutForm.method === value ? "text-primary" : ""}`} />
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
+                          {payoutForm.method === "bank" ? "Account Number" : "MoMo Number"}
+                        </label>
+                        <input
+                          value={payoutForm.number}
+                          onChange={(e) => setPayoutForm(p => ({ ...p, number: e.target.value }))}
+                          placeholder={payoutForm.method === "bank" ? "0123456789" : "+233 24 000 0000"}
+                          className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Account Name</label>
+                        <input
+                          value={payoutForm.name}
+                          onChange={(e) => setPayoutForm(p => ({ ...p, name: e.target.value }))}
+                          placeholder="Name on account"
+                          className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
+                        />
+                      </div>
+                      <Button
+                        className="btn-primary rounded-full h-9 px-5 text-sm w-full"
+                        onClick={async () => {
+                          if (!payoutForm.method || !payoutForm.number || !payoutForm.name) {
+                            toast.error("Please fill in all payout details"); return;
+                          }
+                          try {
+                            const { supabase } = await import("@/lib/supabase");
+                            const { error } = await supabase.from("profiles").update({
+                              payout_method: payoutForm.method,
+                              payout_number: payoutForm.number,
+                              payout_name: payoutForm.name,
+                            }).eq("id", user!.id);
+                            if (error) throw error;
+                            setPayoutSaved(true);
+                            toast.success("Payout details saved!");
+                            setTimeout(() => setPayoutSaved(false), 3000);
+                          } catch (err: any) {
+                            toast.error(err.message ?? "Failed to save payout details");
+                          }
+                        }}>
+                        {payoutSaved ? <><CheckCircle className="w-3.5 h-3.5 mr-1.5" /> Saved!</> : "Save Payout Details"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
                 <p className="text-center text-xs text-muted-foreground pb-4">SneakersHub v1.0 · Made in Ghana 🇬🇭</p>
               </div>
             )}

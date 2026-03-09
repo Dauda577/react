@@ -32,6 +32,11 @@ export type Order = {
   seen: boolean;
   sellerId: string;
   buyerId: string;
+  // Escrow fields
+  releaseAt: string | null;
+  payoutStatus: "pending" | "released" | "disputed" | "auto_released";
+  disputeReason: string | null;
+  paystackReference: string | null;
 };
 
 type OrderContextType = {
@@ -39,14 +44,17 @@ type OrderContextType = {
   latestOrder: Order | null;
   unseenCount: number;
   loading: boolean;
-  placeOrder: (order: Omit<Order, "id" | "placedAt" | "seen" | "sellerConfirmed" | "buyerConfirmed" | "status" | "buyerId"> & { sellerId: string }) => Promise<void>;
+  placeOrder: (order: Omit<Order, "id" | "placedAt" | "seen" | "sellerConfirmed" | "buyerConfirmed" | "status" | "buyerId" | "releaseAt" | "payoutStatus" | "disputeReason" | "paystackReference"> & { sellerId: string }) => Promise<void>;
   confirmAsSeller: (orderId: string) => Promise<void>;
   confirmAsBuyer: (orderId: string) => Promise<void>;
+  raiseDispute: (orderId: string, reason: string) => Promise<void>;
   markOrdersSeen: () => Promise<void>;
   fetchOrders: () => Promise<void>;
 };
 
 const OrderContext = createContext<OrderContextType | null>(null);
+
+const AUTO_RELEASE_DAYS = 3;
 
 const rowToOrder = (row: OrderRow, items: OrderItemRow[]): Order => ({
   id: row.id,
@@ -83,6 +91,10 @@ const rowToOrder = (row: OrderRow, items: OrderItemRow[]): Order => ({
   seen: row.seen_by_seller,
   sellerId: row.seller_id,
   buyerId: row.buyer_id,
+  releaseAt: (row as any).release_at ?? null,
+  payoutStatus: (row as any).payout_status ?? "pending",
+  disputeReason: (row as any).dispute_reason ?? null,
+  paystackReference: (row as any).paystack_reference ?? null,
 });
 
 export const OrderProvider = ({ children }: { children: ReactNode }) => {
@@ -91,14 +103,12 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(false);
   const ordersRef = useRef<Order[]>([]);
 
-  // Keep ref in sync so realtime handlers always see latest orders
   useEffect(() => { ordersRef.current = orders; }, [orders]);
 
   const fetchOrders = useCallback(async () => {
     if (!user) { setOrders([]); return; }
     setLoading(true);
 
-    // Single query — Supabase joins order_items server-side, saves a round-trip
     const { data, error } = await supabase
       .from("orders")
       .select(`*, order_items (*)`)
@@ -114,8 +124,6 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => { fetchOrders(); }, [user?.id]);
 
   // ── Realtime ──────────────────────────────────────────────────────────────
-  // NO filter: param — filtered realtime needs Supabase publication config.
-  // We filter client-side instead, which always works.
   useEffect(() => {
     if (!user?.id) return;
 
@@ -143,7 +151,6 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
           setOrders((prev) =>
             prev.map((o) => {
               if (o.id !== row.id) return o;
-              // Reuse existing items — no refetch needed
               const existingItems: OrderItemRow[] = o.items.map((item) => ({
                 id: item.id,
                 order_id: row.id,
@@ -166,7 +173,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
   }, [user?.id]);
 
   const placeOrder = async (
-    order: Omit<Order, "id" | "placedAt" | "seen" | "sellerConfirmed" | "buyerConfirmed" | "status" | "buyerId"> & { sellerId: string }
+    order: Omit<Order, "id" | "placedAt" | "seen" | "sellerConfirmed" | "buyerConfirmed" | "status" | "buyerId" | "releaseAt" | "payoutStatus" | "disputeReason" | "paystackReference"> & { sellerId: string }
   ) => {
     if (!user) throw new Error("Not authenticated");
 
@@ -186,6 +193,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       buyer_address: order.buyer.address,
       buyer_city: order.buyer.city,
       buyer_region: order.buyer.region,
+      payout_status: "pending",
     }).select().single();
 
     if (error) throw new Error(error.message);
@@ -203,7 +211,6 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     const { data: insertedItems } = await supabase.from("order_items").insert(itemsToInsert).select();
     const insertedRows = (insertedItems as OrderItemRow[]) ?? [];
 
-    // Optimistic insert — realtime will also fire but we deduplicate
     setOrders((prev) => {
       if (prev.some((o) => o.id === orderRow.id)) return prev;
       return [rowToOrder(orderRow, insertedRows), ...prev];
@@ -215,23 +222,98 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
   const confirmAsSeller = async (orderId: string) => {
     const order = orders.find((o) => o.id === orderId);
     const newStatus = order?.buyerConfirmed ? "delivered" : "shipped";
+
+    // Set release_at to 3 days from now (auto-release timer starts)
+    const releaseAt = new Date(Date.now() + AUTO_RELEASE_DAYS * 24 * 60 * 60 * 1000).toISOString();
+
     setOrders((prev) =>
-      prev.map((o) => o.id === orderId ? { ...o, sellerConfirmed: true, status: newStatus as Order["status"] } : o)
+      prev.map((o) => o.id === orderId
+        ? { ...o, sellerConfirmed: true, status: newStatus as Order["status"], releaseAt }
+        : o)
     );
-    const { error } = await supabase.from("orders").update({ seller_confirmed: true, status: newStatus }).eq("id", orderId);
+
+    const { error } = await supabase.from("orders").update({
+      seller_confirmed: true,
+      status: newStatus,
+      release_at: releaseAt,
+    }).eq("id", orderId);
+
     if (error) { await fetchOrders(); throw new Error(error.message); }
-    await triggerSMS({ type: "order.shipped", record: { id: orderId, ...order } });
+
+    await triggerSMS({ type: "order.shipped", record: { id: orderId, release_at: releaseAt, buyer_id: order?.buyerId, buyer: order?.buyer, ...order } });
+
+    // If buyer already confirmed, trigger immediate release
+    if (order?.buyerConfirmed) {
+      await triggerRelease(orderId, "immediate");
+    }
   };
 
   const confirmAsBuyer = async (orderId: string) => {
     const order = orders.find((o) => o.id === orderId);
     const newStatus = order?.sellerConfirmed ? "delivered" : "pending";
+
     setOrders((prev) =>
-      prev.map((o) => o.id === orderId ? { ...o, buyerConfirmed: true, status: newStatus as Order["status"] } : o)
+      prev.map((o) => o.id === orderId
+        ? { ...o, buyerConfirmed: true, status: newStatus as Order["status"] }
+        : o)
     );
-    const { error } = await supabase.from("orders").update({ buyer_confirmed: true, status: newStatus }).eq("id", orderId);
+
+    const { error } = await supabase.from("orders").update({
+      buyer_confirmed: true,
+      status: newStatus,
+    }).eq("id", orderId);
+
     if (error) { await fetchOrders(); throw new Error(error.message); }
+
     await triggerSMS({ type: "order.delivered", record: { id: orderId, ...order } });
+
+    // If seller already confirmed, trigger immediate payment release
+    if (order?.sellerConfirmed) {
+      await triggerRelease(orderId, "immediate");
+    }
+  };
+
+  // ── Trigger payment release ───────────────────────────────────────────────
+  const triggerRelease = async (orderId: string, trigger: "immediate" | "auto") => {
+    try {
+      const { error } = await supabase.functions.invoke("release-payment", {
+        body: { order_id: orderId, trigger },
+      });
+      if (error) console.warn("Payment release failed (non-fatal):", error);
+    } catch (err) {
+      console.warn("Payment release error (non-fatal):", err);
+    }
+  };
+
+  // ── Raise a dispute ───────────────────────────────────────────────────────
+  const raiseDispute = async (orderId: string, reason: string) => {
+    const order = orders.find((o) => o.id === orderId);
+    if (!order) throw new Error("Order not found");
+
+    // Can only dispute within 3 days of seller confirming
+    if (order.releaseAt) {
+      const releaseDate = new Date(order.releaseAt);
+      if (new Date() > releaseDate) {
+        throw new Error("Dispute window has closed — funds have been auto-released");
+      }
+    }
+
+    setOrders((prev) =>
+      prev.map((o) => o.id === orderId
+        ? { ...o, payoutStatus: "disputed", disputeReason: reason }
+        : o)
+    );
+
+    const { error } = await supabase.from("orders").update({
+      payout_status: "disputed",
+      dispute_reason: reason,
+    }).eq("id", orderId);
+
+    if (error) { await fetchOrders(); throw new Error(error.message); }
+
+    // Notify you (the admin) via SMS that a dispute was raised
+    // Uses seller_id as a proxy — you'll need to handle this manually
+    console.log(`Dispute raised for order ${orderId}: ${reason}`);
   };
 
   const markOrdersSeen = async () => {
@@ -244,7 +326,11 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
   const latestOrder = orders[0] ?? null;
 
   return (
-    <OrderContext.Provider value={{ orders, latestOrder, unseenCount, loading, placeOrder, confirmAsSeller, confirmAsBuyer, markOrdersSeen, fetchOrders }}>
+    <OrderContext.Provider value={{
+      orders, latestOrder, unseenCount, loading,
+      placeOrder, confirmAsSeller, confirmAsBuyer, raiseDispute,
+      markOrdersSeen, fetchOrders,
+    }}>
       {children}
     </OrderContext.Provider>
   );

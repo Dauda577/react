@@ -52,9 +52,15 @@ serve(async (req) => {
 
     if (type === "order.shipped") {
       const phone = record.buyer?.phone ?? await getPhone(record.buyer_id);
-      if (phone) await sendSMS(phone,
-        `SneakersHub: Your order ${formatOrderId(record.id)} has been shipped! sneakershub-sigma.vercel.app/account`
-      );
+      if (phone) {
+        const releaseDate = record.release_at
+          ? new Date(record.release_at).toLocaleDateString("en-GH", { day: "numeric", month: "short" })
+          : null;
+        const deadline = releaseDate ? ` You have until ${releaseDate} to confirm receipt or raise a dispute.` : "";
+        await sendSMS(phone,
+          `SneakersHub: Your order ${formatOrderId(record.id)} has been dispatched by the seller.${deadline} Confirm or dispute: sneakershub-sigma.vercel.app/account`
+        );
+      }
     }
 
     if (type === "order.delivered") {
@@ -72,6 +78,28 @@ serve(async (req) => {
           : record.content;
         await sendSMS(phone,
           `SneakersHub: New message: "${preview}". Reply at sneakershub-sigma.vercel.app/account`
+        );
+      }
+    }
+
+    if (type === "order.dispute_reminder") {
+      // record: { buyer_id, order_id, release_at, days_left }
+      const phone = await getPhone(record.buyer_id);
+      if (phone) {
+        const urgent = record.days_left <= 1 ? "⚠️ LAST CHANCE: " : "Reminder: ";
+        const when = record.days_left <= 1 ? "today" : `in ${record.days_left} day${record.days_left === 1 ? "" : "s"}`;
+        await sendSMS(phone,
+          `SneakersHub: ${urgent}Payment for order ${formatOrderId(record.order_id)} auto-releases to the seller ${when}. Confirm receipt or raise a dispute now: sneakershub-sigma.vercel.app/account`
+        );
+      }
+    }
+
+    if (type === "payout.released") {
+      const phone = await getPhone(record.seller_id);
+      if (phone) {
+        const trigger = record.trigger === "auto" ? "auto-released after 3 days" : "released after buyer confirmed";
+        await sendSMS(phone,
+          `SneakersHub: GHS ${record.amount} payout ${trigger} for order ${formatOrderId(record.order_id)}. Check your ${record.payout_method ?? "account"}. sneakershub-sigma.vercel.app`
         );
       }
     }
