@@ -16,6 +16,7 @@ import { PushProvider } from "@/context/PushContext";
 import ScrollToTop from "@/components/ScrollToTop";
 import InstallPrompt from "@/components/InstallPrompt";
 import Spinner from "@/components/Spinner";
+import Unsubscribe from "@/pages/Unsubscribe";
 
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -78,6 +79,7 @@ const App = () => (
                               <Route path="/checkout" element={<Checkout />} />
                               <Route path="/order-confirmation" element={<OrderConfirmation />} />
                               <Route path="/about" element={<About />} />
+                              <Route path="/unsubscribe" element={<Unsubscribe />} />
                               <Route path="/auth" element={
                                 <GuestRoute><Auth /></GuestRoute>
                               } />

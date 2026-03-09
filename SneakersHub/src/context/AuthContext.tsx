@@ -16,9 +16,9 @@ type AuthContextType = {
   loading: boolean;
   needsRole: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (name: string, email: string, password: string, role: "buyer" | "seller") => Promise<void>;
+  signup: (name: string, email: string, password: string, role: "buyer" | "seller", phone: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
-  assignRole: (role: "buyer" | "seller") => Promise<void>;
+  assignRole: (role: "buyer" | "seller", phone: string) => Promise<void>;
   continueAsGuest: () => void;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -162,13 +162,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsGuest(false);
   };
 
-  const signup = async (name: string, email: string, password: string, role: "buyer" | "seller") => {
+  const signup = async (name: string, email: string, password: string, role: "buyer" | "seller", phone: string) => {
     const { data, error } = await supabase.auth.signUp({
       email, password,
       options: { data: { name, role } },
     });
     if (error) throw new Error(error.message);
     if (!data.user) throw new Error("Signup failed");
+    // Save phone to profile immediately
+    await supabase.from("profiles").upsert({ id: data.user.id, name, role, phone });
     setIsGuest(false);
   };
 
@@ -180,10 +182,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (error) throw new Error(error.message);
   };
 
-  const assignRole = async (role: "buyer" | "seller") => {
+  const assignRole = async (role: "buyer" | "seller", phone: string) => {
     if (!pendingSession) return;
     const { id, email, name } = pendingSession;
-    const { error } = await supabase.from("profiles").upsert({ id, name, role });
+    const { error } = await supabase.from("profiles").upsert({ id, name, role, phone });
     if (error) throw new Error(error.message);
     setUser({ id, name, email, role });
     setNeedsRole(false);

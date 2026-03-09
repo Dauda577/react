@@ -1,13 +1,12 @@
 // src/lib/sms.ts
-// Call this from OrderContext whenever order status changes
-
 import { supabase } from "@/lib/supabase";
 
 type SMSEvent =
   | { type: "order.created"; record: any }
   | { type: "order.shipped"; record: any }
   | { type: "order.delivered"; record: any }
-  | { type: "message.created"; record: any };
+  | { type: "message.created"; record: any }
+  | { type: "listing.created"; record: any };
 
 export async function triggerSMS(event: SMSEvent) {
   try {
@@ -20,5 +19,3 @@ export async function triggerSMS(event: SMSEvent) {
     console.warn("SMS error (non-fatal):", err);
   }
 }
-
-

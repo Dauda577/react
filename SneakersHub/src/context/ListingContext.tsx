@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { supabase, ListingRow } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import { triggerSMS } from "@/lib/sms";
 
 export type Listing = {
   id: string;
@@ -156,6 +157,9 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
     }).select().single();
 
     if (error) throw new Error(error.message);
+
+    // SMS confirmation to seller
+    await triggerSMS({ type: "listing.created", record: data });
 
     let imageUrl: string | null = null;
     if (imageFile && data) {

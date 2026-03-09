@@ -45,29 +45,42 @@ serve(async (req) => {
 
     if (type === "order.created") {
       const phone = await getPhone(record.seller_id);
-      console.log("Seller phone:", phone);
-      if (phone) await sendSMS(phone, `SneakersHub: New order ${formatOrderId(record.id)} worth GHS ${record.total}. Open app to confirm. sneakershub-sigma.vercel.app/account`);
+      if (phone) await sendSMS(phone,
+        `SneakersHub: New order ${formatOrderId(record.id)} worth GHS ${record.total}. Open app to confirm. sneakershub-sigma.vercel.app/account`
+      );
     }
 
     if (type === "order.shipped") {
       const phone = record.buyer?.phone ?? await getPhone(record.buyer_id);
-      console.log("Buyer phone:", phone);
-      if (phone) await sendSMS(phone, `SneakersHub: Your order ${formatOrderId(record.id)} has been shipped! sneakershub-sigma.vercel.app/account`);
+      if (phone) await sendSMS(phone,
+        `SneakersHub: Your order ${formatOrderId(record.id)} has been shipped! sneakershub-sigma.vercel.app/account`
+      );
     }
 
     if (type === "order.delivered") {
       const phone = record.buyer?.phone ?? await getPhone(record.buyer_id);
-      console.log("Buyer phone:", phone);
-      if (phone) await sendSMS(phone, `SneakersHub: Your order ${formatOrderId(record.id)} has been delivered! Enjoy your kicks. sneakershub-sigma.vercel.app/account`);
+      if (phone) await sendSMS(phone,
+        `SneakersHub: Your order ${formatOrderId(record.id)} has been delivered! Enjoy your kicks. sneakershub-sigma.vercel.app/account`
+      );
     }
 
     if (type === "message.created") {
       const phone = await getPhone(record.receiver_id);
-      console.log("Receiver phone:", phone);
       if (phone) {
-        const preview = record.content?.length > 50 ? record.content.slice(0, 50) + "..." : record.content;
-        await sendSMS(phone, `SneakersHub: New message: "${preview}". Reply at sneakershub-sigma.vercel.app/account`);
+        const preview = record.content?.length > 50
+          ? record.content.slice(0, 50) + "..."
+          : record.content;
+        await sendSMS(phone,
+          `SneakersHub: New message: "${preview}". Reply at sneakershub-sigma.vercel.app/account`
+        );
       }
+    }
+
+    if (type === "listing.created") {
+      const phone = await getPhone(record.seller_id);
+      if (phone) await sendSMS(phone,
+        `SneakersHub: Your listing "${record.name}" is now live! Boost it to reach more buyers. sneakershub-sigma.vercel.app/account`
+      );
     }
 
     return new Response(JSON.stringify({ success: true }), {

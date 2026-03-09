@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Mail, Lock, User, Tag, Store, ArrowRight, CheckCircle, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, Tag, Store, ArrowRight, CheckCircle, AlertCircle, Phone } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -25,19 +25,16 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({ name: "", email: "", password: "", phone: "" });
+  const [googlePhone, setGooglePhone] = useState("");
   const [triggerInstall, setTriggerInstall] = useState(false);
 
   const { login, signup, signInWithGoogle, needsRole, assignRole, continueAsGuest, resetPassword } = useAuth();
   const navigate = useNavigate();
 
-  // After login/signup: auto-request notification permission, then show install prompt
   const afterAuth = (destination = "/") => {
     navigate(destination);
     setTriggerInstall(true);
-
-    // Auto-request notifications — browser shows its native prompt immediately.
-    // User can turn them off later in browser settings or app settings.
     if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
       Notification.requestPermission().catch(() => {});
     }
@@ -50,13 +47,14 @@ const Auth = () => {
   const handleSubmit = async () => {
     if (!form.email || !form.password) { toast.error("Please fill in all fields"); return; }
     if (mode === "signup" && !form.name) { toast.error("Please enter your name"); return; }
+    if (mode === "signup" && !form.phone) { toast.error("Please enter your phone number"); return; }
     setLoading(true);
     try {
       if (mode === "login") {
         await login(form.email, form.password);
         toast.success("Welcome back!");
       } else {
-        await signup(form.name, form.email, form.password, role);
+        await signup(form.name, form.email, form.password, role, form.phone);
         toast.success(`${role === "buyer" ? "Buyer" : "Seller"} account created!`);
       }
       afterAuth("/");
@@ -85,7 +83,6 @@ const Auth = () => {
     setGoogleLoading(true);
     try {
       await signInWithGoogle();
-      // Google redirects away — InstallPrompt handled on return via AuthCallback
     } catch (err: any) {
       toast.error(err.message ?? "Google sign-in failed");
       setGoogleLoading(false);
@@ -93,8 +90,9 @@ const Auth = () => {
   };
 
   const handleAssignRole = async (selectedRole: "buyer" | "seller") => {
+    if (!googlePhone.trim()) { toast.error("Please enter your phone number"); return; }
     try {
-      await assignRole(selectedRole);
+      await assignRole(selectedRole, googlePhone.trim());
       toast.success(`${selectedRole === "buyer" ? "Buyer" : "Seller"} account created!`);
       afterAuth("/");
     } catch (err: any) {
@@ -107,7 +105,7 @@ const Auth = () => {
   const switchMode = (newMode: Mode) => {
     setMode(newMode);
     setForgotSent(false);
-    setForm({ name: "", email: "", password: "" });
+    setForm({ name: "", email: "", password: "", phone: "" });
   };
 
   // ── Role picker for new Google users ────────────────────────────────────────
@@ -125,6 +123,24 @@ const Auth = () => {
           </motion.div>
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
             className="rounded-2xl border border-border bg-background p-6 shadow-sm space-y-4">
+
+            {/* Phone number — required for Google users too */}
+            <div>
+              <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
+                Phone Number <span className="text-primary">*</span>
+              </label>
+              <div className="relative">
+                <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  value={googlePhone}
+                  onChange={(e) => setGooglePhone(e.target.value)}
+                  placeholder="+233 24 000 0000"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1.5">Used for order & message SMS alerts.</p>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               {([
                 { value: "buyer", label: "Buy Sneakers", icon: Tag, desc: "Browse & purchase from sellers" },
@@ -289,6 +305,22 @@ const Auth = () => {
                     </div>
                   </div>
 
+                  {/* Phone — signup only */}
+                  {mode === "signup" && (
+                    <div>
+                      <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
+                        Phone Number <span className="text-primary">*</span>
+                      </label>
+                      <div className="relative">
+                        <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <input name="phone" type="tel" autoComplete="tel" value={form.phone} onChange={handleChange}
+                          placeholder="+233 24 000 0000"
+                          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]" />
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1.5">Used for order & message SMS alerts.</p>
+                    </div>
+                  )}
+
                   {mode === "signup" && (
                     <div>
                       <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-2">I want to</label>
@@ -371,7 +403,6 @@ const Auth = () => {
         )}
       </div>
 
-      {/* Floating install + notifications popup — triggers after login/signup */}
       <InstallPrompt triggerAfterAuth={triggerInstall} />
     </div>
   );
