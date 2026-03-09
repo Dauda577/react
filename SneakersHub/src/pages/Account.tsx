@@ -90,9 +90,10 @@ const Account = () => {
   const { listings, deleteListing, markSold, boostListing } = useListings();
   const { getSellerStats, hasReviewed, reviews, fetchReviews } = useRatings();
   const { totalUnread } = useMessages();
-  const { requestPermission, isSupported: pushSupported, permission: pushPermission } = (() => {
-    try { return usePush(); } catch { return { requestPermission: async () => false, isSupported: false, permission: "denied" as NotificationPermission }; }
-  })();
+
+  // ── FIX: direct call — no try/catch wrapper that silently returns isSupported:false ──
+  const { requestPermission, isSupported: pushSupported, permission: pushPermission } = usePush();
+
   const [boostingListing, setBoostingListing] = useState<import("@/context/ListingContext").Listing | null>(null);
   const [ratingOrderId, setRatingOrderId] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -139,12 +140,10 @@ const Account = () => {
   const handleDeleteAccount = async () => {
     try {
       const { supabase } = await import("@/lib/supabase");
-      // Delete account via admin API through edge function, fallback to just signing out
       const { error } = await supabase.functions.invoke("delete-account", {
         body: { user_id: user?.id },
       });
       if (error) {
-        // Fallback: sign out and show message to contact support
         await supabase.auth.signOut();
         toast.success("You have been signed out. Contact support to complete account deletion.");
         navigate("/");
@@ -871,10 +870,10 @@ const Account = () => {
               </div>
             )}
 
-            {/* ── Messages ── */}
             {/* ── Analytics (sellers only) ── */}
             {activeTab === "analytics" && role === "seller" && !isGuest && <SellerDashboard />}
 
+            {/* ── Messages ── */}
             {activeTab === "messages" && isGuest && <GuestAuthBanner action="view messages" />}
             {activeTab === "messages" && !isGuest && <MessagesInbox />}
 
@@ -888,18 +887,19 @@ const Account = () => {
                     <p className="font-display font-semibold text-sm">Notifications</p>
                   </div>
                   <div className="divide-y divide-border">
-                    {/* Push permission prompt */}
+
+                    {/* ── Push permission status — shown for ALL roles, ALL states ── */}
                     {pushSupported && pushPermission === "default" && (
                       <div className="px-5 py-4 flex items-center justify-between gap-4 bg-primary/5">
                         <div>
                           <p className="text-sm font-semibold text-primary">Enable Push Notifications</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">Get notified even when the app is closed</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">Get notified about orders and messages</p>
                         </div>
                         <button
                           onClick={async () => {
                             const granted = await requestPermission();
-                            if (granted) toast.success("Push notifications enabled!");
-                            else toast.error("Permission denied");
+                            if (granted) toast.success("🔔 Notifications enabled!");
+                            else toast("You can enable this in your browser settings.");
                           }}
                           className="px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold flex-shrink-0 hover:opacity-90 transition-opacity"
                         >
@@ -907,12 +907,30 @@ const Account = () => {
                         </button>
                       </div>
                     )}
+                    {pushSupported && pushPermission === "denied" && (
+                      <div className="px-5 py-4 flex items-start gap-3 bg-muted/30">
+                        <Bell className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">Notifications Blocked</p>
+                          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                            Click the 🔒 lock icon in your browser's address bar → Site settings → Notifications → Allow
+                          </p>
+                        </div>
+                      </div>
+                    )}
                     {pushSupported && pushPermission === "granted" && (
                       <div className="px-5 py-3 flex items-center gap-2 bg-green-500/5">
                         <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                        <p className="text-xs text-green-600 font-medium">Push notifications are active</p>
+                        <p className="text-xs text-green-600 font-medium">Push notifications are active ✓</p>
                       </div>
                     )}
+                    {!pushSupported && (
+                      <div className="px-5 py-3">
+                        <p className="text-xs text-muted-foreground">Push notifications are not supported in this browser.</p>
+                      </div>
+                    )}
+
+                    {/* ── Per-type toggles ── */}
                     {[
                       { label: "Order updates", sub: "Confirmations, dispatch and delivery", key: "notif_orders", value: notifOrders, set: setNotifOrders },
                       { label: "Messages", sub: "Replies from buyers or sellers", key: "notif_messages", value: notifMessages, set: setNotifMessages },
@@ -977,15 +995,12 @@ const Account = () => {
                         </button>
                       ) : (
                         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-                          {/* Warning header */}
                           <div className="flex items-center gap-2">
                             <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0">
                               <Trash className="w-4 h-4 text-red-500" />
                             </div>
                             <p className="text-sm font-bold text-red-500">Delete Account</p>
                           </div>
-
-                          {/* Warning details */}
                           <div className="rounded-xl bg-red-500/5 border border-red-500/20 p-4 space-y-2">
                             <p className="text-xs font-semibold text-red-500 uppercase tracking-wide">This will permanently delete:</p>
                             <div className="space-y-1.5 mt-2">
@@ -1003,11 +1018,9 @@ const Account = () => {
                               ))}
                             </div>
                           </div>
-
                           <p className="text-xs text-muted-foreground">
                             This action is <span className="font-semibold text-foreground">permanent and cannot be undone</span>. You will not be able to recover your account or any associated data.
                           </p>
-
                           <div className="flex gap-2">
                             <button onClick={handleDeleteAccount}
                               className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition-colors">
