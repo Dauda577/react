@@ -25,29 +25,20 @@ export interface Conversation {
   unread_count: number;
 }
 
-// ── NEW: Typing indicator interface ──────────────────────
-interface TypingUser {
-  userId: string;
-  conversationId: string;
-  isTyping: boolean;
-}
-
 interface MessageContextType {
   conversations: Conversation[];
   messages: Record<string, Message[]>;
   totalUnread: number;
-  sendMessage: (receiverId: string, content: string, listingId?: string, listingName?: string) => Promise<void>;
+  sendMessage: (receiverId: string, content: string, listingId?: string) => Promise<void>;
   fetchMessages: (conversationId: string) => Promise<void>;
   markConversationSeen: (conversationId: string) => Promise<void>;
   getOrCreateConversationId: (userA: string, userB: string, listingId?: string) => string;
-  // ── NEW: Typing indicators ─────────────────────────────
-  typingUsers: TypingUser[];
-  startTyping: (receiverId: string, conversationId: string) => void;
-  stopTyping: (receiverId: string, conversationId: string) => void;
-  // ── NEW: Online status ─────────────────────────────────
+  // Kept in API so existing components don't break — no-ops now
+  typingUsers: [];
+  startTyping: () => void;
+  stopTyping: () => void;
   onlineUsers: Set<string>;
-  // ── NEW: Message reactions (optional) ──────────────────
-  addReaction: (messageId: string, reaction: string) => Promise<void>;
+  addReaction: () => Promise<void>;
 }
 
 const MessageContext = createContext<MessageContextType | null>(null);
@@ -62,20 +53,8 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
-  // ── NEW: Typing state ──────────────────────────────────
-  const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
-  // ── NEW: Online users state ────────────────────────────
-  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
-  
   const profileCacheRef = useRef<Record<string, string>>({});
   const channelRef = useRef<any>(null);
-  const presenceChannelRef = useRef<any>(null);
-  const typingChannelRef = useRef<any>(null);
-  const messagesRef = useRef<Record<string, Message[]>>({});
-  const typingTimeoutRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
-
-  // Keep ref in sync for use in realtime handlers
-  useEffect(() => { messagesRef.current = messages; }, [messages]);
 
   const getOrCreateConversationId = (userA: string, userB: string, listingId?: string) => {
     const sorted = [userA, userB].sort().join("_");
@@ -94,7 +73,6 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
 
   const buildConversations = useCallback(async (allMessages: Record<string, Message[]>) => {
     if (!user?.id) return;
-
     const convList: Conversation[] = await Promise.all(
       Object.entries(allMessages).map(async ([conv_id, msgs]) => {
         const sorted = [...msgs].sort((a, b) =>
@@ -116,7 +94,6 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
         };
       })
     );
-
     convList.sort((a, b) =>
       new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime()
     );
@@ -125,10 +102,9 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchConversations = useCallback(async () => {
     if (!user?.id) return;
-
     const { data, error } = await supabase
       .from("messages")
-      .select("*")
+      .select("id, conversation_id, sender_id, receiver_id, listing_id, content, created_at, seen")
       .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
       .order("created_at", { ascending: true });
 
@@ -139,7 +115,6 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
       if (!grouped[msg.conversation_id]) grouped[msg.conversation_id] = [];
       grouped[msg.conversation_id].push(msg);
     });
-
     setMessages(grouped);
     await buildConversations(grouped);
   }, [user?.id, buildConversations]);
@@ -148,7 +123,7 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
     if (!user?.id) return;
     const { data, error } = await supabase
       .from("messages")
-      .select("*")
+      .select("id, conversation_id, sender_id, receiver_id, listing_id, content, created_at, seen")
       .eq("conversation_id", conversationId)
       .order("created_at", { ascending: true });
 
@@ -160,13 +135,12 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
     });
   }, [user?.id, buildConversations]);
 
-  // ── ENHANCED: Realtime with presence and typing ─────────────────────────
+  // Single realtime channel — no presence, no typing overhead
   useEffect(() => {
     if (!user?.id) return;
 
     fetchConversations();
 
-    // ── Messages channel (your existing code) ─────────────────
     channelRef.current = supabase
       .channel(`messages:${user.id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" },
@@ -177,17 +151,12 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
           setMessages((prev) => {
             const existing = prev[msg.conversation_id] ?? [];
             if (existing.some((m) => m.id === msg.id)) return prev;
+            // Replace optimistic message if content matches
             const withoutOptimistic = existing.filter(
               (m) => !(m.id.startsWith("optimistic-") && m.content === msg.content && m.sender_id === msg.sender_id)
             );
             const updated = { ...prev, [msg.conversation_id]: [...withoutOptimistic, msg] };
             buildConversations(updated);
-            
-            // ── NEW: Show browser notification ─────────────────
-            if (msg.receiver_id === user.id && document.hidden) {
-              showNotification(msg);
-            }
-            
             return updated;
           });
         }
@@ -205,159 +174,13 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
           });
         }
       )
-      .subscribe((status: string) => console.log("[Messages] realtime:", status));
-
-    // ── NEW: Presence channel (online status) ─────────────────
-    presenceChannelRef.current = supabase.channel('online_users', {
-      config: {
-        presence: {
-          key: user.id,
-        },
-      },
-    });
-
-    presenceChannelRef.current
-      .on('presence', { event: 'sync' }, () => {
-        const presence = presenceChannelRef.current?.presenceState() || {};
-        const online = new Set(Object.keys(presence));
-        setOnlineUsers(online);
-      })
-      .on('presence', { event: 'join' }, ({ key }) => {
-        setOnlineUsers(prev => new Set([...prev, key]));
-      })
-      .on('presence', { event: 'leave' }, ({ key }) => {
-        setOnlineUsers(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(key);
-          return newSet;
-        });
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          await presenceChannelRef.current?.track({
-            user_id: user.id,
-            online_at: new Date().toISOString(),
-          });
-        }
-      });
-
-    // ── NEW: Typing indicators channel ────────────────────────
-    typingChannelRef.current = supabase.channel('typing_indicators');
-
-    typingChannelRef.current
-      .on('broadcast', { event: 'typing:start' }, ({ payload }) => {
-        if (payload.userId !== user.id) {
-          setTypingUsers(prev => {
-            const existing = prev.findIndex(
-              t => t.userId === payload.userId && t.conversationId === payload.conversationId
-            );
-            if (existing === -1) {
-              return [...prev, payload];
-            }
-            return prev;
-          });
-        }
-      })
-      .on('broadcast', { event: 'typing:stop' }, ({ payload }) => {
-        setTypingUsers(prev => 
-          prev.filter(t => !(t.userId === payload.userId && t.conversationId === payload.conversationId))
-        );
-      })
       .subscribe();
 
     return () => {
       if (channelRef.current) supabase.removeChannel(channelRef.current);
-      if (presenceChannelRef.current) supabase.removeChannel(presenceChannelRef.current);
-      if (typingChannelRef.current) supabase.removeChannel(typingChannelRef.current);
-      
-      // Clear all typing timeouts
-      typingTimeoutRef.current.forEach(timeout => clearTimeout(timeout));
-      typingTimeoutRef.current.clear();
     };
   }, [user?.id]);
 
-  // ── NEW: Typing indicator functions ─────────────────────────
-  const startTyping = useCallback((receiverId: string, conversationId: string) => {
-    if (!user?.id) return;
-
-    // Clear existing timeout for this conversation
-    const existingTimeout = typingTimeoutRef.current.get(conversationId);
-    if (existingTimeout) clearTimeout(existingTimeout);
-
-    // Send typing start event
-    typingChannelRef.current?.send({
-      type: 'broadcast',
-      event: 'typing:start',
-      payload: {
-        userId: user.id,
-        conversationId,
-        isTyping: true,
-      },
-    });
-
-    // Set timeout to auto-stop typing after 3 seconds
-    const timeout = setTimeout(() => {
-      stopTyping(receiverId, conversationId);
-    }, 3000);
-
-    typingTimeoutRef.current.set(conversationId, timeout);
-  }, [user?.id]);
-
-  const stopTyping = useCallback((receiverId: string, conversationId: string) => {
-    if (!user?.id) return;
-
-    // Clear timeout
-    const timeout = typingTimeoutRef.current.get(conversationId);
-    if (timeout) {
-      clearTimeout(timeout);
-      typingTimeoutRef.current.delete(conversationId);
-    }
-
-    // Send typing stop event
-    typingChannelRef.current?.send({
-      type: 'broadcast',
-      event: 'typing:stop',
-      payload: {
-        userId: user.id,
-        conversationId,
-        isTyping: false,
-      },
-    });
-  }, [user?.id]);
-
-  // ── NEW: Message reactions ─────────────────────────────────
-  const addReaction = useCallback(async (messageId: string, reaction: string) => {
-    if (!user?.id) return;
-
-    const { error } = await supabase
-      .from('message_reactions')
-      .upsert({
-        message_id: messageId,
-        user_id: user.id,
-        reaction: reaction,
-      }, {
-        onConflict: 'message_id,user_id'
-      });
-
-    if (error) console.error('Failed to add reaction:', error);
-  }, [user?.id]);
-
-  // ── NEW: Browser notifications ─────────────────────────────
-  const showNotification = useCallback((message: Message) => {
-    // Request permission if not granted
-    if (Notification.permission === 'granted') {
-      new Notification('New Message', {
-        body: message.content,
-        icon: '/icons/icon-192.png',
-        tag: message.conversation_id,
-        silent: false,
-      });
-    } else if (Notification.permission !== 'denied') {
-      Notification.requestPermission();
-    }
-  }, []);
-
-  // ── EXISTING: sendMessage with typing cleanup ──────────────
   const sendMessage = useCallback(async (
     receiverId: string,
     content: string,
@@ -379,10 +202,6 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
       seen: false,
     };
 
-    // Stop typing when sending message
-    stopTyping(receiverId, conversationId);
-
-    // Show instantly on sender's side
     setMessages((prev) => {
       const updated = { ...prev, [conversationId]: [...(prev[conversationId] ?? []), optimisticMsg] };
       buildConversations(updated);
@@ -403,7 +222,6 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
       .single();
 
     if (error || !data) {
-      // Revert optimistic on failure
       setMessages((prev) => {
         const conv = (prev[conversationId] ?? []).filter((m) => m.id !== tempId);
         const updated = { ...prev, [conversationId]: conv };
@@ -413,7 +231,6 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    // Replace optimistic with real message
     setMessages((prev) => {
       const conv = (prev[conversationId] ?? []).map((m) => m.id === tempId ? (data as Message) : m);
       const updated = { ...prev, [conversationId]: conv };
@@ -424,7 +241,7 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
     if (data.receiver_id !== user.id) {
       await triggerSMS({ type: "message.created", record: data });
     }
-  }, [user?.id, buildConversations, stopTyping]);
+  }, [user?.id, buildConversations]);
 
   const markConversationSeen = useCallback(async (conversationId: string) => {
     if (!user?.id) return;
@@ -447,12 +264,12 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
     <MessageContext.Provider value={{
       conversations, messages, totalUnread,
       sendMessage, fetchMessages, markConversationSeen, getOrCreateConversationId,
-      // ── NEW exports ───────────────────────────────────────
-      typingUsers,
-      startTyping,
-      stopTyping,
-      onlineUsers,
-      addReaction,
+      // Stubs — kept so existing components don't break
+      typingUsers: [],
+      startTyping: () => {},
+      stopTyping: () => {},
+      onlineUsers: new Set(),
+      addReaction: async () => {},
     }}>
       {children}
     </MessageContext.Provider>
