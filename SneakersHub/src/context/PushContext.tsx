@@ -18,8 +18,7 @@ export const usePush = () => {
 };
 
 const checkSupported = () =>
-  typeof window !== "undefined" &&
-  "Notification" in window;
+  typeof window !== "undefined" && "Notification" in window;
 
 export const PushProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
@@ -29,17 +28,7 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
     ? Notification.permission
     : "denied";
 
-  const requestPermission = async (): Promise<boolean> => {
-    if (!checkSupported()) return false;
-    const result = await Notification.requestPermission();
-    return result === "granted";
-  };
-
-  // ── Core notification function ─────────────────────────────────────────
-  // Works in BOTH browser tabs AND installed PWA.
-  // Strategy:
-  //   1. Try service worker (works in PWA + modern browsers with active SW)
-  //   2. Fall back to new Notification() (works in any browser with permission)
+  // ── Show a notification (works in browser AND installed PWA) ─────────────
   const showLocalNotification = (title: string, body: string, url = "/account") => {
     if (!checkSupported() || Notification.permission !== "granted") return;
 
@@ -53,44 +42,73 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
       renotify: true,
     };
 
-    // Try SW first — if it's not available or fails, fall back
     if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
       navigator.serviceWorker.ready
         .then((reg) => reg.showNotification(title, options as NotificationOptions))
-        .catch(() => {
-          // SW failed — use plain Notification API
-          new Notification(title, { body, icon: "/icons/icon-192.png" });
-        });
+        .catch(() => new Notification(title, { body, icon: "/icons/icon-192.png" }));
     } else {
-      // No active service worker — plain Notification API
-      // This is the path that runs in regular browser tabs
       new Notification(title, { body, icon: "/icons/icon-192.png" });
     }
   };
 
-  // ── Clean up all channels on unmount / user change ────────────────────
+  // ── Request permission ────────────────────────────────────────────────────
+  const requestPermission = async (): Promise<boolean> => {
+    if (!checkSupported()) return false;
+    if (Notification.permission === "granted") return true;
+    if (Notification.permission === "denied") return false;
+    const result = await Notification.requestPermission();
+    return result === "granted";
+  };
+
+  // ── AUTO-REQUEST on login ─────────────────────────────────────────────────
+  // Works for BOTH new and existing users.
+  // The browser's own Notification.permission tracks state permanently:
+  //   "default"  = never asked  → ask them (covers all existing users too)
+  //   "granted"  = already yes  → skip, just subscribe
+  //   "denied"   = blocked      → respect their choice, never ask again
+  // No localStorage flag needed — the browser remembers the answer forever.
+  useEffect(() => {
+    if (!user?.id || !checkSupported()) return;
+    if (Notification.permission === "granted") return; // already have it
+    if (Notification.permission === "denied") return;  // user blocked it
+
+    // permission === "default" — ask them (new user OR existing user never asked)
+    const timer = setTimeout(async () => {
+      const granted = await requestPermission();
+      if (granted) {
+        showLocalNotification(
+          "🔔 Notifications enabled!",
+          "You'll get notified about orders and messages.",
+          "/account"
+        );
+      }
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [user?.id]);
+
+  // ── Clean up channels ─────────────────────────────────────────────────────
   const clearChannels = () => {
     channelsRef.current.forEach((ch) => supabase.removeChannel(ch));
     channelsRef.current = [];
   };
 
-  // ── Subscribe to all push events for this user ────────────────────────
+  // ── Subscribe to realtime push events ────────────────────────────────────
   useEffect(() => {
     if (!user?.id || !checkSupported() || Notification.permission !== "granted") return;
 
     clearChannels();
 
-    // ── SELLER channels ──────────────────────────────────────────────────
+    // ── SELLER ───────────────────────────────────────────────────────────────
     if (user.role === "seller") {
 
-      // 1. Seller verified badge
+      // Verified badge
       const verifiedCh = supabase
         .channel(`push:verified:${user.id}`)
         .on("postgres_changes", {
           event: "UPDATE",
           schema: "public",
           table: "profiles",
-          // profiles filter is safe — filtering by primary key always works
           filter: `id=eq.${user.id}`,
         }, (payload: any) => {
           if (!payload.old?.verified && payload.new?.verified) {
@@ -101,11 +119,10 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
             );
           }
         })
-        .subscribe((s: string) => console.log("[Push] verified:", s));
-
+        .subscribe();
       channelsRef.current.push(verifiedCh);
 
-      // 2. New orders for seller — NO filter (client-side check instead)
+      // New orders — client-side filter (no DB filter needed)
       if (localStorage.getItem("notif_orders") !== "false") {
         const orderCh = supabase
           .channel(`push:orders:${user.id}`)
@@ -114,7 +131,6 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
             schema: "public",
             table: "orders",
           }, (payload: any) => {
-            // Client-side filter — only notify this seller
             if (payload.new.seller_id !== user.id) return;
             showLocalNotification(
               "🛒 New Order!",
@@ -122,12 +138,11 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
               "/account"
             );
           })
-          .subscribe((s: string) => console.log("[Push] seller orders:", s));
-
+          .subscribe();
         channelsRef.current.push(orderCh);
       }
 
-      // 3. New messages to seller — NO filter
+      // New messages to seller
       if (localStorage.getItem("notif_messages") !== "false") {
         const msgCh = supabase
           .channel(`push:seller:msgs:${user.id}`)
@@ -136,7 +151,6 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
             schema: "public",
             table: "messages",
           }, (payload: any) => {
-            // Client-side filter — only messages sent TO this seller
             if (payload.new.receiver_id !== user.id) return;
             const content: string = payload.new.content ?? "";
             showLocalNotification(
@@ -145,16 +159,15 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
               "/account"
             );
           })
-          .subscribe((s: string) => console.log("[Push] seller msgs:", s));
-
+          .subscribe();
         channelsRef.current.push(msgCh);
       }
     }
 
-    // ── BUYER channels ───────────────────────────────────────────────────
+    // ── BUYER ────────────────────────────────────────────────────────────────
     if (user.role === "buyer") {
 
-      // 1. Order status updates for buyer — NO filter
+      // Order status updates
       if (localStorage.getItem("notif_orders") !== "false") {
         const orderCh = supabase
           .channel(`push:buyer:orders:${user.id}`)
@@ -163,29 +176,19 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
             schema: "public",
             table: "orders",
           }, (payload: any) => {
-            // Client-side filter — only this buyer's orders
             if (payload.new.buyer_id !== user.id) return;
             const { status } = payload.new;
             if (status === "shipped") {
-              showLocalNotification(
-                "📦 Order Shipped!",
-                "Your order is on its way.",
-                "/account"
-              );
+              showLocalNotification("📦 Order Shipped!", "Your order is on its way.", "/account");
             } else if (status === "delivered") {
-              showLocalNotification(
-                "✅ Order Delivered!",
-                "Your order has been delivered. Enjoy your kicks!",
-                "/account"
-              );
+              showLocalNotification("✅ Order Delivered!", "Your order has been delivered. Enjoy your kicks!", "/account");
             }
           })
-          .subscribe((s: string) => console.log("[Push] buyer orders:", s));
-
+          .subscribe();
         channelsRef.current.push(orderCh);
       }
 
-      // 2. New messages to buyer — NO filter
+      // New messages to buyer
       if (localStorage.getItem("notif_messages") !== "false") {
         const msgCh = supabase
           .channel(`push:buyer:msgs:${user.id}`)
@@ -194,7 +197,6 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
             schema: "public",
             table: "messages",
           }, (payload: any) => {
-            // Client-side filter
             if (payload.new.receiver_id !== user.id) return;
             const content: string = payload.new.content ?? "";
             showLocalNotification(
@@ -203,14 +205,13 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
               "/account"
             );
           })
-          .subscribe((s: string) => console.log("[Push] buyer msgs:", s));
-
+          .subscribe();
         channelsRef.current.push(msgCh);
       }
     }
 
     return clearChannels;
-  }, [user?.id, user?.role]);
+  }, [user?.id, user?.role, permission]);
 
   return (
     <PushContext.Provider value={{
