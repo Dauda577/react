@@ -6,6 +6,7 @@ import {
   MapPin, Eye, Pencil, Trash2, Plus, CheckCircle, ArrowRight, LogOut,
   Store, Tag, Package, Phone, Zap, Star, Sparkles,
   Bell, ShieldCheck, Shield, Lock, Trash, ChevronRight, MessageCircle, BarChart2, Share,
+  Camera, Image, Type, DollarSign, Ruler, X,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -23,19 +24,18 @@ import SellerDashboard from "@/components/SellerDashboard";
 import { usePush } from "@/context/PushContext";
 import { toast } from "sonner";
 
-// ── Safari / iOS detection ────────────────────────────────────────────────────
 const isSafari = () =>
   typeof navigator !== "undefined" &&
   /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-
 const isIOS = () =>
   typeof navigator !== "undefined" &&
   /iphone|ipad|ipod/i.test(navigator.userAgent);
-
 const isStandalone = () =>
   typeof window !== "undefined" &&
   (window.matchMedia("(display-mode: standalone)").matches ||
     (window.navigator as any).standalone === true);
+
+const FIRST_LISTING_BANNER_KEY = "sneakershub-first-listing-dismissed";
 
 const sellerTabs = [
   { id: "profile", label: "Profile", icon: User },
@@ -45,7 +45,6 @@ const sellerTabs = [
   { id: "messages", label: "Messages", icon: MessageCircle },
   { id: "settings", label: "Settings", icon: Settings },
 ];
-
 const buyerTabs = [
   { id: "profile", label: "Profile", icon: User },
   { id: "orders", label: "Orders", icon: ShoppingBag },
@@ -53,7 +52,6 @@ const buyerTabs = [
   { id: "messages", label: "Messages", icon: MessageCircle },
   { id: "settings", label: "Settings", icon: Settings },
 ];
-
 const guestTabs = [
   { id: "profile", label: "Profile", icon: User },
   { id: "saved", label: "Saved", icon: Heart },
@@ -81,20 +79,108 @@ const GuestAuthBanner = ({ action }: { action: string }) => {
       <p className="text-muted-foreground text-sm max-w-xs mx-auto mb-6">
         You need an account to {action}. It only takes a minute.
       </p>
-      <div className="flex gap-3 justify-center flex-wrap">
-        <Button className="btn-primary rounded-full h-9 px-6 text-sm" onClick={() => navigate("/auth")}>
-          Sign In / Sign Up
-        </Button>
-      </div>
+      <Button className="btn-primary rounded-full h-9 px-6 text-sm" onClick={() => navigate("/auth")}>
+        Sign In / Sign Up
+      </Button>
     </div>
   );
 };
 
-// ── Notification settings block — handles all browsers + Safari ───────────────
+// ── First-time listing guide banner ──────────────────────────────────────────
+const FirstListingBanner = ({ onDismiss, onStart }: { onDismiss: () => void; onStart: () => void }) => (
+  <motion.div
+    initial={{ opacity: 0, y: -8 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+    transition={{ duration: 0.3 }}
+    className="rounded-2xl border border-primary/30 bg-primary/5 p-5 mb-6 relative overflow-hidden"
+  >
+    {/* Background decoration */}
+    <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+
+    <button onClick={onDismiss}
+      className="absolute top-3 right-3 w-6 h-6 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors z-10">
+      <X className="w-3 h-3" />
+    </button>
+
+    <div className="flex items-start gap-3 mb-4">
+      <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+        <Store className="w-4 h-4 text-primary" />
+      </div>
+      <div>
+        <p className="font-display font-bold text-sm text-foreground">Welcome! Let's get your first listing up 🎉</p>
+        <p className="text-xs text-muted-foreground mt-0.5">It takes less than 2 minutes. Here's what you'll need:</p>
+      </div>
+    </div>
+
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+      {[
+        { icon: Camera, label: "A photo", sub: "Clear, well-lit shot" },
+        { icon: Type, label: "Name & brand", sub: "e.g. Nike Air Max" },
+        { icon: DollarSign, label: "Your price", sub: "In GHS" },
+        { icon: Ruler, label: "Sizes available", sub: "EU sizing" },
+      ].map(({ icon: Icon, label, sub }) => (
+        <div key={label} className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-background border border-border text-center">
+          <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Icon className="w-3.5 h-3.5 text-primary" />
+          </div>
+          <p className="text-xs font-semibold text-foreground leading-tight">{label}</p>
+          <p className="text-[10px] text-muted-foreground leading-tight">{sub}</p>
+        </div>
+      ))}
+    </div>
+
+    <div className="flex items-center gap-3 flex-wrap">
+      <Button className="btn-primary rounded-full h-9 px-5 text-sm" onClick={onStart}>
+        <Plus className="w-3.5 h-3.5 mr-1.5" /> Create My First Listing
+      </Button>
+      <button onClick={onDismiss} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+        I'll do it later
+      </button>
+    </div>
+  </motion.div>
+);
+
+// ── Empty state with steps ────────────────────────────────────────────────────
+const FirstListingEmptyState = ({ onStart }: { onStart: () => void }) => (
+  <div className="text-center py-16">
+    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+      className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
+      <Store className="w-7 h-7 text-primary" />
+    </motion.div>
+    <h3 className="font-display text-xl font-bold tracking-tight mb-2">Start selling today</h3>
+    <p className="text-muted-foreground text-sm max-w-xs mx-auto mb-8">
+      List your sneakers in minutes and reach buyers across Ghana.
+    </p>
+
+    {/* Step-by-step mini guide */}
+    <div className="max-w-sm mx-auto mb-8 space-y-3 text-left">
+      {[
+        { step: "1", title: "Take a clear photo", desc: "Natural light works best. Show the sole too." },
+        { step: "2", title: "Add details & price", desc: "Brand, name, condition, sizes, and your asking price." },
+        { step: "3", title: "Publish & wait for buyers", desc: "Your listing goes live instantly. Boost it to get seen faster." },
+      ].map(({ step, title, desc }) => (
+        <div key={step} className="flex items-start gap-3 p-3.5 rounded-xl border border-border bg-card">
+          <div className="w-6 h-6 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span className="text-xs font-bold text-primary">{step}</span>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-foreground">{title}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{desc}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <Button className="btn-primary rounded-full h-10 px-8 text-sm" onClick={onStart}>
+      <Plus className="w-3.5 h-3.5 mr-1.5" /> Create My First Listing
+    </Button>
+    <p className="text-xs text-muted-foreground mt-3">Free to list · No commission</p>
+  </div>
+);
+
 const NotificationSettings = ({
-  pushSupported,
-  pushPermission,
-  requestPermission,
+  pushSupported, pushPermission, requestPermission,
 }: {
   pushSupported: boolean;
   pushPermission: NotificationPermission;
@@ -103,7 +189,6 @@ const NotificationSettings = ({
   const safari = isSafari() || isIOS();
   const standalone = isStandalone();
 
-  // Safari in browser tab — notifications only work as installed PWA
   if (safari && !standalone) {
     return (
       <div className="px-5 py-4 flex items-start gap-3 bg-blue-500/5 border-b border-border">
@@ -120,19 +205,13 @@ const NotificationSettings = ({
       </div>
     );
   }
-
-  // Notifications not supported in this browser at all
   if (!pushSupported) {
     return (
       <div className="px-5 py-3 border-b border-border">
-        <p className="text-xs text-muted-foreground">
-          Push notifications are not supported in this browser. Try Chrome or Firefox.
-        </p>
+        <p className="text-xs text-muted-foreground">Push notifications are not supported in this browser. Try Chrome or Firefox.</p>
       </div>
     );
   }
-
-  // Standard browsers
   if (pushPermission === "default") {
     return (
       <div className="px-5 py-4 flex items-center justify-between gap-4 bg-primary/5 border-b border-border">
@@ -140,20 +219,16 @@ const NotificationSettings = ({
           <p className="text-sm font-semibold text-primary">Enable Push Notifications</p>
           <p className="text-xs text-muted-foreground mt-0.5">Get notified about orders and messages</p>
         </div>
-        <button
-          onClick={async () => {
-            const granted = await requestPermission();
-            if (granted) toast.success("🔔 Notifications enabled!");
-            else toast("You can enable this in your browser settings.");
-          }}
-          className="px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold flex-shrink-0 hover:opacity-90 transition-opacity"
-        >
+        <button onClick={async () => {
+          const granted = await requestPermission();
+          if (granted) toast.success("🔔 Notifications enabled!");
+          else toast("You can enable this in your browser settings.");
+        }} className="px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold flex-shrink-0 hover:opacity-90 transition-opacity">
           Enable
         </button>
       </div>
     );
   }
-
   if (pushPermission === "denied") {
     return (
       <div className="px-5 py-4 flex items-start gap-3 bg-muted/30 border-b border-border">
@@ -167,7 +242,6 @@ const NotificationSettings = ({
       </div>
     );
   }
-
   if (pushPermission === "granted") {
     return (
       <div className="px-5 py-3 flex items-center gap-2 bg-green-500/5 border-b border-border">
@@ -176,7 +250,6 @@ const NotificationSettings = ({
       </div>
     );
   }
-
   return null;
 };
 
@@ -201,6 +274,9 @@ const Account = () => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isVerified, setIsVerified] = useState(false);
 
+  // First-listing onboarding state
+  const [showFirstListingBanner, setShowFirstListingBanner] = useState(false);
+
   const [notifOrders, setNotifOrders] = useState(() => localStorage.getItem("notif_orders") !== "false");
   const [notifMessages, setNotifMessages] = useState(() => localStorage.getItem("notif_messages") !== "false");
   const [notifPromotions, setNotifPromotions] = useState(() => localStorage.getItem("notif_promotions") === "true");
@@ -208,6 +284,25 @@ const Account = () => {
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  // Show the banner once listings are loaded and it's a first-time seller
+  useEffect(() => {
+    if (role !== "seller" || isGuest) return;
+    const dismissed = localStorage.getItem(FIRST_LISTING_BANNER_KEY);
+    if (!dismissed && listings.length === 0) {
+      setShowFirstListingBanner(true);
+    }
+  }, [role, isGuest, listings.length]);
+
+  const dismissFirstListingBanner = () => {
+    setShowFirstListingBanner(false);
+    localStorage.setItem(FIRST_LISTING_BANNER_KEY, "true");
+  };
+
+  const startFirstListing = () => {
+    dismissFirstListingBanner();
+    navigate("/listings/new");
+  };
 
   useEffect(() => {
     if (!user?.id) return;
@@ -242,9 +337,7 @@ const Account = () => {
   const handleDeleteAccount = async () => {
     try {
       const { supabase } = await import("@/lib/supabase");
-      const { error } = await supabase.functions.invoke("delete-account", {
-        body: { user_id: user?.id },
-      });
+      const { error } = await supabase.functions.invoke("delete-account", { body: { user_id: user?.id } });
       if (error) {
         await supabase.auth.signOut();
         toast.success("You have been signed out. Contact support to complete account deletion.");
@@ -278,9 +371,7 @@ const Account = () => {
     try {
       const { supabase } = await import("@/lib/supabase");
       const { error } = await supabase.from("profiles").update({
-        name: profileForm.name,
-        phone: profileForm.phone || null,
-        city: profileForm.city || null,
+        name: profileForm.name, phone: profileForm.phone || null, city: profileForm.city || null,
       }).eq("id", user.id);
       if (error) throw error;
       setEditMode(false);
@@ -338,12 +429,10 @@ const Account = () => {
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
                 {avatarUrl
                   ? <img src={avatarUrl} alt={user?.name ?? "avatar"} className="w-full h-full object-cover" />
-                  : <span className="font-display text-xl font-bold text-primary">{initials}</span>
-                }
+                  : <span className="font-display text-xl font-bold text-primary">{initials}</span>}
               </div>
               <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-green-500 border-2 border-background" />
             </div>
-
             <div className="flex-1">
               <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold mb-2
                 ${isGuest ? "bg-muted text-muted-foreground border border-border"
@@ -375,7 +464,6 @@ const Account = () => {
                 ) : <p className="text-xs text-muted-foreground mt-1">No reviews yet</p>;
               })()}
             </div>
-
             {!isGuest && (
               <Button onClick={() => { setActiveTab("profile"); setEditMode(!editMode); }}
                 variant="outline" className="rounded-full h-9 px-5 text-sm hidden sm:flex">
@@ -432,11 +520,9 @@ const Account = () => {
                       <p className="text-sm text-muted-foreground mb-5 max-w-xs mx-auto">
                         Create an account to buy, sell, track orders, and save your favourite sneakers.
                       </p>
-                      <div className="flex gap-3 justify-center flex-wrap">
-                        <Button className="btn-primary rounded-full h-9 px-6 text-sm" onClick={() => navigate("/auth")}>
-                          Sign In / Sign Up <ArrowRight className="ml-1.5 w-3.5 h-3.5" />
-                        </Button>
-                      </div>
+                      <Button className="btn-primary rounded-full h-9 px-6 text-sm" onClick={() => navigate("/auth")}>
+                        Sign In / Sign Up <ArrowRight className="ml-1.5 w-3.5 h-3.5" />
+                      </Button>
                     </div>
                     <button onClick={handleLogout} className="text-sm text-red-500 flex items-center gap-1.5 hover:opacity-70 transition-opacity">
                       <LogOut className="w-3.5 h-3.5" /> Exit guest mode
@@ -445,36 +531,22 @@ const Account = () => {
                 ) : (
                   <>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Full Name</label>
-                        <input value={editMode ? profileForm.name : (user?.name ?? "")}
-                          onChange={(e) => setProfileForm((p) => ({ ...p, name: e.target.value }))}
-                          disabled={!editMode}
-                          className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
-                            focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20
-                            disabled:opacity-50 disabled:cursor-not-allowed transition-all font-[inherit]" />
-                      </div>
-                      <div>
-                        <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Email</label>
-                        <input value={user?.email ?? ""} disabled
-                          className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground opacity-50 cursor-not-allowed font-[inherit]" />
-                      </div>
-                      <div>
-                        <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Phone</label>
-                        <input value={profileForm.phone} onChange={(e) => setProfileForm((p) => ({ ...p, phone: e.target.value }))}
-                          disabled={!editMode} placeholder="+233 24 000 0000"
-                          className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
-                            focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20
-                            disabled:opacity-50 disabled:cursor-not-allowed transition-all font-[inherit]" />
-                      </div>
-                      <div>
-                        <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">City</label>
-                        <input value={profileForm.city} onChange={(e) => setProfileForm((p) => ({ ...p, city: e.target.value }))}
-                          disabled={!editMode} placeholder="Accra"
-                          className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
-                            focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20
-                            disabled:opacity-50 disabled:cursor-not-allowed transition-all font-[inherit]" />
-                      </div>
+                      {[
+                        { label: "Full Name", name: "name", value: editMode ? profileForm.name : (user?.name ?? ""), placeholder: "Your name" },
+                        { label: "Email", name: "email", value: user?.email ?? "", placeholder: "", disabled: true },
+                        { label: "Phone", name: "phone", value: profileForm.phone, placeholder: "+233 24 000 0000" },
+                        { label: "City", name: "city", value: profileForm.city, placeholder: "Accra" },
+                      ].map(({ label, name, value, placeholder, disabled }) => (
+                        <div key={name}>
+                          <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">{label}</label>
+                          <input value={value}
+                            onChange={(e) => setProfileForm((p) => ({ ...p, [name]: e.target.value }))}
+                            disabled={disabled || !editMode} placeholder={placeholder}
+                            className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
+                              focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20
+                              disabled:opacity-50 disabled:cursor-not-allowed transition-all font-[inherit]" />
+                        </div>
+                      ))}
                       <div className="col-span-full">
                         <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Bio</label>
                         <textarea value={profileForm.bio} onChange={(e) => setProfileForm((p) => ({ ...p, bio: e.target.value }))}
@@ -484,7 +556,6 @@ const Account = () => {
                             disabled:opacity-50 disabled:cursor-not-allowed resize-none transition-all font-[inherit]" />
                       </div>
                     </div>
-
                     <div className="flex items-center justify-between pt-2">
                       {editMode ? (
                         <Button className="btn-primary rounded-full h-9 px-6 text-sm" onClick={handleSaveProfile}>
@@ -499,10 +570,8 @@ const Account = () => {
                         <LogOut className="w-3.5 h-3.5" /> Sign out
                       </button>
                     </div>
-
                     {role === "seller" && !isVerified && (
-                      <motion.a
-                        href="https://wa.me/233256221777?text=Hi%2C%20I%27d%20like%20to%20get%20verified%20as%20a%20seller%20on%20SneakersHub.%20My%20account%20email%20is%3A%20"
+                      <motion.a href="https://wa.me/233256221777?text=Hi%2C%20I%27d%20like%20to%20get%20verified%20as%20a%20seller%20on%20SneakersHub.%20My%20account%20email%20is%3A%20"
                         target="_blank" rel="noreferrer"
                         initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                         className="flex items-start gap-4 p-5 rounded-2xl border border-green-500/30 bg-green-500/5 hover:bg-green-500/10 transition-colors">
@@ -520,7 +589,6 @@ const Account = () => {
                         </div>
                       </motion.a>
                     )}
-
                     {role === "seller" && isVerified && (
                       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                         className="flex items-center gap-3 p-4 rounded-2xl border border-green-500/30 bg-green-500/5">
@@ -535,7 +603,6 @@ const Account = () => {
                         </div>
                       </motion.div>
                     )}
-
                     {role === "seller" && (() => {
                       const sellerReviews = reviews.filter((r) => r.sellerId === (user?.id ?? ""));
                       const result = getSellerStats(user?.id ?? "");
@@ -600,7 +667,7 @@ const Account = () => {
 
             {activeTab === "orders" && isGuest && <GuestAuthBanner action="view or place orders" />}
 
-            {/* ── Seller: Incoming Orders ── */}
+            {/* ── Seller: Orders ── */}
             {!isGuest && role === "seller" && activeTab === "orders" && (
               <div>
                 <div className="flex items-center justify-between mb-6">
@@ -792,7 +859,6 @@ const Account = () => {
                             ) : (
                               <button onClick={() => order.sellerConfirmed && setRatingOrderId(order.id)}
                                 disabled={!order.sellerConfirmed}
-                                title={!order.sellerConfirmed ? "Wait for the seller to confirm dispatch first" : ""}
                                 className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border text-sm font-semibold transition-all
                                   ${order.sellerConfirmed
                                     ? "border-primary/30 bg-primary/5 hover:bg-primary/10 hover:border-primary text-primary cursor-pointer"
@@ -828,27 +894,38 @@ const Account = () => {
             {/* ── Seller: Listings ── */}
             {!isGuest && role === "seller" && activeTab === "listings" && (
               <div>
+                {/* First-listing onboarding banner — only shown once, dismissable */}
+                <AnimatePresence>
+                  {showFirstListingBanner && (
+                    <FirstListingBanner
+                      onDismiss={dismissFirstListingBanner}
+                      onStart={startFirstListing}
+                    />
+                  )}
+                </AnimatePresence>
+
                 <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
                   <p className="text-sm text-muted-foreground">
                     <span className="text-foreground font-semibold">{listings.filter(l => l.status === "active").length}</span> active{" · "}
                     <span className="text-muted-foreground">{listings.filter(l => l.status === "sold").length} sold</span>
                   </p>
-                  <Button className="btn-primary rounded-full h-9 px-5 text-sm flex-shrink-0" onClick={() => navigate("/listings/new")}>
-                    <Plus className="w-3.5 h-3.5 mr-1.5" /> New Listing
-                  </Button>
-                </div>
-                {listings.length === 0 && (
-                  <div className="text-center py-20">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                      <Store className="w-5 h-5 text-primary" />
-                    </div>
-                    <h3 className="font-display text-lg font-bold tracking-tight mb-2">No listings yet</h3>
-                    <p className="text-muted-foreground text-sm max-w-xs mx-auto mb-6">Start selling by creating your first sneaker listing.</p>
-                    <Button className="btn-primary rounded-full h-9 px-6 text-sm" onClick={() => navigate("/listings/new")}>
-                      <Plus className="w-3.5 h-3.5 mr-1.5" /> Create Listing
+                  {listings.length > 0 && (
+                    <Button className="btn-primary rounded-full h-9 px-5 text-sm flex-shrink-0" onClick={() => navigate("/listings/new")}>
+                      <Plus className="w-3.5 h-3.5 mr-1.5" /> New Listing
                     </Button>
+                  )}
+                </div>
+
+                {/* Empty state with full guide */}
+                {listings.length === 0 && !showFirstListingBanner && (
+                  <FirstListingEmptyState onStart={startFirstListing} />
+                )}
+                {listings.length === 0 && showFirstListingBanner && (
+                  <div className="text-center py-10 text-muted-foreground text-sm">
+                    Your listings will appear here once you create one.
                   </div>
                 )}
+
                 <div className="space-y-3">
                   <AnimatePresence>
                     {listings.map((listing, i) => (
@@ -866,11 +943,11 @@ const Account = () => {
                                 ${listing.status === "active" ? "bg-green-500/10 text-green-600 border border-green-500/20" : "bg-muted text-muted-foreground border border-border"}`}>
                                 {listing.status === "active" ? "Active" : "Sold"}
                               </span>
-                          {listing.status === "active" && isBoostActive(listing) && (
-                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-amber-500/10 text-amber-600 border border-amber-500/20">
-                              <Zap className="w-2.5 h-2.5" /> {listing.boostExpiresAt ? "Featured" : "Official · Always Featured"}
-                            </span>
-                          )}
+                              {listing.status === "active" && isBoostActive(listing) && (
+                                <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                                  <Zap className="w-2.5 h-2.5" /> {listing.boostExpiresAt ? "Featured" : "Official · Always Featured"}
+                                </span>
+                              )}
                             </div>
                             <p className="text-xs text-muted-foreground mt-0.5">{listing.brand} · {listing.category}</p>
                             <div className="flex items-center gap-3 mt-1 flex-wrap">
@@ -950,13 +1027,13 @@ const Account = () => {
                             className="flex items-center gap-4 px-5 py-4 rounded-2xl border border-border hover:bg-primary/5 transition-colors group">
                             <div className="w-14 h-14 rounded-xl bg-secondary overflow-hidden flex-shrink-0">
                               {item.image
-                                ? <img src={item.image} alt={item.title} className="w-full h-full object-contain p-1" />
+                                ? <img src={item.image} alt={item.name} className="w-full h-full object-contain p-1" />
                                 : <div className="w-full h-full bg-primary/10 flex items-center justify-center text-lg">👟</div>}
                             </div>
                             <div className="flex-1 min-w-0">
                               {item.brand && <p className="text-[11px] text-muted-foreground uppercase tracking-widest font-medium mb-0.5">{item.brand}</p>}
-                              <p className="font-medium text-sm truncate">{item.title}</p>
-                              <p className="font-display font-bold text-sm text-primary mt-0.5">{item.price}</p>
+                              <p className="font-medium text-sm truncate">{item.name}</p>
+                              <p className="font-display font-bold text-sm text-primary mt-0.5">GHS {item.price.toLocaleString()}</p>
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0">
                               <Link to={`/product/${item.id}`}>
@@ -995,14 +1072,7 @@ const Account = () => {
                     <p className="font-display font-semibold text-sm">Notifications</p>
                   </div>
                   <div className="divide-y divide-border">
-
-                    {/* ── Smart notification status — handles Safari, denied, granted, unsupported ── */}
-                    <NotificationSettings
-                      pushSupported={pushSupported}
-                      pushPermission={pushPermission}
-                      requestPermission={requestPermission}
-                    />
-
+                    <NotificationSettings pushSupported={pushSupported} pushPermission={pushPermission} requestPermission={requestPermission} />
                     {[
                       { label: "Order updates", sub: "Confirmations, dispatch and delivery", key: "notif_orders", value: notifOrders, set: setNotifOrders },
                       { label: "Messages", sub: "Replies from buyers or sellers", key: "notif_messages", value: notifMessages, set: setNotifMessages },
@@ -1021,7 +1091,6 @@ const Account = () => {
                     ))}
                   </div>
                 </div>
-
                 <div className="rounded-2xl border border-border overflow-hidden">
                   <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border bg-muted/20">
                     <Shield className="w-4 h-4 text-primary" />
@@ -1076,13 +1145,7 @@ const Account = () => {
                           <div className="rounded-xl bg-red-500/5 border border-red-500/20 p-4 space-y-2">
                             <p className="text-xs font-semibold text-red-500 uppercase tracking-wide">This will permanently delete:</p>
                             <div className="space-y-1.5 mt-2">
-                              {[
-                                "Your profile and personal information",
-                                "All your active and past listings",
-                                "Your saved items and preferences",
-                                "Access to all your order history",
-                                "Your messages and conversations",
-                              ].map((item) => (
+                              {["Your profile and personal information", "All your active and past listings", "Your saved items and preferences", "Access to all your order history", "Your messages and conversations"].map((item) => (
                                 <div key={item} className="flex items-start gap-2">
                                   <span className="text-red-400 text-xs mt-0.5 flex-shrink-0">✕</span>
                                   <p className="text-xs text-muted-foreground">{item}</p>
@@ -1090,9 +1153,7 @@ const Account = () => {
                               ))}
                             </div>
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            This action is <span className="font-semibold text-foreground">permanent and cannot be undone</span>.
-                          </p>
+                          <p className="text-xs text-muted-foreground">This action is <span className="font-semibold text-foreground">permanent and cannot be undone</span>.</p>
                           <div className="flex gap-2">
                             <button onClick={handleDeleteAccount}
                               className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition-colors">
