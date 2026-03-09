@@ -31,10 +31,16 @@ const Auth = () => {
   const { login, signup, signInWithGoogle, needsRole, assignRole, continueAsGuest, resetPassword } = useAuth();
   const navigate = useNavigate();
 
-  // After login/signup: navigate then trigger the floating install+notif popup
+  // After login/signup: auto-request notification permission, then show install prompt
   const afterAuth = (destination = "/") => {
     navigate(destination);
     setTriggerInstall(true);
+
+    // Auto-request notifications — browser shows its native prompt immediately.
+    // User can turn them off later in browser settings or app settings.
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission().catch(() => {});
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -12,7 +12,7 @@ const Index = () => {
   const { listings, loading } = usePublicListings();
 
   const featured = listings.filter((l) => l.boosted).slice(0, 6);
-  const newArrivals = listings.slice(0, 6); // latest 6 by created_at desc
+  const newArrivals = listings.slice(0, 6);
 
   const toCardShape = (l: typeof listings[0], isBoosted = false) => ({
     id: l.id,
@@ -24,6 +24,8 @@ const Index = () => {
     sizes: l.sizes,
     description: l.description,
     isBoosted,
+    sellerVerified: l.sellerVerified,
+    sellerIsOfficial: l.sellerIsOfficial,
   });
 
   return (

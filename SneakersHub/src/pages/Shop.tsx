@@ -35,12 +35,9 @@ const Shop = () => {
       return matchesCategory && matchesSearch;
     })
     .sort((a, b) => {
-      // Featured always floats to top regardless of sort mode
       const aFeatured = isActiveBoost(a) ? 1 : 0;
       const bFeatured = isActiveBoost(b) ? 1 : 0;
       if (bFeatured !== aFeatured) return bFeatured - aFeatured;
-
-      // Then apply selected sort within each group
       if (sort === "price_asc") return a.price - b.price;
       if (sort === "price_desc") return b.price - a.price;
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -54,9 +51,7 @@ const Shop = () => {
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
           <p className="text-primary font-display text-xs font-semibold uppercase tracking-[0.3em] mb-2">Browse</p>
-          <h1 className="font-display text-4xl md:text-5xl font-bold tracking-tight">
-            All Sneakers
-          </h1>
+          <h1 className="font-display text-4xl md:text-5xl font-bold tracking-tight">All Sneakers</h1>
           <p className="text-muted-foreground mt-2 text-sm">
             {loading ? "Loading..." : `${filtered.length} ${filtered.length === 1 ? "listing" : "listings"} available`}
           </p>
@@ -150,9 +145,17 @@ const Shop = () => {
                   animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                   transition={{ delay: i * 0.04 }}>
                   <SneakerCard sneaker={{
-                    id: l.id, name: l.name, brand: l.brand, price: l.price,
-                    image: l.image ?? "", category: l.category, sizes: l.sizes,
-                    description: l.description, isBoosted: l.boosted,
+                    id: l.id,
+                    name: l.name,
+                    brand: l.brand,
+                    price: l.price,
+                    image: l.image ?? "",
+                    category: l.category,
+                    sizes: l.sizes,
+                    description: l.description,
+                    isBoosted: l.boosted,
+                    sellerVerified: l.sellerVerified,
+                    sellerIsOfficial: l.sellerIsOfficial,
                   }} index={i} />
                 </motion.div>
               ))}

@@ -12,6 +12,10 @@ const AuthCallback = () => {
     if (needsRole) {
       navigate("/auth", { replace: true });
     } else if (user) {
+      // Auto-request notifications for Google sign-ins
+      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
+        Notification.requestPermission().catch(() => {});
+      }
       navigate("/", { replace: true });
     } else {
       navigate("/auth", { replace: true });

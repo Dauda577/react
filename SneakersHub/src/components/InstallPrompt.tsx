@@ -1,26 +1,22 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, X, Smartphone, Bell, CheckCircle } from "lucide-react";
+import { Download, X, Smartphone, CheckCircle } from "lucide-react";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-// Shown after login/signup — one popup covering both install + notifications
+// Shown after login/signup — install prompt only.
+// Notifications are auto-requested in Auth.tsx / AuthCallback.tsx.
 const InstallPrompt = ({ triggerAfterAuth = false }: { triggerAfterAuth?: boolean }) => {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [show, setShow] = useState(false);
-  const [step, setStep] = useState<"main" | "done">("main");
-  const [notifState, setNotifState] = useState<"idle" | "granted" | "denied">("idle");
   const [installState, setInstallState] = useState<"idle" | "installed">("idle");
   const isStandalone = typeof window !== "undefined" && window.matchMedia("(display-mode: standalone)").matches;
-  const notifSupported = typeof window !== "undefined" && "Notification" in window;
-  const alreadyGranted = notifSupported && Notification.permission === "granted";
 
   useEffect(() => {
     if (isStandalone) return;
-
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -30,22 +26,18 @@ const InstallPrompt = ({ triggerAfterAuth = false }: { triggerAfterAuth?: boolea
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
-  // Trigger the popup after auth (called from Auth.tsx via prop or event)
+  // Show after auth if install is available
   useEffect(() => {
     if (!triggerAfterAuth) return;
     if (isStandalone) return;
-    // Only show if there's something useful to show
-    const hasInstall = !!deferredPrompt;
-    const hasNotif = notifSupported && Notification.permission === "default";
-    if (!hasInstall && !hasNotif) return;
-
+    if (!deferredPrompt) return;
     const timer = setTimeout(() => setShow(true), 800);
     return () => clearTimeout(timer);
   }, [triggerAfterAuth, deferredPrompt]);
 
-  // Also show the standard delayed prompt for users who didn't come through auth
+  // Show delayed prompt for non-auth visitors
   useEffect(() => {
-    if (triggerAfterAuth) return; // handled above
+    if (triggerAfterAuth) return;
     if (isStandalone) return;
     if (!deferredPrompt) return;
     const timer = setTimeout(() => setShow(true), 4000);
@@ -60,22 +52,10 @@ const InstallPrompt = ({ triggerAfterAuth = false }: { triggerAfterAuth?: boolea
     setDeferredPrompt(null);
   };
 
-  const handleEnableNotifications = async () => {
-    if (!notifSupported) return;
-    const result = await Notification.requestPermission();
-    setNotifState(result === "granted" ? "granted" : "denied");
-  };
-
-  const handleClose = () => {
-    setShow(false);
-    setStep("main");
-  };
+  const handleClose = () => setShow(false);
 
   const canInstall = !!deferredPrompt && installState === "idle" && !isStandalone;
-  const canNotify = notifSupported && Notification.permission === "default" && notifState === "idle";
-
-  // Nothing useful to show
-  if (!canInstall && !canNotify) return null;
+  if (!canInstall) return null;
 
   return (
     <AnimatePresence>
@@ -95,7 +75,7 @@ const InstallPrompt = ({ triggerAfterAuth = false }: { triggerAfterAuth?: boolea
                 <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
                   <Smartphone className="w-4 h-4 text-primary" />
                 </div>
-                <p className="font-display font-bold text-sm">Get the full experience</p>
+                <p className="font-display font-bold text-sm">Install SneakersHub</p>
               </div>
               <button onClick={handleClose}
                 className="w-6 h-6 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
@@ -104,76 +84,32 @@ const InstallPrompt = ({ triggerAfterAuth = false }: { triggerAfterAuth?: boolea
             </div>
 
             <p className="px-4 pb-3 text-xs text-muted-foreground leading-relaxed">
-              Install SneakersHub and enable notifications to never miss an order or message.
+              Add to your home screen for quick access — no app store needed.
             </p>
 
             <div className="px-4 pb-4 space-y-2">
-
-              {/* ── Install row ── */}
-              {canInstall && (
-                <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-border bg-background">
-                  <div className="flex items-center gap-2.5">
-                    {installState === "installed"
-                      ? <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                      : <Download className="w-4 h-4 text-primary flex-shrink-0" />}
-                    <div>
-                      <p className="text-xs font-semibold">
-                        {installState === "installed" ? "Installed ✓" : "Install app"}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {installState === "installed" ? "Added to your home screen" : "Quick access, no app store needed"}
-                      </p>
-                    </div>
+              <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-border bg-background">
+                <div className="flex items-center gap-2.5">
+                  {installState === "installed"
+                    ? <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                    : <Download className="w-4 h-4 text-primary flex-shrink-0" />}
+                  <div>
+                    <p className="text-xs font-semibold">
+                      {installState === "installed" ? "Installed ✓" : "Add to home screen"}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {installState === "installed" ? "Added to your home screen" : "Works offline, launches instantly"}
+                    </p>
                   </div>
-                  {installState === "idle" && (
-                    <button onClick={handleInstall}
-                      className="px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold hover:brightness-110 transition-all flex-shrink-0">
-                      Install
-                    </button>
-                  )}
                 </div>
-              )}
+                {installState === "idle" && (
+                  <button onClick={handleInstall}
+                    className="px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold hover:brightness-110 transition-all flex-shrink-0">
+                    Install
+                  </button>
+                )}
+              </div>
 
-              {/* ── Notifications row ── */}
-              {canNotify && (
-                <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-border bg-background">
-                  <div className="flex items-center gap-2.5">
-                    {notifState === "granted"
-                      ? <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                      : notifState === "denied"
-                      ? <Bell className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                      : <Bell className="w-4 h-4 text-primary flex-shrink-0" />}
-                    <div>
-                      <p className="text-xs font-semibold">
-                        {notifState === "granted" ? "Notifications on ✓"
-                          : notifState === "denied" ? "Notifications blocked"
-                          : "Enable notifications"}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {notifState === "granted" ? "You'll be notified about orders & messages"
-                          : notifState === "denied" ? "Allow via browser settings to enable"
-                          : "Orders, messages & shipping updates"}
-                      </p>
-                    </div>
-                  </div>
-                  {notifState === "idle" && (
-                    <button onClick={handleEnableNotifications}
-                      className="px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold hover:brightness-110 transition-all flex-shrink-0">
-                      Enable
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {/* Already granted — just show install if available */}
-              {alreadyGranted && !canNotify && (
-                <div className="flex items-center gap-2 px-1 py-1">
-                  <CheckCircle className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
-                  <p className="text-[10px] text-green-600 font-medium">Notifications already enabled ✓</p>
-                </div>
-              )}
-
-              {/* Dismiss link */}
               <button onClick={handleClose}
                 className="w-full text-center text-[10px] text-muted-foreground hover:text-foreground transition-colors pt-1">
                 Maybe later
