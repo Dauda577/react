@@ -112,7 +112,7 @@ const ProductDetail = () => {
   const [showChat, setShowChat] = useState(false);
 
   const listing = listings.find((l) => l.id === id);
-  const related = listings.filter((l) => l.id !== id && l.category === listing?.category).slice(0, 3);
+  const related = listings.filter((l) => l.id !== id && l.category === listing?.category).slice(0, 8);
   const tier = listing ? getSellerTier(listing.sellerIsOfficial, listing.sellerVerified) : "standard";
 
   useEffect(() => {
@@ -378,8 +378,30 @@ const ProductDetail = () => {
         {/* Related */}
         {related.length > 0 && (
           <div className="mt-20">
-            <h2 className="font-display text-2xl font-bold tracking-tight mb-8">More in {listing.category}</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="flex items-center justify-between mb-6 gap-4">
+              <h2 className="font-display text-2xl font-bold tracking-tight">More in {listing.category}</h2>
+              <Link to={`/shop`} className="text-sm text-primary font-semibold hover:opacity-70 transition-opacity flex-shrink-0">
+                View all →
+              </Link>
+            </div>
+
+            {/* Mobile: horizontal scroll */}
+            <div className="flex sm:hidden gap-4 overflow-x-auto pb-3 -mx-4 px-4 snap-x snap-mandatory">
+              {related.map((l, i) => (
+                <div key={l.id} className="snap-start flex-shrink-0 w-[72vw] max-w-[260px]">
+                  <SneakerCard sneaker={{
+                    id: l.id, name: l.name, brand: l.brand, price: l.price,
+                    image: l.image ?? "", category: l.category, sizes: l.sizes,
+                    description: l.description, isBoosted: l.boosted,
+                    sellerVerified: l.sellerVerified,
+                    sellerIsOfficial: l.sellerIsOfficial,
+                  }} index={i} />
+                </div>
+              ))}
+            </div>
+
+            {/* Tablet+: grid */}
+            <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {related.map((l, i) => (
                 <SneakerCard key={l.id} sneaker={{
                   id: l.id, name: l.name, brand: l.brand, price: l.price,
