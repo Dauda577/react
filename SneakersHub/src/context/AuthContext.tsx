@@ -1,7 +1,6 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
 import { supabase, Profile } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
-import Spinner from "@/components/Spinner";
 
 type User = {
   id: string;
@@ -27,7 +26,6 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUserState] = useState<User | null>(() => {
     try {
@@ -41,61 +39,101 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (u) localStorage.setItem("sneakershub-user", JSON.stringify(u));
     else localStorage.removeItem("sneakershub-user");
   };
+
   const [isGuest, setIsGuest] = useState(false);
-  const [loading, setLoading] = useState(true);
+  // Start as false if we have a cached user — avoids flash of spinner on return visits
+  const [loading, setLoading] = useState(() => {
+    try {
+      return !localStorage.getItem("sneakershub-user");
+    } catch { return true; }
+  });
   const [needsRole, setNeedsRole] = useState(false);
   const [pendingSession, setPendingSession] = useState<{ id: string; email: string; name: string } | null>(null);
 
+  // Prevent setLoading(false) running twice
+  const loadingDone = useRef(false);
+  const doneLoading = () => {
+    if (loadingDone.current) return;
+    loadingDone.current = true;
+    setLoading(false);
+  };
+
+  // Safety net — if nothing resolves in 5s, stop the spinner anyway
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (!loadingDone.current) {
+        console.warn("[Auth] Loading timeout — forcing done");
+        doneLoading();
+      }
+    }, 5000);
+    return () => clearTimeout(timeout);
+  }, []);
+
   const fetchProfile = async (id: string, email: string): Promise<User | null> => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", id)
-      .single();
-    if (error || !data) return null;
-    const profile = data as Profile;
-    // If profile exists but has no role, treat as new user
-    if (!profile.role) return null;
-    return { id: profile.id, name: profile.name, email, role: profile.role };
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", id)
+        .single();
+      if (error || !data) return null;
+      const profile = data as Profile;
+      if (!profile.role) return null;
+      return { id: profile.id, name: profile.name, email, role: profile.role };
+    } catch {
+      // Network error — return null so loading still completes
+      return null;
+    }
   };
 
   const handleSession = async (session: Session | null) => {
-    if (!session?.user) {
-      setUser(null);
-      setNeedsRole(false);
-      setPendingSession(null);
-      return;
-    }
+    try {
+      if (!session?.user) {
+        setUser(null);
+        setNeedsRole(false);
+        setPendingSession(null);
+        return;
+      }
 
-    const profile = await fetchProfile(session.user.id, session.user.email ?? "");
+      const profile = await fetchProfile(session.user.id, session.user.email ?? "");
 
-    if (!profile) {
-      // No profile or no role — show role picker
-      const name =
-        session.user.user_metadata?.full_name ??
-        session.user.user_metadata?.name ??
-        session.user.email?.split("@")[0] ??
-        "User";
-      setPendingSession({ id: session.user.id, email: session.user.email ?? "", name });
-      setNeedsRole(true);
-      setUser(null);
-    } else {
-      setUser(profile);
-      setNeedsRole(false);
-      setPendingSession(null);
+      if (!profile) {
+        const name =
+          session.user.user_metadata?.full_name ??
+          session.user.user_metadata?.name ??
+          session.user.email?.split("@")[0] ??
+          "User";
+        setPendingSession({ id: session.user.id, email: session.user.email ?? "", name });
+        setNeedsRole(true);
+        setUser(null);
+      } else {
+        setUser(profile);
+        setNeedsRole(false);
+        setPendingSession(null);
+      }
+    } catch (err) {
+      // Never let an error keep the app stuck on the spinner
+      console.error("[Auth] handleSession error:", err);
     }
   };
 
   useEffect(() => {
+    // 1. Get current session immediately
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       await handleSession(session);
-      setLoading(false);
+      doneLoading(); // ← always called, even if handleSession throws (caught above)
+    }).catch((err) => {
+      console.error("[Auth] getSession error:", err);
+      doneLoading(); // ← still unblock the app
     });
 
+    // 2. Listen for future auth changes (login, logout, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session: Session | null) => {
         if (event === "PASSWORD_RECOVERY") return;
         await handleSession(session);
+        // Also call doneLoading here in case onAuthStateChange fires before getSession resolves
+        doneLoading();
       }
     );
 
@@ -130,10 +168,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const assignRole = async (role: "buyer" | "seller") => {
     if (!pendingSession) return;
     const { id, email, name } = pendingSession;
-
     const { error } = await supabase.from("profiles").upsert({ id, name, role });
     if (error) throw new Error(error.message);
-
     setUser({ id, name, email, role });
     setNeedsRole(false);
     setPendingSession(null);
@@ -167,7 +203,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       loading, needsRole,
       login, signup, signInWithGoogle, assignRole, continueAsGuest, logout, resetPassword,
     }}>
-      {loading ? <Spinner /> : children}
+      {/* ── Render children always — Spinner is handled by ProtectedRoute/App ── */}
+      {children}
     </AuthContext.Provider>
   );
 };
