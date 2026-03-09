@@ -122,11 +122,18 @@ const Index = () => {
         </motion.div>
 
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="rounded-2xl border border-border bg-card h-72 animate-pulse" />
-            ))}
-          </div>
+          <>
+            <div className="flex sm:hidden gap-4 overflow-x-auto pb-2 -mx-4 px-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="flex-shrink-0 w-[72vw] max-w-[260px] rounded-2xl border border-border bg-card h-72 animate-pulse" />
+              ))}
+            </div>
+            <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="rounded-2xl border border-border bg-card h-72 animate-pulse" />
+              ))}
+            </div>
+          </>
         ) : featured.length === 0 ? (
           <div className="text-center py-16 border border-dashed border-border rounded-2xl">
             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
@@ -136,11 +143,22 @@ const Index = () => {
             <p className="text-sm text-muted-foreground">Sellers can boost their listings to appear here.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featured.map((l, i) => (
-              <SneakerCard key={l.id} sneaker={toCardShape(l, true)} index={i} />
-            ))}
-          </div>
+          <>
+            {/* Mobile: horizontal scroll */}
+            <div className="flex sm:hidden gap-4 overflow-x-auto pb-3 -mx-4 px-4 snap-x snap-mandatory">
+              {featured.map((l, i) => (
+                <div key={l.id} className="snap-start flex-shrink-0 w-[72vw] max-w-[260px]">
+                  <SneakerCard sneaker={toCardShape(l, true)} index={i} />
+                </div>
+              ))}
+            </div>
+            {/* Tablet+: grid */}
+            <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featured.map((l, i) => (
+                <SneakerCard key={l.id} sneaker={toCardShape(l, true)} index={i} />
+              ))}
+            </div>
+          </>
         )}
       </section>
 
@@ -158,9 +176,9 @@ const Index = () => {
         </motion.div>
 
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="rounded-2xl border border-border bg-card h-72 animate-pulse" />
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="rounded-2xl border border-border bg-card h-56 sm:h-72 animate-pulse" />
             ))}
           </div>
         ) : newArrivals.length === 0 ? (
@@ -171,7 +189,7 @@ const Index = () => {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
             {newArrivals.map((l, i) => (
               <SneakerCard key={l.id} sneaker={toCardShape(l)} index={i} />
             ))}

@@ -1,11 +1,11 @@
 // SneakersHub Service Worker
-
-const CACHE_NAME = "sneakershub-v3";
+// Bump this version string whenever you deploy — forces cache refresh on all browsers
+const CACHE_NAME = "sneakershub-v4";
 
 // ── Install: activate immediately ────────────────────────────────────────
 self.addEventListener("install", () => self.skipWaiting());
 
-// ── Activate: clear old caches, take control ─────────────────────────────
+// ── Activate: clear ALL old caches, take control immediately ─────────────
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys()
@@ -13,21 +13,34 @@ self.addEventListener("activate", (event) => {
         keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
       ))
       .then(() => self.clients.claim())
+      .then(() => {
+        // Tell all open tabs to reload so they get the new SW immediately
+        return self.clients.matchAll({ type: "window" }).then((clients) => {
+          clients.forEach((client) => client.postMessage({ type: "SW_ACTIVATED" }));
+        });
+      })
   );
 });
 
-// ── Fetch: network first ──────────────────────────────────────────────────
+// ── Fetch: network first, never cache HTML ────────────────────────────────
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   if (!event.request.url.startsWith("http")) return;
 
-  if (event.request.mode === "navigate") {
+  // NEVER cache HTML/navigation requests — always fetch fresh from network.
+  // This is the root cause of Safari blank pages: stale HTML referencing
+  // old JS chunk hashes that no longer exist on the server.
+  if (
+    event.request.mode === "navigate" ||
+    event.request.headers.get("accept")?.includes("text/html")
+  ) {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match(event.request))
+      fetch(event.request).catch(() => caches.match("/index.html"))
     );
     return;
   }
 
+  // JS/CSS chunks — network first, fall back to cache
   event.respondWith(
     fetch(event.request)
       .then((res) => {
@@ -41,7 +54,7 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
-// ── Push: receive server push (for future server-sent pushes) ────────────
+// ── Push: receive server push ─────────────────────────────────────────────
 self.addEventListener("push", (event) => {
   if (!event.data) return;
   let data;
@@ -61,7 +74,7 @@ self.addEventListener("push", (event) => {
   );
 });
 
-// ── Notification click: focus existing tab or open new one ────────────────
+// ── Notification click ────────────────────────────────────────────────────
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const targetUrl = event.notification.data?.url || "/account";
@@ -69,14 +82,12 @@ self.addEventListener("notificationclick", (event) => {
 
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
-      // If there's already an open tab for this app, navigate it
       for (const client of list) {
         if ("focus" in client) {
           client.navigate(fullUrl);
           return client.focus();
         }
       }
-      // No open tab — open a new one
       if (clients.openWindow) return clients.openWindow(fullUrl);
     })
   );

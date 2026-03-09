@@ -105,13 +105,13 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
           </div>
         </div>
 
-        <div className="p-4">
-          <p className="text-[11px] text-muted-foreground uppercase tracking-widest font-medium">{sneaker.brand}</p>
-          <h3 className="font-display font-semibold mt-1 text-foreground group-hover:text-primary transition-colors">
+        <div className="p-3 sm:p-4">
+          <p className="text-[10px] sm:text-[11px] text-muted-foreground uppercase tracking-widest font-medium truncate">{sneaker.brand}</p>
+          <h3 className="font-display font-semibold mt-1 text-foreground group-hover:text-primary transition-colors text-sm sm:text-base leading-tight line-clamp-2">
             {sneaker.name}
           </h3>
           <div className="flex items-center justify-between mt-2 gap-2">
-            <p className="text-foreground font-display font-bold">GHS {sneaker.price.toLocaleString()}</p>
+            <p className="text-foreground font-display font-bold text-sm sm:text-base">GHS {sneaker.price.toLocaleString()}</p>
             <div className="flex items-center gap-1.5 flex-shrink-0">
               {sneaker.sellerIsOfficial && (
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
