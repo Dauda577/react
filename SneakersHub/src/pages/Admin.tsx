@@ -84,7 +84,7 @@ const SectionHeader = ({ title, icon: Icon, count }: { title: string; icon: any;
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 const Admin = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"overview" | "disputes" | "orders" | "payouts">("overview");
@@ -94,12 +94,34 @@ const Admin = () => {
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [resolvingDispute, setResolvingDispute] = useState<string | null>(null);
 
-  // Guard: only official accounts
+  const [authChecked, setAuthChecked] = useState(false);
+
+  // Guard: only official accounts — wait for auth to fully load
   useEffect(() => {
-    if (!user) { navigate("/"); return; }
+    if (authLoading) return; // wait for session to resolve
+    if (!user) {
+      navigate("/");
+      return;
+    }
     supabase.from("profiles").select("is_official").eq("id", user.id).single()
-      .then(({ data }) => { if (!data?.is_official) navigate("/"); });
-  }, [user]);
+      .then(({ data }) => {
+        if (!data?.is_official) {
+          navigate("/");
+        } else {
+          setAuthChecked(true);
+        }
+      });
+  }, [user, authLoading]);
+
+  // Show nothing while checking auth
+  if (!authChecked) return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+        <p className="text-sm text-muted-foreground">Verifying access...</p>
+      </div>
+    </div>
+  );
 
   const fetchData = useCallback(async () => {
     setLoading(true);
