@@ -15,6 +15,7 @@ import { MessageProvider } from "@/context/MessageContext";
 import { PushProvider } from "@/context/PushContext";
 import ScrollToTop from "@/components/ScrollToTop";
 import InstallPrompt from "@/components/InstallPrompt";
+import Spinner from "@/components/Spinner";
 
 // Always loaded immediately (lightweight / needed on first paint)
 import Index from "./pages/Index";
@@ -35,11 +36,6 @@ const CreateListing = lazy(() => import("./pages/CreateListing"));
 
 const queryClient = new QueryClient();
 
-const Spinner = () => (
-  <div className="min-h-screen bg-background flex items-center justify-center">
-    <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-  </div>
-);
 
 const ProtectedRoute = ({ children, allowGuest = false }: { children: React.ReactNode; allowGuest?: boolean }) => {
   const { user, isGuest, loading } = useAuth();

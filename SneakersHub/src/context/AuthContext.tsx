@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase, Profile } from "@/lib/supabase";
 import { Session } from "@supabase/supabase-js";
+import Spinner from "@/components/Spinner";
 
 type User = {
   id: string;
@@ -26,11 +27,6 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const Spinner = () => (
-  <div className="min-h-screen bg-background flex items-center justify-center">
-    <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-  </div>
-);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUserState] = useState<User | null>(() => {
