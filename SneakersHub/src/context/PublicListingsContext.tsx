@@ -89,7 +89,32 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
       });
 
       listingsCache = mapped;
-      setListings(mapped);
+
+      // Filter out expired boosts client-side and sort:
+      // 1. Active boosts first, newest boost_expires_at first (most recently boosted)
+      // 2. Then unboosted, newest created_at first
+      const now = Date.now();
+      const isActiveBoost = (l: PublicListing) => {
+        if (!l.boosted) return false;
+        if (!l.boostExpiresAt) return true; // official — no expiry
+        return new Date(l.boostExpiresAt).getTime() > now;
+      };
+
+      const sorted = [...mapped].sort((a, b) => {
+        const aActive = isActiveBoost(a) ? 1 : 0;
+        const bActive = isActiveBoost(b) ? 1 : 0;
+        if (bActive !== aActive) return bActive - aActive;
+        // Both boosted — newest boost expiry first (most recently boosted)
+        if (aActive && bActive) {
+          const aExp = a.boostExpiresAt ? new Date(a.boostExpiresAt).getTime() : Infinity;
+          const bExp = b.boostExpiresAt ? new Date(b.boostExpiresAt).getTime() : Infinity;
+          return bExp - aExp;
+        }
+        // Both unboosted — newest listing first
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+
+      setListings(sorted);
     }
 
     setLoading(false);

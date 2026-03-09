@@ -32,7 +32,7 @@ type ListingContextType = {
 };
 
 export const BOOST_FEE = 5;
-export const BOOST_DURATION = 7;
+export const BOOST_DURATION = 10;
 
 const ListingContext = createContext<ListingContextType | null>(null);
 

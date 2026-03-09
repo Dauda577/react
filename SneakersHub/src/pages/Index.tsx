@@ -11,7 +11,14 @@ import { usePublicListings } from "@/context/PublicListingsContext";
 const Index = () => {
   const { listings, loading } = usePublicListings();
 
-  const featured = listings.filter((l) => l.boosted).slice(0, 6);
+  const now = Date.now();
+  const isActiveBoost = (l: typeof listings[0]) => {
+    if (!l.boosted) return false;
+    if (!l.boostExpiresAt) return true; // official
+    return new Date(l.boostExpiresAt).getTime() > now;
+  };
+
+  const featured = listings.filter(isActiveBoost).slice(0, 6);
   const newArrivals = listings.slice(0, 6);
 
   const toCardShape = (l: typeof listings[0], isBoosted = false) => ({
@@ -116,7 +123,7 @@ const Index = () => {
               </p>
             )}
           </div>
-          <Link to="/shop" className="nav-link text-sm font-medium flex-shrink-0">
+          <Link to="/featured" className="nav-link text-sm font-medium flex-shrink-0">
             View All <ArrowRight className="inline w-4 h-4 ml-1" />
           </Link>
         </motion.div>

@@ -25,6 +25,7 @@ import NotFound from "./pages/NotFound";
 import SafariNotifPrompt from "./components/SafariNotifPrompt";
 
 const Shop = lazy(() => import("./pages/Shop"));
+const Featured = lazy(() => import("./pages/Featured"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
 const Cart = lazy(() => import("./pages/Cart"));
 const Checkout = lazy(() => import("./pages/Checkout"));
@@ -71,6 +72,7 @@ const App = () => (
                             <Routes>
                               <Route path="/" element={<Index />} />
                               <Route path="/shop" element={<Shop />} />
+                              <Route path="/featured" element={<Featured />} />
                               <Route path="/product/:id" element={<ProductDetail />} />
                               <Route path="/cart" element={<Cart />} />
                               <Route path="/checkout" element={<Checkout />} />

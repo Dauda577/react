@@ -1,5 +1,3 @@
-// src/lib/supabase.ts - Add these enhancements
-
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
@@ -24,90 +22,14 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 // ── DB warmup ──────────────────────────────────────────────
+// Supabase free tier cold-starts after inactivity (2-3s delay).
+// This tiny ping fires immediately on import so the DB is warm
+// by the time the user's real queries run.
 if (typeof window !== "undefined") {
   supabase.from("listings").select("id").limit(1).then(() => {});
+  // Silently expire any stale boosts on every app load
+  supabase.rpc("expire_boosts").then(() => {});
 }
-
-// ── NEW: Real-time helper functions ───────────────────────
-
-/**
- * Subscribe to real-time changes on a table
- */
-export const subscribeToTable = (
-  table: string,
-  callback: (payload: any) => void,
-  filter?: { column: string; value: any }
-) => {
-  let query = supabase
-    .channel(`public:${table}`)
-    .on(
-      'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: table,
-        filter: filter ? `${filter.column}=eq.${filter.value}` : undefined
-      },
-      (payload) => {
-        console.log(`Realtime ${table} update:`, payload);
-        callback(payload);
-      }
-    )
-    .subscribe();
-
-  return query;
-};
-
-/**
- * Subscribe to broadcast events (typing, presence, etc.)
- */
-export const subscribeToEvents = (
-  channel: string,
-  events: { [key: string]: (data: any) => void }
-) => {
-  const subscription = supabase
-    .channel(channel)
-    .on('broadcast', { event: '*' }, (payload) => {
-      const handler = events[payload.event];
-      if (handler) handler(payload.payload);
-    })
-    .subscribe();
-
-  return subscription;
-};
-
-/**
- * Track user presence (online/offline)
- */
-export const trackPresence = async (userId: string) => {
-  const channel = supabase.channel('online_users', {
-    config: {
-      presence: {
-        key: userId,
-      },
-    },
-  });
-
-  await channel.subscribe(async (status) => {
-    if (status === 'SUBSCRIBED') {
-      await channel.track({
-        user_id: userId,
-        online_at: new Date().toISOString(),
-      });
-    }
-  });
-
-  return channel;
-};
-
-/**
- * Unsubscribe from all channels (cleanup)
- */
-export const cleanupSubscriptions = (subscriptions: any[]) => {
-  subscriptions.forEach(sub => {
-    supabase.removeChannel(sub);
-  });
-};
 
 // ── Typed helpers ──────────────────────────────────────────
 export type Profile = {
@@ -182,26 +104,5 @@ export type ReviewRow = {
   buyer_name: string;
   stars: number;
   comment: string | null;
-  created_at: string;
-};
-
-// ── NEW: Add Message type for real-time chat ──────────────
-export type MessageRow = {
-  id: string;
-  sender_id: string;
-  receiver_id: string;
-  listing_id?: string;
-  content: string;
-  read: boolean;
-  created_at: string;
-};
-
-// ── NEW: Add Bid type for real-time bidding ───────────────
-export type BidRow = {
-  id: string;
-  listing_id: string;
-  user_id: string;
-  amount: number;
-  status: 'active' | 'outbid' | 'won' | 'lost';
   created_at: string;
 };
