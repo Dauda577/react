@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   User, LayoutGrid, ShoppingBag, Heart, Settings,
   MapPin, Eye, Pencil, Trash2, Plus, CheckCircle, ArrowRight, LogOut,
-  Store, Tag, Package, Phone, Zap, Star,
+  Store, Tag, Package, Phone, Zap, Star, Sparkles,
   Bell, ShieldCheck, Shield, Lock, Trash, ChevronRight, MessageCircle, BarChart2, Share,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
@@ -866,11 +866,11 @@ const Account = () => {
                                 ${listing.status === "active" ? "bg-green-500/10 text-green-600 border border-green-500/20" : "bg-muted text-muted-foreground border border-border"}`}>
                                 {listing.status === "active" ? "Active" : "Sold"}
                               </span>
-                              {listing.status === "active" && isBoostActive(listing) && (
-                                <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-amber-500/10 text-amber-600 border border-amber-500/20">
-                                  <Zap className="w-2.5 h-2.5" /> Featured
-                                </span>
-                              )}
+                          {listing.status === "active" && isBoostActive(listing) && (
+                            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                              <Zap className="w-2.5 h-2.5" /> {listing.boostExpiresAt ? "Featured" : "Official · Always Featured"}
+                            </span>
+                          )}
                             </div>
                             <p className="text-xs text-muted-foreground mt-0.5">{listing.brand} · {listing.category}</p>
                             <div className="flex items-center gap-3 mt-1 flex-wrap">
@@ -894,9 +894,15 @@ const Account = () => {
                               <Zap className="w-3 h-3" /> Boost · GHS 5
                             </button>
                           )}
-                          {listing.status === "active" && isBoostActive(listing) && (
+                          {listing.status === "active" && isBoostActive(listing) && listing.boostExpiresAt && (
                             <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs font-semibold text-amber-600 dark:text-amber-400">
                               <Zap className="w-3 h-3 fill-current" /> Boosted · {boostDaysLeft(listing)}d left
+                            </span>
+                          )}
+                          {listing.status === "active" && isBoostActive(listing) && !listing.boostExpiresAt && (
+                            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
+                              style={{ background: "rgba(109,40,217,0.1)", border: "1px solid rgba(109,40,217,0.25)", color: "#a78bfa" }}>
+                              <Sparkles className="w-3 h-3" /> Official · Always Featured
                             </span>
                           )}
                           {listing.status === "active" && (

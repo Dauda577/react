@@ -54,11 +54,14 @@ const rowToListing = (r: ListingRow): Listing => ({
 });
 
 export const isBoostActive = (listing: Listing): boolean => {
-  if (!listing.boosted || !listing.boostExpiresAt) return false;
+  if (!listing.boosted) return false;
+  // Official listings: boosted=true with no expiry — always active
+  if (!listing.boostExpiresAt) return true;
   return new Date(listing.boostExpiresAt) > new Date();
 };
 
 export const boostDaysLeft = (listing: Listing): number => {
+  // No expiry = official listing, always featured
   if (!listing.boostExpiresAt) return 0;
   const diff = new Date(listing.boostExpiresAt).getTime() - Date.now();
   return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
