@@ -18,44 +18,55 @@ const GoogleIcon = () => (
 );
 
 // ── Notification permission prompt shown after login/signup ──────────────────
-const NotifPrompt = ({ onAllow, onSkip }: { onAllow: () => void; onSkip: () => void }) => (
-  <motion.div
-    initial={{ opacity: 0, scale: 0.95, y: 10 }}
-    animate={{ opacity: 1, scale: 1, y: 0 }}
-    exit={{ opacity: 0, scale: 0.95, y: 10 }}
-    transition={{ duration: 0.25 }}
-    className="rounded-2xl border border-primary/30 bg-primary/5 p-5 space-y-4"
-  >
-    <div className="flex items-start gap-3">
-      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-        <Bell className="w-5 h-5 text-primary" />
+const NotifPrompt = ({ onAllow, onSkip }: { onAllow: () => void; onSkip: () => void }) => {
+  const isBlocked = typeof window !== "undefined" &&
+    "Notification" in window &&
+    Notification.permission === "denied";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95, y: 10 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95, y: 10 }}
+      transition={{ duration: 0.25 }}
+      className="rounded-2xl border border-primary/30 bg-primary/5 p-5 space-y-4"
+    >
+      <div className="flex items-start gap-3">
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+          <Bell className="w-5 h-5 text-primary" />
+        </div>
+        <div>
+          <p className="font-display font-semibold text-sm text-foreground">
+            {isBlocked ? "Notifications Blocked" : "Enable Notifications"}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+            {isBlocked
+              ? "You previously blocked notifications. Click Enable to see how to turn them on."
+              : "Get notified instantly when you receive orders, messages, or shipping updates."}
+          </p>
+        </div>
       </div>
-      <div>
-        <p className="font-display font-semibold text-sm text-foreground">Enable Notifications</p>
-        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-          Get notified instantly when you receive orders, messages, or shipping updates.
-        </p>
+      <div className="flex gap-2">
+        <button
+          onClick={onAllow}
+          className="flex-1 flex items-center justify-center gap-2 h-10 rounded-full bg-primary text-white text-sm font-semibold hover:brightness-110 transition-all"
+        >
+          <Bell className="w-3.5 h-3.5" />
+          {isBlocked ? "How to enable" : "Enable"}
+        </button>
+        <button
+          onClick={onSkip}
+          className="flex-1 flex items-center justify-center gap-2 h-10 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all"
+        >
+          <BellOff className="w-3.5 h-3.5" /> Not now
+        </button>
       </div>
-    </div>
-    <div className="flex gap-2">
-      <button
-        onClick={onAllow}
-        className="flex-1 flex items-center justify-center gap-2 h-10 rounded-full bg-primary text-white text-sm font-semibold hover:brightness-110 transition-all"
-      >
-        <Bell className="w-3.5 h-3.5" /> Enable
-      </button>
-      <button
-        onClick={onSkip}
-        className="flex-1 flex items-center justify-center gap-2 h-10 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all"
-      >
-        <BellOff className="w-3.5 h-3.5" /> Not now
-      </button>
-    </div>
-    <p className="text-[10px] text-muted-foreground text-center">
-      You can always enable this later in Settings
-    </p>
-  </motion.div>
-);
+      <p className="text-[10px] text-muted-foreground text-center">
+        You can always change this in Settings
+      </p>
+    </motion.div>
+  );
+};
 
 const Auth = () => {
   const [mode, setMode] = useState<Mode>("login");
@@ -72,29 +83,41 @@ const Auth = () => {
   const { login, signup, signInWithGoogle, needsRole, assignRole, continueAsGuest, resetPassword } = useAuth();
   const navigate = useNavigate();
 
-  // ── After login/signup: check if we should ask for notifications ──────────
+  // ── After login/signup: show notif prompt unless already granted ──────────
   const maybeAskNotifications = (destination = "/") => {
     const notifSupported = typeof window !== "undefined" && "Notification" in window;
-    if (notifSupported && Notification.permission === "default") {
-      // Not yet asked — show our custom prompt first
+    if (notifSupported && Notification.permission !== "granted") {
+      // Show our prompt for both "default" (never asked) AND "denied" (blocked before)
+      // For "denied": our prompt still shows — clicking Enable opens browser settings guidance
       setPendingNav(destination);
       setShowNotifPrompt(true);
     } else {
+      // Already granted — go straight to app
       navigate(destination);
     }
   };
 
   const handleAllowNotifications = async () => {
     setShowNotifPrompt(false);
+
+    if (Notification.permission === "denied") {
+      // Browser blocked — guide them to fix it manually
+      toast("To enable notifications, click the 🔒 lock icon in your browser's address bar and allow notifications.", {
+        duration: 6000,
+      });
+      navigate(pendingNav);
+      return;
+    }
+
     try {
       const result = await Notification.requestPermission();
       if (result === "granted") {
         toast.success("🔔 Notifications enabled!");
       } else {
-        toast("Notifications blocked. You can enable them in Settings.");
+        toast("You can enable notifications anytime in Settings.");
       }
     } catch {
-      // Browser doesn't support it — just move on
+      // Not supported — move on
     }
     navigate(pendingNav);
   };
