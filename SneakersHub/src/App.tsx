@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,14 +17,14 @@ import ScrollToTop from "@/components/ScrollToTop";
 import InstallPrompt from "@/components/InstallPrompt";
 import Spinner from "@/components/Spinner";
 
-// Always loaded immediately (lightweight / needed on first paint)
+// Always loaded immediately (needed on first paint)
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
-// Lazy loaded — only downloaded when the user navigates to them
+// Lazy loaded
 const Shop = lazy(() => import("./pages/Shop"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
 const Cart = lazy(() => import("./pages/Cart"));
@@ -34,8 +34,17 @@ const About = lazy(() => import("./pages/About"));
 const Account = lazy(() => import("./pages/Account"));
 const CreateListing = lazy(() => import("./pages/CreateListing"));
 
-const queryClient = new QueryClient();
+// Preload the pages users are most likely to visit next.
+// This runs after the app mounts so it doesn't compete with the initial load,
+// but finishes before the user has time to click — making navigation feel instant.
+const preloadPages = () => {
+  import("./pages/Shop");
+  import("./pages/Account");
+  import("./pages/ProductDetail");
+  import("./pages/Cart");
+};
 
+const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children, allowGuest = false }: { children: React.ReactNode; allowGuest?: boolean }) => {
   const { user, isGuest, loading } = useAuth();
@@ -51,73 +60,70 @@ const GuestRoute = ({ children }: { children: React.ReactNode }) => {
   return user ? <Navigate to="/" replace /> : <>{children}</>;
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <OrderProvider>
-          <RatingProvider>
-            <PublicListingsProvider>
-              <ListingProvider>
-                <SavedProvider>
-                  <CartProvider>
-                    <MessageProvider>
-                      <PushProvider>
-                      <Toaster />
-                      <Sonner />
-                      <InstallPrompt />
-                      <BrowserRouter>
-                        <ScrollToTop />
-                        <Suspense fallback={<Spinner />}>
-                          <Routes>
-                            <Route path="/" element={<Index />} />
-                            <Route path="/shop" element={<Shop />} />
-                            <Route path="/product/:id" element={<ProductDetail />} />
-                            <Route path="/cart" element={<Cart />} />
-                            <Route path="/checkout" element={<Checkout />} />
-                            <Route path="/order-confirmation" element={<OrderConfirmation />} />
-                            <Route path="/about" element={<About />} />
-                            <Route
-                              path="/auth"
-                              element={
-                                <GuestRoute>
-                                  <Auth />
-                                </GuestRoute>
-                              }
-                            />
-                            <Route
-                              path="/account"
-                              element={
-                                <ProtectedRoute allowGuest>
-                                  <Account />
-                                </ProtectedRoute>
-                              }
-                            />
-                            <Route
-                              path="/listings/new"
-                              element={
-                                <ProtectedRoute>
-                                  <CreateListing />
-                                </ProtectedRoute>
-                              }
-                            />
-                            <Route path="/auth/callback" element={<AuthCallback />} />
-                            <Route path="/reset-password" element={<ResetPassword />} />
-                            <Route path="*" element={<NotFound />} />
-                          </Routes>
-                        </Suspense>
-                      </BrowserRouter>
-                      </PushProvider>
-                    </MessageProvider>
-                  </CartProvider>
-                </SavedProvider>
-              </ListingProvider>
-            </PublicListingsProvider>
-          </RatingProvider>
-        </OrderProvider>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  useEffect(() => {
+    // Wait until after first paint so preloads don't compete with critical resources
+    const id = requestIdleCallback
+      ? requestIdleCallback(preloadPages)
+      : setTimeout(preloadPages, 2000);
+    return () => {
+      if (typeof id === "number") clearTimeout(id);
+    };
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
+          <OrderProvider>
+            <RatingProvider>
+              <PublicListingsProvider>
+                <ListingProvider>
+                  <SavedProvider>
+                    <CartProvider>
+                      <MessageProvider>
+                        <PushProvider>
+                          <Toaster />
+                          <Sonner />
+                          <InstallPrompt />
+                          <BrowserRouter>
+                            <ScrollToTop />
+                            <Suspense fallback={<Spinner />}>
+                              <Routes>
+                                <Route path="/" element={<Index />} />
+                                <Route path="/shop" element={<Shop />} />
+                                <Route path="/product/:id" element={<ProductDetail />} />
+                                <Route path="/cart" element={<Cart />} />
+                                <Route path="/checkout" element={<Checkout />} />
+                                <Route path="/order-confirmation" element={<OrderConfirmation />} />
+                                <Route path="/about" element={<About />} />
+                                <Route path="/auth" element={
+                                  <GuestRoute><Auth /></GuestRoute>
+                                } />
+                                <Route path="/account" element={
+                                  <ProtectedRoute allowGuest><Account /></ProtectedRoute>
+                                } />
+                                <Route path="/listings/new" element={
+                                  <ProtectedRoute><CreateListing /></ProtectedRoute>
+                                } />
+                                <Route path="/auth/callback" element={<AuthCallback />} />
+                                <Route path="/reset-password" element={<ResetPassword />} />
+                                <Route path="*" element={<NotFound />} />
+                              </Routes>
+                            </Suspense>
+                          </BrowserRouter>
+                        </PushProvider>
+                      </MessageProvider>
+                    </CartProvider>
+                  </SavedProvider>
+                </ListingProvider>
+              </PublicListingsProvider>
+            </RatingProvider>
+          </OrderProvider>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
