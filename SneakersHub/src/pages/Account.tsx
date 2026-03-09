@@ -36,6 +36,7 @@ const isStandalone = () =>
     (window.navigator as any).standalone === true);
 
 const FIRST_LISTING_BANNER_KEY = "sneakershub-first-listing-dismissed";
+const FIRST_LISTING_NOTIF_KEY = "sneakershub-first-listing-notif-sent";
 
 const sellerTabs = [
   { id: "profile", label: "Profile", icon: User },
@@ -267,7 +268,7 @@ const Account = () => {
   const { listings, deleteListing, markSold, boostListing } = useListings();
   const { getSellerStats, hasReviewed, reviews, fetchReviews } = useRatings();
   const { totalUnread } = useMessages();
-  const { requestPermission, isSupported: pushSupported, permission: pushPermission } = usePush();
+  const { requestPermission, isSupported: pushSupported, permission: pushPermission, showLocalNotification } = usePush();
 
   const [boostingListing, setBoostingListing] = useState<import("@/context/ListingContext").Listing | null>(null);
   const [ratingOrderId, setRatingOrderId] = useState<string | null>(null);
@@ -291,6 +292,19 @@ const Account = () => {
     const dismissed = localStorage.getItem(FIRST_LISTING_BANNER_KEY);
     if (!dismissed && listings.length === 0) {
       setShowFirstListingBanner(true);
+
+      // Fire a push notification once if permission is granted
+      const notifSent = localStorage.getItem(FIRST_LISTING_NOTIF_KEY);
+      if (!notifSent && Notification.permission === "granted") {
+        setTimeout(() => {
+          showLocalNotification(
+            "👟 Ready to start selling?",
+            "Create your first listing on SneakersHub — it takes less than 2 minutes!",
+            "/account"
+          );
+          localStorage.setItem(FIRST_LISTING_NOTIF_KEY, "true");
+        }, 3000); // slight delay so it doesn't fire before the page settles
+      }
     }
   }, [role, isGuest, listings.length]);
 
