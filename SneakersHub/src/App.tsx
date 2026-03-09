@@ -16,7 +16,6 @@ import { PushProvider } from "@/context/PushContext";
 import ScrollToTop from "@/components/ScrollToTop";
 import InstallPrompt from "@/components/InstallPrompt";
 import Spinner from "@/components/Spinner";
-import Unsubscribe from "@/pages/Unsubscribe";
 
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -34,6 +33,8 @@ const OrderConfirmation = lazy(() => import("./pages/OrderConfirmation"));
 const About = lazy(() => import("./pages/About"));
 const Account = lazy(() => import("./pages/Account"));
 const CreateListing = lazy(() => import("./pages/CreateListing"));
+const Admin = lazy(() => import("./pages/Admin"));
+const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
 
 const queryClient = new QueryClient();
 
@@ -79,7 +80,6 @@ const App = () => (
                               <Route path="/checkout" element={<Checkout />} />
                               <Route path="/order-confirmation" element={<OrderConfirmation />} />
                               <Route path="/about" element={<About />} />
-                              <Route path="/unsubscribe" element={<Unsubscribe />} />
                               <Route path="/auth" element={
                                 <GuestRoute><Auth /></GuestRoute>
                               } />
@@ -91,6 +91,8 @@ const App = () => (
                               } />
                               <Route path="/auth/callback" element={<AuthCallback />} />
                               <Route path="/reset-password" element={<ResetPassword />} />
+                              <Route path="/admin" element={<Admin />} />
+                              <Route path="/unsubscribe" element={<Unsubscribe />} />
                               <Route path="*" element={<NotFound />} />
                             </Routes>
                           </Suspense>

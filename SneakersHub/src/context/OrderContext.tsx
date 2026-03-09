@@ -223,27 +223,37 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     const order = orders.find((o) => o.id === orderId);
     const newStatus = order?.buyerConfirmed ? "delivered" : "shipped";
 
-    // Set release_at to 3 days from now (auto-release timer starts)
-    const releaseAt = new Date(Date.now() + AUTO_RELEASE_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    // Check if seller is official — official sellers bypass escrow entirely
+    const { data: sellerProfile } = await supabase
+      .from("profiles").select("is_official").eq("id", order?.sellerId ?? "").single();
+    const isOfficial = sellerProfile?.is_official ?? false;
+
+    // Only set release_at for non-official sellers
+    const releaseAt = isOfficial
+      ? null
+      : new Date(Date.now() + AUTO_RELEASE_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
     setOrders((prev) =>
       prev.map((o) => o.id === orderId
-        ? { ...o, sellerConfirmed: true, status: newStatus as Order["status"], releaseAt }
+        ? { ...o, sellerConfirmed: true, status: newStatus as Order["status"], releaseAt,
+            payoutStatus: isOfficial ? "released" : o.payoutStatus }
         : o)
     );
 
-    const { error } = await supabase.from("orders").update({
+    const updatePayload: Record<string, any> = {
       seller_confirmed: true,
       status: newStatus,
-      release_at: releaseAt,
-    }).eq("id", orderId);
+    };
+    if (!isOfficial) updatePayload.release_at = releaseAt;
+    if (isOfficial) updatePayload.payout_status = "released"; // official = direct sale, mark immediately
 
+    const { error } = await supabase.from("orders").update(updatePayload).eq("id", orderId);
     if (error) { await fetchOrders(); throw new Error(error.message); }
 
     await triggerSMS({ type: "order.shipped", record: { id: orderId, release_at: releaseAt, buyer_id: order?.buyerId, buyer: order?.buyer, ...order } });
 
-    // If buyer already confirmed, trigger immediate release
-    if (order?.buyerConfirmed) {
+    // If buyer already confirmed AND seller is not official, trigger escrow release
+    if (order?.buyerConfirmed && !isOfficial) {
       await triggerRelease(orderId, "immediate");
     }
   };

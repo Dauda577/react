@@ -101,6 +101,30 @@ serve(async (req) => {
     }
     if (order.payout_status === "disputed") throw new Error("Order is disputed — cannot auto-release");
 
+    // Check if seller is official — official accounts bypass escrow entirely
+    const { data: sellerCheck } = await supabase
+      .from("profiles")
+      .select("is_official")
+      .eq("id", order.seller_id)
+      .single();
+
+    if (sellerCheck?.is_official) {
+      console.log(`Seller is official — skipping escrow payout for order ${order_id}`);
+      return new Response(JSON.stringify({ message: "Official seller — no escrow payout needed" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Official sellers bypass escrow — their sales are direct, no payout transfer needed
+    const { data: sellerProfile } = await supabase
+      .from("profiles").select("is_official").eq("id", order.seller_id).single();
+    if (sellerProfile?.is_official) {
+      await supabase.from("orders").update({ payout_status: "released" }).eq("id", order_id);
+      return new Response(JSON.stringify({ success: true, message: "Official seller — direct sale, no transfer needed" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Fetch seller payout details
     const { data: seller, error: sellerErr } = await supabase
       .from("profiles")
