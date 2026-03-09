@@ -5,7 +5,7 @@ import {
   User, LayoutGrid, ShoppingBag, Heart, Settings,
   MapPin, Eye, Pencil, Trash2, Plus, CheckCircle, ArrowRight, LogOut,
   Store, Tag, Package, Phone, Zap, Star,
-  Bell, ShieldCheck, Shield, Lock, Trash, ChevronRight, MessageCircle, BarChart2,
+  Bell, ShieldCheck, Shield, Lock, Trash, ChevronRight, MessageCircle, BarChart2, Share,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -22,6 +22,20 @@ import MessagesInbox from "@/components/MessagesInbox";
 import SellerDashboard from "@/components/SellerDashboard";
 import { usePush } from "@/context/PushContext";
 import { toast } from "sonner";
+
+// ── Safari / iOS detection ────────────────────────────────────────────────────
+const isSafari = () =>
+  typeof navigator !== "undefined" &&
+  /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+const isIOS = () =>
+  typeof navigator !== "undefined" &&
+  /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+const isStandalone = () =>
+  typeof window !== "undefined" &&
+  (window.matchMedia("(display-mode: standalone)").matches ||
+    (window.navigator as any).standalone === true);
 
 const sellerTabs = [
   { id: "profile", label: "Profile", icon: User },
@@ -76,6 +90,96 @@ const GuestAuthBanner = ({ action }: { action: string }) => {
   );
 };
 
+// ── Notification settings block — handles all browsers + Safari ───────────────
+const NotificationSettings = ({
+  pushSupported,
+  pushPermission,
+  requestPermission,
+}: {
+  pushSupported: boolean;
+  pushPermission: NotificationPermission;
+  requestPermission: () => Promise<boolean>;
+}) => {
+  const safari = isSafari() || isIOS();
+  const standalone = isStandalone();
+
+  // Safari in browser tab — notifications only work as installed PWA
+  if (safari && !standalone) {
+    return (
+      <div className="px-5 py-4 flex items-start gap-3 bg-blue-500/5 border-b border-border">
+        <Share className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-semibold text-foreground">Enable Notifications on Safari</p>
+          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+            Safari requires the app to be installed first. Tap the{" "}
+            <span className="font-semibold text-blue-500">Share</span> button{" "}
+            <span className="inline-block">⎋</span> then{" "}
+            <span className="font-semibold">"Add to Home Screen"</span> — then open it from your home screen to enable notifications.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Notifications not supported in this browser at all
+  if (!pushSupported) {
+    return (
+      <div className="px-5 py-3 border-b border-border">
+        <p className="text-xs text-muted-foreground">
+          Push notifications are not supported in this browser. Try Chrome or Firefox.
+        </p>
+      </div>
+    );
+  }
+
+  // Standard browsers
+  if (pushPermission === "default") {
+    return (
+      <div className="px-5 py-4 flex items-center justify-between gap-4 bg-primary/5 border-b border-border">
+        <div>
+          <p className="text-sm font-semibold text-primary">Enable Push Notifications</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Get notified about orders and messages</p>
+        </div>
+        <button
+          onClick={async () => {
+            const granted = await requestPermission();
+            if (granted) toast.success("🔔 Notifications enabled!");
+            else toast("You can enable this in your browser settings.");
+          }}
+          className="px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold flex-shrink-0 hover:opacity-90 transition-opacity"
+        >
+          Enable
+        </button>
+      </div>
+    );
+  }
+
+  if (pushPermission === "denied") {
+    return (
+      <div className="px-5 py-4 flex items-start gap-3 bg-muted/30 border-b border-border">
+        <Bell className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-semibold text-foreground">Notifications Blocked</p>
+          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+            Click the 🔒 lock icon in your browser's address bar → Site settings → Notifications → Allow
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (pushPermission === "granted") {
+    return (
+      <div className="px-5 py-3 flex items-center gap-2 bg-green-500/5 border-b border-border">
+        <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+        <p className="text-xs text-green-600 font-medium">Push notifications are active ✓</p>
+      </div>
+    );
+  }
+
+  return null;
+};
+
 const Account = () => {
   const { user, isGuest, logout } = useAuth();
   const navigate = useNavigate();
@@ -90,8 +194,6 @@ const Account = () => {
   const { listings, deleteListing, markSold, boostListing } = useListings();
   const { getSellerStats, hasReviewed, reviews, fetchReviews } = useRatings();
   const { totalUnread } = useMessages();
-
-  // ── FIX: direct call — no try/catch wrapper that silently returns isSupported:false ──
   const { requestPermission, isSupported: pushSupported, permission: pushPermission } = usePush();
 
   const [boostingListing, setBoostingListing] = useState<import("@/context/ListingContext").Listing | null>(null);
@@ -870,7 +972,7 @@ const Account = () => {
               </div>
             )}
 
-            {/* ── Analytics (sellers only) ── */}
+            {/* ── Analytics ── */}
             {activeTab === "analytics" && role === "seller" && !isGuest && <SellerDashboard />}
 
             {/* ── Messages ── */}
@@ -888,49 +990,13 @@ const Account = () => {
                   </div>
                   <div className="divide-y divide-border">
 
-                    {/* ── Push permission status — shown for ALL roles, ALL states ── */}
-                    {pushSupported && pushPermission === "default" && (
-                      <div className="px-5 py-4 flex items-center justify-between gap-4 bg-primary/5">
-                        <div>
-                          <p className="text-sm font-semibold text-primary">Enable Push Notifications</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">Get notified about orders and messages</p>
-                        </div>
-                        <button
-                          onClick={async () => {
-                            const granted = await requestPermission();
-                            if (granted) toast.success("🔔 Notifications enabled!");
-                            else toast("You can enable this in your browser settings.");
-                          }}
-                          className="px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold flex-shrink-0 hover:opacity-90 transition-opacity"
-                        >
-                          Enable
-                        </button>
-                      </div>
-                    )}
-                    {pushSupported && pushPermission === "denied" && (
-                      <div className="px-5 py-4 flex items-start gap-3 bg-muted/30">
-                        <Bell className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-sm font-semibold text-foreground">Notifications Blocked</p>
-                          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                            Click the 🔒 lock icon in your browser's address bar → Site settings → Notifications → Allow
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    {pushSupported && pushPermission === "granted" && (
-                      <div className="px-5 py-3 flex items-center gap-2 bg-green-500/5">
-                        <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                        <p className="text-xs text-green-600 font-medium">Push notifications are active ✓</p>
-                      </div>
-                    )}
-                    {!pushSupported && (
-                      <div className="px-5 py-3">
-                        <p className="text-xs text-muted-foreground">Push notifications are not supported in this browser.</p>
-                      </div>
-                    )}
+                    {/* ── Smart notification status — handles Safari, denied, granted, unsupported ── */}
+                    <NotificationSettings
+                      pushSupported={pushSupported}
+                      pushPermission={pushPermission}
+                      requestPermission={requestPermission}
+                    />
 
-                    {/* ── Per-type toggles ── */}
                     {[
                       { label: "Order updates", sub: "Confirmations, dispatch and delivery", key: "notif_orders", value: notifOrders, set: setNotifOrders },
                       { label: "Messages", sub: "Replies from buyers or sellers", key: "notif_messages", value: notifMessages, set: setNotifMessages },
@@ -1019,7 +1085,7 @@ const Account = () => {
                             </div>
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            This action is <span className="font-semibold text-foreground">permanent and cannot be undone</span>. You will not be able to recover your account or any associated data.
+                            This action is <span className="font-semibold text-foreground">permanent and cannot be undone</span>.
                           </p>
                           <div className="flex gap-2">
                             <button onClick={handleDeleteAccount}
@@ -1039,7 +1105,6 @@ const Account = () => {
                 <p className="text-center text-xs text-muted-foreground pb-4">SneakersHub v1.0 · Made in Ghana 🇬🇭</p>
               </div>
             )}
-
           </motion.div>
         </AnimatePresence>
       </section>
