@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { ShoppingBag, Menu, X, Bell } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useOrders } from "@/context/OrderContext";
+import { useMessages } from "@/context/MessageContext";
 import { useAuth } from "@/context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
@@ -9,11 +10,16 @@ import { useState } from "react";
 const Navbar = () => {
   const { totalItems } = useCart();
   const { unseenCount } = useOrders();
+  const { totalUnread } = useMessages();
   const { user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Only show order badge if the logged-in account is a seller
   const showOrderBadge = user?.role === "seller" && unseenCount > 0;
+  // Messages bell shows for both buyers and sellers
+  const showMessageBadge = !!user && totalUnread > 0;
+  // Combined bell: ring if either has notifications
+  const totalBellCount = (showOrderBadge ? unseenCount : 0) + (showMessageBadge ? totalUnread : 0);
+  const showBell = totalBellCount > 0;
 
   const links = [
     { to: "/", label: "Home" },
@@ -37,15 +43,16 @@ const Navbar = () => {
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-8">
           {links.map((link) => (
-            <Link key={link.to} to={link.to} className="nav-link text-sm font-medium tracking-wide uppercase relative">
+            <Link key={link.to} to={link.to}
+              className="nav-link text-sm font-medium tracking-wide uppercase relative">
               {link.label}
-              {link.to === "/account" && showOrderBadge && (
+              {link.to === "/account" && showBell && (
                 <motion.span
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   className="absolute -top-1.5 -right-3 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] flex items-center justify-center font-bold"
                 >
-                  {unseenCount}
+                  {totalBellCount}
                 </motion.span>
               )}
             </Link>
@@ -53,8 +60,8 @@ const Navbar = () => {
         </div>
 
         <div className="flex items-center gap-4">
-          {/* Seller bell — only for seller accounts with unseen orders */}
-          {showOrderBadge && (
+          {/* Bell — orders (seller) + messages (buyer & seller) */}
+          {showBell && (
             <Link to="/account" className="relative group">
               <motion.div
                 animate={{ rotate: [0, -15, 15, -10, 10, 0] }}
@@ -67,7 +74,7 @@ const Navbar = () => {
                 animate={{ scale: 1 }}
                 className="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold"
               >
-                {unseenCount}
+                {totalBellCount}
               </motion.span>
             </Link>
           )}
@@ -103,16 +110,13 @@ const Navbar = () => {
           >
             <div className="section-padding py-4 flex flex-col gap-4">
               {links.map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
+                <Link key={link.to} to={link.to}
                   onClick={() => setMobileOpen(false)}
-                  className="nav-link text-sm font-medium tracking-wide uppercase flex items-center gap-2"
-                >
+                  className="nav-link text-sm font-medium tracking-wide uppercase flex items-center gap-2">
                   {link.label}
-                  {link.to === "/account" && showOrderBadge && (
+                  {link.to === "/account" && showBell && (
                     <span className="w-4 h-4 rounded-full bg-primary text-primary-foreground text-[9px] flex items-center justify-center font-bold">
-                      {unseenCount}
+                      {totalBellCount}
                     </span>
                   )}
                 </Link>

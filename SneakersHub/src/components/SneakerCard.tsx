@@ -1,13 +1,27 @@
 import { motion } from "framer-motion";
-import { Sneaker } from "@/data/sneakers";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { Heart, Zap, CheckCircle } from "lucide-react";
+import { Heart, Zap, CheckCircle, Sparkles, BadgeCheck } from "lucide-react";
 import { useSaved } from "@/context/SavedContext";
 import { toast } from "sonner";
 
+interface SneakerCardSneaker {
+  id: string;
+  name: string;
+  brand: string;
+  price: number;
+  image: string | null;
+  category: string;
+  sizes: number[];
+  description: string;
+  isBoosted?: boolean;
+  sellerVerified?: boolean;
+  sellerIsOfficial?: boolean;
+  isNew?: boolean;
+}
+
 interface SneakerCardProps {
-  sneaker: Sneaker & { isBoosted?: boolean; sellerVerified?: boolean };
+  sneaker: SneakerCardSneaker;
   index: number;
 }
 
@@ -15,15 +29,23 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
   const { toggleSaved, isSaved } = useSaved();
   const saved = isSaved(sneaker.id);
 
-  const handleSave = () => {
+  const handleSave = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     toggleSaved({
       id: sneaker.id,
-      title: sneaker.name,
-      price: `GHS ${sneaker.price}`,
-      image: sneaker.image,
+      name: sneaker.name,
       brand: sneaker.brand,
+      price: sneaker.price,
+      image: sneaker.image,
+      category: sneaker.category,
+      sizes: sneaker.sizes,
+      description: sneaker.description,
+      sellerVerified: sneaker.sellerVerified ?? false,
+      sellerIsOfficial: sneaker.sellerIsOfficial ?? false,
+      isBoosted: sneaker.isBoosted ?? false,
     });
-    toast.success(saved ? `${sneaker.name} removed from saved` : `${sneaker.name} added to saved`);
+    toast.success(saved ? `Removed from saved` : `Saved!`);
   };
 
   return (
@@ -61,12 +83,20 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
             ? <img src={sneaker.image} alt={sneaker.name} className="sneaker-image w-full h-full object-contain" loading="lazy" />
             : <span className="text-6xl">👟</span>
           }
+
           <div className="absolute top-3 left-3 flex gap-2 flex-wrap">
-            {sneaker.isBoosted && (
+            {/* Official badge takes priority over Featured */}
+            {sneaker.sellerIsOfficial ? (
+              <Badge className="text-[10px] uppercase tracking-wider font-display flex items-center gap-1 border-0 shadow-md"
+                style={{ background: "linear-gradient(135deg, #3b0764, #1e1b4b)", color: "#a78bfa", border: "1px solid rgba(109,40,217,0.4)" }}>
+                <Sparkles className="w-2.5 h-2.5" /> Official
+              </Badge>
+            ) : sneaker.isBoosted ? (
               <Badge className="bg-gradient-to-r from-amber-400 to-orange-500 text-white text-[10px] uppercase tracking-wider font-display flex items-center gap-1 border-0 shadow-md">
                 <Zap className="w-2.5 h-2.5" /> Featured
               </Badge>
-            )}
+            ) : null}
+
             {sneaker.isNew && (
               <Badge className="bg-primary text-primary-foreground text-[10px] uppercase tracking-wider font-display">
                 New
@@ -74,18 +104,27 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
             )}
           </div>
         </div>
+
         <div className="p-4">
           <p className="text-[11px] text-muted-foreground uppercase tracking-widest font-medium">{sneaker.brand}</p>
           <h3 className="font-display font-semibold mt-1 text-foreground group-hover:text-primary transition-colors">
             {sneaker.name}
           </h3>
           <div className="flex items-center justify-between mt-2 gap-2">
-            <p className="text-foreground font-display font-bold">GHS {sneaker.price}</p>
-            {sneaker.sellerVerified && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-600 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20 flex-shrink-0">
-                <CheckCircle className="w-2.5 h-2.5" /> Verified
-              </span>
-            )}
+            <p className="text-foreground font-display font-bold">GHS {sneaker.price.toLocaleString()}</p>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {sneaker.sellerIsOfficial && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                  style={{ background: "rgba(109,40,217,0.1)", color: "#a78bfa", border: "1px solid rgba(109,40,217,0.25)" }}>
+                  <Sparkles className="w-2.5 h-2.5" /> Official
+                </span>
+              )}
+              {sneaker.sellerVerified && !sneaker.sellerIsOfficial && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-600 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">
+                  <BadgeCheck className="w-2.5 h-2.5" /> Verified
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </Link>

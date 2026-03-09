@@ -1,32 +1,58 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-type Sneaker = {
-  id: number;
-  title: string;
-  price: string;
-  emoji?: string;
+// Matches the shape coming from PublicListingsContext
+type SavedSneaker = {
+  id: string;
+  name: string;
+  brand: string;
+  price: number;
+  image: string | null;
+  category: string;
+  sizes: number[];
+  description: string;
+  sellerVerified: boolean;
+  sellerIsOfficial: boolean;
+  isBoosted: boolean;
 };
 
 type SavedContextType = {
-  saved: Sneaker[];
-  toggleSaved: (item: Sneaker) => void;
-  isSaved: (id: number) => boolean;
+  saved: SavedSneaker[];
+  toggleSaved: (item: SavedSneaker) => void;
+  isSaved: (id: string) => boolean;
 };
 
 const SavedContext = createContext<SavedContextType | null>(null);
 
-export const SavedProvider = ({ children }: { children: ReactNode }) => {
-  const [saved, setSaved] = useState<Sneaker[]>([]);
+const STORAGE_KEY = "sneakershub-saved";
 
-  const toggleSaved = (item: Sneaker) => {
+const loadFromStorage = (): SavedSneaker[] => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+};
+
+export const SavedProvider = ({ children }: { children: ReactNode }) => {
+  const [saved, setSaved] = useState<SavedSneaker[]>(loadFromStorage);
+
+  // Persist to localStorage on every change
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+    } catch {}
+  }, [saved]);
+
+  const toggleSaved = (item: SavedSneaker) => {
     setSaved((prev) =>
       prev.find((s) => s.id === item.id)
-        ? prev.filter((s) => s.id !== item.id)  // remove
-        : [...prev, item]                         // add
+        ? prev.filter((s) => s.id !== item.id)
+        : [...prev, item]
     );
   };
 
-  const isSaved = (id: number) => saved.some((s) => s.id === id);
+  const isSaved = (id: string) => saved.some((s) => s.id === id);
 
   return (
     <SavedContext.Provider value={{ saved, toggleSaved, isSaved }}>
