@@ -98,27 +98,16 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     if (!user) { setOrders([]); return; }
     setLoading(true);
 
-    const { data: orderData, error } = await supabase
+    // Single query — Supabase joins order_items server-side, saves a round-trip
+    const { data, error } = await supabase
       .from("orders")
-      .select("*")
+      .select(`*, order_items (*)`)
       .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
       .order("placed_at", { ascending: false });
 
-    if (error || !orderData) { setLoading(false); return; }
+    if (error || !data) { setLoading(false); return; }
 
-    const orderIds = orderData.map((o: OrderRow) => o.id);
-    const { data: itemData } = await supabase
-      .from("order_items")
-      .select("*")
-      .in("order_id", orderIds);
-
-    const itemsByOrder: Record<string, OrderItemRow[]> = {};
-    (itemData as OrderItemRow[] ?? []).forEach((item) => {
-      if (!itemsByOrder[item.order_id]) itemsByOrder[item.order_id] = [];
-      itemsByOrder[item.order_id].push(item);
-    });
-
-    setOrders((orderData as OrderRow[]).map((row) => rowToOrder(row, itemsByOrder[row.id] ?? [])));
+    setOrders(data.map((row: any) => rowToOrder(row as OrderRow, row.order_items ?? [])));
     setLoading(false);
   }, [user?.id]);
 

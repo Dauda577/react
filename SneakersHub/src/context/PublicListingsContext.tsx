@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
-import { supabase, ListingRow } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 
 export type PublicListing = {
   id: string;
@@ -32,7 +32,7 @@ type PublicListingsContextType = {
 
 const PublicListingsContext = createContext<PublicListingsContextType | null>(null);
 
-// In-memory cache so navigating back to shop is instant
+// In-memory cache — navigating back to shop is instant
 let listingsCache: PublicListing[] | null = null;
 
 export const PublicListingsProvider = ({ children }: { children: ReactNode }) => {
@@ -41,41 +41,38 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
   const isFetching = useRef(false);
 
   const fetchListings = async () => {
-    // Prevent duplicate simultaneous fetches
     if (isFetching.current) return;
     isFetching.current = true;
     setLoading(listingsCache === null);
 
-    // Fetch listings and profiles in parallel
-    const [listingsRes, profilesRes] = await Promise.all([
-      supabase
-        .from("listings")
-        .select("*")
-        .eq("status", "active")
-        .order("boosted", { ascending: false })
-        .order("created_at", { ascending: false }),
-      supabase
-        .from("profiles")
-        .select("id, name, phone, city, region, verified, created_at"),
-    ]);
+    // Single query — Supabase joins profiles server-side, no extra round-trip
+    const { data, error } = await supabase
+      .from("listings")
+      .select(`
+        id, seller_id, name, brand, price, category, sizes,
+        description, image_url, boosted, boost_expires_at,
+        views, created_at,
+        profiles (
+          name, phone, city, region, verified, created_at
+        )
+      `)
+      .eq("status", "active")
+      .order("boosted", { ascending: false })
+      .order("created_at", { ascending: false });
 
-    if (!listingsRes.error && listingsRes.data) {
-      // Build a quick profile lookup map
-      const profileMap: Record<string, any> = {};
-      (profilesRes.data ?? []).forEach((p) => { profileMap[p.id] = p; });
-
-      const mapped: PublicListing[] = listingsRes.data.map((row: any) => {
-        const profile = profileMap[row.seller_id];
+    if (!error && data) {
+      const mapped: PublicListing[] = data.map((row: any) => {
+        const p = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
         return {
           id: row.id,
           sellerId: row.seller_id,
-          sellerName: profile?.name ?? "Seller",
-          sellerPhone: profile?.phone ?? null,
-          sellerCity: profile?.city ?? null,
-          sellerRegion: profile?.region ?? null,
-          sellerVerified: profile?.verified ?? false,
-          sellerMemberSince: profile?.created_at
-            ? new Date(profile.created_at).getFullYear().toString()
+          sellerName: p?.name ?? "Seller",
+          sellerPhone: p?.phone ?? null,
+          sellerCity: p?.city ?? null,
+          sellerRegion: p?.region ?? null,
+          sellerVerified: p?.verified ?? false,
+          sellerMemberSince: p?.created_at
+            ? new Date(p.created_at).getFullYear().toString()
             : new Date(row.created_at).getFullYear().toString(),
           name: row.name,
           brand: row.brand,
@@ -107,20 +104,17 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
     if (!listingsCache) fetchListings();
   }, []);
 
-  // Realtime: update only the changed listing instead of refetching everything
+  // Realtime — update only the changed listing, no full refetch
   useEffect(() => {
     const channel = supabase
       .channel("listings-realtime")
-      .on(
-        "postgres_changes",
+      .on("postgres_changes",
         { event: "INSERT", schema: "public", table: "listings" },
-        () => fetchListings() // New listing — refetch to get seller info
+        () => fetchListings()
       )
-      .on(
-        "postgres_changes",
+      .on("postgres_changes",
         { event: "UPDATE", schema: "public", table: "listings" },
         (payload) => {
-          // Just update the changed listing in state — no full refetch
           setListings((prev) => {
             const updated = prev.map((l) =>
               l.id === payload.new.id
@@ -139,8 +133,7 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
           });
         }
       )
-      .on(
-        "postgres_changes",
+      .on("postgres_changes",
         { event: "DELETE", schema: "public", table: "listings" },
         (payload) => {
           setListings((prev) => {
