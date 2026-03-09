@@ -19,7 +19,7 @@ const Index = () => {
   };
 
   const featured = listings.filter(isActiveBoost).slice(0, 6);
-  const newArrivals = listings.slice(0, 6);
+  const newArrivals = listings.filter((l) => !isActiveBoost(l)).slice(0, 10);
 
   const toCardShape = (l: typeof listings[0], isBoosted = false) => ({
     id: l.id,
