@@ -1,11 +1,46 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { CheckCircle, ShieldCheck, Zap, Star, ArrowRight } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { supabase } from "@/lib/supabase";
 
 const VERIFY_WHATSAPP = "https://wa.me/233256221777?text=Hi%2C%20I%27d%20like%20to%20get%20verified%20as%20a%20seller%20on%20SneakersHub.%20My%20account%20email%20is%3A%20";
 
+const formatCount = (n: number): string => {
+  if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}K+`;
+  return `${n}+`;
+};
+
 const About = () => {
+  const [userCount, setUserCount] = useState<string>("—");
+  const [listingCount, setListingCount] = useState<string>("—");
+
+  useEffect(() => {
+    // Total users (profiles table = one row per user)
+    supabase
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .then(({ count }) => {
+        if (count !== null) setUserCount(formatCount(count));
+      });
+
+    // Total active listings
+    supabase
+      .from("listings")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "active")
+      .then(({ count }) => {
+        if (count !== null) setListingCount(formatCount(count));
+      });
+  }, []);
+
+  const stats = [
+    { value: userCount, label: "Happy Customers" },
+    { value: listingCount, label: "Products Listed" },
+    { value: "100%", label: "Authentic" },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -45,11 +80,7 @@ const About = () => {
           transition={{ delay: 0.2 }}
           className="grid grid-cols-3 gap-6 mt-16"
         >
-          {[
-            { value: "50K+", label: "Happy Customers" },
-            { value: "200+", label: "Brands" },
-            { value: "100%", label: "Authentic" },
-          ].map((stat, i) => (
+          {stats.map((stat, i) => (
             <motion.div
               key={stat.label}
               initial={{ opacity: 0, y: 20 }}
@@ -58,7 +89,9 @@ const About = () => {
               transition={{ delay: 0.3 + i * 0.15 }}
               className="text-center p-6 rounded-2xl bg-card border border-border"
             >
-              <p className="font-display text-3xl md:text-4xl font-bold text-gradient">{stat.value}</p>
+              <p className="font-display text-3xl md:text-4xl font-bold text-gradient">
+                {stat.value}
+              </p>
               <p className="text-sm text-muted-foreground mt-2">{stat.label}</p>
             </motion.div>
           ))}
