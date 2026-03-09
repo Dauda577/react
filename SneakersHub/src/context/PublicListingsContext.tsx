@@ -9,6 +9,7 @@ export type PublicListing = {
   sellerCity: string | null;
   sellerRegion: string | null;
   sellerVerified: boolean;
+  sellerIsOfficial: boolean; // ← NEW
   sellerMemberSince: string;
   name: string;
   brand: string;
@@ -32,7 +33,6 @@ type PublicListingsContextType = {
 
 const PublicListingsContext = createContext<PublicListingsContextType | null>(null);
 
-// In-memory cache — navigating back to shop is instant
 let listingsCache: PublicListing[] | null = null;
 
 export const PublicListingsProvider = ({ children }: { children: ReactNode }) => {
@@ -45,7 +45,6 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
     isFetching.current = true;
     setLoading(listingsCache === null);
 
-    // Single joined query — no separate profiles fetch
     const { data, error } = await supabase
       .from("listings")
       .select(`
@@ -53,7 +52,7 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
         description, image_url, boosted, boost_expires_at,
         views, created_at,
         profiles (
-          name, phone, city, region, verified, created_at
+          name, phone, city, region, verified, is_official, created_at
         )
       `)
       .eq("status", "active")
@@ -71,6 +70,7 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
           sellerCity: p?.city ?? null,
           sellerRegion: p?.region ?? null,
           sellerVerified: p?.verified ?? false,
+          sellerIsOfficial: p?.is_official ?? false,
           sellerMemberSince: p?.created_at
             ? new Date(p.created_at).getFullYear().toString()
             : new Date(row.created_at).getFullYear().toString(),
@@ -104,28 +104,18 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
     if (!listingsCache) fetchListings();
   }, []);
 
-  // Single realtime channel — update in place, no full refetch
   useEffect(() => {
     const channel = supabase
       .channel("listings-realtime")
-      .on("postgres_changes",
-        { event: "INSERT", schema: "public", table: "listings" },
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "listings" },
         () => fetchListings()
       )
-      .on("postgres_changes",
-        { event: "UPDATE", schema: "public", table: "listings" },
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "listings" },
         (payload) => {
           setListings((prev) => {
             const updated = prev.map((l) =>
               l.id === payload.new.id
-                ? {
-                    ...l,
-                    boosted: payload.new.boosted,
-                    boostExpiresAt: payload.new.boost_expires_at,
-                    views: payload.new.views,
-                    price: payload.new.price,
-                    name: payload.new.name,
-                  }
+                ? { ...l, boosted: payload.new.boosted, boostExpiresAt: payload.new.boost_expires_at, views: payload.new.views, price: payload.new.price, name: payload.new.name }
                 : l
             );
             listingsCache = updated;
@@ -133,8 +123,7 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
           });
         }
       )
-      .on("postgres_changes",
-        { event: "DELETE", schema: "public", table: "listings" },
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "listings" },
         (payload) => {
           setListings((prev) => {
             const updated = prev.filter((l) => l.id !== payload.old.id);

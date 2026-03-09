@@ -1,7 +1,10 @@
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, ShoppingBag, Check, MapPin, Phone, CheckCircle, X, UserPlus, LogIn, Star, ShieldCheck, MessageCircle } from "lucide-react";
+import {
+  ArrowLeft, ShoppingBag, Check, MapPin, Phone, CheckCircle,
+  X, UserPlus, LogIn, Star, ShieldCheck, MessageCircle, BadgeCheck, Sparkles,
+} from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { usePublicListings } from "@/context/PublicListingsContext";
@@ -12,6 +15,59 @@ import SneakerCard from "@/components/SneakerCard";
 import ChatModal from "@/components/ChatModal";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+
+// ── Seller tier helpers ───────────────────────────────────────────────────────
+type SellerTier = "official" | "verified" | "standard";
+
+const getSellerTier = (isOfficial: boolean, isVerified: boolean): SellerTier => {
+  if (isOfficial) return "official";
+  if (isVerified) return "verified";
+  return "standard";
+};
+
+const SellerBadge = ({ tier }: { tier: SellerTier }) => {
+  if (tier === "official") return (
+    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full border"
+      style={{ background: "linear-gradient(135deg, #3b0764, #1e1b4b)", color: "#a78bfa", borderColor: "#6d28d9" }}>
+      <Sparkles className="w-3 h-3" /> SneakersHub Official
+    </span>
+  );
+  if (tier === "verified") return (
+    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-green-600 bg-green-500/10 px-2.5 py-1 rounded-full border border-green-500/20">
+      <BadgeCheck className="w-3 h-3" /> Verified Seller
+    </span>
+  );
+  return null;
+};
+
+const PaymentBadge = ({ tier }: { tier: SellerTier }) => {
+  if (tier === "official") return (
+    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+      className="flex items-start gap-3 p-4 rounded-xl border"
+      style={{ background: "linear-gradient(135deg, rgba(109,40,217,0.08), rgba(30,27,75,0.12))", borderColor: "rgba(109,40,217,0.3)" }}>
+      <Sparkles className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: "#a78bfa" }} />
+      <div>
+        <p className="text-xs font-bold" style={{ color: "#a78bfa" }}>SneakersHub Official Product</p>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          This is an official SneakersHub product. Payment is required before delivery and is held in escrow until you confirm receipt.
+        </p>
+      </div>
+    </motion.div>
+  );
+  if (tier === "verified") return (
+    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+      className="flex items-start gap-3 p-4 rounded-xl border border-green-500/30 bg-green-500/5">
+      <ShieldCheck className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+      <div>
+        <p className="text-xs font-semibold text-green-700 dark:text-green-400">Verified Seller — Escrow Protected</p>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Your payment is held securely and only released to the seller after you confirm receipt.
+        </p>
+      </div>
+    </motion.div>
+  );
+  return null;
+};
 
 const GuestPromptModal = ({ onClose }: { onClose: () => void }) => {
   const navigate = useNavigate();
@@ -58,6 +114,7 @@ const ProductDetail = () => {
 
   const listing = listings.find((l) => l.id === id);
   const related = listings.filter((l) => l.id !== id && l.category === listing?.category).slice(0, 3);
+  const tier = listing ? getSellerTier(listing.sellerIsOfficial, listing.sellerVerified) : "standard";
 
   useEffect(() => {
     if (id) incrementViews(id);
@@ -143,15 +200,29 @@ const ProductDetail = () => {
         </button>
 
         <div className="grid md:grid-cols-2 gap-12 items-start">
-          {/* Image */}
+
+          {/* ── Image ── */}
           <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }}
-            className="relative rounded-2xl overflow-hidden bg-card border border-border aspect-square flex items-center justify-center">
-            {listing.image ? (
-              <img src={listing.image} alt={listing.name} className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-8xl">👟</span>
+            className="relative rounded-2xl overflow-hidden bg-card border aspect-square flex items-center justify-center"
+            style={{ borderColor: tier === "official" ? "rgba(109,40,217,0.3)" : tier === "verified" ? "rgba(34,197,94,0.2)" : undefined }}>
+            {listing.image
+              ? <img src={listing.image} alt={listing.name} className="w-full h-full object-cover" />
+              : <span className="text-8xl">👟</span>
+            }
+            {/* Tier badge on image */}
+            {tier === "official" && (
+              <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
+                style={{ background: "linear-gradient(135deg, #3b0764, #1e1b4b)", color: "#a78bfa", border: "1px solid rgba(109,40,217,0.5)" }}>
+                <Sparkles className="w-3 h-3" /> SneakersHub Official
+              </div>
             )}
-            {listing.boosted && (
+            {tier === "verified" && !listing.boosted && (
+              <div className="absolute top-4 left-4 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold"
+                style={{ background: "rgba(34,197,94,0.15)", color: "#16a34a", border: "1px solid rgba(34,197,94,0.3)" }}>
+                <BadgeCheck className="w-3 h-3" /> Verified
+              </div>
+            )}
+            {listing.boosted && tier !== "official" && (
               <div className="absolute top-4 left-4 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold"
                 style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)", color: "white" }}>
                 ⚡ Featured
@@ -159,7 +230,7 @@ const ProductDetail = () => {
             )}
           </motion.div>
 
-          {/* Info */}
+          {/* ── Info ── */}
           <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
             <div>
               <p className="text-primary font-display text-xs font-semibold uppercase tracking-[0.2em] mb-1">{listing.brand}</p>
@@ -180,35 +251,22 @@ const ProductDetail = () => {
                 {listing.sizes.map((size) => (
                   <button key={size} onClick={() => setSelectedSize(size)}
                     className={`w-11 h-11 rounded-xl border text-sm font-semibold transition-all
-                      ${selectedSize === size
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border hover:border-primary/50 text-foreground"}`}>
+                      ${selectedSize === size ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-primary/50 text-foreground"}`}>
                     {size}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Escrow notice */}
-            {listing.sellerVerified && (
-              <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                className="flex items-start gap-3 p-4 rounded-xl border border-green-500/30 bg-green-500/5">
-                <ShieldCheck className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-xs font-semibold text-green-700 dark:text-green-400">Escrow Protected Payment</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Your payment is held securely and only released to the seller after you confirm receipt.
-                  </p>
-                </div>
-              </motion.div>
-            )}
+            {/* Payment tier notice */}
+            <PaymentBadge tier={tier} />
 
             {/* Add to cart */}
             {user?.role !== "seller" && (
               <Button onClick={handleAddToCart} disabled={authLoading}
                 className={`w-full h-12 rounded-full font-display text-sm transition-all ${added ? "bg-green-500 hover:bg-green-500" : "btn-primary"}`}>
                 {authLoading
-                  ? <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" /> Loading...</span>
+                  ? <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />Loading...</span>
                   : added
                     ? <><Check className="w-4 h-4 mr-2" /> Added!</>
                     : <><ShoppingBag className="w-4 h-4 mr-2" /> Add to Cart</>
@@ -216,8 +274,8 @@ const ProductDetail = () => {
               </Button>
             )}
 
-            {/* Message Seller button — only for logged-in buyers */}
-            {user && !isGuest && user.role !== "seller" && (
+            {/* Message Seller — hide for official listings (it's you) */}
+            {user && !isGuest && user.role !== "seller" && tier !== "official" && (
               <button onClick={() => setShowChat(true)}
                 className="w-full h-12 rounded-full border border-border text-sm font-semibold
                   hover:bg-primary/5 hover:border-primary/40 transition-all flex items-center justify-center gap-2 text-foreground">
@@ -236,18 +294,23 @@ const ProductDetail = () => {
               </div>
 
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <span className="font-display text-sm font-bold text-primary">{listing.sellerName[0].toUpperCase()}</span>
+                {/* Official gets a special avatar */}
+                <div className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 ${
+                  tier === "official"
+                    ? "bg-gradient-to-br from-violet-900 to-indigo-900 border border-violet-500/30"
+                    : "bg-primary/10"
+                }`}>
+                  {tier === "official"
+                    ? <Sparkles className="w-5 h-5" style={{ color: "#a78bfa" }} />
+                    : <span className="font-display text-sm font-bold text-primary">{listing.sellerName[0].toUpperCase()}</span>
+                  }
                 </div>
+
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-semibold text-sm">{listing.sellerName}</p>
-                    {listing.sellerVerified && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-green-600 bg-green-500/10 px-2 py-0.5 rounded-full border border-green-500/20">
-                        <CheckCircle className="w-3 h-3" /> Verified
-                      </span>
-                    )}
-                    {listing.boosted && (
+                    <SellerBadge tier={tier} />
+                    {listing.boosted && tier !== "official" && (
                       <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
                         ⚡ Featured
                       </span>
@@ -271,7 +334,7 @@ const ProductDetail = () => {
                     {[listing.sellerCity, listing.sellerRegion, "Ghana"].filter(Boolean).join(", ")}
                   </p>
                 )}
-                {listing.sellerPhone && (
+                {listing.sellerPhone && tier !== "official" && (
                   <a href={`tel:${listing.sellerPhone}`}
                     className="text-xs text-muted-foreground flex items-center gap-2 hover:text-primary transition-colors">
                     <Phone className="w-3.5 h-3.5 text-primary flex-shrink-0" /> {listing.sellerPhone}
@@ -293,7 +356,7 @@ const ProductDetail = () => {
           </motion.div>
         </div>
 
-        {/* Related listings */}
+        {/* Related */}
         {related.length > 0 && (
           <div className="mt-20">
             <h2 className="font-display text-2xl font-bold tracking-tight mb-8">More in {listing.category}</h2>
@@ -304,6 +367,7 @@ const ProductDetail = () => {
                   image: l.image ?? "", category: l.category, sizes: l.sizes,
                   description: l.description, isBoosted: l.boosted,
                   sellerVerified: l.sellerVerified,
+                  sellerIsOfficial: l.sellerIsOfficial,
                 }} index={i} />
               ))}
             </div>
