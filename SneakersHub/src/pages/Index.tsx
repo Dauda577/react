@@ -18,7 +18,7 @@ const Index = () => {
     return new Date(l.boostExpiresAt).getTime() > now;
   };
 
-  const featured = listings.filter(isActiveBoost).slice(0, 6);
+  const featured = listings.filter(isActiveBoost).slice(0, 10);
   const newArrivals = listings.filter((l) => !isActiveBoost(l)).slice(0, 10);
 
   const toCardShape = (l: typeof listings[0], isBoosted = false) => ({
