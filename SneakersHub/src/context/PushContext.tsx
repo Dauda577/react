@@ -98,6 +98,25 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
         .subscribe();
       channelsRef.current.push(verifiedCh);
 
+      // Listing published confirmation
+      const listingCh = supabase
+        .channel(`push:listings:${user.id}`)
+        .on("postgres_changes", {
+          event: "INSERT",
+          schema: "public",
+          table: "listings",
+          filter: `seller_id=eq.${user.id}`,
+        }, (payload: any) => {
+          const name = payload.new?.name ?? "Your listing";
+          showLocalNotification(
+            "✅ Listing Published!",
+            `"${name}" is now live on SneakersHub.`,
+            "/account"
+          );
+        })
+        .subscribe();
+      channelsRef.current.push(listingCh);
+
       // New orders — client-side filter (no DB filter needed)
       if (localStorage.getItem("notif_orders") !== "false") {
         const orderCh = supabase
