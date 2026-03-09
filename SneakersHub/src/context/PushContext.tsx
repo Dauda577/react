@@ -60,32 +60,8 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
     return result === "granted";
   };
 
-  // ── AUTO-REQUEST on login ─────────────────────────────────────────────────
-  // Works for BOTH new and existing users.
-  // The browser's own Notification.permission tracks state permanently:
-  //   "default"  = never asked  → ask them (covers all existing users too)
-  //   "granted"  = already yes  → skip, just subscribe
-  //   "denied"   = blocked      → respect their choice, never ask again
-  // No localStorage flag needed — the browser remembers the answer forever.
-  useEffect(() => {
-    if (!user?.id || !checkSupported()) return;
-    if (Notification.permission === "granted") return; // already have it
-    if (Notification.permission === "denied") return;  // user blocked it
-
-    // permission === "default" — ask them (new user OR existing user never asked)
-    const timer = setTimeout(async () => {
-      const granted = await requestPermission();
-      if (granted) {
-        showLocalNotification(
-          "🔔 Notifications enabled!",
-          "You'll get notified about orders and messages.",
-          "/account"
-        );
-      }
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, [user?.id]);
+  // NOTE: Permission is requested in Auth.tsx right after login/signup.
+  // PushContext only subscribes to channels — it does not auto-request.
 
   // ── Clean up channels ─────────────────────────────────────────────────────
   const clearChannels = () => {
