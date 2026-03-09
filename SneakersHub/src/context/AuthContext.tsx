@@ -28,6 +28,8 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+// src/context/AuthContext.tsx - Fix the stuck loading
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUserState] = useState<User | null>(() => {
     try {
@@ -43,13 +45,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const [isGuest, setIsGuest] = useState(false);
-  // Start with loading = true regardless of cache
   const [loading, setLoading] = useState(true);
   const [needsRole, setNeedsRole] = useState(false);
   const [pendingSession, setPendingSession] = useState<{ id: string; email: string; name: string } | null>(null);
 
-  // Track if we've completed initial session check
   const initialCheckDone = useRef(false);
+  // Add a safety timeout ref
+  const safetyTimeoutRef = useRef<NodeJS.Timeout>();
 
   const fetchProfile = async (id: string, email: string): Promise<User | null> => {
     try {
@@ -95,7 +97,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (err) {
       console.error("[Auth] handleSession error:", err);
     } finally {
-      // Only mark loading as done after first session check
+      // Clear the safety timeout since we're done
+      if (safetyTimeoutRef.current) {
+        clearTimeout(safetyTimeoutRef.current);
+        safetyTimeoutRef.current = undefined;
+      }
+      
       if (!initialCheckDone.current) {
         initialCheckDone.current = true;
         setLoading(false);
@@ -103,19 +110,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // Safety timeout - but with a longer delay and proper cleanup
   useEffect(() => {
-    // 1. Get current session immediately
+    // Only set safety timeout if we're still loading after 8 seconds
+    safetyTimeoutRef.current = setTimeout(() => {
+      if (loading && !initialCheckDone.current) {
+        console.warn("[Auth] Safety timeout - forcing loading to false");
+        initialCheckDone.current = true;
+        setLoading(false);
+      }
+    }, 8000); // 8 seconds instead of 5
+
+    return () => {
+      if (safetyTimeoutRef.current) {
+        clearTimeout(safetyTimeoutRef.current);
+      }
+    };
+  }, [loading]); // Re-run if loading changes
+
+  // FIRST useEffect - Initial session check
+  useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       await handleSession(session);
     }).catch((err) => {
       console.error("[Auth] getSession error:", err);
+      if (safetyTimeoutRef.current) {
+        clearTimeout(safetyTimeoutRef.current);
+        safetyTimeoutRef.current = undefined;
+      }
       if (!initialCheckDone.current) {
         initialCheckDone.current = true;
         setLoading(false);
       }
     });
 
-    // 2. Listen for future auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session: Session | null) => {
         if (event === "PASSWORD_RECOVERY") return;
@@ -126,76 +154,110 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-// Add this to your AuthProvider to refresh session periodically
-useEffect(() => {
-  // Refresh session every 10 minutes to keep it alive
-  const interval = setInterval(async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      await supabase.auth.refreshSession();
-    }
-  }, 10 * 60 * 1000); // 10 minutes
+  // SECOND useEffect - Session refresh every 10 minutes
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        console.log("[Auth] Refreshing session...");
+        await supabase.auth.refreshSession();
+      }
+    }, 10 * 60 * 1000);
 
-  return () => clearInterval(interval);
-}, []);
-
+    return () => clearInterval(interval);
+  }, []);
 
   const login = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw new Error(error.message);
-    setIsGuest(false);
+    setLoading(true); // Show loading during login
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw new Error(error.message);
+      setIsGuest(false);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const signup = async (name: string, email: string, password: string, role: "buyer" | "seller") => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { name, role } },
-    });
-    if (error) throw new Error(error.message);
-    if (!data.user) throw new Error("Signup failed");
-    setIsGuest(false);
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { name, role } },
+      });
+      if (error) throw new Error(error.message);
+      if (!data.user) throw new Error("Signup failed");
+      setIsGuest(false);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const signInWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    });
-    if (error) throw new Error(error.message);
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
+      });
+      if (error) throw new Error(error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const assignRole = async (role: "buyer" | "seller") => {
     if (!pendingSession) return;
-    const { id, email, name } = pendingSession;
-    const { error } = await supabase.from("profiles").upsert({ id, name, role });
-    if (error) throw new Error(error.message);
-    setUser({ id, name, email, role });
-    setNeedsRole(false);
-    setPendingSession(null);
-    setIsGuest(false);
+    setLoading(true);
+    try {
+      const { id, email, name } = pendingSession;
+      const { error } = await supabase.from("profiles").upsert({ id, name, role });
+      if (error) throw new Error(error.message);
+      setUser({ id, name, email, role });
+      setNeedsRole(false);
+      setPendingSession(null);
+      setIsGuest(false);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const continueAsGuest = () => {
     setIsGuest(true);
     setUser(null);
-    setLoading(false); // Guest mode should stop loading
+    setLoading(false); // Force loading false for guest
   };
 
   const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    if (error) throw new Error(error.message);
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw new Error(error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setIsGuest(false);
-    setNeedsRole(false);
-    setPendingSession(null);
+    setLoading(true);
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      setIsGuest(false);
+      setNeedsRole(false);
+      setPendingSession(null);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // Log the current state for debugging
+  useEffect(() => {
+    console.log("[Auth] State:", { loading, user: !!user, isGuest, needsRole });
+  }, [loading, user, isGuest, needsRole]);
 
   return (
     <AuthContext.Provider value={{
