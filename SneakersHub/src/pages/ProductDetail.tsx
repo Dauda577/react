@@ -16,7 +16,6 @@ import ChatModal from "@/components/ChatModal";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
-// ── Seller tier helpers ───────────────────────────────────────────────────────
 type SellerTier = "official" | "verified" | "standard";
 
 const getSellerTier = (isOfficial: boolean, isVerified: boolean): SellerTier => {
@@ -177,6 +176,10 @@ const ProductDetail = () => {
     );
   }
 
+  // Whether the current user is a seller viewing a non-official listing
+  const isSeller = user?.role === "seller";
+  const sellerBlocked = isSeller && tier !== "official";
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -209,7 +212,6 @@ const ProductDetail = () => {
               ? <img src={listing.image} alt={listing.name} className="w-full h-full object-cover" />
               : <span className="text-8xl">👟</span>
             }
-            {/* Tier badge on image */}
             {tier === "official" && (
               <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
                 style={{ background: "linear-gradient(135deg, #3b0764, #1e1b4b)", color: "#a78bfa", border: "1px solid rgba(109,40,217,0.5)" }}>
@@ -261,8 +263,26 @@ const ProductDetail = () => {
             {/* Payment tier notice */}
             <PaymentBadge tier={tier} />
 
-            {/* Add to cart */}
-            {user?.role !== "seller" && (
+            {/* ── Add to cart / Seller notice ── */}
+            {sellerBlocked ? (
+              <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+                className="rounded-xl border border-border bg-muted/30 p-4 flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <ShoppingBag className="w-4 h-4 text-muted-foreground" />
+                </div>
+                <div>
+                  <p className="text-sm font-display font-semibold text-foreground mb-1">
+                    Seller accounts can't purchase
+                  </p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Buying and selling are kept separate for security. To purchase sneakers you'll need a buyer account.{" "}
+                    <Link to="/auth" className="text-primary font-semibold hover:opacity-70 transition-opacity">
+                      Create one here →
+                    </Link>
+                  </p>
+                </div>
+              </motion.div>
+            ) : (
               <Button onClick={handleAddToCart} disabled={authLoading}
                 className={`w-full h-12 rounded-full font-display text-sm transition-all ${added ? "bg-green-500 hover:bg-green-500" : "btn-primary"}`}>
                 {authLoading
@@ -274,8 +294,8 @@ const ProductDetail = () => {
               </Button>
             )}
 
-            {/* Message Seller — hide for official listings (it's you) */}
-            {user && !isGuest && user.role !== "seller" && tier !== "official" && (
+            {/* Message Seller — hide for official listings and for sellers on non-official */}
+            {user && !isGuest && !isSeller && tier !== "official" && (
               <button onClick={() => setShowChat(true)}
                 className="w-full h-12 rounded-full border border-border text-sm font-semibold
                   hover:bg-primary/5 hover:border-primary/40 transition-all flex items-center justify-center gap-2 text-foreground">
@@ -294,7 +314,6 @@ const ProductDetail = () => {
               </div>
 
               <div className="flex items-center gap-3">
-                {/* Official gets a special avatar */}
                 <div className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 ${
                   tier === "official"
                     ? "bg-gradient-to-br from-violet-900 to-indigo-900 border border-violet-500/30"
