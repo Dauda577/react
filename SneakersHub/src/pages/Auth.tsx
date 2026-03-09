@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Mail, Lock, User, Tag, Store, ArrowRight, CheckCircle, AlertCircle, Bell, BellOff } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, Tag, Store, ArrowRight, CheckCircle, AlertCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import InstallPrompt from "@/components/InstallPrompt";
 
 type Mode = "login" | "signup" | "forgot";
 
@@ -17,57 +18,6 @@ const GoogleIcon = () => (
   </svg>
 );
 
-// ── Notification permission prompt shown after login/signup ──────────────────
-const NotifPrompt = ({ onAllow, onSkip }: { onAllow: () => void; onSkip: () => void }) => {
-  const isBlocked = typeof window !== "undefined" &&
-    "Notification" in window &&
-    Notification.permission === "denied";
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95, y: 10 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95, y: 10 }}
-      transition={{ duration: 0.25 }}
-      className="rounded-2xl border border-primary/30 bg-primary/5 p-5 space-y-4"
-    >
-      <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-          <Bell className="w-5 h-5 text-primary" />
-        </div>
-        <div>
-          <p className="font-display font-semibold text-sm text-foreground">
-            {isBlocked ? "Notifications Blocked" : "Enable Notifications"}
-          </p>
-          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-            {isBlocked
-              ? "You previously blocked notifications. Click Enable to see how to turn them on."
-              : "Get notified instantly when you receive orders, messages, or shipping updates."}
-          </p>
-        </div>
-      </div>
-      <div className="flex gap-2">
-        <button
-          onClick={onAllow}
-          className="flex-1 flex items-center justify-center gap-2 h-10 rounded-full bg-primary text-white text-sm font-semibold hover:brightness-110 transition-all"
-        >
-          <Bell className="w-3.5 h-3.5" />
-          {isBlocked ? "How to enable" : "Enable"}
-        </button>
-        <button
-          onClick={onSkip}
-          className="flex-1 flex items-center justify-center gap-2 h-10 rounded-full border border-border text-sm text-muted-foreground hover:text-foreground hover:border-primary/30 transition-all"
-        >
-          <BellOff className="w-3.5 h-3.5" /> Not now
-        </button>
-      </div>
-      <p className="text-[10px] text-muted-foreground text-center">
-        You can always change this in Settings
-      </p>
-    </motion.div>
-  );
-};
-
 const Auth = () => {
   const [mode, setMode] = useState<Mode>("login");
   const [role, setRole] = useState<"buyer" | "seller">("buyer");
@@ -76,55 +26,15 @@ const Auth = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", password: "" });
-  // Show notif prompt after successful login/signup
-  const [showNotifPrompt, setShowNotifPrompt] = useState(false);
-  const [pendingNav, setPendingNav] = useState("/");
+  const [triggerInstall, setTriggerInstall] = useState(false);
 
   const { login, signup, signInWithGoogle, needsRole, assignRole, continueAsGuest, resetPassword } = useAuth();
   const navigate = useNavigate();
 
-  // ── After login/signup: show notif prompt unless already granted ──────────
-  const maybeAskNotifications = (destination = "/") => {
-    const notifSupported = typeof window !== "undefined" && "Notification" in window;
-    if (notifSupported && Notification.permission !== "granted") {
-      // Show our prompt for both "default" (never asked) AND "denied" (blocked before)
-      // For "denied": our prompt still shows — clicking Enable opens browser settings guidance
-      setPendingNav(destination);
-      setShowNotifPrompt(true);
-    } else {
-      // Already granted — go straight to app
-      navigate(destination);
-    }
-  };
-
-  const handleAllowNotifications = async () => {
-    setShowNotifPrompt(false);
-
-    if (Notification.permission === "denied") {
-      // Browser blocked — guide them to fix it manually
-      toast("To enable notifications, click the 🔒 lock icon in your browser's address bar and allow notifications.", {
-        duration: 6000,
-      });
-      navigate(pendingNav);
-      return;
-    }
-
-    try {
-      const result = await Notification.requestPermission();
-      if (result === "granted") {
-        toast.success("🔔 Notifications enabled!");
-      } else {
-        toast("You can enable notifications anytime in Settings.");
-      }
-    } catch {
-      // Not supported — move on
-    }
-    navigate(pendingNav);
-  };
-
-  const handleSkipNotifications = () => {
-    setShowNotifPrompt(false);
-    navigate(pendingNav);
+  // After login/signup: navigate then trigger the floating install+notif popup
+  const afterAuth = (destination = "/") => {
+    navigate(destination);
+    setTriggerInstall(true);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -143,7 +53,7 @@ const Auth = () => {
         await signup(form.name, form.email, form.password, role);
         toast.success(`${role === "buyer" ? "Buyer" : "Seller"} account created!`);
       }
-      maybeAskNotifications("/");
+      afterAuth("/");
     } catch (err: any) {
       toast.error(err.message ?? "Something went wrong. Please try again.");
     } finally {
@@ -169,7 +79,7 @@ const Auth = () => {
     setGoogleLoading(true);
     try {
       await signInWithGoogle();
-      // Google redirects away — notification prompt handled in AuthCallback
+      // Google redirects away — InstallPrompt handled on return via AuthCallback
     } catch (err: any) {
       toast.error(err.message ?? "Google sign-in failed");
       setGoogleLoading(false);
@@ -180,21 +90,21 @@ const Auth = () => {
     try {
       await assignRole(selectedRole);
       toast.success(`${selectedRole === "buyer" ? "Buyer" : "Seller"} account created!`);
-      maybeAskNotifications("/");
+      afterAuth("/");
     } catch (err: any) {
       toast.error(err.message ?? "Failed to set account type");
     }
   };
 
   const handleSkip = () => { continueAsGuest(); navigate("/account"); };
+
   const switchMode = (newMode: Mode) => {
     setMode(newMode);
     setForgotSent(false);
     setForm({ name: "", email: "", password: "" });
-    setShowNotifPrompt(false);
   };
 
-  // ── Role picker for new Google users ──
+  // ── Role picker for new Google users ────────────────────────────────────────
   if (needsRole) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center relative overflow-hidden">
@@ -230,10 +140,12 @@ const Auth = () => {
             </div>
           </motion.div>
         </div>
+        <InstallPrompt triggerAfterAuth={triggerInstall} />
       </div>
     );
   }
 
+  // ── Main auth form ───────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-background flex items-center justify-center relative overflow-hidden">
       <div className="absolute inset-0 opacity-20 pointer-events-none">
@@ -258,204 +170,190 @@ const Auth = () => {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}
           className="rounded-2xl border border-border bg-background p-6 shadow-sm">
 
-          {/* ── Notification prompt overlay (replaces form after login) ── */}
-          <AnimatePresence>
-            {showNotifPrompt && (
-              <NotifPrompt
-                onAllow={handleAllowNotifications}
-                onSkip={handleSkipNotifications}
-              />
-            )}
-          </AnimatePresence>
+          {/* Mode toggle */}
+          {mode !== "forgot" && (
+            <div className="flex p-1 rounded-xl bg-secondary mb-6">
+              {(["login", "signup"] as const).map((m) => (
+                <button key={m} onClick={() => switchMode(m)}
+                  className={`flex-1 py-2 rounded-lg text-sm font-display font-semibold transition-all duration-200
+                    ${mode === m ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
+                  {m === "login" ? "Sign In" : "Sign Up"}
+                </button>
+              ))}
+            </div>
+          )}
 
-          {!showNotifPrompt && (
-            <>
-              {/* Mode toggle */}
-              {mode !== "forgot" && (
-                <div className="flex p-1 rounded-xl bg-secondary mb-6">
-                  {(["login", "signup"] as const).map((m) => (
-                    <button key={m} onClick={() => switchMode(m)}
-                      className={`flex-1 py-2 rounded-lg text-sm font-display font-semibold transition-all duration-200
-                        ${mode === m ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>
-                      {m === "login" ? "Sign In" : "Sign Up"}
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Forgot password */}
-              {mode === "forgot" ? (
-                <AnimatePresence mode="wait">
-                  <motion.div key="forgot" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-                    className="space-y-4">
-                    {forgotSent ? (
-                      <div className="flex flex-col items-center gap-3 py-4 text-center">
-                        <CheckCircle className="w-10 h-10 text-green-500" />
-                        <p className="text-sm font-medium">Check your email for the reset link.</p>
-                        <p className="text-xs text-muted-foreground">Didn't receive it? Check your spam folder.</p>
+          {/* Forgot password */}
+          {mode === "forgot" ? (
+            <AnimatePresence mode="wait">
+              <motion.div key="forgot" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+                className="space-y-4">
+                {forgotSent ? (
+                  <div className="flex flex-col items-center gap-3 py-4 text-center">
+                    <CheckCircle className="w-10 h-10 text-green-500" />
+                    <p className="text-sm font-medium">Check your email for the reset link.</p>
+                    <p className="text-xs text-muted-foreground">Didn't receive it? Check your spam folder.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Email</label>
+                      <div className="relative">
+                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <input name="email" type="email" value={form.email} onChange={handleChange}
+                          placeholder="you@email.com"
+                          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]" />
                       </div>
-                    ) : (
-                      <>
-                        <div>
-                          <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Email</label>
-                          <div className="relative">
-                            <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <input name="email" type="email" value={form.email} onChange={handleChange}
-                              placeholder="you@email.com"
-                              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]" />
-                          </div>
-                        </div>
-                        <Button onClick={handleForgotPassword} disabled={loading} className="btn-primary w-full h-11 rounded-full text-sm">
-                          {loading ? (
-                            <span className="flex items-center gap-2">
-                              <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
-                                className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full" />
-                              Sending...
-                            </span>
-                          ) : "Send Reset Link"}
-                        </Button>
-                      </>
-                    )}
-                    <button onClick={() => switchMode("login")}
-                      className="w-full text-center text-sm text-primary hover:opacity-70 transition-opacity font-medium">
-                      ← Back to Sign In
-                    </button>
-                  </motion.div>
-                </AnimatePresence>
-              ) : (
-                <>
-                  {/* Google button */}
-                  <button onClick={handleGoogle} disabled={googleLoading}
-                    className="w-full flex items-center justify-center gap-3 h-11 rounded-full border border-border
-                      hover:border-primary/40 hover:bg-primary/5 transition-all duration-200 text-sm font-medium mb-5
-                      disabled:opacity-50 disabled:cursor-not-allowed">
-                    {googleLoading ? (
-                      <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
-                        className="w-4 h-4 border-2 border-border border-t-primary rounded-full" />
-                    ) : <GoogleIcon />}
-                    {googleLoading ? "Redirecting..." : "Continue with Google"}
-                  </button>
+                    </div>
+                    <Button onClick={handleForgotPassword} disabled={loading} className="btn-primary w-full h-11 rounded-full text-sm">
+                      {loading ? (
+                        <span className="flex items-center gap-2">
+                          <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+                            className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full" />
+                          Sending...
+                        </span>
+                      ) : "Send Reset Link"}
+                    </Button>
+                  </>
+                )}
+                <button onClick={() => switchMode("login")}
+                  className="w-full text-center text-sm text-primary hover:opacity-70 transition-opacity font-medium">
+                  ← Back to Sign In
+                </button>
+              </motion.div>
+            </AnimatePresence>
+          ) : (
+            <>
+              {/* Google */}
+              <button onClick={handleGoogle} disabled={googleLoading}
+                className="w-full flex items-center justify-center gap-3 h-11 rounded-full border border-border
+                  hover:border-primary/40 hover:bg-primary/5 transition-all duration-200 text-sm font-medium mb-5
+                  disabled:opacity-50 disabled:cursor-not-allowed">
+                {googleLoading ? (
+                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+                    className="w-4 h-4 border-2 border-border border-t-primary rounded-full" />
+                ) : <GoogleIcon />}
+                {googleLoading ? "Redirecting..." : "Continue with Google"}
+              </button>
 
-                  <div className="flex items-center gap-3 mb-5">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-xs text-muted-foreground">or continue with email</span>
+                <div className="flex-1 h-px bg-border" />
+              </div>
+
+              <AnimatePresence mode="wait">
+                <motion.div key={mode} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="space-y-4">
+
+                  {mode === "signup" && (
+                    <div>
+                      <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Full Name</label>
+                      <div className="relative">
+                        <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <input name="name" autoComplete="name" value={form.name} onChange={handleChange}
+                          placeholder="Dauda Qarsim"
+                          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]" />
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Email</label>
+                    <div className="relative">
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input name="email" type="email" autoComplete="email" value={form.email} onChange={handleChange}
+                        placeholder="you@email.com"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Password</label>
+                    <div className="relative">
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input name="password" type={showPassword ? "text" : "password"}
+                        autoComplete={mode === "signup" ? "new-password" : "current-password"}
+                        value={form.password} onChange={handleChange} placeholder="••••••••"
+                        className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]" />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {mode === "signup" && (
+                    <div>
+                      <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-2">I want to</label>
+                      <div className="grid grid-cols-2 gap-2 mb-3">
+                        {([
+                          { value: "buyer", label: "Buy Sneakers", icon: Tag, desc: "Browse & purchase" },
+                          { value: "seller", label: "Sell Sneakers", icon: Store, desc: "List & manage" },
+                        ] as const).map(({ value, label, icon: Icon, desc }) => (
+                          <button key={value} onClick={() => setRole(value)}
+                            className={`flex flex-col items-start gap-1 p-3.5 rounded-xl border text-left transition-all duration-200
+                              ${role === value ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}>
+                            <div className="flex items-center justify-between w-full">
+                              <Icon className={`w-4 h-4 ${role === value ? "text-primary" : "text-muted-foreground"}`} />
+                              {role === value && <CheckCircle className="w-3.5 h-3.5 text-primary" />}
+                            </div>
+                            <p className={`text-sm font-display font-semibold mt-1 ${role === value ? "text-foreground" : "text-muted-foreground"}`}>{label}</p>
+                            <p className="text-xs text-muted-foreground">{desc}</p>
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                        <AlertCircle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
+                        <p className="text-xs text-amber-600 leading-relaxed">
+                          Your account type is <span className="font-semibold">permanent</span>. Choose carefully.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {mode === "login" && (
+                    <div className="text-right">
+                      <button onClick={() => switchMode("forgot")}
+                        className="text-xs text-primary hover:opacity-70 transition-opacity font-medium">
+                        Forgot password?
+                      </button>
+                    </div>
+                  )}
+
+                  <Button onClick={handleSubmit} disabled={loading} className="btn-primary w-full h-11 rounded-full text-sm mt-2">
+                    {loading ? (
+                      <span className="flex items-center gap-2">
+                        <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+                          className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full" />
+                        {mode === "login" ? "Signing in..." : "Creating account..."}
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-2">
+                        {mode === "login" ? "Sign In" : "Create Account"}
+                        <ArrowRight className="w-4 h-4" />
+                      </span>
+                    )}
+                  </Button>
+
+                  <div className="flex items-center gap-3 my-1">
                     <div className="flex-1 h-px bg-border" />
-                    <span className="text-xs text-muted-foreground">or continue with email</span>
+                    <span className="text-xs text-muted-foreground">or</span>
                     <div className="flex-1 h-px bg-border" />
                   </div>
 
-                  <AnimatePresence mode="wait">
-                    <motion.div key={mode} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} className="space-y-4">
-
-                      {mode === "signup" && (
-                        <div>
-                          <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Full Name</label>
-                          <div className="relative">
-                            <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                            <input name="name" autoComplete="name" value={form.name} onChange={handleChange}
-                              placeholder="Dauda Qarsim"
-                              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]" />
-                          </div>
-                        </div>
-                      )}
-
-                      <div>
-                        <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Email</label>
-                        <div className="relative">
-                          <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                          <input name="email" type="email" autoComplete="email" value={form.email} onChange={handleChange}
-                            placeholder="you@email.com"
-                            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]" />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Password</label>
-                        <div className="relative">
-                          <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                          <input name="password" type={showPassword ? "text" : "password"}
-                            autoComplete={mode === "signup" ? "new-password" : "current-password"}
-                            value={form.password} onChange={handleChange} placeholder="••••••••"
-                            className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]" />
-                          <button type="button" onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
-                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
-                        </div>
-                      </div>
-
-                      {mode === "signup" && (
-                        <div>
-                          <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-2">I want to</label>
-                          <div className="grid grid-cols-2 gap-2 mb-3">
-                            {([
-                              { value: "buyer", label: "Buy Sneakers", icon: Tag, desc: "Browse & purchase" },
-                              { value: "seller", label: "Sell Sneakers", icon: Store, desc: "List & manage" },
-                            ] as const).map(({ value, label, icon: Icon, desc }) => (
-                              <button key={value} onClick={() => setRole(value)}
-                                className={`flex flex-col items-start gap-1 p-3.5 rounded-xl border text-left transition-all duration-200
-                                  ${role === value ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}>
-                                <div className="flex items-center justify-between w-full">
-                                  <Icon className={`w-4 h-4 ${role === value ? "text-primary" : "text-muted-foreground"}`} />
-                                  {role === value && <CheckCircle className="w-3.5 h-3.5 text-primary" />}
-                                </div>
-                                <p className={`text-sm font-display font-semibold mt-1 ${role === value ? "text-foreground" : "text-muted-foreground"}`}>{label}</p>
-                                <p className="text-xs text-muted-foreground">{desc}</p>
-                              </button>
-                            ))}
-                          </div>
-                          <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                            <AlertCircle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
-                            <p className="text-xs text-amber-600 leading-relaxed">
-                              Your account type is <span className="font-semibold">permanent</span>. Choose carefully.
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      {mode === "login" && (
-                        <div className="text-right">
-                          <button onClick={() => switchMode("forgot")}
-                            className="text-xs text-primary hover:opacity-70 transition-opacity font-medium">
-                            Forgot password?
-                          </button>
-                        </div>
-                      )}
-
-                      <Button onClick={handleSubmit} disabled={loading} className="btn-primary w-full h-11 rounded-full text-sm mt-2">
-                        {loading ? (
-                          <span className="flex items-center gap-2">
-                            <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
-                              className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full" />
-                            {mode === "login" ? "Signing in..." : "Creating account..."}
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-2">
-                            {mode === "login" ? "Sign In" : "Create Account"}
-                            <ArrowRight className="w-4 h-4" />
-                          </span>
-                        )}
-                      </Button>
-
-                      <div className="flex items-center gap-3 my-1">
-                        <div className="flex-1 h-px bg-border" />
-                        <span className="text-xs text-muted-foreground">or</span>
-                        <div className="flex-1 h-px bg-border" />
-                      </div>
-
-                      <button onClick={handleSkip}
-                        className="w-full py-2.5 rounded-full border border-border text-sm text-muted-foreground
-                          hover:text-foreground hover:border-primary/40 transition-all duration-200 font-medium">
-                        Continue as Guest
-                      </button>
-                    </motion.div>
-                  </AnimatePresence>
-                </>
-              )}
+                  <button onClick={handleSkip}
+                    className="w-full py-2.5 rounded-full border border-border text-sm text-muted-foreground
+                      hover:text-foreground hover:border-primary/40 transition-all duration-200 font-medium">
+                    Continue as Guest
+                  </button>
+                </motion.div>
+              </AnimatePresence>
             </>
           )}
         </motion.div>
 
-        {mode !== "forgot" && !showNotifPrompt && (
+        {mode !== "forgot" && (
           <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
             className="text-center text-sm text-muted-foreground mt-5">
             {mode === "login" ? "Don't have an account? " : "Already have an account? "}
@@ -466,6 +364,9 @@ const Auth = () => {
           </motion.p>
         )}
       </div>
+
+      {/* Floating install + notifications popup — triggers after login/signup */}
+      <InstallPrompt triggerAfterAuth={triggerInstall} />
     </div>
   );
 };
