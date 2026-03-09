@@ -21,6 +21,14 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
+// ── DB warmup ──────────────────────────────────────────────
+// Supabase free tier cold-starts after inactivity (2-3s delay).
+// This tiny ping fires immediately on import so the DB is warm
+// by the time the user's real queries run.
+if (typeof window !== "undefined") {
+  supabase.from("listings").select("id").limit(1).then(() => {});
+}
+
 // ── Typed helpers ──────────────────────────────────────────
 export type Profile = {
   id: string;
