@@ -126,28 +126,6 @@ const Admin = () => {
       });
   }, [user?.id, authLoading]);
 
-  if (authLoading || (!authChecked && !accessDenied)) return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-        <p className="text-sm text-muted-foreground">Verifying access...</p>
-      </div>
-    </div>
-  );
-
-  if (accessDenied) return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="text-center">
-        <ShieldAlert className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-        <p className="font-display font-bold text-lg">Access Denied</p>
-        <p className="text-sm text-muted-foreground mt-1">This page is for official accounts only.</p>
-        <button onClick={() => navigate("/")} className="mt-4 px-4 py-2 rounded-full border border-border text-sm hover:bg-muted/40 transition-colors">
-          Go Home
-        </button>
-      </div>
-    </div>
-  );
-
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
@@ -169,7 +147,29 @@ const Admin = () => {
     }
   }, []);
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { if (authChecked) fetchData(); }, [authChecked]);
+
+  if (authLoading || (!authChecked && !accessDenied)) return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+        <p className="text-sm text-muted-foreground">Verifying access...</p>
+      </div>
+    </div>
+  );
+
+  if (accessDenied) return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="text-center">
+        <ShieldAlert className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+        <p className="font-display font-bold text-lg">Access Denied</p>
+        <p className="text-sm text-muted-foreground mt-1">This page is for official accounts only.</p>
+        <button onClick={() => navigate("/")} className="mt-4 px-4 py-2 rounded-full border border-border text-sm hover:bg-muted/40 transition-colors">
+          Go Home
+        </button>
+      </div>
+    </div>
+  );
 
   // ── Computed stats ─────────────────────────────────────────────────────────
   const nonOfficialOrders = orders.filter(o => !o.seller_is_official);
