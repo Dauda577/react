@@ -48,14 +48,34 @@ const getDeliveryEstimate = (buyerRegion: string) => {
 };
 
 function ensurePaystackScript(): Promise<void> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
+    // Already loaded
     if ((window as any).PaystackPop) { resolve(); return; }
+
+    // Script tag exists — poll until PaystackPop is ready
     const existing = document.getElementById("paystack-script");
-    if (existing) { existing.addEventListener("load", () => resolve()); return; }
+    if (existing) {
+      let attempts = 0;
+      const poll = setInterval(() => {
+        if ((window as any).PaystackPop) { clearInterval(poll); resolve(); return; }
+        if (++attempts > 20) { clearInterval(poll); reject(new Error("Paystack SDK timeout")); }
+      }, 200);
+      return;
+    }
+
+    // Inject script
     const script = document.createElement("script");
     script.id = "paystack-script";
     script.src = "https://js.paystack.co/v1/inline.js";
-    script.onload = () => resolve();
+    script.onload = () => {
+      // Poll until PaystackPop is actually available on window
+      let attempts = 0;
+      const poll = setInterval(() => {
+        if ((window as any).PaystackPop) { clearInterval(poll); resolve(); return; }
+        if (++attempts > 20) { clearInterval(poll); reject(new Error("Paystack SDK loaded but PaystackPop not found")); }
+      }, 100);
+    };
+    script.onerror = () => reject(new Error("Failed to load Paystack script — check network or ad blocker"));
     document.head.appendChild(script);
   });
 }
@@ -214,7 +234,7 @@ const Checkout = () => {
       try {
         await ensurePaystackScript();
       } catch {
-        toast.error("Could not load payment SDK. Check your connection.");
+        toast.error("Could not load payment. Disable any ad blocker and try again.", { duration: 6000 });
         setLoading(false);
         return;
       }
@@ -264,9 +284,14 @@ const Checkout = () => {
         });
 
         handler.openIframe();
-      } catch (err) {
-        console.error("Paystack error:", err);
-        toast.error("Failed to open payment. Please try again.");
+      } catch (err: any) {
+        console.error("Paystack error:", err?.message ?? err);
+        const msg = err?.message ?? String(err);
+        if (msg.includes("ad blocker") || msg.includes("script")) {
+          toast.error("Payment blocked — please disable your ad blocker and refresh.", { duration: 8000 });
+        } else {
+          toast.error(`Payment error: ${msg.slice(0, 80)}. Please refresh and try again.`, { duration: 8000 });
+        }
         setLoading(false);
       }
       return;

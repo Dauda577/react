@@ -83,11 +83,16 @@ const SectionHeader = ({ title, icon: Icon, count }: { title: string; icon: any;
 );
 
 // ── Main ──────────────────────────────────────────────────────────────────────
+function formatOrderId(id: string) {
+  const num = parseInt(id.replace(/-/g, "").slice(0, 10), 16) % 1000000000;
+  return `#${num.toString().padStart(9, "0")}`;
+}
+
 const Admin = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"overview" | "disputes" | "orders" | "payouts">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "disputes" | "failed" | "orders" | "payouts">("overview");
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -191,6 +196,7 @@ const Admin = () => {
   const nonOfficialOrders = orders.filter(o => !o.seller_is_official);
   const pendingOrders     = nonOfficialOrders.filter(o => o.payout_status === "pending");
   const disputedOrders    = orders.filter(o => o.payout_status === "disputed");
+  const failedOrders      = orders.filter(o => o.payout_status === "transfer_failed");
   const releasedOrders    = nonOfficialOrders.filter(o => o.payout_status === "released" || o.payout_status === "auto_released");
   const officialOrders    = orders.filter(o => o.seller_is_official);
 
@@ -243,6 +249,7 @@ const Admin = () => {
   const tabs = [
     { id: "overview",  label: "Overview",   icon: BarChart2 },
     { id: "disputes",  label: "Disputes",   icon: AlertTriangle, badge: disputedOrders.length },
+    { id: "failed",    label: "Failed Transfers", icon: AlertTriangle, badge: failedOrders.length },
     { id: "orders",    label: "All Orders", icon: Package },
     { id: "payouts",   label: "Payouts",    icon: Wallet },
   ] as const;
@@ -302,6 +309,10 @@ const Admin = () => {
                       sub={`${pendingOrders.length} pending orders`} icon={Clock} accent="bg-amber-500/10 text-amber-600" />
                     <StatCard label="Disputed" value={formatGHS(disputedOrders.reduce((s,o) => s+o.total, 0))}
                       sub={`${disputedOrders.length} active disputes`} icon={AlertTriangle} accent="bg-red-500/10 text-red-600" />
+                    {failedOrders.length > 0 && (
+                      <StatCard label="Failed Transfers" value={formatGHS(failedOrders.reduce((s,o) => s+o.total, 0))}
+                        sub={`${failedOrders.length} need attention`} icon={AlertTriangle} accent="bg-orange-500/10 text-orange-600" />
+                    )}
                     <StatCard label="Total Released" value={formatGHS(releasedOrders.reduce((s,o) => s+o.total, 0))}
                       sub={`${releasedOrders.length} orders`} icon={CheckCircle} accent="bg-green-500/10 text-green-600" />
                     <StatCard label="Official Sales (yours)" value={formatGHS(officialOrders.reduce((s,o) => s+o.total, 0))}
@@ -460,6 +471,75 @@ const Admin = () => {
                       </motion.div>
                     ))}
                   </div>
+                )}
+              </div>
+            )}
+
+            {/* ── Failed Transfers tab ── */}
+            {activeTab === "failed" && (
+              <div className="space-y-4">
+                {failedOrders.length === 0 ? (
+                  <div className="text-center py-16">
+                    <CheckCircle className="w-10 h-10 text-green-500 mx-auto mb-3" />
+                    <p className="font-display font-bold">No failed transfers</p>
+                    <p className="text-sm text-muted-foreground mt-1">All payouts are processing normally.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-start gap-3 p-4 rounded-2xl bg-orange-500/5 border border-orange-500/20">
+                      <AlertTriangle className="w-4 h-4 text-orange-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-semibold text-orange-700 dark:text-orange-400">
+                          {failedOrders.length} transfer{failedOrders.length > 1 ? "s" : ""} failed — action needed
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          These sellers have not been paid. You can retry automatically or resolve manually via Paystack.
+                        </p>
+                      </div>
+                    </div>
+                    {failedOrders.map((order) => {
+                      const orderId = (() => {
+                        const num = parseInt(order.id.replace(/-/g, "").slice(0, 10), 16) % 1000000000;
+                        return `#${num.toString().padStart(9, "0")}`;
+                      })();
+                      return (
+                        <div key={order.id} className="rounded-2xl border border-orange-500/20 bg-orange-500/5 p-5 space-y-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="font-display font-bold text-sm">{order.seller_name}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {orderId} · GHS {order.total} · {order.transfer_attempts ?? 1} attempt{(order.transfer_attempts ?? 1) > 1 ? "s" : ""}
+                              </p>
+                              {order.transfer_failure_reason && (
+                                <p className="text-xs text-orange-600 mt-1 font-medium">
+                                  ↳ {order.transfer_failure_reason}
+                                </p>
+                              )}
+                            </div>
+                            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-orange-500/10 text-orange-600 border border-orange-500/20 flex-shrink-0">Failed</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              onClick={async () => {
+                                toast("Retrying transfer...");
+                                try {
+                                  await supabase.functions.invoke("retry-failed-transfers");
+                                  toast.success("Retry triggered — refreshing in 3s");
+                                  setTimeout(() => fetchData(), 3000);
+                                } catch { toast.error("Retry failed — try Paystack dashboard"); }
+                              }}
+                              className="py-2.5 rounded-xl border border-orange-500/30 text-xs font-semibold text-orange-600 hover:bg-orange-500/10 transition-colors">
+                              Retry Transfer
+                            </button>
+                            <a href="https://dashboard.paystack.com/#/transfers" target="_blank" rel="noreferrer"
+                              className="py-2.5 rounded-xl border border-border text-xs font-semibold text-muted-foreground hover:bg-muted/40 transition-colors text-center flex items-center justify-center">
+                              Open Paystack →
+                            </a>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
                 )}
               </div>
             )}

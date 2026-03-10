@@ -160,6 +160,29 @@ serve(async (req) => {
       }
     }
 
+    if (type === "admin.alert") {
+      // Direct alert to admin phone
+      const phone = record.phone;
+      if (phone) await sendSMS(phone, `${record.message}`);
+    }
+
+    if (type === "payout.transfer_failed") {
+      const phone = record.seller_phone ?? await getPhone(record.seller_id);
+      const attempts = record.attempts ?? 1;
+      const maxAttempts = 3;
+      if (phone) {
+        if (attempts < maxAttempts) {
+          await sendSMS(phone,
+            `SneakersHub: Your payout for order ${formatOrderId(record.order_id)} failed to process (attempt ${attempts}/${maxAttempts}). We'll retry automatically. If this persists contact us at sneakershub-sigma.vercel.app`
+          );
+        } else {
+          await sendSMS(phone,
+            `SneakersHub: Your payout for order ${formatOrderId(record.order_id)} has failed ${maxAttempts} times. Please contact support — we'll resolve this manually. sneakershub-sigma.vercel.app`
+          );
+        }
+      }
+    }
+
     if (type === "listing.created") {
       const phone = await getPhone(record.seller_id);
       if (phone) await sendSMS(phone,

@@ -1,82 +1,70 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const PAYSTACK_SECRET = Deno.env.get("PAYSTACK_SECRET_KEY")!;
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const PAYSTACK_SECRET  = Deno.env.get("PAYSTACK_SECRET_KEY")!;
+const SUPABASE_URL     = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const COMMISSION_RATE = 0.05; // 5%
+const COMMISSION_RATE  = 0.05;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// ── Normalize phone to Paystack format (2348XXXXXXXX) ────────────────────────
-function normalizePhone(phone: string, method: string): string {
+function normalizePhone(phone: string): string {
   let p = phone.replace(/\s+/g, "").replace(/^\+/, "").replace(/^233/, "").replace(/^0/, "");
   return `233${p}`;
 }
 
-// ── Resolve Paystack bank code from payout method ─────────────────────────────
 function getBankCode(method: string): string {
-  // Paystack Ghana MoMo bank codes
-  if (method === "momo_mtn") return "MTN";
-  if (method === "momo_telecel") return "VOD"; // Vodafone/Telecel
-  return "GHA"; // Generic Ghana bank fallback
+  if (method === "momo_mtn")    return "MTN";
+  if (method === "momo_telecel") return "VOD";
+  return "ghipss";
 }
 
-// ── Create a Paystack transfer recipient ─────────────────────────────────────
 async function createRecipient(name: string, accountNumber: string, method: string) {
-  const type = method === "bank" ? "ghipss" : "mobile_money";
-  const currency = "GHS";
+  const type     = method === "bank" ? "ghipss" : "mobile_money";
   const bankCode = getBankCode(method);
-
   const res = await fetch("https://api.paystack.co/transferrecipient", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${PAYSTACK_SECRET}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      type,
-      name,
-      account_number: accountNumber,
-      bank_code: bankCode,
-      currency,
-    }),
+    headers: { Authorization: `Bearer ${PAYSTACK_SECRET}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ type, name, account_number: normalizePhone(accountNumber), bank_code: bankCode, currency: "GHS" }),
   });
-
   const data = await res.json();
   if (!data.status) throw new Error(`Recipient creation failed: ${data.message}`);
-  return data.data.recipient_code;
+  return data.data.recipient_code as string;
 }
 
-// ── Initiate Paystack transfer ─────────────────────────────────────────────────
 async function initiateTransfer(recipientCode: string, amountGHS: number, orderId: string) {
-  const amountKobo = Math.round(amountGHS * 100); // Paystack uses smallest currency unit
+  const amountPesewas = Math.round(amountGHS * 100);
   const res = await fetch("https://api.paystack.co/transfer", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${PAYSTACK_SECRET}`,
-      "Content-Type": "application/json",
-    },
+    headers: { Authorization: `Bearer ${PAYSTACK_SECRET}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       source: "balance",
-      amount: amountKobo,
+      amount: amountPesewas,
       recipient: recipientCode,
-      reason: `SneakersHub payout for order ${orderId}`,
+      reason: `SneakersHub payout order ${orderId.slice(0, 8)}`,
       currency: "GHS",
     }),
   });
-
   const data = await res.json();
-  if (!data.status) throw new Error(`Transfer failed: ${data.message}`);
-  return data.data;
+  if (!data.status) throw new Error(`Transfer initiation failed: ${data.message}`);
+  return data.data as { transfer_code: string; status: string };
 }
 
-// ── Main handler ──────────────────────────────────────────────────────────────
+async function notifyAdmin(message: string) {
+  try {
+    const { data } = await supabase.from("profiles").select("phone").eq("is_official", true).single();
+    if (data?.phone) {
+      await supabase.functions.invoke("send-sms", {
+        body: { type: "admin.alert", record: { phone: data.phone, message } },
+      });
+    }
+  } catch (e) { console.warn("Admin notify failed:", e); }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -84,117 +72,150 @@ serve(async (req) => {
     const { order_id, trigger } = await req.json();
     if (!order_id) throw new Error("order_id is required");
 
-    console.log(`Processing payout for order ${order_id}, trigger: ${trigger}`);
+    console.log(`[release-payment] order=${order_id} trigger=${trigger}`);
 
-    // Fetch order
+    // ── Fetch order ──────────────────────────────────────────────────────────
     const { data: order, error: orderErr } = await supabase
-      .from("orders")
-      .select("*")
-      .eq("id", order_id)
-      .single();
+      .from("orders").select("*").eq("id", order_id).single();
 
     if (orderErr || !order) throw new Error("Order not found");
+
+    // ── Guard: skip already-processed orders ────────────────────────────────
     if (order.payout_status !== "pending") {
-      return new Response(JSON.stringify({ message: `Order already ${order.payout_status}` }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    if (order.payout_status === "disputed") throw new Error("Order is disputed — cannot auto-release");
-
-    // Check if seller is official — official accounts bypass escrow entirely
-    const { data: sellerCheck } = await supabase
-      .from("profiles")
-      .select("is_official")
-      .eq("id", order.seller_id)
-      .single();
-
-    if (sellerCheck?.is_official) {
-      console.log(`Seller is official — skipping escrow payout for order ${order_id}`);
-      return new Response(JSON.stringify({ message: "Official seller — no escrow payout needed" }), {
+      console.log(`Order ${order_id} already ${order.payout_status} — skipping`);
+      return new Response(JSON.stringify({ message: `Already ${order.payout_status}` }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Official sellers bypass escrow — their sales are direct, no payout transfer needed
-    const { data: sellerProfile } = await supabase
-      .from("profiles").select("is_official").eq("id", order.seller_id).single();
-    if (sellerProfile?.is_official) {
-      await supabase.from("orders").update({ payout_status: "released" }).eq("id", order_id);
-      return new Response(JSON.stringify({ success: true, message: "Official seller — direct sale, no transfer needed" }), {
+    // ── Guard: never release a disputed order ───────────────────────────────
+    if (order.payout_status === "disputed") {
+      return new Response(JSON.stringify({ message: "Disputed — manual resolution required" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Fetch seller payout details + verified status
+    // ── Fetch seller ─────────────────────────────────────────────────────────
     const { data: seller, error: sellerErr } = await supabase
       .from("profiles")
-      .select("payout_method, payout_number, payout_name, name, phone, verified")
+      .select("is_official, verified, payout_method, payout_number, payout_name, name, phone")
       .eq("id", order.seller_id)
       .single();
 
     if (sellerErr || !seller) throw new Error("Seller not found");
 
-    // Standard (unverified) sellers use pay-on-delivery — no payout transfer needed
-    if (!seller.verified) {
-      console.log(`Standard seller ${order.seller_id} — pay on delivery, no transfer needed`);
+    // ── Official seller — direct sale, no transfer ───────────────────────────
+    if (seller.is_official) {
       await supabase.from("orders").update({ payout_status: "released" }).eq("id", order_id);
-      return new Response(JSON.stringify({ message: "Standard seller — pay on delivery, no transfer" }), {
+      return new Response(JSON.stringify({ success: true, message: "Official — no transfer needed" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Verified seller but no payout details — hold funds and SMS them
-    if (!seller.payout_method || !seller.payout_number) {
-      console.warn(`Verified seller ${order.seller_id} has no payout details`);
+    // ── Standard seller — pay on delivery, no transfer ───────────────────────
+    if (!seller.verified) {
+      await supabase.from("orders").update({ payout_status: "released" }).eq("id", order_id);
+      return new Response(JSON.stringify({ success: true, message: "Standard seller — pay on delivery" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-      // SMS the seller to add their payout details
+    // ── Verified seller — check payout details ───────────────────────────────
+    if (!seller.payout_method || !seller.payout_number) {
+      // Mark as transfer_failed so admin can see it
+      await supabase.from("orders").update({
+        payout_status: "transfer_failed",
+        transfer_failure_reason: "Seller has no payout details configured",
+        transfer_failed_at: new Date().toISOString(),
+        transfer_attempts: (order.transfer_attempts ?? 0) + 1,
+      }).eq("id", order_id);
+
+      // SMS seller
+      try {
+        await supabase.functions.invoke("send-sms", {
+          body: { type: "payout.missing_details", record: { seller_id: order.seller_id, seller_phone: seller.phone, order_id } },
+        });
+      } catch (e) { console.warn("SMS failed:", e); }
+
+      // Alert admin
+      await notifyAdmin(`⚠️ Payout failed for order ${order_id.slice(0, 8)} — seller has no payout details set.`);
+
+      return new Response(JSON.stringify({ success: false, message: "No payout details — marked as transfer_failed" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── Calculate payout ─────────────────────────────────────────────────────
+    const commission   = Math.round(order.total * COMMISSION_RATE * 100) / 100;
+    const payoutAmount = Math.round((order.total - commission) * 100) / 100;
+    console.log(`Total: GHS ${order.total} | Commission: GHS ${commission} | Payout: GHS ${payoutAmount}`);
+
+    // ── Create recipient & initiate transfer ─────────────────────────────────
+    let transferCode: string;
+    let transferStatus: string;
+
+    try {
+      const recipientCode = await createRecipient(
+        seller.payout_name ?? seller.name,
+        seller.payout_number,
+        seller.payout_method
+      );
+      const transfer = await initiateTransfer(recipientCode, payoutAmount, order_id);
+      transferCode   = transfer.transfer_code;
+      transferStatus = transfer.status;
+      console.log(`Transfer initiated: ${transferCode} status: ${transferStatus}`);
+    } catch (transferErr) {
+      console.error("Transfer failed:", transferErr);
+
+      const attempts = (order.transfer_attempts ?? 0) + 1;
+      const reason   = String(transferErr);
+
+      // Mark order as transfer_failed with full details
+      await supabase.from("orders").update({
+        payout_status: "transfer_failed",
+        transfer_failure_reason: reason,
+        transfer_failed_at: new Date().toISOString(),
+        transfer_attempts: attempts,
+      }).eq("id", order_id);
+
+      // SMS seller — their payout failed
       try {
         await supabase.functions.invoke("send-sms", {
           body: {
-            type: "payout.missing_details",
+            type: "payout.transfer_failed",
             record: {
               seller_id: order.seller_id,
               seller_phone: seller.phone,
               order_id,
+              reason,
+              attempts,
             },
           },
         });
       } catch (e) { console.warn("SMS failed:", e); }
 
-      // Keep payout_status as pending — funds stay held until they add details
-      return new Response(JSON.stringify({
-        success: false,
-        message: "Payout held — seller has no payout details. SMS sent.",
-      }), {
+      // Alert admin with full context
+      await notifyAdmin(
+        `🚨 Transfer FAILED for order ${order_id.slice(0,8)} — GHS ${payoutAmount} to ${seller.name} (${seller.payout_method}). Attempt ${attempts}. Reason: ${reason.slice(0, 100)}. Fix at /admin`
+      );
+
+      return new Response(JSON.stringify({ success: false, error: reason, attempts }), {
+        status: 200, // don't 500 — let auto-release log it cleanly
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Calculate payout (total minus 5% commission)
-    const commission = Math.round(order.total * COMMISSION_RATE * 100) / 100;
-    const payoutAmount = Math.round((order.total - commission) * 100) / 100;
-
-    console.log(`Order total: GHS ${order.total}, Commission: GHS ${commission}, Payout: GHS ${payoutAmount}`);
-
-    // Create Paystack recipient
-    const recipientCode = await createRecipient(
-      seller.payout_name ?? seller.name,
-      seller.payout_number,
-      seller.payout_method
-    );
-
-    // Initiate transfer
-    const transfer = await initiateTransfer(recipientCode, payoutAmount, order_id);
-    console.log("Transfer initiated:", transfer.transfer_code);
-
-    // Update order status
+    // ── Transfer initiated — update order ────────────────────────────────────
+    // Note: "pending" from Paystack means queued, not failed.
+    // The webhook will confirm actual success/failure.
     const newStatus = trigger === "auto" ? "auto_released" : "released";
-    await supabase
-      .from("orders")
-      .update({ payout_status: newStatus })
-      .eq("id", order_id);
+    await supabase.from("orders").update({
+      payout_status: newStatus,
+      transfer_code: transferCode,
+      transfer_initiated_at: new Date().toISOString(),
+    }).eq("id", order_id);
 
-    // Notify seller via SMS
+    // SMS seller — payout on its way
     try {
       await supabase.functions.invoke("send-sms", {
         body: {
@@ -209,21 +230,19 @@ serve(async (req) => {
           },
         },
       });
-    } catch (smsErr) {
-      console.warn("SMS notification failed (non-fatal):", smsErr);
-    }
+    } catch (e) { console.warn("SMS failed (non-fatal):", e); }
 
     return new Response(JSON.stringify({
       success: true,
-      transfer_code: transfer.transfer_code,
+      transfer_code: transferCode,
+      transfer_status: transferStatus,
       payout_amount: payoutAmount,
       commission,
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (err) {
-    console.error("Release payment error:", err);
+    console.error("[release-payment] Unhandled error:", err);
+    await notifyAdmin(`🚨 release-payment crashed: ${String(err).slice(0, 150)}`).catch(() => {});
     return new Response(JSON.stringify({ error: String(err) }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
