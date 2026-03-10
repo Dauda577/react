@@ -2,15 +2,15 @@
 import { supabase } from "@/lib/supabase";
 
 type SMSEvent =
-  | { type: "order.created"; record: any }
-  | { type: "order.shipped"; record: any }
-  | { type: "order.delivered"; record: any }
-  | { type: "message.created"; record: any }
-  | { type: "listing.created"; record: any }
-  | { type: "payout.released"; record: any }
-  | { type: "order.dispute_reminder"; record: any }
+  | { type: "order.created";          record: any }
+  | { type: "order.shipped";          record: any }
+  | { type: "order.delivered";        record: any }
+  | { type: "message.created";        record: any }
+  | { type: "listing.created";        record: any }
+  | { type: "payout.released";        record: any }
   | { type: "payout.missing_details"; record: any }
-  | { type: "order.dispute_raised"; record: any };
+  | { type: "payout.transfer_failed"; record: any }
+  | { type: "admin.alert";            record: any };
 
 export async function triggerSMS(event: SMSEvent) {
   try {
@@ -19,7 +19,6 @@ export async function triggerSMS(event: SMSEvent) {
     });
     if (error) console.warn("SMS trigger failed:", error.message);
   } catch (err) {
-    // Never let SMS failure break the app
     console.warn("SMS error (non-fatal):", err);
   }
 }

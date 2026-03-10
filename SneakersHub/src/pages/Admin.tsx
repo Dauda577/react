@@ -19,7 +19,6 @@ type AdminOrder = {
   total: number;
   status: string;
   payout_status: string;
-  dispute_reason: string | null;
   release_at: string | null;
   seller_confirmed: boolean;
   buyer_confirmed: boolean;
@@ -92,12 +91,11 @@ const Admin = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"overview" | "disputes" | "failed" | "orders" | "payouts">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "failed" | "orders" | "payouts">("overview");
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
-  const [resolvingDispute, setResolvingDispute] = useState<string | null>(null);
 
   const [authChecked, setAuthChecked] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
@@ -192,10 +190,10 @@ const Admin = () => {
     </div>
   );
 
+  // ── Resolve dispute ────────────────────────────────────────────────────────
   // ── Computed stats ─────────────────────────────────────────────────────────
   const nonOfficialOrders = orders.filter(o => !o.seller_is_official);
   const pendingOrders     = nonOfficialOrders.filter(o => o.payout_status === "pending");
-  const disputedOrders    = orders.filter(o => o.payout_status === "disputed");
   const failedOrders      = orders.filter(o => o.payout_status === "transfer_failed");
   const releasedOrders    = nonOfficialOrders.filter(o => o.payout_status === "released" || o.payout_status === "auto_released");
   const officialOrders    = orders.filter(o => o.seller_is_official);
@@ -212,45 +210,6 @@ const Admin = () => {
     today:      releasedOrders.filter(o => new Date(o.placed_at) >= todayStart).reduce((s, o) => s + o.total * COMMISSION_RATE, 0),
   };
 
-  // ── Resolve dispute ────────────────────────────────────────────────────────
-  const resolveDispute = async (orderId: string, favorOf: "buyer" | "seller") => {
-    setResolvingDispute(orderId);
-    try {
-      if (favorOf === "seller") {
-        // Step 1: Reset payout_status to "pending" so release-payment will process it
-        const { error: resetError } = await supabase
-          .from("orders")
-          .update({ payout_status: "pending" })
-          .eq("id", orderId);
-        if (resetError) throw new Error(`Reset failed: ${resetError.message}`);
-
-        // Step 2: Call release-payment
-        const { data, error } = await supabase.functions.invoke("release-payment", {
-          body: JSON.stringify({ order_id: orderId, trigger: "manual_admin", caller_id: user?.id }),
-          headers: { "Content-Type": "application/json" },
-        });
-        if (error) throw new Error(`Edge Function error: ${error.message}`);
-        if (data?.error) throw new Error(`Payment error: ${data.error}`);
-
-        toast.success("Funds released to seller ✓");
-      } else {
-        // Refund buyer — set to refunded, open Paystack for manual refund
-        const { error } = await supabase
-          .from("orders")
-          .update({ payout_status: "refunded" })
-          .eq("id", orderId);
-        if (error) throw new Error(error.message);
-        toast.success("Marked as refunded — opening Paystack to process the refund", { duration: 6000 });
-        window.open("https://dashboard.paystack.com/#/transactions", "_blank");
-      }
-      setResolvingDispute(null);
-      await fetchData();
-    } catch (err: any) {
-      console.error("resolveDispute error:", err);
-      toast.error(err.message ?? "Failed to resolve dispute");
-      setResolvingDispute(null);
-    }
-  };
 
   // ── Filtered orders ────────────────────────────────────────────────────────
   const filteredOrders = orders.filter(o => {
@@ -268,7 +227,6 @@ const Admin = () => {
 
   const tabs = [
     { id: "overview",  label: "Overview",   icon: BarChart2 },
-    { id: "disputes",  label: "Disputes",   icon: AlertTriangle, badge: disputedOrders.length },
     { id: "failed",    label: "Failed Transfers", icon: AlertTriangle, badge: failedOrders.length },
     { id: "orders",    label: "All Orders", icon: Package },
     { id: "payouts",   label: "Payouts",    icon: Wallet },
@@ -323,12 +281,11 @@ const Admin = () => {
             {activeTab === "overview" && (
               <div className="space-y-8">
                 <div>
-                  <SectionHeader title="Escrow" icon={Clock} />
+                  <SectionHeader title="Platform Activity" icon={Package} />
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <StatCard label="Held in Escrow" value={formatGHS(pendingOrders.reduce((s,o) => s+o.total, 0))}
-                      sub={`${pendingOrders.length} pending orders`} icon={Clock} accent="bg-amber-500/10 text-amber-600" />
-                    <StatCard label="Disputed" value={formatGHS(disputedOrders.reduce((s,o) => s+o.total, 0))}
-                      sub={`${disputedOrders.length} active disputes`} icon={AlertTriangle} accent="bg-red-500/10 text-red-600" />
+                    <StatCard label="Pending Transfers" value={formatGHS(pendingOrders.reduce((s,o) => s+o.total, 0))}
+                      sub={`${pendingOrders.length} in progress`} icon={Clock} accent="bg-amber-500/10 text-amber-600" />
+                    <StatCard  />
                     {failedOrders.length > 0 && (
                       <StatCard label="Failed Transfers" value={formatGHS(failedOrders.reduce((s,o) => s+o.total, 0))}
                         sub={`${failedOrders.length} need attention`} icon={AlertTriangle} accent="bg-orange-500/10 text-orange-600" />
@@ -336,7 +293,7 @@ const Admin = () => {
                     <StatCard label="Total Released" value={formatGHS(releasedOrders.reduce((s,o) => s+o.total, 0))}
                       sub={`${releasedOrders.length} orders`} icon={CheckCircle} accent="bg-green-500/10 text-green-600" />
                     <StatCard label="Official Sales (yours)" value={formatGHS(officialOrders.reduce((s,o) => s+o.total, 0))}
-                      sub="bypasses escrow" icon={ShieldAlert} accent="bg-purple-500/10 text-purple-600" />
+                      sub="direct sales" icon={ShieldAlert} accent="bg-purple-500/10 text-purple-600" />
                   </div>
                 </div>
 
@@ -350,148 +307,6 @@ const Admin = () => {
                   </div>
                 </div>
 
-                {disputedOrders.length > 0 && (
-                  <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
-                    className="rounded-2xl border border-red-500/30 bg-red-500/5 p-5 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-red-500/10 flex items-center justify-center flex-shrink-0">
-                        <AlertTriangle className="w-4 h-4 text-red-500" />
-                      </div>
-                      <div>
-                        <p className="font-display font-bold text-sm text-red-600">
-                          {disputedOrders.length} dispute{disputedOrders.length > 1 ? "s" : ""} need your attention
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {formatGHS(disputedOrders.reduce((s,o) => s+o.total, 0))} frozen
-                        </p>
-                      </div>
-                    </div>
-                    <button onClick={() => setActiveTab("disputes")}
-                      className="px-4 py-2 rounded-full bg-red-500 text-white text-xs font-semibold hover:bg-red-600 transition-colors flex-shrink-0">
-                      Resolve Now
-                    </button>
-                  </motion.div>
-                )}
-
-                {/* Breakdown table */}
-                <div>
-                  <SectionHeader title="Order Breakdown" icon={BarChart2} />
-                  <div className="rounded-2xl border border-border overflow-hidden">
-                    {(["pending","released","auto_released","disputed"] as const).map((status, i) => {
-                      const subset = nonOfficialOrders.filter(o => o.payout_status === status);
-                      const labels: Record<string, string> = {
-                        pending: "Pending / In Escrow", released: "Released to Seller",
-                        auto_released: "Auto-Released", disputed: "Disputed",
-                      };
-                      return (
-                        <div key={status} className={`flex items-center justify-between px-5 py-4 gap-4 ${i > 0 ? "border-t border-border" : ""}`}>
-                          <div className="flex items-center gap-3">
-                            <span className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-bold border ${payoutColors[status]}`}>
-                              {labels[status]}
-                            </span>
-                            <span className="text-xs text-muted-foreground">{subset.length} orders</span>
-                          </div>
-                          <p className="font-display font-bold text-sm">{formatGHS(subset.reduce((s,o) => s+o.total, 0))}</p>
-                        </div>
-                      );
-                    })}
-                    <div className="flex items-center justify-between px-5 py-4 border-t border-border bg-muted/20">
-                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Your Official Sales</span>
-                      <p className="font-display font-bold text-sm">{formatGHS(officialOrders.reduce((s,o) => s+o.total, 0))}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ── Disputes ── */}
-            {activeTab === "disputes" && (
-              <div>
-                <SectionHeader title="Active Disputes" icon={AlertTriangle} count={disputedOrders.length} />
-                {disputedOrders.length === 0 ? (
-                  <div className="text-center py-20">
-                    <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-4">
-                      <CheckCircle className="w-5 h-5 text-green-500" />
-                    </div>
-                    <p className="font-display font-bold text-lg">No active disputes</p>
-                    <p className="text-sm text-muted-foreground mt-1">All orders are running smoothly.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {disputedOrders.map((order, i) => (
-                      <motion.div key={order.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.05 }}
-                        className="rounded-2xl border border-red-500/20 bg-red-500/[0.03] p-5">
-                        <div className="flex items-start justify-between gap-3 mb-4">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-display font-bold text-sm">{formatId(order.id)}</p>
-                              <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/10 text-red-600 border border-red-500/20">Disputed</span>
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {new Date(order.placed_at).toLocaleDateString("en-GH", { day: "numeric", month: "short", year: "numeric" })}
-                            </p>
-                          </div>
-                          <p className="font-display font-bold text-lg text-red-600">{formatGHS(order.total)}</p>
-                        </div>
-
-                        {order.dispute_reason && (
-                          <div className="rounded-xl bg-red-500/5 border border-red-500/15 p-3 mb-4">
-                            <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Buyer's reason</p>
-                            <p className="text-sm">"{order.dispute_reason}"</p>
-                          </div>
-                        )}
-
-                        <div className="grid grid-cols-2 gap-3 mb-4">
-                          <div className="rounded-xl border border-border p-3">
-                            <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1.5">Buyer</p>
-                            <p className="text-sm font-semibold">{order.buyer_first_name} {order.buyer_last_name}</p>
-                            <a href={`tel:${order.buyer_phone}`} className="text-xs text-primary flex items-center gap-1 mt-1">
-                              <Phone className="w-3 h-3" /> {order.buyer_phone}
-                            </a>
-                            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                              <MapPin className="w-3 h-3" /> {order.buyer_city}
-                            </p>
-                          </div>
-                          <div className="rounded-xl border border-border p-3">
-                            <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1.5">Seller</p>
-                            <p className="text-sm font-semibold">{order.seller_name}</p>
-                            {order.seller_phone && (
-                              <a href={`tel:${order.seller_phone}`} className="text-xs text-primary flex items-center gap-1 mt-1">
-                                <Phone className="w-3 h-3" /> {order.seller_phone}
-                              </a>
-                            )}
-                          </div>
-                        </div>
-
-                        {resolvingDispute === order.id ? (
-                          <div className="space-y-3">
-                            <p className="text-xs font-semibold">Who should receive the funds?</p>
-                            <div className="flex gap-2">
-                              <button onClick={() => resolveDispute(order.id, "seller")}
-                                className="flex-1 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity">
-                                Release to Seller
-                              </button>
-                              <button onClick={() => resolveDispute(order.id, "buyer")}
-                                className="flex-1 px-4 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-muted/40 transition-colors">
-                                Refund Buyer
-                              </button>
-                              <button onClick={() => setResolvingDispute(null)}
-                                className="px-3 py-2.5 rounded-xl border border-border text-muted-foreground hover:bg-muted/40 transition-colors">
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <button onClick={() => setResolvingDispute(order.id)}
-                            className="w-full px-4 py-2.5 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors text-sm font-semibold text-primary">
-                            Resolve Dispute
-                          </button>
-                        )}
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
               </div>
             )}
 
@@ -583,7 +398,6 @@ const Admin = () => {
                       <option value="pending">Pending</option>
                       <option value="released">Released</option>
                       <option value="auto_released">Auto-released</option>
-                      <option value="disputed">Disputed</option>
                     </select>
                   </div>
                 </div>
@@ -669,14 +483,7 @@ const Admin = () => {
                                 </p>
                               </div>
                             </div>
-                            {order.dispute_reason && (
-                              <div className="px-5 pb-4">
-                                <div className="rounded-xl bg-red-500/5 border border-red-500/15 p-3">
-                                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Dispute reason</p>
-                                  <p className="text-sm">"{order.dispute_reason}"</p>
-                                </div>
-                              </div>
-                            )}
+
                           </motion.div>
                         )}
                       </AnimatePresence>

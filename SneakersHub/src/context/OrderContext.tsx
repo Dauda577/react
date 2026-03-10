@@ -33,9 +33,9 @@ export type Order = {
   sellerId: string;
   buyerId: string;
   // Escrow fields
-  releaseAt: string | null;
-  payoutStatus: "pending" | "released" | "disputed" | "auto_released";
-  disputeReason: string | null;
+  releaseAt: string | null; // kept for DB compat
+  payoutStatus: "pending" | "released" | "auto_released" | "transfer_failed";
+  disputeReason: string | null; // kept for DB compat
   paystackReference: string | null;
 };
 
@@ -54,7 +54,6 @@ type OrderContextType = {
 
 const OrderContext = createContext<OrderContextType | null>(null);
 
-const AUTO_RELEASE_DAYS = 3;
 
 const rowToOrder = (row: OrderRow, items: OrderItemRow[]): Order => ({
   id: row.id,
@@ -229,38 +228,36 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     const order = orders.find((o) => o.id === orderId);
     const newStatus = order?.buyerConfirmed ? "delivered" : "shipped";
 
-    // Check if seller is official — official sellers bypass escrow entirely
+    // Check if seller is official
     const { data: sellerProfile } = await supabase
       .from("profiles").select("is_official").eq("id", order?.sellerId ?? "").single();
     const isOfficial = sellerProfile?.is_official ?? false;
 
-    // Only set release_at for non-official sellers
-    const releaseAt = isOfficial
-      ? null
-      : new Date(Date.now() + AUTO_RELEASE_DAYS * 24 * 60 * 60 * 1000).toISOString();
-
     setOrders((prev) =>
       prev.map((o) => o.id === orderId
-        ? { ...o, sellerConfirmed: true, status: newStatus as Order["status"], releaseAt,
-            payoutStatus: isOfficial ? "released" : o.payoutStatus }
+        ? { ...o, sellerConfirmed: true, status: newStatus as Order["status"],
+            payoutStatus: isOfficial ? "released" : "pending" }
         : o)
     );
 
-    const updatePayload: Record<string, any> = {
+    await supabase.from("orders").update({
       seller_confirmed: true,
       status: newStatus,
-    };
-    if (!isOfficial) updatePayload.release_at = releaseAt;
-    if (isOfficial) updatePayload.payout_status = "released"; // official = direct sale, mark immediately
+      payout_status: isOfficial ? "released" : "pending",
+    }).eq("id", orderId);
 
-    const { error } = await supabase.from("orders").update(updatePayload).eq("id", orderId);
-    if (error) { await fetchOrders(); throw new Error(error.message); }
+    // Trigger immediate transfer for verified sellers — no escrow hold
+    if (!isOfficial) {
+      triggerRelease(orderId, "immediate").catch((err) =>
+        console.warn("Immediate transfer failed:", err)
+      );
+    }
 
+    // SMS buyer
     await triggerSMS({
       type: "order.shipped",
       record: {
         id: orderId,
-        release_at: releaseAt,
         buyer_id: order?.buyerId,
         buyer: order?.buyer,
         total: order?.total,
@@ -268,11 +265,6 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
         ...order,
       }
     });
-
-    // If buyer already confirmed AND seller is not official, trigger escrow release
-    if (order?.buyerConfirmed && !isOfficial) {
-      await triggerRelease(orderId, "immediate");
-    }
   };
 
   const confirmAsBuyer = async (orderId: string) => {
@@ -304,66 +296,33 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       }
     });
 
-    // If seller already confirmed, trigger immediate payment release
-    if (order?.sellerConfirmed) {
-      await triggerRelease(orderId, "immediate");
-    }
+    // Payment already transferred when seller confirmed dispatch
+    // No additional release needed
   };
 
   // ── Trigger payment release ───────────────────────────────────────────────
   const triggerRelease = async (orderId: string, trigger: "immediate" | "auto") => {
     try {
-      const { error } = await supabase.functions.invoke("release-payment", {
-        body: { order_id: orderId, trigger },
+      const fnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/release-payment`;
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(fnUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token}`,
+          "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ order_id: orderId, trigger }),
       });
-      if (error) console.warn("Payment release failed (non-fatal):", error);
+      if (!res.ok) console.warn("Payment release failed (non-fatal):", await res.text());
     } catch (err) {
       console.warn("Payment release error (non-fatal):", err);
     }
   };
 
-  // ── Raise a dispute ───────────────────────────────────────────────────────
-  const raiseDispute = async (orderId: string, reason: string) => {
-    const order = orders.find((o) => o.id === orderId);
-    if (!order) throw new Error("Order not found");
-
-    // Can only dispute within 3 days of seller confirming
-    if (order.releaseAt) {
-      const releaseDate = new Date(order.releaseAt);
-      if (new Date() > releaseDate) {
-        throw new Error("Dispute window has closed — funds have been auto-released");
-      }
-    }
-
-    setOrders((prev) =>
-      prev.map((o) => o.id === orderId
-        ? { ...o, payoutStatus: "disputed", disputeReason: reason }
-        : o)
-    );
-
-    const { error } = await supabase.from("orders").update({
-      payout_status: "disputed",
-      dispute_reason: reason,
-    }).eq("id", orderId);
-
-    if (error) { await fetchOrders(); throw new Error(error.message); }
-
-    // Notify admin via SMS + trigger push via SMS function
-    try {
-      await triggerSMS({
-        type: "order.dispute_raised",
-        record: {
-          order_id: orderId,
-          buyer_id: order.buyerId,
-          seller_id: order.sellerId,
-          total: order.total,
-          reason,
-          items: order.items,
-        },
-      });
-    } catch (e) {
-      console.warn("Failed to send dispute notification:", e);
-    }
+  // ── Disputes removed — payments transfer immediately on dispatch ─────────
+  const raiseDispute = async (_orderId: string, _reason: string) => {
+    throw new Error("Disputes are not available — payment was transferred when the seller dispatched your order. Please contact support directly.");
   };
 
   const markOrdersSeen = async () => {

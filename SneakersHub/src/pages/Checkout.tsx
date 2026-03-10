@@ -88,12 +88,12 @@ const TierBanner = ({ tier }: { tier: SellerTier }) => {
       style={{ background: "linear-gradient(135deg, rgba(109,40,217,0.08), rgba(30,27,75,0.12))", border: "1px solid rgba(109,40,217,0.3)" }}>
       <Sparkles className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: "#a78bfa" }} />
       <div className="space-y-1.5">
-        <p className="text-sm font-bold" style={{ color: "#a78bfa" }}>SneakersHub Official — Escrow Protected</p>
+        <p className="text-sm font-bold" style={{ color: "#a78bfa" }}>SneakersHub Official</p>
         <p className="text-xs text-muted-foreground leading-relaxed">
-          Pay now via card or Mobile Money. Your payment is held by SneakersHub and only released once you confirm receipt of your order.
+          Pay now via card or Mobile Money. Official store — your order is handled directly by SneakersHub.
         </p>
         <div className="flex flex-wrap gap-3 pt-1">
-          {["Payment held until delivery", "Confirm receipt to release funds", "Raise a dispute if anything goes wrong"].map(point => (
+          {["Secure Paystack payment", "Verified official store", "Fast dispatch guaranteed"].map(point => (
             <span key={point} className="flex items-center gap-1 text-[11px] font-medium" style={{ color: "#a78bfa" }}>
               <CheckCircle className="w-3 h-3 flex-shrink-0" /> {point}
             </span>
@@ -108,12 +108,12 @@ const TierBanner = ({ tier }: { tier: SellerTier }) => {
       className="rounded-2xl border border-green-500/30 bg-green-500/5 p-4 flex items-start gap-3">
       <ShieldCheck className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
       <div className="space-y-1.5">
-        <p className="text-sm font-display font-semibold text-green-700 dark:text-green-400">Verified Seller — Escrow Protected</p>
+        <p className="text-sm font-display font-semibold text-green-700 dark:text-green-400">Verified Seller — Secure Payment</p>
         <p className="text-xs text-muted-foreground leading-relaxed">
-          Pay now via card or Mobile Money. Your payment is held securely by SneakersHub and only transferred to the seller after you confirm receipt.
+          Pay securely via card or Mobile Money. Funds transfer to the seller when they dispatch your order.
         </p>
         <div className="flex flex-wrap gap-3 pt-1">
-          {["Funds held until you confirm", "3 days to dispute if needed", "Auto-released after 3 days"].map(point => (
+          {["Secure Paystack payment", "Verified seller", "Instant transfer on dispatch"].map(point => (
             <span key={point} className="flex items-center gap-1 text-[11px] font-medium text-green-600">
               <CheckCircle className="w-3 h-3 flex-shrink-0" /> {point}
             </span>
@@ -198,7 +198,7 @@ const Checkout = () => {
       subtotal: group.total,
       deliveryFee: 0,
       total: group.total,
-      ...(paystackRef ? { escrow_status: "held", paystack_reference: paystackRef } : {}),
+      ...(paystackRef ? { payout_status: "pending", paystack_reference: paystackRef } : {}),
     });
   };
 
@@ -270,7 +270,7 @@ const Checkout = () => {
             paymentCompleted = true;
             toast.success(groupTier === "official"
               ? "Payment received — Official order placed!"
-              : "Payment received — held in escrow until delivery!"
+              : "Payment received"
             );
             // Run async work outside the callback
             submitGroupOrder(group, response.reference)
@@ -523,10 +523,10 @@ const Checkout = () => {
                 </div>
                 <div>
                   <p className="font-display text-sm font-semibold">
-                    {tier === "official" ? "Pay now — Escrow Protected" : "Pay now — Escrow Protected"}
+                    {tier === "official" ? "Pay now — Official Store" : "Pay now — Secure Payment"}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                    Your payment is collected now via card or Mobile Money and held securely by SneakersHub. It is only released once you confirm receipt of your order.
+                    Your payment is collected now via card or Mobile Money and transferred to the seller once they dispatch your order.
                   </p>
                 </div>
               </div>
@@ -587,13 +587,13 @@ const Checkout = () => {
               <div className="flex items-center gap-1.5 mb-4 px-3 py-2 rounded-xl"
                 style={{ background: "rgba(109,40,217,0.08)", border: "1px solid rgba(109,40,217,0.2)" }}>
                 <Sparkles className="w-3 h-3 flex-shrink-0" style={{ color: "#a78bfa" }} />
-                <p className="text-[11px] font-bold" style={{ color: "#a78bfa" }}>Official Product · Payment held in escrow</p>
+                <p className="text-[11px] font-bold" style={{ color: "#a78bfa" }}>Official Product · Secure Paystack Payment</p>
               </div>
             )}
             {tier === "verified" && (
               <div className="flex items-center gap-1.5 mb-4 px-3 py-2 rounded-xl bg-green-500/5 border border-green-500/20">
                 <ShieldCheck className="w-3 h-3 text-green-500 flex-shrink-0" />
-                <p className="text-[11px] font-semibold text-green-600">Verified Seller · Payment held in escrow</p>
+                <p className="text-[11px] font-semibold text-green-600">Verified Seller · Secure Paystack Payment</p>
               </div>
             )}
             {tier === "standard" && (
@@ -643,7 +643,7 @@ const Checkout = () => {
                   {tier === "official"
                     ? <><Sparkles className="w-4 h-4" /> Pay GHS {currentGroup?.total ?? 0}</>
                     : tier === "verified"
-                      ? <><Lock className="w-4 h-4" /> Pay GHS {currentGroup?.total ?? 0} — Escrow</>
+                      ? <><Lock className="w-4 h-4" /> Pay GHS {currentGroup?.total ?? 0} Securely</>
                       : <><Package className="w-4 h-4" /> Place Order — Pay on Delivery</>
                   }
                 </span>
