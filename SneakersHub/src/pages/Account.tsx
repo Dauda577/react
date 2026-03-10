@@ -361,6 +361,7 @@ const Account = () => {
   const [ratingOrderId, setRatingOrderId] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isVerified, setIsVerified] = useState(false);
+  const [isOfficial, setIsOfficial] = useState(false);
 
   // First-listing onboarding state
   const [showFirstListingBanner, setShowFirstListingBanner] = useState(false);
@@ -491,11 +492,12 @@ const Account = () => {
   useEffect(() => {
     if (!user?.id) return;
     import("@/lib/supabase").then(({ supabase }) => {
-      supabase.from("profiles").select("name, phone, city, verified, payout_method, payout_number, payout_name").eq("id", user.id).single()
+      supabase.from("profiles").select("name, phone, city, verified, is_official, payout_method, payout_number, payout_name").eq("id", user.id).single()
         .then(({ data }) => {
           if (data) {
             setProfileForm((p) => ({ ...p, name: data.name ?? p.name, phone: data.phone ?? "", city: data.city ?? "" }));
             setIsVerified(data.verified ?? false);
+            setIsOfficial(data.is_official ?? false);
             if (data.payout_method) {
               setPayoutForm({ method: data.payout_method ?? "", number: data.payout_number ?? "", name: data.payout_name ?? "" });
             }
@@ -727,7 +729,7 @@ const Account = () => {
                         </div>
                       </motion.div>
                     )}
-                    {role === "seller" && (() => {
+                    {role === "seller" && !isOfficial && (() => {
                       const sellerReviews = reviews.filter((r) => r.sellerId === (user?.id ?? ""));
                       const result = getSellerStats(user?.id ?? "");
                       const average = result?.average ?? 0;
@@ -1114,7 +1116,7 @@ const Account = () => {
                 </AnimatePresence>
 
                 {/* Missing payout details warning for verified sellers */}
-                {isVerified && hasMissingPayoutDetails && (
+                {isVerified && hasMissingPayoutDetails && !isOfficial && (
                   <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
                     className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 mb-5 flex items-start gap-3">
                     <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center flex-shrink-0">
@@ -1421,14 +1423,14 @@ const Account = () => {
                     </div>
                   </div>
                 </div>
-                {role === "seller" && (
+                {role === "seller" && !isOfficial && (
                   <div className="rounded-2xl border border-border overflow-hidden">
                     <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border bg-muted/20">
                       <Wallet className="w-4 h-4 text-primary" />
                       <p className="font-display font-semibold text-sm">Payout Details</p>
                     </div>
                     <div className="p-5 space-y-4">
-                      {isVerified && hasMissingPayoutDetails && (
+                      {isVerified && hasMissingPayoutDetails && !isOfficial && (
                         <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
                           <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
                           <p className="text-xs font-semibold text-amber-600">Required — your payouts are being held until you add these details.</p>
