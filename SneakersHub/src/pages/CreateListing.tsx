@@ -10,6 +10,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import PayoutDetailsGuard from "@/components/PayoutDetailsGuard";
 
 const categories = ["Running", "Lifestyle", "Basketball", "Outdoor", "Training", "Other"];
 const allSizes = [36, 37, 38, 39, 40, 41, 42, 43, 44, 45];
@@ -96,6 +97,7 @@ const CreateListing = () => {
   };
 
   return (
+    <PayoutDetailsGuard>
     <div className="min-h-screen bg-background">
       <Navbar />
 
@@ -275,6 +277,7 @@ const CreateListing = () => {
 
       <Footer />
     </div>
+    </PayoutDetailsGuard>
   );
 };
 

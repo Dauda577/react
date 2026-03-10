@@ -374,6 +374,7 @@ const Account = () => {
   const [disputeLoading, setDisputeLoading] = useState(false);
   const [payoutForm, setPayoutForm] = useState({ method: "", number: "", name: "" });
   const [payoutSaved, setPayoutSaved] = useState(false);
+  const [hasMissingPayoutDetails, setHasMissingPayoutDetails] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -498,6 +499,10 @@ const Account = () => {
             if (data.payout_method) {
               setPayoutForm({ method: data.payout_method ?? "", number: data.payout_number ?? "", name: data.payout_name ?? "" });
             }
+            // Flag verified sellers with missing payout details
+            if (data.verified && (!data.payout_method || !data.payout_number)) {
+              setHasMissingPayoutDetails(true);
+            }
           }
         });
     });
@@ -506,6 +511,16 @@ const Account = () => {
   useEffect(() => {
     if (role === "seller" && activeTab === "orders") markOrdersSeen();
   }, [role, activeTab]);
+
+  // Handle ?tab= query param (e.g. from PayoutDetailsGuard redirect)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab");
+    if (tab && ["profile","orders","listings","analytics","messages","settings"].includes(tab)) {
+      setActiveTab(tab as any);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1098,6 +1113,26 @@ const Account = () => {
                   )}
                 </AnimatePresence>
 
+                {/* Missing payout details warning for verified sellers */}
+                {isVerified && hasMissingPayoutDetails && (
+                  <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+                    className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 mb-5 flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                      <AlertTriangle className="w-4 h-4 text-amber-500" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Add payout details to receive payments</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                        You're a verified seller — buyers pay via Paystack. Without payout details, your earnings will be held and you won't receive transfers.
+                      </p>
+                      <button onClick={() => setActiveTab("settings")}
+                        className="inline-flex items-center gap-1.5 mt-2.5 text-xs font-semibold text-amber-600 hover:opacity-70 transition-opacity">
+                        <Wallet className="w-3 h-3" /> Add payout details in Settings →
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+
                 <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
                   <p className="text-sm text-muted-foreground">
                     <span className="text-foreground font-semibold">{listings.filter(l => l.status === "active").length}</span> active{" · "}
@@ -1393,9 +1428,16 @@ const Account = () => {
                       <p className="font-display font-semibold text-sm">Payout Details</p>
                     </div>
                     <div className="p-5 space-y-4">
+                      {isVerified && hasMissingPayoutDetails && (
+                        <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                          <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                          <p className="text-xs font-semibold text-amber-600">Required — your payouts are being held until you add these details.</p>
+                        </div>
+                      )}
                       <p className="text-xs text-muted-foreground leading-relaxed">
                         Where should we send your earnings? We transfer automatically after each confirmed order.{" "}
                         <span className="font-semibold text-foreground">SneakersHub takes 5% commission</span> per sale.
+                        {!isVerified && <span className="block mt-1 text-[11px]">Only applies when you become a verified seller.</span>}
                       </p>
                       <div>
                         <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-2">Payout Method</label>
@@ -1451,6 +1493,7 @@ const Account = () => {
                             if (error) throw error;
                             setPayoutSaved(true);
                             toast.success("Payout details saved!");
+                            setHasMissingPayoutDetails(false);
                             setTimeout(() => setPayoutSaved(false), 3000);
                           } catch (err: any) {
                             toast.error(err.message ?? "Failed to save payout details");

@@ -94,6 +94,14 @@ serve(async (req) => {
       }
     }
 
+    if (type === "payout.missing_details") {
+      // Verified seller hasn't added payout details — funds are being held
+      const phone = record.seller_phone ?? await getPhone(record.seller_id);
+      if (phone) await sendSMS(phone,
+        `SneakersHub: You have a pending payout for order ${formatOrderId(record.order_id)} but no payout details set. Add your MoMo number in Settings to receive your payment: sneakershub-sigma.vercel.app/account`
+      );
+    }
+
     if (type === "payout.released") {
       const phone = await getPhone(record.seller_id);
       if (phone) {

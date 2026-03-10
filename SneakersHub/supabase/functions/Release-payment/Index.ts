@@ -125,16 +125,49 @@ serve(async (req) => {
       });
     }
 
-    // Fetch seller payout details
+    // Fetch seller payout details + verified status
     const { data: seller, error: sellerErr } = await supabase
       .from("profiles")
-      .select("payout_method, payout_number, payout_name, name")
+      .select("payout_method, payout_number, payout_name, name, phone, verified")
       .eq("id", order.seller_id)
       .single();
 
     if (sellerErr || !seller) throw new Error("Seller not found");
+
+    // Standard (unverified) sellers use pay-on-delivery — no payout transfer needed
+    if (!seller.verified) {
+      console.log(`Standard seller ${order.seller_id} — pay on delivery, no transfer needed`);
+      await supabase.from("orders").update({ payout_status: "released" }).eq("id", order_id);
+      return new Response(JSON.stringify({ message: "Standard seller — pay on delivery, no transfer" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Verified seller but no payout details — hold funds and SMS them
     if (!seller.payout_method || !seller.payout_number) {
-      throw new Error("Seller has no payout details configured");
+      console.warn(`Verified seller ${order.seller_id} has no payout details`);
+
+      // SMS the seller to add their payout details
+      try {
+        await supabase.functions.invoke("send-sms", {
+          body: {
+            type: "payout.missing_details",
+            record: {
+              seller_id: order.seller_id,
+              seller_phone: seller.phone,
+              order_id,
+            },
+          },
+        });
+      } catch (e) { console.warn("SMS failed:", e); }
+
+      // Keep payout_status as pending — funds stay held until they add details
+      return new Response(JSON.stringify({
+        success: false,
+        message: "Payout held — seller has no payout details. SMS sent.",
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Calculate payout (total minus 5% commission)
