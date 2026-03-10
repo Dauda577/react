@@ -95,30 +95,55 @@ const Admin = () => {
   const [resolvingDispute, setResolvingDispute] = useState<string | null>(null);
 
   const [authChecked, setAuthChecked] = useState(false);
+  const [accessDenied, setAccessDenied] = useState(false);
 
-  // Guard: only official accounts — wait for auth to fully load
   useEffect(() => {
-    if (authLoading) return; // wait for session to resolve
-    if (!user) {
+    // Wait for auth to finish loading
+    if (authLoading) return;
+
+    // No user at all
+    if (!user?.id) {
+      console.log("[Admin] No user, redirecting");
       navigate("/");
       return;
     }
-    supabase.from("profiles").select("is_official").eq("id", user.id).single()
-      .then(({ data }) => {
-        if (!data?.is_official) {
-          navigate("/");
+
+    // Check is_official directly
+    supabase
+      .from("profiles")
+      .select("is_official")
+      .eq("id", user.id)
+      .single()
+      .then(({ data, error }) => {
+        console.log("[Admin] Profile check:", { data, error, userId: user.id });
+        if (error || !data?.is_official) {
+          console.log("[Admin] Not official, denying access");
+          setAccessDenied(true);
         } else {
+          console.log("[Admin] Access granted");
           setAuthChecked(true);
         }
       });
-  }, [user, authLoading]);
+  }, [user?.id, authLoading]);
 
-  // Show nothing while checking auth
-  if (!authChecked) return (
+  if (authLoading || (!authChecked && !accessDenied)) return (
     <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="flex flex-col items-center gap-3">
         <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
         <p className="text-sm text-muted-foreground">Verifying access...</p>
+      </div>
+    </div>
+  );
+
+  if (accessDenied) return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="text-center">
+        <ShieldAlert className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+        <p className="font-display font-bold text-lg">Access Denied</p>
+        <p className="text-sm text-muted-foreground mt-1">This page is for official accounts only.</p>
+        <button onClick={() => navigate("/")} className="mt-4 px-4 py-2 rounded-full border border-border text-sm hover:bg-muted/40 transition-colors">
+          Go Home
+        </button>
       </div>
     </div>
   );
