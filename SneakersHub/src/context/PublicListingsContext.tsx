@@ -9,7 +9,8 @@ export type PublicListing = {
   sellerCity: string | null;
   sellerRegion: string | null;
   sellerVerified: boolean;
-  sellerIsOfficial: boolean; // ← NEW
+  sellerIsOfficial: boolean;
+  sellerSubaccountCode: string | null;
   sellerMemberSince: string;
   name: string;
   brand: string;
@@ -52,7 +53,7 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
         description, image_url, boosted, boost_expires_at,
         views, created_at,
         profiles (
-          name, phone, city, region, verified, is_official, created_at
+          name, phone, city, region, verified, is_official, subaccount_code, created_at
         )
       `)
       .eq("status", "active")
@@ -71,6 +72,7 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
           sellerRegion: p?.region ?? null,
           sellerVerified: p?.verified ?? false,
           sellerIsOfficial: p?.is_official ?? false,
+          sellerSubaccountCode: p?.subaccount_code ?? null,
           sellerMemberSince: p?.created_at
             ? new Date(p.created_at).getFullYear().toString()
             : new Date(row.created_at).getFullYear().toString(),

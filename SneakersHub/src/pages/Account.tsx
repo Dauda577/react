@@ -246,6 +246,24 @@ const PayoutBadge = ({ status }: { status: string }) => {
   return null;
 };
 
+function ensurePaystackScript(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if ((window as any).PaystackPop) { resolve(); return; }
+    const existing = document.querySelector('script[src*="paystack"]');
+    let attempts = 0;
+    const poll = setInterval(() => {
+      if ((window as any).PaystackPop) { clearInterval(poll); resolve(); return; }
+      if (++attempts > 20) { clearInterval(poll); reject(new Error("Paystack SDK not available")); }
+    }, 300);
+    if (!existing) {
+      const script = document.createElement("script");
+      script.src = "https://js.paystack.co/v1/inline.js";
+      script.async = true;
+      document.head.appendChild(script);
+    }
+  });
+}
+
 const Account = () => {
   const { user, isGuest, logout } = useAuth();
   const navigate = useNavigate();
@@ -324,12 +342,13 @@ const Account = () => {
     if (!user?.id) return;
     import("@/lib/supabase").then(({ supabase }) => {
       supabase.from("profiles")
-        .select("name, phone, city, verified, is_official, payout_method, payout_number, payout_name")
+        .select("name, phone, city, verified, is_official, subaccount_code, payout_method, payout_number, payout_name")
         .eq("id", user.id).single()
         .then(({ data }) => {
           if (!data) return;
           setProfileForm(p => ({ ...p, name: data.name ?? p.name, phone: data.phone ?? "", city: data.city ?? "" }));
           setIsVerified(data.verified ?? false);
+          setSubaccountCode(data.subaccount_code ?? null);
           setIsOfficial(data.is_official ?? false);
           if (data.payout_method) setPayoutForm({ method: data.payout_method, number: data.payout_number ?? "", name: data.payout_name ?? "" });
           if (data.verified && (!data.payout_method || !data.payout_number)) setHasMissingPayoutDetails(true);
@@ -557,21 +576,81 @@ const Account = () => {
                       </button>
                     </div>
                     {role === "seller" && !isVerified && (
-                      <motion.a href="https://wa.me/233256221777?text=Hi%2C%20I%27d%20like%20to%20get%20verified%20as%20a%20seller%20on%20SneakersHub.%20My%20account%20email%20is%3A%20"
-                        target="_blank" rel="noreferrer"
-                        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                        className="flex items-start gap-4 p-5 rounded-2xl border border-green-500/30 bg-green-500/5 hover:bg-green-500/10 transition-colors">
+                      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                        className="flex items-start gap-4 p-5 rounded-2xl border border-green-500/30 bg-green-500/5">
                         <div className="w-9 h-9 rounded-xl bg-green-500/10 flex items-center justify-center flex-shrink-0">
                           <ShieldCheck className="w-4 h-4 text-green-500" />
                         </div>
                         <div className="flex-1">
-                          <p className="font-display font-semibold text-sm text-green-700 dark:text-green-400 mb-1">Get Verified — Build Trust with Buyers</p>
-                          <p className="text-xs text-muted-foreground leading-relaxed">
-                            Verified sellers get a ✅ badge on all listings, secure Paystack payments, and significantly more sales. Free and takes less than 24hrs.
+                          <p className="font-display font-semibold text-sm text-green-700 dark:text-green-400 mb-1">Get Verified — GHS 50 one-time fee</p>
+                          <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+                            Verified sellers get a ✅ badge, Paystack split payments (buyers pay you directly), and significantly more sales.
                           </p>
-                          <span className="inline-flex items-center gap-1.5 mt-3 text-xs font-semibold text-green-600">Apply on WhatsApp <ArrowRight className="w-3 h-3" /></span>
+                          <button
+                            disabled={verificationLoading}
+                            onClick={async () => {
+                              if (!user?.email) { toast.error("Please add your email first"); return; }
+                              setVerificationLoading(true);
+                              try {
+                                await ensurePaystackScript();
+                                const PaystackPop = (window as any).PaystackPop;
+                                if (!PaystackPop) throw new Error("Payment SDK not available");
+                                const ref = `verify_${Date.now()}_${user.id.slice(0, 6)}`;
+                                const handler = PaystackPop.setup({
+                                  key: "pk_live_9e1705a04e21f148e758dc11c1e920ed6393702b",
+                                  email: user.email,
+                                  amount: 5000, // GHS 50 in pesewas
+                                  currency: "GHS",
+                                  ref,
+                                  channels: ["card", "mobile_money"],
+                                  metadata: { custom_fields: [{ display_name: "Purpose", variable_name: "purpose", value: "seller_verification" }] },
+                                  callback: async (response: { reference: string }) => {
+                                    try {
+                                      const { data: { session } } = await supabase.auth.getSession();
+                                      const fnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-subaccount`;
+                                      const res = await fetch(fnUrl, {
+                                        method: "POST",
+                                        headers: {
+                                          "Content-Type": "application/json",
+                                          "Authorization": `Bearer ${session?.access_token}`,
+                                          "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+                                        },
+                                        body: JSON.stringify({
+                                          seller_id: user.id,
+                                          paystack_reference: response.reference,
+                                          settlement_bank: "MTN",
+                                          account_number: payoutForm.number || "",
+                                          percentage_charge: 95,
+                                        }),
+                                      });
+                                      const result = await res.json();
+                                      if (result.success) {
+                                        setIsVerified(true);
+                                        setSubaccountCode(result.subaccount_code);
+                                        toast.success("🎉 You're now a verified seller!");
+                                      } else {
+                                        throw new Error(result.error ?? "Verification failed");
+                                      }
+                                    } catch (err: any) {
+                                      toast.error(err.message ?? "Verification failed — contact support");
+                                    } finally {
+                                      setVerificationLoading(false);
+                                    }
+                                  },
+                                  onClose: () => setVerificationLoading(false),
+                                });
+                                handler.openIframe();
+                              } catch (err: any) {
+                                toast.error(err.message ?? "Payment error");
+                                setVerificationLoading(false);
+                              }
+                            }}
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-green-500 text-white text-xs font-semibold hover:bg-green-600 transition-colors disabled:opacity-60">
+                            {verificationLoading ? <><span className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" /> Processing...</> : <><ShieldCheck className="w-3.5 h-3.5" /> Pay GHS 50 to Get Verified</>}
+                          </button>
+                          <p className="text-[11px] text-muted-foreground mt-2">Make sure your payout details are saved in Settings before paying.</p>
                         </div>
-                      </motion.a>
+                      </motion.div>
                     )}
                     {role === "seller" && isVerified && !isOfficial && (
                       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
@@ -582,7 +661,9 @@ const Account = () => {
                         <div>
                           <p className="font-display font-semibold text-sm text-green-700 dark:text-green-400">Verified Seller ✅</p>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            Your listings show the verified badge. Buyers pay via Paystack and funds transfer to you when you dispatch.
+                            {subaccountCode
+                              ? "Buyers pay you directly via Paystack split — funds go straight to your MoMo."
+                              : "Your listings show the verified badge. Buyers pay via Paystack and funds transfer to you when you dispatch."}
                           </p>
                         </div>
                       </motion.div>

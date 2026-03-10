@@ -132,7 +132,7 @@ serve(async (req) => {
     // ── Fetch seller ──────────────────────────────────────────────────────────
     const { data: seller, error: sellerErr } = await supabase
       .from("profiles")
-      .select("is_official, verified, payout_method, payout_number, payout_name, payout_bank_code, name, phone")
+      .select("is_official, verified, subaccount_code, payout_method, payout_number, payout_name, payout_bank_code, name, phone")
       .eq("id", order.seller_id)
       .single();
     if (sellerErr || !seller) throw new Error("Seller not found");
@@ -141,6 +141,14 @@ serve(async (req) => {
     if (seller.is_official) {
       await supabase.from("orders").update({ payout_status: "released" }).eq("id", order_id);
       return new Response(JSON.stringify({ success: true, message: "Official — no transfer needed" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Verified seller with subaccount — payment already split at checkout, nothing to transfer
+    if (seller.verified && seller.subaccount_code) {
+      await supabase.from("orders").update({ payout_status: "released" }).eq("id", order_id);
+      return new Response(JSON.stringify({ success: true, message: "Subaccount split — already paid" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

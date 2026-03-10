@@ -198,7 +198,12 @@ const Checkout = () => {
       subtotal: group.total,
       deliveryFee: 0,
       total: group.total,
-      ...(paystackRef ? { payout_status: "pending", paystack_reference: paystackRef } : {}),
+      ...(paystackRef ? {
+        // Verified seller with subaccount = split already happened, mark released
+        // Verified seller without subaccount = needs manual transfer, mark pending
+        payout_status: group.sellerSubaccountCode ? "released" : "pending",
+        paystack_reference: paystackRef,
+      } : {}),
     });
   };
 
@@ -253,6 +258,9 @@ const Checkout = () => {
       let paymentCompleted = false;
 
       try {
+        // For verified sellers with a subaccount, split payment at source
+        const subaccountCode = groupTier === "verified" ? group.sellerSubaccountCode : null;
+
         const handler = PaystackPop.setup({
           key: PAYSTACK_PUBLIC_KEY,
           email: user?.email ?? `${form.phone}@sneakershub.gh`,
@@ -260,10 +268,16 @@ const Checkout = () => {
           currency: "GHS",
           ref,
           channels: ["card", "mobile_money"],
+          ...(subaccountCode ? {
+            subaccount: subaccountCode,
+            bearer: "account",         // platform bears the Paystack fee
+            transaction_charge: 0,     // 0 = use split_percentage instead
+          } : {}),
           metadata: {
             custom_fields: [
               { display_name: "Seller", variable_name: "seller_name", value: group.sellerName },
               { display_name: "Type", variable_name: "seller_tier", value: groupTier },
+              ...(subaccountCode ? [{ display_name: "Subaccount", variable_name: "subaccount_code", value: subaccountCode }] : []),
             ]
           },
           callback: (response: { reference: string }) => {
