@@ -285,7 +285,6 @@ const Admin = () => {
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <StatCard label="Pending Transfers" value={formatGHS(pendingOrders.reduce((s,o) => s+o.total, 0))}
                       sub={`${pendingOrders.length} in progress`} icon={Clock} accent="bg-amber-500/10 text-amber-600" />
-                    <StatCard  />
                     {failedOrders.length > 0 && (
                       <StatCard label="Failed Transfers" value={formatGHS(failedOrders.reduce((s,o) => s+o.total, 0))}
                         sub={`${failedOrders.length} need attention`} icon={AlertTriangle} accent="bg-orange-500/10 text-orange-600" />
