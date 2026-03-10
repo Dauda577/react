@@ -216,7 +216,13 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       return [rowToOrder(orderRow, insertedRows), ...prev];
     });
 
-    await triggerSMS({ type: "order.created", record: orderRow });
+    await triggerSMS({
+      type: "order.created",
+      record: {
+        ...orderRow,
+        items: order.items,
+      }
+    });
   };
 
   const confirmAsSeller = async (orderId: string) => {
@@ -250,7 +256,18 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     const { error } = await supabase.from("orders").update(updatePayload).eq("id", orderId);
     if (error) { await fetchOrders(); throw new Error(error.message); }
 
-    await triggerSMS({ type: "order.shipped", record: { id: orderId, release_at: releaseAt, buyer_id: order?.buyerId, buyer: order?.buyer, ...order } });
+    await triggerSMS({
+      type: "order.shipped",
+      record: {
+        id: orderId,
+        release_at: releaseAt,
+        buyer_id: order?.buyerId,
+        buyer: order?.buyer,
+        total: order?.total,
+        items: order?.items,
+        ...order,
+      }
+    });
 
     // If buyer already confirmed AND seller is not official, trigger escrow release
     if (order?.buyerConfirmed && !isOfficial) {
@@ -275,7 +292,17 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
 
     if (error) { await fetchOrders(); throw new Error(error.message); }
 
-    await triggerSMS({ type: "order.delivered", record: { id: orderId, ...order } });
+    await triggerSMS({
+      type: "order.delivered",
+      record: {
+        id: orderId,
+        buyer_id: order?.buyerId,
+        buyer: order?.buyer,
+        total: order?.total,
+        items: order?.items,
+        ...order,
+      }
+    });
 
     // If seller already confirmed, trigger immediate payment release
     if (order?.sellerConfirmed) {

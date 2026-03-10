@@ -202,8 +202,10 @@ serve(async (req) => {
           record: {
             seller_id: order.seller_id,
             amount: payoutAmount,
+            order_total: order.total,
             order_id,
             trigger,
+            payout_method: seller.payout_method,
           },
         },
       });

@@ -29,6 +29,21 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
     : "denied";
 
   // ── Show a notification (works in browser AND installed PWA) ─────────────
+  // Fetch item names for a given order_id to enrich push notifications
+  const getOrderSummary = async (orderId: string): Promise<string> => {
+    try {
+      const { data } = await supabase
+        .from("order_items")
+        .select("name, quantity")
+        .eq("order_id", orderId);
+      if (!data || data.length === 0) return "your order";
+      const parts = data.map((i: any) => i.quantity > 1 ? `${i.name} (x${i.quantity})` : i.name);
+      if (parts.length === 1) return parts[0];
+      if (parts.length === 2) return parts.join(" & ");
+      return `${parts[0]} + ${parts.length - 1} more`;
+    } catch { return "your order"; }
+  };
+
   const showLocalNotification = (title: string, body: string, url = "/account") => {
     if (!checkSupported() || Notification.permission !== "granted") return;
 
@@ -126,10 +141,15 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
             schema: "public",
             table: "orders",
             filter: `seller_id=eq.${user.id}`,
-          }, (payload: any) => {
+          }, async (payload: any) => {
+            const items = await getOrderSummary(payload.new.id);
+            const orderId = (() => {
+              const num = parseInt(payload.new.id.replace(/-/g, "").slice(0, 10), 16) % 1000000000;
+              return `#${num.toString().padStart(9, "0")}`;
+            })();
             showLocalNotification(
-              "🛒 New Order!",
-              `You received a new order worth GHS ${payload.new.total}`,
+              `🛒 New Order ${orderId}`,
+              `${items} — GHS ${payload.new.total}`,
               "/account"
             );
           })
@@ -173,10 +193,26 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
             filter: `buyer_id=eq.${user.id}`,
           }, (payload: any) => {
             const { status } = payload.new;
+            const orderId = (() => {
+              const num = parseInt(payload.new.id.replace(/-/g, "").slice(0, 10), 16) % 1000000000;
+              return `#${num.toString().padStart(9, "0")}`;
+            })();
             if (status === "shipped") {
-              showLocalNotification("📦 Order Shipped!", "Your order is on its way.", "/account");
+              getOrderSummary(payload.new.id).then(items => {
+                showLocalNotification(
+                  `📦 Order ${orderId} Shipped!`,
+                  `${items} — GHS ${payload.new.total} is on its way.`,
+                  "/account"
+                );
+              });
             } else if (status === "delivered") {
-              showLocalNotification("✅ Order Delivered!", "Your order has been delivered. Enjoy your kicks!", "/account");
+              getOrderSummary(payload.new.id).then(items => {
+                showLocalNotification(
+                  `✅ Order ${orderId} Confirmed!`,
+                  `${items} — GHS ${payload.new.total}. Enjoy your kicks! 👟`,
+                  "/account"
+                );
+              });
             }
           })
           .subscribe();

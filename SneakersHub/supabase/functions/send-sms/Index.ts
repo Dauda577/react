@@ -36,6 +36,18 @@ function formatOrderId(id: string) {
   return `#${num.toString().padStart(9, "0")}`;
 }
 
+// Summarise order items for SMS e.g. "Nike Air Max 90 (x1), Jordan 1 (x2)"
+function formatItems(items: any[]): string {
+  if (!items || items.length === 0) return "your order";
+  const parts = items.map((i: any) => {
+    const qty = i.quantity > 1 ? ` (x${i.quantity})` : "";
+    return `${i.name}${qty}`;
+  });
+  if (parts.length === 1) return parts[0];
+  if (parts.length === 2) return parts.join(" & ");
+  return `${parts[0]} + ${parts.length - 1} more`;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -45,29 +57,36 @@ serve(async (req) => {
 
     if (type === "order.created") {
       const phone = await getPhone(record.seller_id);
-      if (phone) await sendSMS(phone,
-        `SneakersHub: New order ${formatOrderId(record.id)} worth GHS ${record.total}. Open app to confirm. sneakershub-sigma.vercel.app/account`
-      );
+      if (phone) {
+        const items = formatItems(record.items);
+        await sendSMS(phone,
+          `SneakersHub: New order ${formatOrderId(record.id)} — ${items} — GHS ${record.total}. Open app to confirm & dispatch. sneakershub-sigma.vercel.app/account`
+        );
+      }
     }
 
     if (type === "order.shipped") {
       const phone = record.buyer?.phone ?? await getPhone(record.buyer_id);
       if (phone) {
+        const items = formatItems(record.items);
         const releaseDate = record.release_at
           ? new Date(record.release_at).toLocaleDateString("en-GH", { day: "numeric", month: "short" })
           : null;
-        const deadline = releaseDate ? ` You have until ${releaseDate} to confirm receipt or raise a dispute.` : "";
+        const deadline = releaseDate ? ` Confirm receipt by ${releaseDate} or raise a dispute.` : "";
         await sendSMS(phone,
-          `SneakersHub: Your order ${formatOrderId(record.id)} has been dispatched by the seller.${deadline} Confirm or dispute: sneakershub-sigma.vercel.app/account`
+          `SneakersHub: Order ${formatOrderId(record.id)} dispatched! ${items} — GHS ${record.total}.${deadline} sneakershub-sigma.vercel.app/account`
         );
       }
     }
 
     if (type === "order.delivered") {
       const phone = record.buyer?.phone ?? await getPhone(record.buyer_id);
-      if (phone) await sendSMS(phone,
-        `SneakersHub: Your order ${formatOrderId(record.id)} has been delivered! Enjoy your kicks. sneakershub-sigma.vercel.app/account`
-      );
+      if (phone) {
+        const items = formatItems(record.items);
+        await sendSMS(phone,
+          `SneakersHub: Order ${formatOrderId(record.id)} confirmed! ${items} — GHS ${record.total}. Enjoy your kicks! 👟 sneakershub-sigma.vercel.app/account`
+        );
+      }
     }
 
     if (type === "message.created") {
@@ -83,13 +102,13 @@ serve(async (req) => {
     }
 
     if (type === "order.dispute_reminder") {
-      // record: { buyer_id, order_id, release_at, days_left }
       const phone = await getPhone(record.buyer_id);
       if (phone) {
         const urgent = record.days_left <= 1 ? "⚠️ LAST CHANCE: " : "Reminder: ";
         const when = record.days_left <= 1 ? "today" : `in ${record.days_left} day${record.days_left === 1 ? "" : "s"}`;
+        const total = record.total ? ` (GHS ${record.total})` : "";
         await sendSMS(phone,
-          `SneakersHub: ${urgent}Payment for order ${formatOrderId(record.order_id)} auto-releases to the seller ${when}. Confirm receipt or raise a dispute now: sneakershub-sigma.vercel.app/account`
+          `SneakersHub: ${urgent}Order ${formatOrderId(record.order_id)}${total} — payment auto-releases to seller ${when}. Confirm receipt or dispute: sneakershub-sigma.vercel.app/account`
         );
       }
     }
@@ -105,9 +124,9 @@ serve(async (req) => {
     if (type === "payout.released") {
       const phone = await getPhone(record.seller_id);
       if (phone) {
-        const trigger = record.trigger === "auto" ? "auto-released after 3 days" : "released after buyer confirmed";
+        const trigger = record.trigger === "auto" ? "auto-released after 3 days" : "released";
         await sendSMS(phone,
-          `SneakersHub: GHS ${record.amount} payout ${trigger} for order ${formatOrderId(record.order_id)}. Check your ${record.payout_method ?? "account"}. sneakershub-sigma.vercel.app`
+          `SneakersHub: GHS ${record.amount} payout ${trigger} for order ${formatOrderId(record.order_id)} (sale total GHS ${record.order_total ?? record.amount}). Check your ${record.payout_method ?? "account"}. sneakershub-sigma.vercel.app`
         );
       }
     }
