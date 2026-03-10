@@ -214,21 +214,39 @@ const Admin = () => {
 
   // ── Resolve dispute ────────────────────────────────────────────────────────
   const resolveDispute = async (orderId: string, favorOf: "buyer" | "seller") => {
+    setResolvingDispute(orderId);
     try {
       if (favorOf === "seller") {
-        const { error } = await supabase.functions.invoke("release-payment", {
+        // Step 1: Reset payout_status to "pending" so release-payment will process it
+        const { error: resetError } = await supabase
+          .from("orders")
+          .update({ payout_status: "pending" })
+          .eq("id", orderId);
+        if (resetError) throw new Error(`Reset failed: ${resetError.message}`);
+
+        // Step 2: Call release-payment
+        const { data, error } = await supabase.functions.invoke("release-payment", {
           body: { order_id: orderId, trigger: "manual_admin" },
         });
-        if (error) throw error;
+        if (error) throw new Error(`Edge Function error: ${error.message}`);
+        if (data?.error) throw new Error(`Payment error: ${data.error}`);
+
         toast.success("Funds released to seller ✓");
       } else {
-        await supabase.from("orders").update({ payout_status: "disputed" }).eq("id", orderId);
-        toast.success("Marked for buyer refund — process manually in Paystack");
+        // Refund buyer — mark as refunded, funds stay in your Paystack for manual refund
+        const { error } = await supabase
+          .from("orders")
+          .update({ payout_status: "refunded" })
+          .eq("id", orderId);
+        if (error) throw new Error(error.message);
+        toast.success("Marked as refunded — go to Paystack dashboard to send buyer refund");
       }
       setResolvingDispute(null);
       await fetchData();
     } catch (err: any) {
+      console.error("resolveDispute error:", err);
       toast.error(err.message ?? "Failed to resolve dispute");
+      setResolvingDispute(null);
     }
   };
 
