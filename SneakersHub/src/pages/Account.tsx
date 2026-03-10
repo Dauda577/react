@@ -606,38 +606,42 @@ const Account = () => {
                                   ref,
                                   channels: ["card", "mobile_money"],
                                   metadata: { custom_fields: [{ display_name: "Purpose", variable_name: "purpose", value: "seller_verification" }] },
-                                  callback: async (response: { reference: string }) => {
-                                    try {
-                                      const { data: { session } } = await supabase.auth.getSession();
-                                      const fnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-subaccount`;
-                                      const res = await fetch(fnUrl, {
-                                        method: "POST",
-                                        headers: {
-                                          "Content-Type": "application/json",
-                                          "Authorization": `Bearer ${session?.access_token}`,
-                                          "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
-                                        },
-                                        body: JSON.stringify({
-                                          seller_id: user.id,
-                                          paystack_reference: response.reference,
-                                          settlement_bank: "MTN",
-                                          account_number: payoutForm.number || "",
-                                          percentage_charge: 95,
-                                        }),
-                                      });
-                                      const result = await res.json();
-                                      if (result.success) {
-                                        setIsVerified(true);
-                                        setSubaccountCode(result.subaccount_code);
-                                        toast.success("🎉 You're now a verified seller!");
-                                      } else {
-                                        throw new Error(result.error ?? "Verification failed");
+                                  callback: (response: { reference: string }) => {
+                                    // Paystack requires a sync callback — run async work outside
+                                    const ref = response.reference;
+                                    setTimeout(async () => {
+                                      try {
+                                        const { data: { session } } = await supabase.auth.getSession();
+                                        const fnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-subaccount`;
+                                        const res = await fetch(fnUrl, {
+                                          method: "POST",
+                                          headers: {
+                                            "Content-Type": "application/json",
+                                            "Authorization": `Bearer ${session?.access_token}`,
+                                            "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+                                          },
+                                          body: JSON.stringify({
+                                            seller_id: user.id,
+                                            paystack_reference: ref,
+                                            settlement_bank: "MTN",
+                                            account_number: payoutForm.number || "",
+                                            percentage_charge: 95,
+                                          }),
+                                        });
+                                        const result = await res.json();
+                                        if (result.success) {
+                                          setIsVerified(true);
+                                          setSubaccountCode(result.subaccount_code);
+                                          toast.success("🎉 You're now a verified seller!");
+                                        } else {
+                                          throw new Error(result.error ?? "Verification failed");
+                                        }
+                                      } catch (err: any) {
+                                        toast.error(err.message ?? "Verification failed — contact support");
+                                      } finally {
+                                        setVerificationLoading(false);
                                       }
-                                    } catch (err: any) {
-                                      toast.error(err.message ?? "Verification failed — contact support");
-                                    } finally {
-                                      setVerificationLoading(false);
-                                    }
+                                    }, 0);
                                   },
                                   onClose: () => setVerificationLoading(false),
                                 });
