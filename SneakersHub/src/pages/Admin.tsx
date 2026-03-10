@@ -226,20 +226,22 @@ const Admin = () => {
 
         // Step 2: Call release-payment
         const { data, error } = await supabase.functions.invoke("release-payment", {
-          body: { order_id: orderId, trigger: "manual_admin" },
+          body: JSON.stringify({ order_id: orderId, trigger: "manual_admin", caller_id: user?.id }),
+          headers: { "Content-Type": "application/json" },
         });
         if (error) throw new Error(`Edge Function error: ${error.message}`);
         if (data?.error) throw new Error(`Payment error: ${data.error}`);
 
         toast.success("Funds released to seller ✓");
       } else {
-        // Refund buyer — mark as refunded, funds stay in your Paystack for manual refund
+        // Refund buyer — set to refunded, open Paystack for manual refund
         const { error } = await supabase
           .from("orders")
           .update({ payout_status: "refunded" })
           .eq("id", orderId);
         if (error) throw new Error(error.message);
-        toast.success("Marked as refunded — go to Paystack dashboard to send buyer refund");
+        toast.success("Marked as refunded — opening Paystack to process the refund", { duration: 6000 });
+        window.open("https://dashboard.paystack.com/#/transactions", "_blank");
       }
       setResolvingDispute(null);
       await fetchData();
