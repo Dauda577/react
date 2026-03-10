@@ -266,14 +266,20 @@ const Checkout = () => {
               { display_name: "Type", variable_name: "seller_tier", value: groupTier },
             ]
           },
-          callback: async (response: { reference: string }) => {
+          callback: (response: { reference: string }) => {
             paymentCompleted = true;
             toast.success(groupTier === "official"
               ? "Payment received — Official order placed!"
               : "Payment received — held in escrow until delivery!"
             );
-            await submitGroupOrder(group, response.reference);
-            await advanceOrFinish(group);
+            // Run async work outside the callback
+            submitGroupOrder(group, response.reference)
+              .then(() => advanceOrFinish(group))
+              .catch((err) => {
+                console.error("Order placement failed after payment:", err);
+                toast.error("Payment received but order failed to save. Contact support with ref: " + response.reference);
+                setLoading(false);
+              });
           },
           onClose: () => {
             if (!paymentCompleted) {
