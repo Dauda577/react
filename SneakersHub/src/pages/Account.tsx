@@ -283,7 +283,9 @@ const Account = () => {
   const [boostingListing, setBoostingListing] = useState<import("@/context/ListingContext").Listing | null>(null);
   const [ratingOrderId,   setRatingOrderId]   = useState<string | null>(null);
   const [avatarUrl,       setAvatarUrl]       = useState<string | null>(null);
-  const [isVerified,      setIsVerified]      = useState(false);
+  const [isVerified,          setIsVerified]          = useState(false);
+  const [subaccountCode,      setSubaccountCode]      = useState<string | null>(null);
+  const [verificationLoading, setVerificationLoading] = useState(false);
   const [isOfficial,      setIsOfficial]      = useState(false);
   const [showFirstListingBanner, setShowFirstListingBanner] = useState(false);
 
