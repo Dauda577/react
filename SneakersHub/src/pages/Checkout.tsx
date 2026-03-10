@@ -602,7 +602,7 @@ const Checkout = () => {
                   {tier === "official"
                     ? <><Sparkles className="w-4 h-4" /> Pay GHS {currentGroup?.total ?? 0}</>
                     : tier === "verified"
-                      ? <><Lock className="w-4 h-4" /> Pay GHS {orderTotal} — Escrow</>
+                      ? <><Lock className="w-4 h-4" /> Pay GHS {currentGroup?.total ?? 0} — Escrow</>
                       : <><Package className="w-4 h-4" /> Place Order — Pay on Delivery</>
                   }
                 </span>
