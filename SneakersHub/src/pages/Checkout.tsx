@@ -148,8 +148,8 @@ const Checkout = () => {
   const requiresPayment = tier === "official" || tier === "verified";
 
   useEffect(() => {
-    ensurePaystackScript();
-  }, []);
+    if (requiresPayment) ensurePaystackScript();
+  }, [requiresPayment]);
 
   const deliveryEstimate = getDeliveryEstimate(form.region);
 
@@ -210,7 +210,10 @@ const Checkout = () => {
     setLoading(true);
 
     if (requiresPayment) {
-      try { await ensurePaystackScript(); } catch {
+      // Ensure script is loaded
+      try {
+        await ensurePaystackScript();
+      } catch {
         toast.error("Could not load payment SDK. Check your connection.");
         setLoading(false);
         return;
@@ -223,42 +226,49 @@ const Checkout = () => {
         return;
       }
 
-      const ref = `order_${Date.now()}_${currentGroup.sellerId.slice(0, 6)}`;
-      let paymentAttempted = false;
+      // Snapshot group at time of click — avoid stale closure issues
+      const group = currentGroup;
+      const groupTier = tier;
+      const ref = `order_${Date.now()}_${group.sellerId.slice(0, 6)}`;
+      let paymentCompleted = false;
 
-      const handler = PaystackPop.setup({
-        key: PAYSTACK_PUBLIC_KEY,
-        email: user?.email ?? form.phone + "@sneakershub.gh",
-        amount: currentGroup.total * 100,
-        currency: "GHS",
-        ref,
-        channels: ["card", "mobile_money"],
-        metadata: {
-          seller_tier: tier,
-          seller_name: currentGroup.sellerName,
-          order_group: `${currentGroupIndex + 1} of ${sellerGroups.length}`,
-          custom_fields: [
-            { display_name: "Seller", variable_name: "seller_name", value: currentGroup.sellerName },
-            { display_name: "Order", variable_name: "order_group", value: `${currentGroupIndex + 1} of ${sellerGroups.length}` },
-          ]
-        },
-        callback: async (response: { reference: string }) => {
-          const msg = tier === "official"
-            ? "Payment received — Official order placed!"
-            : "Payment received — held in escrow until delivery!";
-          toast.success(msg);
-          await submitGroupOrder(currentGroup, response.reference);
-          await advanceOrFinish(currentGroup);
-        },
-        onClose: () => {
-          setLoading(false);
-          if (!paymentAttempted) { toast("Payment cancelled."); return; }
-          toast.error("Payment was not completed. Please try again.", { duration: 6000 });
-        },
-      });
+      try {
+        const handler = PaystackPop.setup({
+          key: PAYSTACK_PUBLIC_KEY,
+          email: user?.email ?? `${form.phone}@sneakershub.gh`,
+          amount: Math.round(group.total * 100), // Paystack expects pesewas (int)
+          currency: "GHS",
+          ref,
+          channels: ["card", "mobile_money"],
+          metadata: {
+            custom_fields: [
+              { display_name: "Seller", variable_name: "seller_name", value: group.sellerName },
+              { display_name: "Type", variable_name: "seller_tier", value: groupTier },
+            ]
+          },
+          callback: async (response: { reference: string }) => {
+            paymentCompleted = true;
+            toast.success(groupTier === "official"
+              ? "Payment received — Official order placed!"
+              : "Payment received — held in escrow until delivery!"
+            );
+            await submitGroupOrder(group, response.reference);
+            await advanceOrFinish(group);
+          },
+          onClose: () => {
+            if (!paymentCompleted) {
+              setLoading(false);
+              toast("Payment cancelled.");
+            }
+          },
+        });
 
-      paymentAttempted = true;
-      handler.openIframe();
+        handler.openIframe();
+      } catch (err) {
+        console.error("Paystack error:", err);
+        toast.error("Failed to open payment. Please try again.");
+        setLoading(false);
+      }
       return;
     }
 
