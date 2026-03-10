@@ -8,10 +8,39 @@ export type CartItem = {
     price: number;
     image: string;
     sellerId: string;
+    sellerName: string;
+    sellerVerified: boolean;
+    sellerIsOfficial: boolean;
   };
   size: number;
   quantity: number;
 };
+
+// Group cart items by seller for multi-seller checkout
+export type SellerGroup = {
+  sellerId: string;
+  sellerName: string;
+  sellerVerified: boolean;
+  sellerIsOfficial: boolean;
+  tier: "official" | "verified" | "standard";
+  items: CartItem[];
+  total: number;
+};
+
+export function groupBySeller(items: CartItem[]): SellerGroup[] {
+  const map = new Map<string, SellerGroup>();
+  for (const item of items) {
+    const { sellerId, sellerName, sellerVerified, sellerIsOfficial } = item.sneaker;
+    const tier = sellerIsOfficial ? "official" : sellerVerified ? "verified" : "standard";
+    if (!map.has(sellerId)) {
+      map.set(sellerId, { sellerId, sellerName, sellerVerified, sellerIsOfficial, tier, items: [], total: 0 });
+    }
+    const group = map.get(sellerId)!;
+    group.items.push(item);
+    group.total += item.sneaker.price * item.quantity;
+  }
+  return Array.from(map.values());
+}
 
 type CartContextType = {
   items: CartItem[];

@@ -4,11 +4,10 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, MapPin, Phone, User, CheckCircle,
   ShoppingBag, ChevronDown, ArrowRight, ShieldAlert, X,
-  ShieldCheck, CreditCard, Lock, Sparkles, BadgeCheck,
+  ShieldCheck, CreditCard, Lock, Sparkles, BadgeCheck, Package,
 } from "lucide-react";
-import { useCart } from "@/context/CartContext";
+import { useCart, groupBySeller, SellerGroup } from "@/context/CartContext";
 import { useOrders } from "@/context/OrderContext";
-import { usePublicListings } from "@/context/PublicListingsContext";
 import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -61,18 +60,25 @@ function ensurePaystackScript(): Promise<void> {
   });
 }
 
-// ── Tier-specific banners ─────────────────────────────────────────────────────
-const TierBanner = ({ tier, onDismiss, dismissed }: { tier: SellerTier; onDismiss: () => void; dismissed: boolean }) => {
+// ── Tier-specific payment notice ─────────────────────────────────────────────
+const TierBanner = ({ tier }: { tier: SellerTier }) => {
   if (tier === "official") return (
     <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
       className="rounded-2xl p-4 flex items-start gap-3"
-      style={{ background: "linear-gradient(135deg, rgba(109,40,217,0.1), rgba(30,27,75,0.15))", border: "1px solid rgba(109,40,217,0.3)" }}>
-      <Sparkles className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: "#a78bfa" }} />
-      <div>
-        <p className="text-sm font-bold mb-1" style={{ color: "#a78bfa" }}>SneakersHub Official Product</p>
-        <p className="text-xs leading-relaxed text-muted-foreground">
-          This is an official SneakersHub product. <span className="font-semibold text-foreground">Payment is required before delivery.</span> Your payment is held in escrow and released only after you confirm receipt.
+      style={{ background: "linear-gradient(135deg, rgba(109,40,217,0.08), rgba(30,27,75,0.12))", border: "1px solid rgba(109,40,217,0.3)" }}>
+      <Sparkles className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: "#a78bfa" }} />
+      <div className="space-y-1.5">
+        <p className="text-sm font-bold" style={{ color: "#a78bfa" }}>SneakersHub Official — Escrow Protected</p>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          Pay now via card or Mobile Money. Your payment is held by SneakersHub and only released once you confirm receipt of your order.
         </p>
+        <div className="flex flex-wrap gap-3 pt-1">
+          {["Payment held until delivery", "Confirm receipt to release funds", "Raise a dispute if anything goes wrong"].map(point => (
+            <span key={point} className="flex items-center gap-1 text-[11px] font-medium" style={{ color: "#a78bfa" }}>
+              <CheckCircle className="w-3 h-3 flex-shrink-0" /> {point}
+            </span>
+          ))}
+        </div>
       </div>
     </motion.div>
   );
@@ -80,74 +86,72 @@ const TierBanner = ({ tier, onDismiss, dismissed }: { tier: SellerTier; onDismis
   if (tier === "verified") return (
     <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
       className="rounded-2xl border border-green-500/30 bg-green-500/5 p-4 flex items-start gap-3">
-      <ShieldCheck className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-      <div>
-        <p className="text-sm font-display font-semibold text-green-700 dark:text-green-400 mb-1">
-          Verified Seller — Escrow Protected
+      <ShieldCheck className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+      <div className="space-y-1.5">
+        <p className="text-sm font-display font-semibold text-green-700 dark:text-green-400">Verified Seller — Escrow Protected</p>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          Pay now via card or Mobile Money. Your payment is held securely by SneakersHub and only transferred to the seller after you confirm receipt.
         </p>
-        <p className="text-xs text-green-600 dark:text-green-500 leading-relaxed">
-          Your payment will be <span className="font-semibold">held securely by SneakersHub</span> and only released to the seller after you confirm receipt.
-        </p>
+        <div className="flex flex-wrap gap-3 pt-1">
+          {["Funds held until you confirm", "3 days to dispute if needed", "Auto-released after 3 days"].map(point => (
+            <span key={point} className="flex items-center gap-1 text-[11px] font-medium text-green-600">
+              <CheckCircle className="w-3 h-3 flex-shrink-0" /> {point}
+            </span>
+          ))}
+        </div>
       </div>
     </motion.div>
   );
 
-  // Standard — dismissable warning
+  // Standard seller — pay on delivery
   return (
-    <AnimatePresence>
-      {!dismissed && (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-          transition={{ duration: 0.25 }}
-          className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 flex items-start gap-3">
-          <ShieldAlert className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="text-sm font-display font-semibold text-amber-700 dark:text-amber-400 mb-1">Important Payment Notice</p>
-            <p className="text-xs text-amber-600 dark:text-amber-500 leading-relaxed">
-              <span className="font-semibold">Do not make any payment</span> until you have physically received and verified your order.
-              SneakersHub will <span className="font-semibold">not be held liable</span> for payments made before delivery.
-            </p>
-          </div>
-          <button onClick={onDismiss} className="text-amber-500 hover:text-amber-700 transition-colors flex-shrink-0 mt-0.5">
-            <X className="w-4 h-4" />
-          </button>
-        </motion.div>
-      )}
-    </AnimatePresence>
+    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+      className="rounded-2xl border border-border bg-muted/30 p-4 flex items-start gap-3">
+      <Package className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+      <div className="space-y-1.5">
+        <p className="text-sm font-display font-semibold text-foreground">Pay on Delivery</p>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          This seller is not yet verified. No payment is collected now — arrange payment directly with the seller when your order arrives.
+        </p>
+        <div className="flex flex-wrap gap-3 pt-1">
+          {["No payment taken today", "Pay cash or MoMo on delivery", "Inspect before you pay"].map(point => (
+            <span key={point} className="flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+              <CheckCircle className="w-3 h-3 flex-shrink-0 text-primary" /> {point}
+            </span>
+          ))}
+        </div>
+      </div>
+    </motion.div>
   );
 };
 
 const Checkout = () => {
-  const { items, totalPrice, clearCart } = useCart();
+  const { items, clearCart } = useCart();
   const { placeOrder } = useOrders();
-  const { listings } = usePublicListings();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [delivery, setDelivery] = useState("standard");
-  const [alertDismissed, setAlertDismissed] = useState(false);
   const [form, setForm] = useState({
     firstName: "", lastName: "", phone: "", address: "", city: "", region: "",
   });
 
-  // Determine seller tier
-  const sellerListing = listings.find((l) => l.sellerId === items[0]?.sneaker.sellerId);
-  const tier: SellerTier = sellerListing?.sellerIsOfficial
-    ? "official"
-    : sellerListing?.sellerVerified
-      ? "verified"
-      : "standard";
+  // Group cart items by seller — this is the core of multi-seller checkout
+  const sellerGroups = groupBySeller(items);
+  const totalPrice = items.reduce((sum, i) => sum + i.sneaker.price * i.quantity, 0);
 
+  // Track which seller group we're currently checking out
+  const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
+  const [completedGroups, setCompletedGroups] = useState<string[]>([]); // sellerIds done
+  const currentGroup: SellerGroup | undefined = sellerGroups[currentGroupIndex];
+  const tier = currentGroup?.tier ?? "standard";
   const requiresPayment = tier === "official" || tier === "verified";
 
   useEffect(() => {
-    if (requiresPayment) ensurePaystackScript();
-  }, [requiresPayment]);
+    ensurePaystackScript();
+  }, []);
 
   const deliveryEstimate = getDeliveryEstimate(form.region);
-  const orderTotal = totalPrice;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -160,25 +164,39 @@ const Checkout = () => {
     return { label: opt?.label ?? delivery, estimatedCost: opt?.range ?? "Contact seller", days: opt?.days ?? "" };
   };
 
-  const submitOrder = async (paystackRef?: string) => {
+  const submitGroupOrder = async (group: SellerGroup, paystackRef?: string) => {
     const deliveryInfo = buildDeliveryInfo();
     await placeOrder({
-      sellerId: items[0]?.sneaker.sellerId ?? "",
-      items: items.map((i) => ({
+      sellerId: group.sellerId,
+      items: group.items.map((i) => ({
         id: i.sneaker.id, name: i.sneaker.name, brand: i.sneaker.brand,
         image: i.sneaker.image, price: i.sneaker.price, size: i.size, quantity: i.quantity,
       })),
       buyer: { firstName: form.firstName, lastName: form.lastName, phone: form.phone, address: form.address, city: form.city, region: form.region },
       delivery,
       deliveryInfo,
-      subtotal: totalPrice,
+      subtotal: group.total,
       deliveryFee: 0,
-      total: orderTotal,
+      total: group.total,
       ...(paystackRef ? { escrow_status: "held", paystack_reference: paystackRef } : {}),
     });
-    clearCart();
-    setLoading(false);
-    navigate("/order-confirmation");
+  };
+
+  const advanceOrFinish = async (group: SellerGroup) => {
+    const newCompleted = [...completedGroups, group.sellerId];
+    setCompletedGroups(newCompleted);
+
+    if (newCompleted.length === sellerGroups.length) {
+      // All groups done
+      clearCart();
+      setLoading(false);
+      navigate("/order-confirmation");
+    } else {
+      // Move to next group
+      setCurrentGroupIndex((i) => i + 1);
+      setLoading(false);
+      toast.success(`Order ${newCompleted.length} of ${sellerGroups.length} placed! Continue with next seller.`);
+    }
   };
 
   const handlePlaceOrder = async () => {
@@ -187,15 +205,12 @@ const Checkout = () => {
       toast.error("Please fill in all delivery details");
       return;
     }
-    if (items.length === 0) { toast.error("Your cart is empty"); return; }
+    if (!currentGroup) return;
 
     setLoading(true);
 
-    // ── Official or Verified → Paystack required ──────────────────────────
     if (requiresPayment) {
-      try {
-        await ensurePaystackScript();
-      } catch {
+      try { await ensurePaystackScript(); } catch {
         toast.error("Could not load payment SDK. Check your connection.");
         setLoading(false);
         return;
@@ -208,28 +223,32 @@ const Checkout = () => {
         return;
       }
 
-      const ref = `order_${Date.now()}`;
+      const ref = `order_${Date.now()}_${currentGroup.sellerId.slice(0, 6)}`;
       let paymentAttempted = false;
 
       const handler = PaystackPop.setup({
         key: PAYSTACK_PUBLIC_KEY,
         email: user?.email ?? form.phone + "@sneakershub.gh",
-        amount: orderTotal * 100,
+        amount: currentGroup.total * 100,
         currency: "GHS",
         ref,
         channels: ["card", "mobile_money"],
         metadata: {
           seller_tier: tier,
+          seller_name: currentGroup.sellerName,
+          order_group: `${currentGroupIndex + 1} of ${sellerGroups.length}`,
           custom_fields: [
-            { display_name: "Seller Type", variable_name: "seller_tier", value: tier === "official" ? "SneakersHub Official" : "Verified Seller" }
+            { display_name: "Seller", variable_name: "seller_name", value: currentGroup.sellerName },
+            { display_name: "Order", variable_name: "order_group", value: `${currentGroupIndex + 1} of ${sellerGroups.length}` },
           ]
         },
-        callback: (response: { reference: string }) => {
+        callback: async (response: { reference: string }) => {
           const msg = tier === "official"
-            ? "Payment received — SneakersHub Official order placed!"
+            ? "Payment received — Official order placed!"
             : "Payment received — held in escrow until delivery!";
           toast.success(msg);
-          submitOrder(response.reference);
+          await submitGroupOrder(currentGroup, response.reference);
+          await advanceOrFinish(currentGroup);
         },
         onClose: () => {
           setLoading(false);
@@ -243,9 +262,10 @@ const Checkout = () => {
       return;
     }
 
-    // ── Standard seller → pay on delivery ────────────────────────────────
-    await new Promise((res) => setTimeout(res, 1200));
-    await submitOrder();
+    // Standard seller — pay on delivery
+    await new Promise((res) => setTimeout(res, 800));
+    await submitGroupOrder(currentGroup);
+    await advanceOrFinish(currentGroup);
   };
 
   if (items.length === 0) {
@@ -273,6 +293,40 @@ const Checkout = () => {
           </Link>
           <p className="text-primary font-display text-xs font-semibold uppercase tracking-[0.3em] mb-1">Almost there</p>
           <h1 className="font-display text-4xl font-bold tracking-tight">Checkout</h1>
+
+          {/* Multi-seller progress indicator */}
+          {sellerGroups.length > 1 && (
+            <div className="mt-6 p-4 rounded-2xl border border-border bg-muted/20">
+              <p className="text-xs font-semibold text-muted-foreground mb-3">
+                Your cart has items from {sellerGroups.length} sellers — you'll complete {sellerGroups.length} separate orders
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                {sellerGroups.map((group, i) => {
+                  const done = completedGroups.includes(group.sellerId);
+                  const active = i === currentGroupIndex;
+                  return (
+                    <div key={group.sellerId}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                        done ? "bg-green-500/10 border-green-500/30 text-green-600"
+                        : active ? "bg-primary/10 border-primary/30 text-primary"
+                        : "bg-muted/40 border-border text-muted-foreground"
+                      }`}>
+                      {done
+                        ? <CheckCircle className="w-3 h-3 flex-shrink-0" />
+                        : active
+                          ? <div className="w-3 h-3 rounded-full border-2 border-primary border-t-transparent animate-spin flex-shrink-0" />
+                          : <div className="w-3 h-3 rounded-full border-2 border-border flex-shrink-0" />
+                      }
+                      <span>{i + 1}. {group.sellerName}</span>
+                      <span className="opacity-60">
+                        {group.tier === "official" ? "· Official" : group.tier === "verified" ? "· Verified" : "· Pay on delivery"}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </motion.div>
 
         <div className="grid lg:grid-cols-[1fr_360px] gap-8 items-start">
@@ -280,7 +334,7 @@ const Checkout = () => {
           {/* ── Left: Form ── */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="space-y-6">
 
-            <TierBanner tier={tier} onDismiss={() => setAlertDismissed(true)} dismissed={alertDismissed} />
+            <TierBanner tier={tier} />
 
             {/* Delivery info */}
             <div className="rounded-2xl border border-border p-6">
@@ -417,31 +471,38 @@ const Checkout = () => {
               )}
             </div>
 
-            {/* Payment method note */}
-            <div className="rounded-2xl border border-border p-5 flex items-start gap-3">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
-                style={tier === "official" ? { background: "rgba(109,40,217,0.15)" } : { background: "var(--primary-10)" }}>
-                {tier === "official"
-                  ? <Sparkles className="w-4 h-4" style={{ color: "#a78bfa" }} />
-                  : tier === "verified"
-                    ? <Lock className="w-4 h-4 text-primary" />
-                    : <span className="text-sm">💳</span>}
-              </div>
-              <div>
-                <p className="font-display text-sm font-semibold">
-                  {tier === "official" ? "Official Product — Payment Required"
-                    : tier === "verified" ? "Secure Escrow Payment"
-                    : "Payment on Delivery"}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+            {/* Payment method note — rebuilt per tier */}
+            {(tier === "official" || tier === "verified") && (
+              <div className="rounded-2xl border border-border p-5 flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"
+                  style={tier === "official" ? { background: "rgba(109,40,217,0.15)" } : { background: "rgba(34,197,94,0.1)" }}>
                   {tier === "official"
-                    ? "Pay now via card or Mobile Money. Your payment is held by SneakersHub until you confirm receipt."
-                    : tier === "verified"
-                      ? "Pay now via card or Mobile Money. Your payment is held by SneakersHub and released to the seller only after you confirm receipt."
-                      : "Pay with cash or Mobile Money (MTN MoMo / Telecel Cash) when your order arrives."}
-                </p>
+                    ? <Sparkles className="w-4 h-4" style={{ color: "#a78bfa" }} />
+                    : <Lock className="w-4 h-4 text-green-500" />}
+                </div>
+                <div>
+                  <p className="font-display text-sm font-semibold">
+                    {tier === "official" ? "Pay now — Escrow Protected" : "Pay now — Escrow Protected"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    Your payment is collected now via card or Mobile Money and held securely by SneakersHub. It is only released once you confirm receipt of your order.
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
+            {tier === "standard" && (
+              <div className="rounded-2xl border border-border bg-muted/20 p-5 flex items-start gap-3">
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Package className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="font-display text-sm font-semibold">No payment collected today</p>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    Place your order now to notify the seller. Pay cash or Mobile Money (MTN MoMo / Telecel Cash) directly when your order is delivered and inspected.
+                  </p>
+                </div>
+              </div>
+            )}
           </motion.div>
 
           {/* ── Right: Order Summary ── */}
@@ -450,8 +511,23 @@ const Checkout = () => {
             style={tier === "official" ? { borderColor: "rgba(109,40,217,0.25)" } : {}}>
             <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-5">Order Summary</p>
 
+            {/* Seller label for current group */}
+            {currentGroup && (
+              <div className="flex items-center gap-2 mb-4">
+                <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                  tier === "official" ? "bg-purple-500"
+                  : tier === "verified" ? "bg-green-500"
+                  : "bg-muted-foreground"
+                }`} />
+                <p className="text-xs font-semibold text-muted-foreground">
+                  {currentGroup.sellerName}
+                  {sellerGroups.length > 1 && <span className="opacity-60"> · Order {currentGroupIndex + 1} of {sellerGroups.length}</span>}
+                </p>
+              </div>
+            )}
+
             <div className="space-y-3 mb-5">
-              {items.map((item) => (
+              {(currentGroup?.items ?? []).map((item) => (
                 <div key={`${item.sneaker.id}-${item.size}`} className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0 p-1.5">
                     <img src={item.sneaker.image} alt={item.sneaker.name} className="w-full h-full object-contain" />
@@ -467,23 +543,29 @@ const Checkout = () => {
 
             {/* Tier badge in summary */}
             {tier === "official" && (
-              <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-xl"
-                style={{ background: "rgba(109,40,217,0.08)", border: "1px solid rgba(109,40,217,0.25)" }}>
-                <Sparkles className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "#a78bfa" }} />
-                <p className="text-xs font-bold" style={{ color: "#a78bfa" }}>SneakersHub Official · Escrow Protected</p>
+              <div className="flex items-center gap-1.5 mb-4 px-3 py-2 rounded-xl"
+                style={{ background: "rgba(109,40,217,0.08)", border: "1px solid rgba(109,40,217,0.2)" }}>
+                <Sparkles className="w-3 h-3 flex-shrink-0" style={{ color: "#a78bfa" }} />
+                <p className="text-[11px] font-bold" style={{ color: "#a78bfa" }}>Official Product · Payment held in escrow</p>
               </div>
             )}
             {tier === "verified" && (
-              <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-xl bg-green-500/5 border border-green-500/20">
-                <BadgeCheck className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
-                <p className="text-xs font-semibold text-green-600">Verified Seller · Escrow Protected</p>
+              <div className="flex items-center gap-1.5 mb-4 px-3 py-2 rounded-xl bg-green-500/5 border border-green-500/20">
+                <ShieldCheck className="w-3 h-3 text-green-500 flex-shrink-0" />
+                <p className="text-[11px] font-semibold text-green-600">Verified Seller · Payment held in escrow</p>
+              </div>
+            )}
+            {tier === "standard" && (
+              <div className="flex items-center gap-1.5 mb-4 px-3 py-2 rounded-xl bg-muted/40 border border-border">
+                <Package className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                <p className="text-[11px] font-semibold text-muted-foreground">Unverified Seller · Pay on delivery only</p>
               </div>
             )}
 
             <div className="border-t border-border pt-4 space-y-2.5">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span className="font-medium">GHS {totalPrice}</span>
+                <span className="font-medium">GHS {currentGroup?.total ?? 0}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Delivery</span>
@@ -501,18 +583,11 @@ const Checkout = () => {
                   <span className="font-display font-bold">Total</span>
                   <p className="text-[10px] text-muted-foreground">excl. delivery</p>
                 </div>
-                <span className="font-display font-bold text-lg">GHS {orderTotal}</span>
+                <span className="font-display font-bold text-lg">GHS {currentGroup?.total ?? 0}</span>
               </div>
             </div>
 
-            {tier === "standard" && (
-              <div className="flex items-start gap-2 mt-5 mb-1 px-1">
-                <ShieldAlert className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
-                <p className="text-[11px] text-amber-600 dark:text-amber-500 leading-relaxed">
-                  Only pay after you've received and verified your order. SneakersHub is not liable for advance payments.
-                </p>
-              </div>
-            )}
+
 
             <Button onClick={handlePlaceOrder} disabled={loading} className="btn-primary w-full h-12 rounded-full text-sm mt-3"
               style={tier === "official" ? { background: "linear-gradient(135deg, #6d28d9, #4c1d95)" } : {}}>
@@ -525,19 +600,19 @@ const Checkout = () => {
               ) : (
                 <span className="flex items-center gap-2">
                   {tier === "official"
-                    ? <><Sparkles className="w-4 h-4" /> Pay GHS {orderTotal} — Official</>
+                    ? <><Sparkles className="w-4 h-4" /> Pay GHS {currentGroup?.total ?? 0}</>
                     : tier === "verified"
-                      ? <><CreditCard className="w-4 h-4" /> Pay GHS {orderTotal} — Escrow</>
-                      : <><CheckCircle className="w-4 h-4" /> Place Order</>
+                      ? <><Lock className="w-4 h-4" /> Pay GHS {orderTotal} — Escrow</>
+                      : <><Package className="w-4 h-4" /> Place Order — Pay on Delivery</>
                   }
                 </span>
               )}
             </Button>
 
             <p className="text-xs text-muted-foreground text-center mt-3">
-              {requiresPayment
-                ? "Secured by Paystack · Card & MoMo accepted"
-                : "By placing your order you agree to our terms of service."}
+              {tier === "official" || tier === "verified"
+                ? "Payment secured by Paystack · Card & Mobile Money accepted"
+                : "No payment now — pay cash or MoMo when your order arrives"}
             </p>
           </motion.div>
         </div>

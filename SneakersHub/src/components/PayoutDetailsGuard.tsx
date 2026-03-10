@@ -26,15 +26,18 @@ const PayoutDetailsGuard = ({ children }: Props) => {
 
     supabase
       .from("profiles")
-      .select("verified, payout_method, payout_number")
+      .select("verified, is_official, payout_method, payout_number")
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
         if (!data) { setStatus("ok"); return; }
 
-        // Only verified sellers need payout details
+        // Official accounts bypass escrow entirely — never need payout details
         // Standard sellers use pay-on-delivery — no block needed
-        if (data.verified && (!data.payout_method || !data.payout_number)) {
+        // Only verified (non-official) sellers need payout details
+        if (data.is_official) {
+          setStatus("ok");
+        } else if (data.verified && (!data.payout_method || !data.payout_number)) {
           setStatus("missing");
         } else {
           setStatus("ok");

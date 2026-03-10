@@ -302,6 +302,9 @@ const ProductDetail = () => {
       price: listing.price,
       image: listing.image ?? "",
       sellerId: listing.sellerId,
+      sellerName: listing.sellerName,
+      sellerVerified: listing.sellerVerified ?? false,
+      sellerIsOfficial: listing.sellerIsOfficial ?? false,
     }, selectedSize);
     setAdded(true);
     toast.success("Added to cart!");
