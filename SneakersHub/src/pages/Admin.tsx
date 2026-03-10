@@ -149,6 +149,22 @@ const Admin = () => {
 
   useEffect(() => { if (authChecked) fetchData(); }, [authChecked]);
 
+  // Realtime — auto-refresh admin dashboard when any order changes
+  useEffect(() => {
+    if (!authChecked) return;
+    const channel = supabase
+      .channel("admin:orders:realtime")
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "orders",
+      }, () => {
+        fetchData(); // refetch all data on any order insert/update
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [authChecked, fetchData]);
+
   if (authLoading || (!authChecked && !accessDenied)) return (
     <div className="min-h-screen bg-background flex items-center justify-center">
       <div className="flex flex-col items-center gap-3">

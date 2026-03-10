@@ -348,9 +348,22 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
 
     if (error) { await fetchOrders(); throw new Error(error.message); }
 
-    // Notify you (the admin) via SMS that a dispute was raised
-    // Uses seller_id as a proxy — you'll need to handle this manually
-    console.log(`Dispute raised for order ${orderId}: ${reason}`);
+    // Notify admin via SMS + trigger push via SMS function
+    try {
+      await triggerSMS({
+        type: "order.dispute_raised",
+        record: {
+          order_id: orderId,
+          buyer_id: order.buyerId,
+          seller_id: order.sellerId,
+          total: order.total,
+          reason,
+          items: order.items,
+        },
+      });
+    } catch (e) {
+      console.warn("Failed to send dispute notification:", e);
+    }
   };
 
   const markOrdersSeen = async () => {

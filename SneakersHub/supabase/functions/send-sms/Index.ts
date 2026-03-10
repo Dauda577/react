@@ -12,6 +12,16 @@ const corsHeaders = {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+// Fetch the official account's phone number to notify admin
+async function getAdminPhone(): Promise<string | null> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("phone")
+    .eq("is_official", true)
+    .single();
+  return data?.phone ?? null;
+}
+
 async function getPhone(userId: string): Promise<string | null> {
   const { data } = await supabase.from("profiles").select("phone").eq("id", userId).single();
   return data?.phone ?? null;
@@ -127,6 +137,25 @@ serve(async (req) => {
         const trigger = record.trigger === "auto" ? "auto-released after 3 days" : "released";
         await sendSMS(phone,
           `SneakersHub: GHS ${record.amount} payout ${trigger} for order ${formatOrderId(record.order_id)} (sale total GHS ${record.order_total ?? record.amount}). Check your ${record.payout_method ?? "account"}. sneakershub-sigma.vercel.app`
+        );
+      }
+    }
+
+    if (type === "order.dispute_raised") {
+      // SMS the admin (official account) about the new dispute
+      const adminPhone = await getAdminPhone();
+      if (adminPhone) {
+        const items = formatItems(record.items);
+        await sendSMS(adminPhone,
+          `⚠️ SneakersHub DISPUTE: Order ${formatOrderId(record.order_id)} — ${items} — GHS ${record.total}. Reason: "${record.reason?.slice(0, 80)}". Review at sneakershub-sigma.vercel.app/admin`
+        );
+      }
+
+      // Also SMS the buyer to confirm their dispute was received
+      const buyerPhone = await getPhone(record.buyer_id);
+      if (buyerPhone) {
+        await sendSMS(buyerPhone,
+          `SneakersHub: Your dispute for order ${formatOrderId(record.order_id)} has been received. Payment is frozen. We'll review and contact you within 24hrs. sneakershub-sigma.vercel.app/account`
         );
       }
     }

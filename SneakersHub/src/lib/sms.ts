@@ -9,7 +9,8 @@ type SMSEvent =
   | { type: "listing.created"; record: any }
   | { type: "payout.released"; record: any }
   | { type: "order.dispute_reminder"; record: any }
-  | { type: "payout.missing_details"; record: any };
+  | { type: "payout.missing_details"; record: any }
+  | { type: "order.dispute_raised"; record: any };
 
 export async function triggerSMS(event: SMSEvent) {
   try {

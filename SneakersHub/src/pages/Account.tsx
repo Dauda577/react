@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   User, LayoutGrid, ShoppingBag, Heart, Settings,
   MapPin, Eye, Pencil, Trash2, Plus, CheckCircle, ArrowRight, LogOut,
-  Store, Tag, Package, Phone, Zap, Star, Sparkles,
+  Store, Tag, Package, Phone, Zap, Star, Sparkles, BadgeCheck,
   Bell, ShieldCheck, Shield, Lock, Trash, ChevronRight, MessageCircle, BarChart2, Share,
   Camera, Image, Type, DollarSign, Ruler, X, AlertTriangle, Wallet, CreditCard,
 } from "lucide-react";
@@ -560,13 +560,38 @@ const Account = () => {
               <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-green-500 border-2 border-background" />
             </div>
             <div className="flex-1">
-              <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold mb-2
-                ${isGuest ? "bg-muted text-muted-foreground border border-border"
-                  : role === "seller" ? "bg-primary/10 text-primary border border-primary/20"
-                  : "bg-secondary text-muted-foreground border border-border"}`}>
-                {isGuest ? <><User className="w-3 h-3" /> Guest</>
-                  : role === "seller" ? <><Store className="w-3 h-3" /> Seller Account</>
-                  : <><Tag className="w-3 h-3" /> Buyer Account</>}
+              <div className="flex items-center gap-2 flex-wrap mb-2">
+                {/* Role pill */}
+                <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold
+                  ${isGuest ? "bg-muted text-muted-foreground border border-border"
+                    : role === "seller" ? "bg-primary/10 text-primary border border-primary/20"
+                    : "bg-secondary text-muted-foreground border border-border"}`}>
+                  {isGuest ? <><User className="w-3 h-3" /> Guest</>
+                    : role === "seller" ? <><Store className="w-3 h-3" /> Seller Account</>
+                    : <><Tag className="w-3 h-3" /> Buyer Account</>}
+                </div>
+
+                {/* Seller tier badge */}
+                {!isGuest && role === "seller" && (
+                  <>
+                    {isOfficial && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border"
+                        style={{ background: "linear-gradient(135deg, #3b0764, #1e1b4b)", color: "#a78bfa", borderColor: "#6d28d9" }}>
+                        <Sparkles className="w-3 h-3" /> Official
+                      </span>
+                    )}
+                    {!isOfficial && isVerified && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold text-green-600 bg-green-500/10 border border-green-500/20">
+                        <BadgeCheck className="w-3 h-3" /> Verified
+                      </span>
+                    )}
+                    {!isOfficial && !isVerified && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold text-muted-foreground bg-muted/40 border border-border">
+                        <User className="w-3 h-3" /> Unverified
+                      </span>
+                    )}
+                  </>
+                )}
               </div>
               <h1 className="font-display text-2xl font-bold tracking-tight">
                 {isGuest ? "Guest" : profileForm.name || user?.name || "User"}
@@ -977,7 +1002,13 @@ const Account = () => {
                                 ? <><CheckCircle className="w-4 h-4 flex-shrink-0" /> Seller confirmed dispatch</>
                                 : <><Package className="w-4 h-4 flex-shrink-0" /> Waiting for seller</>}
                             </div>
-                            {order.buyerConfirmed ? (
+                            {order.payoutStatus === "disputed" ? (
+                              // Disputed — hide confirm button entirely, show frozen state
+                              <div className="flex-1 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/5 border border-red-500/20">
+                                <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                                <span className="text-xs font-semibold text-red-600">Dispute raised — awaiting resolution</span>
+                              </div>
+                            ) : order.buyerConfirmed ? (
                               <div className="flex-1 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-green-500/10 border border-green-500/20">
                                 <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
                                 <span className="text-xs font-semibold text-green-600">
@@ -1002,21 +1033,23 @@ const Account = () => {
                               <p className="text-xs font-semibold text-green-600">Order complete — enjoy your sneakers! 🎉</p>
                             </motion.div>
                           )}
-                          {/* Escrow countdown — shown when seller confirmed but buyer hasn't yet */}
-                          {order.sellerConfirmed && !order.buyerConfirmed && (
+                          {/* Escrow countdown — only when seller confirmed, buyer hasn't, and NOT disputed */}
+                          {order.sellerConfirmed && !order.buyerConfirmed && order.payoutStatus !== "disputed" && (
                             <EscrowCountdown
                               releaseAt={order.releaseAt ?? null}
                               payoutStatus={order.payoutStatus ?? "pending"}
                               onDispute={() => setDisputeOrderId(order.id)}
                             />
                           )}
-                          {(order.payoutStatus ?? "pending") === "disputed" && (
+                          {order.payoutStatus === "disputed" && (
                             <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
                               className="mt-3 px-4 py-3 rounded-xl bg-red-500/5 border border-red-500/20 flex items-start gap-2">
                               <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
                               <div>
                                 <p className="text-xs font-semibold text-red-600">Dispute raised — payment frozen</p>
-                                <p className="text-xs text-muted-foreground mt-0.5">We'll review and contact you within 24hrs.</p>
+                                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                                  Your payment is held securely. We'll review your case and contact both you and the seller within 24hrs to resolve it.
+                                </p>
                               </div>
                             </motion.div>
                           )}
