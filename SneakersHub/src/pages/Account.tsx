@@ -364,8 +364,8 @@ const Account = () => {
           if (data.payout_method) setPayoutForm({ method: data.payout_method, number: data.payout_number ?? "", name: data.payout_name ?? "", bankCode: data.payout_bank_code ?? "" });
           // Fetch total listings ever created for limit display
           if (data.role === "seller") {
-            const { count } = await supabase.from("listings").select("id", { count: "exact", head: true }).eq("seller_id", id);
-            setTotalListingsCreated(count ?? 0);
+            supabase.from("listings").select("id", { count: "exact", head: true }).eq("seller_id", id)
+              .then(({ count }) => setTotalListingsCreated(count ?? 0));
           }
           if (data.verified && (!data.payout_method || !data.payout_number)) setHasMissingPayoutDetails(true);
         });
