@@ -1,42 +1,32 @@
 /* ── Safari Performance Fixes ──────────────────────────────────────────────── */
 
 /* Force GPU compositing on animated elements */
-.motion-safe\:animate-any {
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  will-change: transform, opacity;
+* {
+  -webkit-tap-highlight-color: transparent;
 }
 
-/* Safari viewport fix — account for bottom bar */
+/* Safari viewport fix */
 body {
   min-height: 100vh;
   min-height: -webkit-fill-available;
 }
 html {
   height: -webkit-fill-available;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
 }
 
-/* Prevent tap highlight on iOS */
-* { -webkit-tap-highlight-color: transparent; }
-
-/* Prevent Safari input zoom — prevents page zoom on input focus */
+/* Prevent Safari input zoom on focus */
 input, select, textarea {
-  font-size: 16px !important;
+  font-size: max(16px, 1em) !important;
 }
 
-/* Safari button fix */
 button {
   -webkit-appearance: none;
   cursor: pointer;
 }
 
-/* Prevent Safari from blocking smooth scroll */
-html {
-  -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
-}
-
-/* Reduce motion for users who prefer it */
+/* Reduce motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -45,24 +35,36 @@ html {
   }
 }
 
-/* ── PWA Safe Area Fix (notch / Dynamic Island) ────────────────────────────── */
+/* ── PWA Safe Area (notch / Dynamic Island) ─────────────────────────────────
+   When installed as PWA, iOS adds safe-area-inset-top (e.g. 59px on iPhone 14 Pro).
+   The navbar already has paddingTop: env(safe-area-inset-top).
+   All pages need to offset by navbar height (64px) + safe area.
+   We override the common pt- classes used across pages.
+────────────────────────────────────────────────────────────────────────────── */
 
-/* CSS variable for total navbar height including safe area */
 :root {
-  --navbar-height: 4rem; /* h-16 = 64px */
   --safe-top: env(safe-area-inset-top, 0px);
-  --total-navbar: calc(var(--navbar-height) + var(--safe-top));
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --navbar-h: 4rem; /* 64px = h-16 */
 }
 
-/* Pages that use pt-16 to clear the navbar need to also account for safe area */
-/* Override pt-16 on direct children of main sections in PWA mode */
+/* pt-16 — used by Index hero, Account, Admin */
 @supports (padding-top: env(safe-area-inset-top)) {
-  .pt-16 {
-    padding-top: var(--total-navbar) !important;
+  .pwa-offset-16 {
+    padding-top: calc(var(--navbar-h) + var(--safe-top)) !important;
+  }
+  .pwa-offset-24 {
+    padding-top: calc(6rem + var(--safe-top)) !important;
+  }
+  .pwa-offset-28 {
+    padding-top: calc(7rem + var(--safe-top)) !important;
+  }
+  .pwa-offset-20 {
+    padding-top: calc(5rem + var(--safe-top)) !important;
   }
 }
 
-/* Bottom safe area for fixed bottom elements */
+/* Bottom safe area for any fixed bottom UI */
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }

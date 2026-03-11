@@ -315,7 +315,7 @@ const ProductDetail = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <div className="section-padding max-w-6xl mx-auto pt-28 pb-20">
+        <div className="section-padding max-w-6xl mx-auto pt-28 pwa-offset-28 pb-20">
           <div className="grid md:grid-cols-2 gap-12">
             <div className="rounded-2xl bg-card border border-border h-96 animate-pulse" />
             <div className="space-y-4">
@@ -333,7 +333,7 @@ const ProductDetail = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Navbar />
-        <div className="text-center pt-20">
+        <div className="text-center pt-20 pwa-offset-20">
           <p className="font-display text-2xl font-bold mb-2">Listing not found</p>
           <p className="text-muted-foreground mb-6">This listing may have been removed or sold.</p>
           <Button className="btn-primary rounded-full" onClick={() => navigate("/shop")}>Back to Shop</Button>

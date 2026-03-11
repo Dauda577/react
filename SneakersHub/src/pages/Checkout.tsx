@@ -344,7 +344,7 @@ const Checkout = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <div className="pt-24 section-padding max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="pt-24 pwa-offset-24 section-padding max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[60vh]">
           <ShoppingBag className="w-14 h-14 text-muted-foreground/30 mb-4" />
           <p className="text-muted-foreground mb-6">Nothing to checkout — your cart is empty.</p>
           <Link to="/shop"><Button className="btn-primary rounded-full px-8">Shop Now <ArrowRight className="ml-2 w-4 h-4" /></Button></Link>
@@ -358,7 +358,7 @@ const Checkout = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      <div className="pt-24 section-padding max-w-5xl mx-auto pb-20">
+      <div className="pt-24 pwa-offset-24 section-padding max-w-5xl mx-auto pb-20">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
           <Link to="/cart" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6">
             <ArrowLeft className="w-4 h-4" /> Back to Cart

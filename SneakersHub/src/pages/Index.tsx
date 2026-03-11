@@ -40,7 +40,7 @@ const Index = () => {
       <Navbar />
 
       {/* Hero */}
-      <section className="relative min-h-screen flex items-center overflow-hidden pt-16">
+      <section className="relative min-h-screen flex items-center overflow-hidden pt-16 pwa-offset-16">
         <div className="absolute inset-0 opacity-20 overflow-hidden pointer-events-none">
           <div className="absolute top-1/4 left-1/4 w-64 h-64 md:w-96 md:h-96 bg-primary/20 rounded-full hidden md:block blur-[120px]" />
           <div className="absolute bottom-1/4 right-1/4 w-48 h-48 md:w-72 md:h-72 bg-primary/10 rounded-full hidden md:block blur-[100px]" />

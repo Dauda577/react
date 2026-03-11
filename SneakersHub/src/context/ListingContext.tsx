@@ -68,13 +68,63 @@ export const boostDaysLeft = (listing: Listing): number => {
   return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
 };
 
+/**
+ * Compresses and resizes an image to WebP before uploading.
+ * - Max 1200px wide (preserves aspect ratio)
+ * - 85% quality WebP
+ * - Typically reduces a 4MB photo to ~200-400KB with no visible quality loss
+ */
+const compressImage = (file: File): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const MAX_WIDTH = 1200;
+      let { width, height } = img;
+      if (width > MAX_WIDTH) {
+        height = Math.round((height * MAX_WIDTH) / width);
+        width = MAX_WIDTH;
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width  = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { reject(new Error("Canvas not available")); return; }
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => blob ? resolve(blob) : reject(new Error("Compression failed")),
+        "image/webp",
+        0.85 // 85% quality — visually identical to original
+      );
+    };
+    img.onerror = () => reject(new Error("Image load failed"));
+    img.src = url;
+  });
+};
+
 const uploadImage = async (file: File, listingId: string): Promise<string | null> => {
-  const ext = file.name.split(".").pop();
-  const path = `${listingId}.${ext}`;
-  const { error } = await supabase.storage.from("listings").upload(path, file, { upsert: true });
-  if (error) return null;
-  const { data } = supabase.storage.from("listings").getPublicUrl(path);
-  return data.publicUrl;
+  try {
+    // Compress to WebP before uploading
+    const compressed = await compressImage(file);
+    const path = `${listingId}.webp`;
+    const { error } = await supabase.storage.from("listings").upload(path, compressed, {
+      upsert: true,
+      contentType: "image/webp",
+    });
+    if (error) throw error;
+    const { data } = supabase.storage.from("listings").getPublicUrl(path);
+    return data.publicUrl;
+  } catch (err) {
+    console.warn("Image compression failed, uploading original:", err);
+    // Fallback — upload original if compression fails
+    const ext = file.name.split(".").pop();
+    const path = `${listingId}.${ext}`;
+    const { error } = await supabase.storage.from("listings").upload(path, file, { upsert: true });
+    if (error) return null;
+    const { data } = supabase.storage.from("listings").getPublicUrl(path);
+    return data.publicUrl;
+  }
 };
 
 export const ListingProvider = ({ children }: { children: ReactNode }) => {

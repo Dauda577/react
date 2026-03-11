@@ -237,7 +237,7 @@ const Admin = () => {
       <Navbar />
 
       {/* Header */}
-      <section className="border-b border-border pt-16">
+      <section className="border-b border-border pt-16 pwa-offset-16">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-0">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
             className="flex items-center gap-4 pb-6">
