@@ -83,8 +83,7 @@ const CreateListing = () => {
   };
 
   const handleSubmit = async () => {
-    const { name, brand, price, category, description } = form;
-    const { city, region } = form;
+    const { name, brand, price, category, description, city, region } = form;
     if (!name || !brand || !price || !category || !description || !region) {
       toast.error(!region ? "Please select your region" : "Please fill in all fields");
       return;
@@ -100,7 +99,6 @@ const CreateListing = () => {
 
     setLoading(true);
     try {
-      const { city, region } = form;
       if (editing) {
         await updateListing(editing.id, {
           name, brand, price: Number(price), category, description, sizes: selectedSizes, city: city || null, region: region || null,
