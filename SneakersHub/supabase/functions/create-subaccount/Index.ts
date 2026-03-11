@@ -47,9 +47,10 @@ serve(async (req) => {
     }
 
     // ── Fetch seller name ─────────────────────────────────────────────────────
-    const { data: seller } = await supabase
-      .from("profiles").select("name, email").eq("id", seller_id).single();
-    if (!seller) throw new Error("Seller not found");
+    const { data: seller, error: sellerErr } = await supabase
+      .from("profiles").select("name").eq("id", seller_id).single();
+    console.log("[create-subaccount] seller fetch:", { seller, sellerErr, seller_id });
+    if (sellerErr || !seller) throw new Error(`Seller not found: ${sellerErr?.message ?? "no row"}`);
 
     // ── Create Paystack subaccount ────────────────────────────────────────────
     const splitPercentage = percentage_charge ?? 95; // seller gets 95% by default
@@ -66,7 +67,6 @@ serve(async (req) => {
         account_number,            // MoMo number or bank account
         percentage_charge: splitPercentage,
         description: `SneakersHub seller: ${seller.name}`,
-        primary_contact_email: seller.email ?? undefined,
         metadata: { seller_id },
       }),
     });
