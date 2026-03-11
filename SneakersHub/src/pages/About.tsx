@@ -169,8 +169,8 @@ const About = () => {
             <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-5">How it works</p>
             <div className="space-y-4">
               {[
-                { step: "1", text: "Save your MoMo or bank details in your Account settings" },
-                { step: "2", text: "Tap 'Get Verified' and pay GHS 50 via card or Mobile Money" },
+                { step: "1", text: "Save your MoMo  details in your Account settings" },
+                { step: "2", text: "Tap 'Get Verified' and pay GHS 50 via  Mobile Money" },
                 { step: "3", text: "Your Paystack subaccount is created instantly — badge goes live immediately" },
               ].map(({ step, text }) => (
                 <div key={step} className="flex items-center gap-4">
