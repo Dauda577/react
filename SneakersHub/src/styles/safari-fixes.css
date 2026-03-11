@@ -62,6 +62,9 @@ button {
   .pwa-offset-20 {
     padding-top: calc(5rem + var(--safe-top)) !important;
   }
+  .pwa-offset-32 {
+    padding-top: calc(8rem + var(--safe-top)) !important;
+  }
 }
 
 /* Bottom safe area for any fixed bottom UI */

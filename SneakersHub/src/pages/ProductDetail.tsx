@@ -315,7 +315,7 @@ const ProductDetail = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <div className="section-padding max-w-6xl mx-auto pt-28 pwa-offset-28 pb-20">
+        <div className="section-padding max-w-6xl mx-auto pt-32 pwa-offset-32 pb-20">
           <div className="grid md:grid-cols-2 gap-12">
             <div className="rounded-2xl bg-card border border-border h-96 animate-pulse" />
             <div className="space-y-4">
@@ -364,7 +364,7 @@ const ProductDetail = () => {
       <div className="section-padding max-w-6xl mx-auto pt-28 pb-20">
 
         {/* Back + Share row */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-8 pt-2">
           <button onClick={() => navigate(-1)}
             className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors group text-sm">
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Back
