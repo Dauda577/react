@@ -50,10 +50,19 @@ serve(async (req) => {
     const { data: seller, error: sellerErr } = await supabase
       .from("profiles").select("name").eq("id", seller_id).single();
     console.log("[create-subaccount] seller fetch:", { seller, sellerErr, seller_id });
+    console.log("[create-subaccount] subaccount params:", { settlement_bank, account_number, percentage_charge, splitPercentage: percentage_charge ?? 95 });
     if (sellerErr || !seller) throw new Error(`Seller not found: ${sellerErr?.message ?? "no row"}`);
 
     // ── Create Paystack subaccount ────────────────────────────────────────────
-    const splitPercentage = percentage_charge ?? 95; // seller gets 95% by default
+    const splitPercentage = Number(percentage_charge ?? 95); // seller gets this %, platform keeps the rest
+
+    // Normalize MoMo number for Paystack (strip leading 0, add 233)
+    const isMoMo = !["ghipss","030100","040100","050100","060100","070101","080100","090100","100100","110100","120100","130100","140100","150100","190100"].includes(settlement_bank);
+    const normalizedNumber = isMoMo
+      ? `233${account_number.replace(/\s+/g,"").replace(/^\+/,"").replace(/^233/,"").replace(/^0/,"")}`
+      : account_number;
+
+    console.log("[create-subaccount] normalized:", { isMoMo, normalizedNumber, settlement_bank });
 
     const subRes = await fetch("https://api.paystack.co/subaccount", {
       method: "POST",
@@ -63,8 +72,8 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         business_name: seller.name,
-        settlement_bank,           // bank code e.g. "MTN" for MoMo
-        account_number,            // MoMo number or bank account
+        settlement_bank,
+        account_number: normalizedNumber,
         percentage_charge: splitPercentage,
         description: `SneakersHub seller: ${seller.name}`,
         metadata: { seller_id },
