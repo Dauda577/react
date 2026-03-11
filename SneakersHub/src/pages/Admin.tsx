@@ -31,6 +31,8 @@ type AdminOrder = {
   seller_name?: string;
   seller_phone?: string;
   seller_is_official?: boolean;
+  paystack_reference?: string | null;
+  dispute_reason?: string | null;
 };
 
 const COMMISSION_RATE = 0.05;
@@ -48,6 +50,8 @@ const payoutColors: Record<string, string> = {
   released:     "bg-green-500/10 text-green-600 border-green-500/20",
   auto_released:"bg-blue-500/10 text-blue-600 border-blue-500/20",
   disputed:     "bg-red-500/10 text-red-600 border-red-500/20",
+  refunded:     "bg-purple-500/10 text-purple-600 border-purple-500/20",
+  refunded:     "bg-purple-500/10 text-purple-600 border-purple-500/20",
 };
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
@@ -96,6 +100,57 @@ const Admin = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
+  const [refundOrder, setRefundOrder] = useState<AdminOrder | null>(null);
+  const [refundReason, setRefundReason] = useState("");
+  const [refundLoading, setRefundLoading] = useState(false);
+
+  const REFUND_REASONS = [
+    "Item not received",
+    "Wrong item delivered",
+    "Item damaged / not as described",
+    "Seller unresponsive",
+    "Duplicate order",
+    "Other",
+  ];
+
+  const handleRefund = async () => {
+    if (!refundOrder || !refundReason) return;
+    setRefundLoading(true);
+    try {
+      const isPaid = !!refundOrder.paystack_reference;
+
+      if (isPaid) {
+        // Call Paystack refund API via edge function
+        const { error } = await supabase.functions.invoke("refund-order", {
+          body: {
+            order_id: refundOrder.id,
+            paystack_reference: refundOrder.paystack_reference,
+            reason: refundReason,
+            buyer_phone: refundOrder.buyer_phone,
+            seller_phone: refundOrder.seller_phone,
+          },
+        });
+        if (error) throw error;
+        toast.success("Refund issued — buyer will receive funds within 5–10 business days");
+      } else {
+        // Pay on delivery — just mark as disputed
+        const { error } = await supabase
+          .from("orders")
+          .update({ payout_status: "disputed", dispute_reason: refundReason })
+          .eq("id", refundOrder.id);
+        if (error) throw error;
+        toast.success("Order marked as disputed");
+      }
+
+      setRefundOrder(null);
+      setRefundReason("");
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message ?? "Refund failed");
+    } finally {
+      setRefundLoading(false);
+    }
+  };
 
   const [authChecked, setAuthChecked] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
@@ -142,6 +197,8 @@ const Admin = () => {
         seller_name: o.seller?.name ?? "[Deleted Account]",
         seller_phone: o.seller?.phone ?? null,
         seller_is_official: o.seller?.is_official ?? false,
+        paystack_reference: o.paystack_reference ?? null,
+        dispute_reason: o.dispute_reason ?? null,
       })));
     } catch (err) {
       toast.error("Failed to load admin data");
@@ -397,6 +454,8 @@ const Admin = () => {
                       <option value="pending">Pending</option>
                       <option value="released">Released</option>
                       <option value="auto_released">Auto-released</option>
+                      <option value="disputed">Disputed</option>
+                      <option value="refunded">Refunded</option>
                     </select>
                   </div>
                 </div>
@@ -491,6 +550,24 @@ const Admin = () => {
                               </div>
                             </div>
 
+                            {/* Refund / Dispute action */}
+                            {!["refunded", "disputed"].includes(order.payout_status) && (
+                              <div className="col-span-full pt-2 border-t border-border mt-2">
+                                <button
+                                  onClick={() => { setRefundOrder(order); setRefundReason(""); }}
+                                  className="text-xs text-red-500 hover:text-red-400 flex items-center gap-1.5 transition-colors font-medium">
+                                  <AlertTriangle className="w-3.5 h-3.5" />
+                                  {order.paystack_reference ? "Issue Refund" : "Mark as Disputed"}
+                                </button>
+                              </div>
+                            )}
+                            {order.dispute_reason && (
+                              <div className="col-span-full pt-2 border-t border-border mt-2">
+                                <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Dispute Reason</p>
+                                <p className="text-xs text-red-500">{order.dispute_reason}</p>
+                              </div>
+                            )}
+
                           </motion.div>
                         )}
                       </AnimatePresence>
@@ -557,6 +634,86 @@ const Admin = () => {
           </motion.div>
         </AnimatePresence>
       </section>
+
+      {/* ── Refund / Dispute Modal ── */}
+      <AnimatePresence>
+        {refundOrder && (
+          <motion.div key="refund-backdrop"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => !refundLoading && setRefundOrder(null)}>
+            <motion.div key="refund-modal"
+              initial={{ opacity: 0, scale: 0.92, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92 }}
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}
+              className="bg-background border border-border rounded-2xl p-6 w-full max-w-md shadow-2xl">
+
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <h2 className="font-display font-bold text-lg">
+                    {refundOrder.paystack_reference ? "Issue Refund" : "Mark as Disputed"}
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {formatId(refundOrder.id)} · {refundOrder.buyer_first_name} {refundOrder.buyer_last_name} · {formatGHS(refundOrder.total)}
+                  </p>
+                </div>
+                <button onClick={() => setRefundOrder(null)} disabled={refundLoading}
+                  className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {refundOrder.paystack_reference ? (
+                <div className="mb-4 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                  <p className="text-xs text-amber-600 font-medium flex items-center gap-2">
+                    <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+                    This reverses the Paystack payment of {formatGHS(refundOrder.total)} to the buyer. The seller will be notified by SMS.
+                  </p>
+                </div>
+              ) : (
+                <div className="mb-4 px-4 py-3 rounded-xl bg-muted/40 border border-border">
+                  <p className="text-xs text-muted-foreground">
+                    Pay-on-delivery order — no Paystack payment to reverse. Order will be marked as <span className="font-semibold text-foreground">disputed</span> for your records.
+                  </p>
+                </div>
+              )}
+
+              <div className="mb-5">
+                <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
+                  Reason <span className="text-red-400">*</span>
+                </label>
+                <div className="relative">
+                  <select value={refundReason} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setRefundReason(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
+                      focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit] appearance-none cursor-pointer">
+                    <option value="">Select a reason</option>
+                    {REFUND_REASONS.map((r: string) => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button onClick={() => setRefundOrder(null)} disabled={refundLoading}
+                  className="flex-1 h-11 rounded-full border border-border text-sm font-semibold hover:bg-muted transition-colors disabled:opacity-50">
+                  Cancel
+                </button>
+                <button onClick={handleRefund} disabled={!refundReason || refundLoading}
+                  className="flex-1 h-11 rounded-full bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                  {refundLoading ? (
+                    <><motion.div animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+                      className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />Processing...</>
+                  ) : (
+                    refundOrder.paystack_reference ? "Confirm Refund" : "Mark Disputed"
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 };

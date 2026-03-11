@@ -129,7 +129,7 @@ serve(async (req) => {
 
     // Alert admin
     await notifyAdmin(
-      `🚨 Transfer FAILED (Paystack confirmed): Order ${order.id.slice(0,8)} — GHS ${order.total} to ${seller?.name ?? "seller"} (${seller?.payout_method}). Attempt ${attempts}. Reason: ${failReason}. Fix at sneakershub-sigma.vercel.app/admin`
+      `🚨 Transfer FAILED (Paystack confirmed): Order ${order.id.slice(0,8)} — GHS ${order.total} to ${seller?.name ?? "seller"} (${seller?.payout_method}). Attempt ${attempts}. Reason: ${failReason}. Fix at sneakershub.site/admin`
     );
   }
 

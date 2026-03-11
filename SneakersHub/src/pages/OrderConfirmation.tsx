@@ -27,7 +27,8 @@ const OrderConfirmation = () => {
     );
   }
 
-  const { id, items, buyer, delivery, total, deliveryFee, subtotal, placedAt } = latestOrder;
+  const { id, items, buyer, delivery, total, deliveryFee, subtotal, placedAt, paystackReference } = latestOrder;
+  const isPaid = !!paystackReference;
   const placedDate = new Date(placedAt).toLocaleDateString("en-GH", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
@@ -60,7 +61,9 @@ const OrderConfirmation = () => {
             You're all set!
           </h1>
           <p className="text-muted-foreground text-sm max-w-xs mx-auto">
-            Your order has been placed. The seller will be notified and get in touch to arrange delivery.
+            {isPaid
+              ? "Payment received! Your order is confirmed and the seller will dispatch soon."
+              : "Your order has been placed. The seller will be notified to arrange delivery."}
           </p>
           <p className="text-xs text-muted-foreground mt-3 font-mono">
             {(() => {
@@ -164,7 +167,10 @@ const OrderConfirmation = () => {
             </div>
             <div className="mt-4 px-3 py-2.5 rounded-xl bg-primary/5 border border-primary/10">
               <p className="text-xs text-muted-foreground">
-                💳 Pay with <span className="font-semibold text-foreground">Cash or MoMo</span> on delivery
+{isPaid
+                  ? <><span className="mr-1">✅</span> Paid via Paystack · <span className="font-semibold text-foreground">Payout to seller within 24hrs</span></>
+                  : <><span className="mr-1">💳</span> Pay with <span className="font-semibold text-foreground">Cash or MoMo</span> on delivery</>
+                }
               </p>
             </div>
           </motion.div>

@@ -89,7 +89,7 @@ serve(async (req) => {
     for (const [_receiverId, { phone, name, count, ids }] of byReceiver) {
       try {
         const plural  = count === 1 ? "message" : "messages";
-        const message = `Hi ${name}, you have ${count} unread ${plural} on SneakersHub. Open the app to reply: sneakershub-sigma.vercel.app/account`;
+        const message = `Hi ${name}, you have ${count} unread ${plural} on SneakersHub. Open the app to reply: sneakershub.site/account`;
 
         await sendSMS(phone, message);
 

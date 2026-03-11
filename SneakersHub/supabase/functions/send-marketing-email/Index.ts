@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const BREVO_API_KEY = Deno.env.get("BREVO_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const APP_URL = "https://sneakershub-sigma.vercel.app";
+const APP_URL = "https://sneakershub.site";
 
 // ── After signing up on Brevo, go to:
 //    Senders & IPs → Senders → Add a Sender
@@ -168,7 +168,7 @@ function buildEmail(buyerName: string, listings: any[], unsubToken: string) {
                 You're receiving this because you have a SneakersHub buyer account.<br/>
                 <a href="${APP_URL}/unsubscribe?token=${unsubToken}" style="color:#6d28d9;text-decoration:none;font-weight:600;">Unsubscribe</a>
                 &nbsp;·&nbsp;
-                <a href="${APP_URL}" style="color:#a1a1aa;text-decoration:none;">sneakershub-sigma.vercel.app</a>
+                <a href="${APP_URL}" style="color:#a1a1aa;text-decoration:none;">sneakershub.site</a>
               </p>
             </td>
           </tr>

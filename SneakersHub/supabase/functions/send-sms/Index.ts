@@ -69,9 +69,27 @@ serve(async (req) => {
       const phone = await getPhone(record.seller_id);
       if (phone) {
         const items = formatItems(record.items);
-        await sendSMS(phone,
-          `SneakersHub: New order ${formatOrderId(record.id)} — ${items} — GHS ${record.total}. Open app to confirm & dispatch. sneakershub-sigma.vercel.app/account`
-        );
+
+        // Fetch seller tier to send the right message
+        const { data: seller } = await supabaseAdmin
+          .from("profiles")
+          .select("verified, is_official")
+          .eq("id", record.seller_id)
+          .single();
+
+        const isPaid = seller?.is_official || seller?.verified;
+
+        if (isPaid) {
+          // Buyer has already paid via Paystack — money is processing
+          await sendSMS(phone,
+            `SneakersHub: New order ${formatOrderId(record.id)} — ${items} — GHS ${record.total}. Payment received ✅ Your payout will be processed within 24hrs. Dispatch when ready. sneakershub.site/account`
+          );
+        } else {
+          // Pay on delivery — buyer hasn't paid yet
+          await sendSMS(phone,
+            `SneakersHub: New order ${formatOrderId(record.id)} — ${items} — GHS ${record.total}. Pay on delivery. Confirm & dispatch when ready. sneakershub.site/account`
+          );
+        }
       }
     }
 
@@ -79,12 +97,8 @@ serve(async (req) => {
       const phone = record.buyer?.phone ?? await getPhone(record.buyer_id);
       if (phone) {
         const items = formatItems(record.items);
-        const releaseDate = record.release_at
-          ? new Date(record.release_at).toLocaleDateString("en-GH", { day: "numeric", month: "short" })
-          : null;
-        const deadline = releaseDate ? ` Confirm receipt by ${releaseDate} or raise a dispute.` : "";
         await sendSMS(phone,
-          `SneakersHub: Order ${formatOrderId(record.id)} dispatched! ${items} — GHS ${record.total}.${deadline} sneakershub-sigma.vercel.app/account`
+          `SneakersHub: Order ${formatOrderId(record.id)} dispatched! ${items} — GHS ${record.total}. Confirm receipt when your sneakers arrive: sneakershub.site/account`
         );
       }
     }
@@ -94,7 +108,7 @@ serve(async (req) => {
       if (phone) {
         const items = formatItems(record.items);
         await sendSMS(phone,
-          `SneakersHub: Order ${formatOrderId(record.id)} confirmed! ${items} — GHS ${record.total}. Enjoy your kicks! 👟 sneakershub-sigma.vercel.app/account`
+          `SneakersHub: Order ${formatOrderId(record.id)} confirmed! ${items} — GHS ${record.total}. Enjoy your kicks! 👟 sneakershub.site/account`
         );
       }
     }
@@ -106,28 +120,17 @@ serve(async (req) => {
           ? record.content.slice(0, 50) + "..."
           : record.content;
         await sendSMS(phone,
-          `SneakersHub: New message: "${preview}". Reply at sneakershub-sigma.vercel.app/account`
+          `SneakersHub: New message: "${preview}". Reply at sneakershub.site/account`
         );
       }
     }
 
-    if (type === "order.dispute_reminder") {
-      const phone = await getPhone(record.buyer_id);
-      if (phone) {
-        const urgent = record.days_left <= 1 ? "⚠️ LAST CHANCE: " : "Reminder: ";
-        const when = record.days_left <= 1 ? "today" : `in ${record.days_left} day${record.days_left === 1 ? "" : "s"}`;
-        const total = record.total ? ` (GHS ${record.total})` : "";
-        await sendSMS(phone,
-          `SneakersHub: ${urgent}Order ${formatOrderId(record.order_id)}${total} — payment auto-releases to seller ${when}. Confirm receipt or dispute: sneakershub-sigma.vercel.app/account`
-        );
-      }
-    }
 
     if (type === "payout.missing_details") {
       // Verified seller hasn't added payout details — funds are being held
       const phone = record.seller_phone ?? await getPhone(record.seller_id);
       if (phone) await sendSMS(phone,
-        `SneakersHub: You have a pending payout for order ${formatOrderId(record.order_id)} but no payout details set. Add your MoMo number in Settings to receive your payment: sneakershub-sigma.vercel.app/account`
+        `SneakersHub: You have a pending payout for order ${formatOrderId(record.order_id)} but no payout details set. Add your MoMo number in Settings to receive your payment: sneakershub.site/account`
       );
     }
 
@@ -136,57 +139,16 @@ serve(async (req) => {
       if (phone) {
         const trigger = record.trigger === "auto" ? "auto-released after 3 days" : "released";
         await sendSMS(phone,
-          `SneakersHub: GHS ${record.amount} payout ${trigger} for order ${formatOrderId(record.order_id)} (sale total GHS ${record.order_total ?? record.amount}). Check your ${record.payout_method ?? "account"}. sneakershub-sigma.vercel.app`
+          `SneakersHub: GHS ${record.amount} payout ${trigger} for order ${formatOrderId(record.order_id)} (sale total GHS ${record.order_total ?? record.amount}). Check your ${record.payout_method ?? "account"}. sneakershub.site`
         );
       }
     }
 
-    if (type === "order.dispute_raised") {
-      // SMS the admin (official account) about the new dispute
-      const adminPhone = await getAdminPhone();
-      if (adminPhone) {
-        const items = formatItems(record.items);
-        await sendSMS(adminPhone,
-          `⚠️ SneakersHub DISPUTE: Order ${formatOrderId(record.order_id)} — ${items} — GHS ${record.total}. Reason: "${record.reason?.slice(0, 80)}". Review at sneakershub-sigma.vercel.app/admin`
-        );
-      }
-
-      // Also SMS the buyer to confirm their dispute was received
-      const buyerPhone = await getPhone(record.buyer_id);
-      if (buyerPhone) {
-        await sendSMS(buyerPhone,
-          `SneakersHub: Your dispute for order ${formatOrderId(record.order_id)} has been received. Payment is frozen. We'll review and contact you within 24hrs. sneakershub-sigma.vercel.app/account`
-        );
-      }
-    }
-
-    if (type === "admin.alert") {
-      // Direct alert to admin phone
-      const phone = record.phone;
-      if (phone) await sendSMS(phone, `${record.message}`);
-    }
-
-    if (type === "payout.transfer_failed") {
-      const phone = record.seller_phone ?? await getPhone(record.seller_id);
-      const attempts = record.attempts ?? 1;
-      const maxAttempts = 3;
-      if (phone) {
-        if (attempts < maxAttempts) {
-          await sendSMS(phone,
-            `SneakersHub: Your payout for order ${formatOrderId(record.order_id)} failed to process (attempt ${attempts}/${maxAttempts}). We'll retry automatically. If this persists contact us at sneakershub-sigma.vercel.app`
-          );
-        } else {
-          await sendSMS(phone,
-            `SneakersHub: Your payout for order ${formatOrderId(record.order_id)} has failed ${maxAttempts} times. Please contact support — we'll resolve this manually. sneakershub-sigma.vercel.app`
-          );
-        }
-      }
-    }
 
     if (type === "listing.created") {
       const phone = await getPhone(record.seller_id);
       if (phone) await sendSMS(phone,
-        `SneakersHub: Your listing "${record.name}" is now live! Boost it to reach more buyers. sneakershub-sigma.vercel.app/account`
+        `SneakersHub: Your listing "${record.name}" is now live! Boost it to reach more buyers. sneakershub.site/account`
       );
     }
 
