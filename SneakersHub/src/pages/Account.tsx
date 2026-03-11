@@ -295,6 +295,7 @@ const Account = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [payoutForm, setPayoutForm]   = useState({ method: "", number: "", name: "", bankCode: "" });
   const [payoutSaved, setPayoutSaved] = useState(false);
+  const [payoutChangeWarning, setPayoutChangeWarning] = useState(false);
   const [hasMissingPayoutDetails, setHasMissingPayoutDetails] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [newPassword,     setNewPassword]     = useState("");
@@ -1334,10 +1335,35 @@ const Account = () => {
                           placeholder="Name on account"
                           className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]" />
                       </div>
-                      <Button className="btn-primary rounded-full h-9 px-5 text-sm w-full"
+                      {/* Warning for verified sellers changing payout details */}
+                      {isVerified && subaccountCode && payoutChangeWarning && (
+                        <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 text-xs space-y-3">
+                          <p className="font-semibold text-amber-700 dark:text-amber-400">⚠️ Update Paystack Payout Account?</p>
+                          <p className="text-muted-foreground leading-relaxed">This will update your Paystack subaccount to the new details. Future payments will go to the new account. Make sure the details are correct.</p>
+                          <div className="flex gap-2">
+                            <button onClick={() => setPayoutChangeWarning(false)}
+                              className="flex-1 py-2 rounded-xl border border-border text-xs font-semibold hover:bg-muted transition-colors">
+                              Cancel
+                            </button>
+                            <button onClick={async () => {
+                              setPayoutChangeWarning(false);
+                              document.getElementById("save-payout-btn")?.click();
+                            }}
+                              className="flex-1 py-2 rounded-xl bg-amber-500 text-white text-xs font-semibold hover:bg-amber-600 transition-colors">
+                              Yes, Update
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      <Button id="save-payout-btn" className="btn-primary rounded-full h-9 px-5 text-sm w-full"
                         onClick={async () => {
                           if (!payoutForm.method || !payoutForm.number || !payoutForm.name) { toast.error("Please fill in all payout details"); return; }
                           if (payoutForm.method === "bank" && !payoutForm.bankCode) { toast.error("Please select your bank"); return; }
+                          // Show warning for verified sellers if triggered by user click (not confirm)
+                          if (isVerified && subaccountCode && !payoutChangeWarning) {
+                            setPayoutChangeWarning(true);
+                            return;
+                          }
                           try {
                             const { error } = await supabase.from("profiles").update({
                               payout_method: payoutForm.method, payout_number: payoutForm.number, payout_name: payoutForm.name, payout_bank_code: payoutForm.bankCode || null,
@@ -1351,9 +1377,13 @@ const Account = () => {
                                   : payoutForm.method === "momo_airteltigo" ? "ATL"
                                   : payoutForm.method === "bank" ? (payoutForm.bankCode || "ghipss")
                                   : "MTN";
+                                // MoMo: normalize to 0XXXXXXXXX format
+                                // Bank: use account number as-is (no normalization)
                                 let normalizedNumber = payoutForm.number.replace(/\s+/g, "");
-                                if (normalizedNumber.startsWith("233")) normalizedNumber = "0" + normalizedNumber.slice(3);
-                                if (!normalizedNumber.startsWith("0")) normalizedNumber = "0" + normalizedNumber;
+                                if (payoutForm.method !== "bank") {
+                                  if (normalizedNumber.startsWith("233")) normalizedNumber = "0" + normalizedNumber.slice(3);
+                                  if (!normalizedNumber.startsWith("0")) normalizedNumber = "0" + normalizedNumber;
+                                }
 
                                 const { data: { session } } = await supabase.auth.getSession();
                                 await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-subaccount`, {
