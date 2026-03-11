@@ -56,13 +56,20 @@ serve(async (req) => {
     // ── Create Paystack subaccount ────────────────────────────────────────────
     const splitPercentage = Number(percentage_charge ?? 95); // seller gets this %, platform keeps the rest
 
-    // Normalize MoMo number for Paystack (strip leading 0, add 233)
+    // Paystack GH subaccount expects MoMo numbers as 0XXXXXXXXX (10 digits, leading 0)
+    // Bank account numbers are passed as-is
     const isMoMo = !["ghipss","030100","040100","050100","060100","070101","080100","090100","100100","110100","120100","130100","140100","150100","190100"].includes(settlement_bank);
     const normalizedNumber = isMoMo
-      ? `233${account_number.replace(/\s+/g,"").replace(/^\+/,"").replace(/^233/,"").replace(/^0/,"")}`
+      ? (() => {
+          // Strip everything, then ensure it starts with 0
+          let n = account_number.replace(/\s+/g, "").replace(/^\+/, "");
+          if (n.startsWith("233")) n = "0" + n.slice(3);
+          if (!n.startsWith("0")) n = "0" + n;
+          return n; // e.g. "0506054670"
+        })()
       : account_number;
 
-    console.log("[create-subaccount] normalized:", { isMoMo, normalizedNumber, settlement_bank });
+    console.log("[create-subaccount] normalized:", { isMoMo, normalizedNumber, settlement_bank, account_number });
 
     const subRes = await fetch("https://api.paystack.co/subaccount", {
       method: "POST",
