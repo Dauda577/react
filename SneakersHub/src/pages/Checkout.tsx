@@ -265,7 +265,6 @@ const Checkout = () => {
 
       try {
         // For verified sellers — fetch subaccount_code fresh from DB (not from stale cache)
-        console.log("[Checkout] groupTier:", groupTier, "sellerId:", group.sellerId, "sellerVerified:", group.sellerVerified, "sellerIsOfficial:", group.sellerIsOfficial);
         let subaccountCode: string | null = null;
         if (groupTier === "verified") {
           try {
@@ -275,9 +274,7 @@ const Checkout = () => {
               .eq("id", group.sellerId)
               .single();
             subaccountCode = sellerProfile?.subaccount_code ?? null;
-            console.log("[Checkout] subaccountCode for seller:", group.sellerId, "->", subaccountCode);
           } catch (e) {
-            console.warn("[Checkout] Could not fetch seller subaccount:", e);
           }
         }
 
@@ -416,8 +413,8 @@ const Checkout = () => {
               <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-5">Delivery Information</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {[
-                  { name: "firstName", label: "First Name", placeholder: "Dauda", icon: User },
-                  { name: "lastName", label: "Last Name", placeholder: "Qarsim", icon: User },
+                  { name: "firstName", label: "First Name", placeholder: "Kwame", icon: User },
+                  { name: "lastName", label: "Last Name", placeholder: "Mensah", icon: User },
                 ].map(({ name, label, placeholder, icon: Icon }) => (
                   <div key={name}>
                     <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">{label}</label>

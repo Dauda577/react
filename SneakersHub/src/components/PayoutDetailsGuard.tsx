@@ -32,7 +32,7 @@ const PayoutDetailsGuard = ({ children }: Props) => {
       .then(({ data }) => {
         if (!data) { setStatus("ok"); return; }
 
-        // Official accounts bypass escrow entirely — never need payout details
+        // Official accounts never need payout details
         // Standard sellers use pay-on-delivery — no block needed
         // Only verified (non-official) sellers need payout details
         if (data.is_official) {
@@ -63,7 +63,7 @@ const PayoutDetailsGuard = ({ children }: Props) => {
         As a verified seller, buyers pay via Paystack. You need to add your MoMo or bank details so we know where to send your earnings.
       </p>
       <p className="text-xs text-muted-foreground mb-8">
-        Without this, your money will be held and you won't receive payouts.
+        Without this, your earnings can't be paid out to you.
       </p>
 
       <div className="w-full max-w-xs rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 mb-6 text-left space-y-2">

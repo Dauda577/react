@@ -6,8 +6,6 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { supabase } from "@/lib/supabase";
 
-const VERIFY_WHATSAPP = "https://wa.me/233256221777?text=Hi%2C%20I%27d%20like%20to%20get%20verified%20as%20a%20seller%20on%20SneakersHub.%20My%20account%20email%20is%3A%20";
-
 const formatCount = (n: number): string => {
   if (n >= 1000) return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}K+`;
   return `${n}+`;

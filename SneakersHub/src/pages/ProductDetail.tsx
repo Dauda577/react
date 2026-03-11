@@ -49,7 +49,7 @@ const PaymentBadge = ({ tier }: { tier: SellerTier }) => {
       <div>
         <p className="text-xs font-bold" style={{ color: "#a78bfa" }}>SneakersHub Official Product</p>
         <p className="text-xs text-muted-foreground mt-0.5">
-          This is an official SneakersHub product. Payment is required before delivery and is held in escrow until you confirm receipt.
+          This is an official SneakersHub product. Payment is processed securely via Paystack before delivery.
         </p>
       </div>
     </motion.div>
@@ -59,9 +59,9 @@ const PaymentBadge = ({ tier }: { tier: SellerTier }) => {
       className="flex items-start gap-3 p-4 rounded-xl border border-green-500/30 bg-green-500/5">
       <ShieldCheck className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
       <div>
-        <p className="text-xs font-semibold text-green-700 dark:text-green-400">Verified Seller — Escrow Protected</p>
+        <p className="text-xs font-semibold text-green-700 dark:text-green-400">Verified Seller — Secure Paystack Payment</p>
         <p className="text-xs text-muted-foreground mt-0.5">
-          Your payment is held securely and only released to the seller after you confirm receipt.
+          Your payment is split at checkout via Paystack — 95% goes directly to the seller, settled next business day.
         </p>
       </div>
     </motion.div>
@@ -81,7 +81,7 @@ const StandardSellerWarning = ({ sellerName, sellerPhone }: { sellerName: string
           <div>
             <p className="text-xs font-bold text-amber-700 dark:text-amber-400">Unverified Seller — Pay on Delivery</p>
             <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-              This seller hasn't been verified by SneakersHub. Your payment is <span className="font-semibold text-foreground">not protected by escrow</span> — only pay once you've received and inspected the item.
+              This seller hasn't been verified by SneakersHub. Payment is arranged directly with the seller on delivery — inspect your item before paying.
             </p>
           </div>
         </div>

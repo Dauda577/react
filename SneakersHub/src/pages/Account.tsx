@@ -1,4 +1,3 @@
-// src/pages/Account.tsx — escrow and dispute features removed
 // Payment transfers immediately when seller marks as sent
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -992,7 +991,7 @@ const Account = () => {
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Add payout details to receive payments</p>
                       <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                        Buyers pay via Paystack. Without payout details, your earnings will be held and transfers won't go through.
+                        Buyers pay via Paystack. Add your MoMo or bank details so your earnings can be paid out correctly.
                       </p>
                       <button onClick={() => setActiveTab("settings")}
                         className="inline-flex items-center gap-1.5 mt-2.5 text-xs font-semibold text-amber-600 hover:opacity-70 transition-opacity">
@@ -1271,7 +1270,7 @@ const Account = () => {
                       {isVerified && hasMissingPayoutDetails && (
                         <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
                           <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
-                          <p className="text-xs font-semibold text-amber-600">Required — your payouts are held until you add these details.</p>
+                          <p className="text-xs font-semibold text-amber-600">Required — add these to receive your payouts.</p>
                         </div>
                       )}
                       <p className="text-xs text-muted-foreground leading-relaxed">

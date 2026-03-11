@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Heart, Zap, CheckCircle, Sparkles, BadgeCheck } from "lucide-react";
 import { useSaved } from "@/context/SavedContext";
+import { cardImage } from "@/lib/imageUtils";
 import { toast } from "sonner";
 
 interface SneakerCardSneaker {

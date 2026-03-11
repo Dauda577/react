@@ -246,7 +246,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       payout_status: isOfficial ? "released" : "pending",
     }).eq("id", orderId);
 
-    // Trigger immediate transfer for verified sellers — no escrow hold
+    // Trigger payout for verified sellers without subaccount
     if (!isOfficial) {
       triggerRelease(orderId, "immediate").catch((err) =>
         console.warn("Immediate transfer failed:", err)
