@@ -492,7 +492,7 @@ const Account = () => {
               </h1>
               <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
                 <MapPin className="w-3 h-3 text-primary" />
-                {isGuest ? "Ghana" : [profileForm.city, profileForm.region, "Ghana"].filter(Boolean).join(", ") || "Ghana"}
+                {isGuest ? "Ghana" : [profileForm.city, profileForm.region].filter(Boolean).join(", ") || "Ghana"}
               </p>
               {!isGuest && role === "seller" && (() => {
                 const result  = getSellerStats(user?.id ?? "");
@@ -580,20 +580,24 @@ const Account = () => {
                             className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-[inherit]" />
                         </div>
                       ))}
-                      {/* Region — dropdown, required for sellers */}
+                      {/* Region — dropdown in edit mode, plain text when not */}
                       <div>
                         <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
-                          Region {role === "seller" && <span className="text-red-400 normal-case tracking-normal font-normal text-[10px] ml-1">required</span>}
+                          Region {role === "seller" && editMode && <span className="text-red-400 normal-case tracking-normal font-normal text-[10px] ml-1">required</span>}
                         </label>
-                        <div className="relative">
-                          <select value={profileForm.region} onChange={e => setProfileForm(p => ({ ...p, region: e.target.value }))}
-                            disabled={!editMode}
-                            className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-[inherit] appearance-none cursor-pointer">
-                            <option value="">Select region</option>
-                            {ghanaRegions.map((r) => <option key={r}>{r}</option>)}
-                          </select>
-                          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                        </div>
+                        {editMode ? (
+                          <div className="relative">
+                            <select value={profileForm.region} onChange={e => setProfileForm(p => ({ ...p, region: e.target.value }))}
+                              className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit] appearance-none cursor-pointer">
+                              <option value="">Select region</option>
+                              {ghanaRegions.map((r) => <option key={r}>{r}</option>)}
+                            </select>
+                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                          </div>
+                        ) : (
+                          <input value={profileForm.region || "Not set"} disabled
+                            className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-all font-[inherit]" />
+                        )}
                       </div>
                       <div className="col-span-full">
                         <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Bio</label>

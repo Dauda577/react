@@ -41,21 +41,21 @@ const getDeliveryEstimate = (buyerRegion: string, sellerRegion?: string | null) 
   if (sameRegion) {
     // Same region — cheapest
     return {
-      standard: { label: "Local Delivery", range: "GHS 15–25", fee: 20, days: "1–2 business days" },
-      express:  { label: "Same-Day Delivery", range: "GHS 35–50", fee: 40, days: "Today (order before 12pm)" },
+      standard: { label: "Local Delivery", fee: 20, days: "1–2 business days" },
+      express:  { label: "Same-Day Delivery", fee: 40, days: "Today (order before 12pm)" },
     };
   }
   if (nearbyZone) {
     // Adjacent/nearby region — mid tier
     return {
-      standard: { label: "Regional Delivery", range: "GHS 30–50", fee: 40, days: "2–4 business days" },
-      express:  { label: "Express Regional", range: "GHS 70–100", fee: 80, days: "Next day" },
+      standard: { label: "Regional Delivery", fee: 40, days: "2–4 business days" },
+      express:  { label: "Express Regional", fee: 80, days: "Next day" },
     };
   }
   // Cross-country (south↔north) — most expensive
   return {
-    standard: { label: "Inter-Region Delivery", range: "GHS 60–120", fee: 90, days: "4–7 business days" },
-    express:  { label: "Express Inter-Region", range: "GHS 120–180", fee: 150, days: "2–3 business days" },
+    standard: { label: "Inter-Region Delivery", fee: 90, days: "4–7 business days" },
+    express:  { label: "Express Inter-Region", fee: 150, days: "2–3 business days" },
   };
 };
 
@@ -194,7 +194,7 @@ const Checkout = () => {
     if (delivery === "pickup") return { label: "Pickup at Hub", estimatedCost: "Free", days: "Ready in 24hrs" };
     const estimate = getDeliveryEstimate(form.region, sellerRegion);
     const opt = estimate?.[delivery as "standard" | "express"];
-    return { label: opt?.label ?? delivery, estimatedCost: opt?.range ?? "Contact seller", days: opt?.days ?? "" };
+    return { label: opt?.label ?? delivery, estimatedCost: opt?.fee ? `GHS ${opt.fee}` : "Contact seller", days: opt?.days ?? "" };
   };
 
   const submitGroupOrder = async (group: SellerGroup, paystackRef?: string) => {
@@ -290,10 +290,15 @@ const Checkout = () => {
           }
         }
 
+        const groupDeliveryFee = delivery === "pickup"
+          ? 0
+          : (getDeliveryEstimate(form.region, sellerRegion)?.[delivery as "standard" | "express"]?.fee ?? 0);
+        const chargeTotal = group.total + groupDeliveryFee;
+
         const handler = PaystackPop.setup({
           key: PAYSTACK_PUBLIC_KEY,
           email: user?.email ?? `${form.phone}@sneakershub.gh`,
-          amount: Math.round(group.total * 100), // Paystack expects pesewas (int)
+          amount: Math.round(chargeTotal * 100), // product + delivery fee in pesewas
           currency: "GHS",
           ref,
           channels: ["card", "mobile_money"],
@@ -524,7 +529,7 @@ const Checkout = () => {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className={`text-sm font-display font-bold ${delivery === type ? "text-primary" : "text-muted-foreground"}`}>{opt.range}</p>
+                          <p className={`text-sm font-display font-bold ${delivery === type ? "text-primary" : "text-muted-foreground"}`}>`GHS ${opt.fee}`</p>
                           <p className="text-[10px] text-muted-foreground">estimated</p>
                         </div>
                       </button>
@@ -661,19 +666,23 @@ const Checkout = () => {
                 <span className="text-muted-foreground">Delivery</span>
                 <span className="font-medium">
                   {delivery === "pickup"
-                    ? "Free"
+                    ? <span className="text-green-500 font-semibold">Free</span>
                     : deliveryEstimate
-                      ? <span className="text-xs">{deliveryEstimate[delivery as "standard" | "express"]?.range ?? "—"} <span className="text-muted-foreground">(est.)</span></span>
+                      ? <span className="font-semibold text-foreground">GHS {deliveryEstimate[delivery as "standard" | "express"]?.fee ?? "—"}</span>
                       : <span className="text-muted-foreground text-xs">Select region</span>
                   }
                 </span>
               </div>
               <div className="flex justify-between border-t border-border pt-2.5 mt-2">
-                <div>
-                  <span className="font-display font-bold">Total</span>
-                  <p className="text-[10px] text-muted-foreground">excl. delivery</p>
+                <span className="font-display font-bold">Total</span>
+                <div className="text-right">
+                  <span className="font-display font-bold text-lg">
+                    GHS {(currentGroup?.total ?? 0) + (delivery === "pickup" ? 0 : (deliveryEstimate?.[delivery as "standard" | "express"]?.fee ?? 0))}
+                  </span>
+                  {delivery !== "pickup" && deliveryEstimate && (
+                    <p className="text-[10px] text-muted-foreground">incl. GHS {deliveryEstimate[delivery as "standard" | "express"]?.fee} delivery</p>
+                  )}
                 </div>
-                <span className="font-display font-bold text-lg">GHS {currentGroup?.total ?? 0}</span>
               </div>
             </div>
 

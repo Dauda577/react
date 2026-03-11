@@ -520,12 +520,16 @@ const ProductDetail = () => {
               </div>
 
               <div className="border-t border-border pt-3 space-y-2">
-                {(listing.sellerCity || listing.sellerRegion) && (
-                  <p className="text-xs text-muted-foreground flex items-center gap-2">
-                    <MapPin className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-                    {[listing.sellerCity, listing.sellerRegion, "Ghana"].filter(Boolean).join(", ")}
-                  </p>
-                )}
+                {(() => {
+                  const city = listing.city ?? listing.sellerCity;
+                  const region = listing.region ?? listing.sellerRegion;
+                  return (city || region) ? (
+                    <p className="text-xs text-muted-foreground flex items-center gap-2">
+                      <MapPin className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                      {[city, region].filter(Boolean).join(", ")}
+                    </p>
+                  ) : null;
+                })()}
                 {listing.sellerPhone && tier !== "official" && (
                   <a href={`tel:${listing.sellerPhone}`}
                     className="text-xs text-muted-foreground flex items-center gap-2 hover:text-primary transition-colors">
@@ -534,16 +538,28 @@ const ProductDetail = () => {
                 )}
               </div>
 
-              <div className="grid grid-cols-2 gap-2 border-t border-border pt-3">
-                <div className="text-center px-2 py-2 rounded-xl bg-muted/30">
-                  <p className="font-display font-bold text-sm">{count > 0 ? average : "—"}</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">Rating</p>
-                </div>
-                <div className="text-center px-2 py-2 rounded-xl bg-muted/30">
-                  <p className="font-display font-bold text-sm">{listing.sellerMemberSince}</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">Member since</p>
-                </div>
-              </div>
+              {(() => {
+                const city = listing.city ?? listing.sellerCity;
+                const region = listing.region ?? listing.sellerRegion;
+                const locationLabel = [city, region].filter(Boolean).join(", ") || "Ghana";
+                return (
+                  <div className="grid grid-cols-3 gap-2 border-t border-border pt-3">
+                    <div className="text-center px-2 py-2 rounded-xl bg-muted/30">
+                      <p className="font-display font-bold text-sm">{count > 0 ? average : "—"}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Rating</p>
+                    </div>
+                    <div className="text-center px-2 py-2 rounded-xl bg-muted/30">
+                      <p className="font-display font-bold text-sm">{listing.sellerMemberSince}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Member since</p>
+                    </div>
+                    <div className="text-center px-2 py-2 rounded-xl bg-muted/30">
+                      <MapPin className="w-3 h-3 text-primary mx-auto mb-0.5" />
+                      <p className="font-display font-bold text-[11px] truncate">{locationLabel}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Location</p>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </motion.div>
         </div>
