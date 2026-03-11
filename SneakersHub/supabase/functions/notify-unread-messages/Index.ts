@@ -40,8 +40,7 @@ serve(async (req) => {
         receiver_id,
         sender_id,
         content,
-        created_at,
-        profiles!receiver_id (name, phone)
+        created_at
       `)
       .eq("seen", false)
       .is("sms_notified_at", null)
@@ -58,11 +57,20 @@ serve(async (req) => {
 
     console.log(`[notify-unread] Found ${messages.length} unread messages`);
 
+    // Fetch receiver profiles separately
+    const receiverIds = [...new Set(messages.map((m: any) => m.receiver_id))];
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, name, phone")
+      .in("id", receiverIds);
+
+    const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]));
+
     // Group by receiver_id — send one SMS per receiver regardless of how many messages
     const byReceiver = new Map<string, { phone: string; name: string; count: number; ids: string[] }>();
 
     for (const msg of messages) {
-      const profile = Array.isArray(msg.profiles) ? msg.profiles[0] : msg.profiles;
+      const profile = profileMap.get(msg.receiver_id);
       const phone = profile?.phone;
       const name  = profile?.name ?? "there";
       if (!phone) continue; // skip if no phone number

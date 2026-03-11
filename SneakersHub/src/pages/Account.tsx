@@ -1274,8 +1274,9 @@ const Account = () => {
                         </div>
                       )}
                       <p className="text-xs text-muted-foreground leading-relaxed">
-                        Where should we send your earnings? We transfer automatically when you mark an order as dispatched.{" "}
-                        <span className="font-semibold text-foreground">SneakersHub takes 5% commission</span> per sale.
+                        {isVerified && subaccountCode
+                          ? <>95% of every sale goes directly to your MoMo/bank via Paystack split. <span className="font-semibold text-foreground">SneakersHub keeps 5%</span> automatically.</>
+                          : <>Add your payout details below. <span className="font-semibold text-foreground">SneakersHub takes 5% commission</span> per sale.</>}
                         {!isVerified && <span className="block mt-1 text-[11px]">Only applies when you become a verified seller.</span>}
                       </p>
                       <div>
@@ -1338,12 +1339,46 @@ const Account = () => {
                           if (!payoutForm.method || !payoutForm.number || !payoutForm.name) { toast.error("Please fill in all payout details"); return; }
                           if (payoutForm.method === "bank" && !payoutForm.bankCode) { toast.error("Please select your bank"); return; }
                           try {
-                            const { supabase } = await import("@/lib/supabase");
                             const { error } = await supabase.from("profiles").update({
                               payout_method: payoutForm.method, payout_number: payoutForm.number, payout_name: payoutForm.name, payout_bank_code: payoutForm.bankCode || null,
                             }).eq("id", user!.id);
                             if (error) throw error;
-                            setPayoutSaved(true); toast.success("Payout details saved!"); setHasMissingPayoutDetails(false);
+
+                            // If verified with subaccount — update Paystack subaccount too
+                            if (isVerified && subaccountCode) {
+                              try {
+                                const settlementBank = payoutForm.method === "momo_telecel" ? "VOD"
+                                  : payoutForm.method === "momo_airteltigo" ? "ATL"
+                                  : payoutForm.method === "bank" ? (payoutForm.bankCode || "ghipss")
+                                  : "MTN";
+                                let normalizedNumber = payoutForm.number.replace(/\s+/g, "");
+                                if (normalizedNumber.startsWith("233")) normalizedNumber = "0" + normalizedNumber.slice(3);
+                                if (!normalizedNumber.startsWith("0")) normalizedNumber = "0" + normalizedNumber;
+
+                                const { data: { session } } = await supabase.auth.getSession();
+                                await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-subaccount`, {
+                                  method: "POST",
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                    "Authorization": `Bearer ${session?.access_token}`,
+                                    "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+                                  },
+                                  body: JSON.stringify({
+                                    seller_id: user!.id,
+                                    subaccount_code: subaccountCode,
+                                    settlement_bank: settlementBank,
+                                    account_number: normalizedNumber,
+                                  }),
+                                });
+                                toast.success("Payout details updated — Paystack subaccount synced!");
+                              } catch {
+                                toast.success("Payout details saved! (Paystack sync failed — contact support)");
+                              }
+                            } else {
+                              toast.success("Payout details saved!");
+                            }
+
+                            setPayoutSaved(true); setHasMissingPayoutDetails(false);
                             setTimeout(() => setPayoutSaved(false), 3000);
                           } catch (err: any) { toast.error(err.message ?? "Failed to save payout details"); }
                         }}>
