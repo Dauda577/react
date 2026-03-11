@@ -1,7 +1,7 @@
-import { CreditCard, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { CheckCircle, ShieldCheck, Zap, Star, ArrowRight } from "lucide-react";
+import { CheckCircle, ShieldCheck, Zap, Star, ArrowRight, CreditCard } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { supabase } from "@/lib/supabase";
