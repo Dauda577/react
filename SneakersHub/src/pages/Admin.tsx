@@ -139,7 +139,7 @@ const Admin = () => {
 
       setOrders((rawOrders ?? []).map((o: any) => ({
         ...o,
-        seller_name: o.seller?.name ?? "Unknown",
+        seller_name: o.seller?.name ?? "[Deleted Account]",
         seller_phone: o.seller?.phone ?? null,
         seller_is_official: o.seller?.is_official ?? false,
       })));
@@ -423,7 +423,7 @@ const Admin = () => {
                             )}
                           </div>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            {order.buyer_first_name} {order.buyer_last_name} → {order.seller_name} ·{" "}
+                            {order.buyer_first_name} {order.buyer_last_name} → <span className={order.seller_name === "[Deleted Account]" ? "text-red-400 line-through" : ""}>{order.seller_name}</span> ·{" "}
                             {new Date(order.placed_at).toLocaleDateString("en-GH", { day: "numeric", month: "short", year: "numeric" })}
                           </p>
                         </div>
@@ -455,11 +455,19 @@ const Admin = () => {
                               </div>
                               <div>
                                 <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Seller</p>
-                                <p className="text-sm font-medium">{order.seller_name}</p>
-                                {order.seller_phone && (
-                                  <a href={`tel:${order.seller_phone}`} className="text-xs text-primary flex items-center gap-1 mt-0.5">
-                                    <Phone className="w-3 h-3" /> {order.seller_phone}
-                                  </a>
+                                {order.seller_name === "[Deleted Account]" ? (
+                                  <p className="text-sm font-medium text-red-400 flex items-center gap-1.5">
+                                    <span>⚠️</span> Account deleted
+                                  </p>
+                                ) : (
+                                  <>
+                                    <p className="text-sm font-medium">{order.seller_name}</p>
+                                    {order.seller_phone && (
+                                      <a href={`tel:${order.seller_phone}`} className="text-xs text-primary flex items-center gap-1 mt-0.5">
+                                        <Phone className="w-3 h-3" /> {order.seller_phone}
+                                      </a>
+                                    )}
+                                  </>
                                 )}
                               </div>
                               <div>

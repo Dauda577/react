@@ -207,12 +207,16 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
     const isVerified = profile?.verified === true || profile?.is_official === true;
 
     if (!isVerified) {
-      const activeCount = listings.filter(
-        (l) => l.status !== "sold" && l.status !== "deleted"
-      ).length;
-      if (activeCount >= UNVERIFIED_MAX) {
+      // Count total listings ever created (including deleted/sold) from DB
+      // so deleting listings doesn't reset the counter
+      const { count } = await supabase
+        .from("listings")
+        .select("id", { count: "exact", head: true })
+        .eq("seller_id", user.id);
+
+      if ((count ?? 0) >= UNVERIFIED_MAX) {
         throw new Error(
-          `Unverified sellers can list up to ${UNVERIFIED_MAX} items. Get verified to list unlimited sneakers.`
+          `Unverified sellers can create up to ${UNVERIFIED_MAX} listings total. Get verified to list unlimited sneakers.`
         );
       }
     }

@@ -296,6 +296,7 @@ const Account = () => {
   const [payoutForm, setPayoutForm]   = useState({ method: "", number: "", name: "", bankCode: "" });
   const [payoutSaved, setPayoutSaved] = useState(false);
   const [payoutChangeWarning, setPayoutChangeWarning] = useState(false);
+  const [totalListingsCreated, setTotalListingsCreated] = useState<number>(0);
   const [hasMissingPayoutDetails, setHasMissingPayoutDetails] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [newPassword,     setNewPassword]     = useState("");
@@ -354,6 +355,11 @@ const Account = () => {
           setSubaccountCode(data.subaccount_code ?? null);
           setIsOfficial(data.is_official ?? false);
           if (data.payout_method) setPayoutForm({ method: data.payout_method, number: data.payout_number ?? "", name: data.payout_name ?? "", bankCode: data.payout_bank_code ?? "" });
+          // Fetch total listings ever created for limit display
+          if (data.role === "seller") {
+            const { count } = await supabase.from("listings").select("id", { count: "exact", head: true }).eq("seller_id", id);
+            setTotalListingsCreated(count ?? 0);
+          }
           if (data.verified && (!data.payout_method || !data.payout_number)) setHasMissingPayoutDetails(true);
         });
     });
@@ -1009,8 +1015,8 @@ const Account = () => {
                     {/* Limit banner for unverified sellers */}
                     {!isVerified && !isOfficial && (
                       <p className="text-xs text-muted-foreground mt-1">
-                        {listings.filter(l => l.status !== "sold").length}/20 listings used
-                        {listings.filter(l => l.status !== "sold").length >= 20 && (
+                        {totalListingsCreated}/20 listings used
+                        {totalListingsCreated >= 20 && (
                           <span className="text-amber-500 font-semibold ml-1">· <button onClick={() => setActiveTab("settings")} className="underline underline-offset-2">Get verified</button> to list more</span>
                         )}
                       </p>
