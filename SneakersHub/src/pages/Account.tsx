@@ -603,7 +603,6 @@ const Account = () => {
                               // Map payout method to Paystack bank code
                               const settlementBank = payoutMethod === "momo_telecel" ? "VOD"
                                 : payoutMethod === "momo_airteltigo" ? "ATL"
-                                : payoutMethod === "bank" ? (payoutForm.bankCode?.trim() || "ghipss")
                                 : "MTN"; // MTN default
                               setVerificationLoading(true);
                               try {
@@ -1282,12 +1281,11 @@ const Account = () => {
                       </p>
                       <div>
                         <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-2">Payout Method</label>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <div className="grid grid-cols-3 gap-2">
                           {([
                             { value: "momo_mtn",         label: "MTN MoMo" },
                             { value: "momo_telecel",      label: "Telecel Cash" },
                             { value: "momo_airteltigo",   label: "AirtelTigo" },
-                            { value: "bank",              label: "Bank Transfer" },
                           ] as const).map(({ value, label }) => (
                             <button key={value} onClick={() => setPayoutForm(p => ({ ...p, method: value, bankCode: "" }))}
                               className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition-all text-xs font-semibold
@@ -1300,35 +1298,13 @@ const Account = () => {
                       </div>
                       <div>
                         <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
-                          {payoutForm.method === "bank" ? "Account Number" : "MoMo Number"}
+                          MoMo Number
                         </label>
                         <input value={payoutForm.number} onChange={e => setPayoutForm(p => ({ ...p, number: e.target.value }))}
-                          placeholder={payoutForm.method === "bank" ? "0123456789" : "+233 24 000 0000"}
+                          placeholder="0244 000 000"
                           className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]" />
                       </div>
-                      {payoutForm.method === "bank" && (
-                        <div>
-                          <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Select Bank</label>
-                          <select value={payoutForm.bankCode} onChange={e => setPayoutForm(p => ({ ...p, bankCode: e.target.value }))}
-                            className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary transition-all font-[inherit]">
-                            <option value="">Choose your bank...</option>
-                            <option value="030100">GCB Bank</option>
-                            <option value="040100">Ecobank Ghana</option>
-                            <option value="050100">Agricultural Development Bank</option>
-                            <option value="060100">Fidelity Bank</option>
-                            <option value="070101">Zenith Bank</option>
-                            <option value="080100">Stanbic Bank</option>
-                            <option value="090100">Standard Chartered</option>
-                            <option value="100100">Absa Bank Ghana</option>
-                            <option value="110100">Access Bank Ghana</option>
-                            <option value="120100">CalBank</option>
-                            <option value="130100">First Atlantic Bank</option>
-                            <option value="140100">UBA Ghana</option>
-                            <option value="150100">Republic Bank</option>
-                            <option value="190100">Consolidated Bank Ghana</option>
-                          </select>
-                        </div>
-                      )}
+
                       <div>
                         <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Account Name</label>
                         <input value={payoutForm.name} onChange={e => setPayoutForm(p => ({ ...p, name: e.target.value }))}
@@ -1358,7 +1334,6 @@ const Account = () => {
                       <Button id="save-payout-btn" className="btn-primary rounded-full h-9 px-5 text-sm w-full"
                         onClick={async () => {
                           if (!payoutForm.method || !payoutForm.number || !payoutForm.name) { toast.error("Please fill in all payout details"); return; }
-                          if (payoutForm.method === "bank" && !payoutForm.bankCode) { toast.error("Please select your bank"); return; }
                           // Show warning for verified sellers if triggered by user click (not confirm)
                           if (isVerified && subaccountCode && !payoutChangeWarning) {
                             setPayoutChangeWarning(true);
@@ -1375,15 +1350,10 @@ const Account = () => {
                               try {
                                 const settlementBank = payoutForm.method === "momo_telecel" ? "VOD"
                                   : payoutForm.method === "momo_airteltigo" ? "ATL"
-                                  : payoutForm.method === "bank" ? (payoutForm.bankCode || "ghipss")
                                   : "MTN";
-                                // MoMo: normalize to 0XXXXXXXXX format
-                                // Bank: use account number as-is (no normalization)
                                 let normalizedNumber = payoutForm.number.replace(/\s+/g, "");
-                                if (payoutForm.method !== "bank") {
-                                  if (normalizedNumber.startsWith("233")) normalizedNumber = "0" + normalizedNumber.slice(3);
-                                  if (!normalizedNumber.startsWith("0")) normalizedNumber = "0" + normalizedNumber;
-                                }
+                                if (normalizedNumber.startsWith("233")) normalizedNumber = "0" + normalizedNumber.slice(3);
+                                if (!normalizedNumber.startsWith("0")) normalizedNumber = "0" + normalizedNumber;
 
                                 const { data: { session } } = await supabase.auth.getSession();
                                 await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-subaccount`, {
