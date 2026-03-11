@@ -25,6 +25,7 @@ import MessagesInbox from "@/components/MessagesInbox";
 import SellerDashboard from "@/components/SellerDashboard";
 import { usePush } from "@/context/PushContext";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 const isSafari = () =>
   typeof navigator !== "undefined" &&
