@@ -638,7 +638,7 @@ const Account = () => {
                                             paystack_reference: ref,
                                             settlement_bank: settlementBank,
                                             account_number: payoutNumber,
-                                            percentage_charge: 95,
+                                            percentage_charge: 5, // platform keeps 5%, seller gets 95%
                                           }),
                                         });
                                         const result = await res.json();

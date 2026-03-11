@@ -54,7 +54,7 @@ serve(async (req) => {
     if (sellerErr || !seller) throw new Error(`Seller not found: ${sellerErr?.message ?? "no row"}`);
 
     // ── Create Paystack subaccount ────────────────────────────────────────────
-    const splitPercentage = Number(percentage_charge ?? 95); // seller gets this %, platform keeps the rest
+    const splitPercentage = Number(percentage_charge ?? 5); // platform's cut — seller gets (100 - splitPercentage)%
 
     // Paystack GH subaccount expects MoMo numbers as 0XXXXXXXXX (10 digits, leading 0)
     // Bank account numbers are passed as-is
@@ -81,7 +81,7 @@ serve(async (req) => {
         business_name: seller.name,
         settlement_bank,
         account_number: normalizedNumber,
-        percentage_charge: splitPercentage,
+        percentage_charge: splitPercentage, // platform keeps this %, seller gets the rest
         description: `SneakersHub seller: ${seller.name}`,
         metadata: { seller_id },
       }),
