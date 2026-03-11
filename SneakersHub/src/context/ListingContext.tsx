@@ -196,6 +196,27 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
   ) => {
     if (!user) throw new Error("Not authenticated");
 
+    // ── Listing limit: unverified sellers max 2, verified unlimited ──
+    const UNVERIFIED_MAX = 20;
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("verified, is_official")
+      .eq("id", user.id)
+      .single();
+
+    const isVerified = profile?.verified === true || profile?.is_official === true;
+
+    if (!isVerified) {
+      const activeCount = listings.filter(
+        (l) => l.status !== "sold" && l.status !== "deleted"
+      ).length;
+      if (activeCount >= UNVERIFIED_MAX) {
+        throw new Error(
+          `Unverified sellers can list up to ${UNVERIFIED_MAX} items. Get verified to list unlimited sneakers.`
+        );
+      }
+    }
+
     const { data, error } = await supabase.from("listings").insert({
       seller_id: user.id,
       name: listing.name,

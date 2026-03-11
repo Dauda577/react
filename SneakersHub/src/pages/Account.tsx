@@ -1001,10 +1001,21 @@ const Account = () => {
                   </motion.div>
                 )}
                 <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
-                  <p className="text-sm text-muted-foreground">
-                    <span className="text-foreground font-semibold">{listings.filter(l => l.status === "active").length}</span> active{" · "}
-                    <span className="text-muted-foreground">{listings.filter(l => l.status === "sold").length} sold</span>
-                  </p>
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      <span className="text-foreground font-semibold">{listings.filter(l => l.status === "active").length}</span> active{" · "}
+                      <span className="text-muted-foreground">{listings.filter(l => l.status === "sold").length} sold</span>
+                    </p>
+                    {/* Limit banner for unverified sellers */}
+                    {!isVerified && !isOfficial && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {listings.filter(l => l.status !== "sold").length}/20 listings used
+                        {listings.filter(l => l.status !== "sold").length >= 20 && (
+                          <span className="text-amber-500 font-semibold ml-1">· <button onClick={() => setActiveTab("settings")} className="underline underline-offset-2">Get verified</button> to list more</span>
+                        )}
+                      </p>
+                    )}
+                  </div>
                   {listings.length > 0 && (
                     <Button className="btn-primary rounded-full h-9 px-5 text-sm flex-shrink-0" onClick={() => navigate("/listings/new")}>
                       <Plus className="w-3.5 h-3.5 mr-1.5" /> New Listing
