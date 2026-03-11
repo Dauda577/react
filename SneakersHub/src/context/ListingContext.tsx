@@ -54,6 +54,8 @@ const rowToListing = (r: ListingRow): Listing => ({
   boosted: r.boosted,
   boostExpiresAt: r.boost_expires_at,
   createdAt: r.created_at,
+  city: (r as any).city ?? null,
+  region: (r as any).region ?? null,
 });
 
 export const isBoostActive = (listing: Listing): boolean => {
