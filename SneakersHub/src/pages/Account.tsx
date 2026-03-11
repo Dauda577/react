@@ -584,7 +584,7 @@ const Account = () => {
                           <ShieldCheck className="w-4 h-4 text-green-500" />
                         </div>
                         <div className="flex-1">
-                          <p className="font-display font-semibold text-sm text-green-700 dark:text-green-400 mb-1">Get Verified — GHS 50 one-time fee</p>
+                          <p className="font-display font-semibold text-sm text-green-700 dark:text-green-400 mb-1">Get Verified — GHS 1 one-time fee (test)</p>
                           <p className="text-xs text-muted-foreground leading-relaxed mb-3">
                             Verified sellers get a ✅ badge, Paystack split payments (buyers pay you directly), and significantly more sales.
                           </p>
@@ -601,7 +601,7 @@ const Account = () => {
                                 const handler = PaystackPop.setup({
                                   key: "pk_live_9e1705a04e21f148e758dc11c1e920ed6393702b",
                                   email: user.email,
-                                  amount: 5000, // GHS 50 in pesewas
+                                  amount: 100, // GHS 1 in pesewas (test — change to 5000 for GHS 50 in production)
                                   currency: "GHS",
                                   ref,
                                   channels: ["card", "mobile_money"],
@@ -632,18 +632,21 @@ const Account = () => {
                                         if (result.success) {
                                           setIsVerified(true);
                                           setSubaccountCode(result.subaccount_code);
-                                          toast.success("🎉 You're now a verified seller!");
+                                          toast.success("🎉 You're now a verified seller! Your badge is now live.", { duration: 6000 });
                                         } else {
                                           throw new Error(result.error ?? "Verification failed");
                                         }
                                       } catch (err: any) {
-                                        toast.error(err.message ?? "Verification failed — contact support");
+                                        toast.error(err.message ?? "Verification failed — your payment went through but setup failed. Contact support with your reference: " + ref, { duration: 10000 });
                                       } finally {
                                         setVerificationLoading(false);
                                       }
                                     }, 0);
                                   },
-                                  onClose: () => setVerificationLoading(false),
+                                  onClose: () => {
+                                    setVerificationLoading(false);
+                                    toast("Payment cancelled — tap the button again when you're ready.");
+                                  },
                                 });
                                 handler.openIframe();
                               } catch (err: any) {
@@ -652,7 +655,7 @@ const Account = () => {
                               }
                             }}
                             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-green-500 text-white text-xs font-semibold hover:bg-green-600 transition-colors disabled:opacity-60">
-                            {verificationLoading ? <><span className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" /> Processing...</> : <><ShieldCheck className="w-3.5 h-3.5" /> Pay GHS 50 to Get Verified</>}
+                            {verificationLoading ? <><span className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" /> Processing...</> : <><ShieldCheck className="w-3.5 h-3.5" /> Pay GHS 1 to Get Verified</>}
                           </button>
                           <p className="text-[11px] text-muted-foreground mt-2">Make sure your payout details are saved in Settings before paying.</p>
                         </div>
