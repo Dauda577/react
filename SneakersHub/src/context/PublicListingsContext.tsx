@@ -35,6 +35,14 @@ type PublicListingsContextType = {
 const PublicListingsContext = createContext<PublicListingsContextType | null>(null);
 
 let listingsCache: PublicListing[] | null = null;
+// Expose cache reset globally so verification flow can force a refresh
+if (typeof window !== "undefined") {
+  Object.defineProperty(window, "__listingsCache", {
+    set: (v) => { listingsCache = v; },
+    get: () => listingsCache,
+    configurable: true,
+  });
+}
 
 export const PublicListingsProvider = ({ children }: { children: ReactNode }) => {
   const [listings, setListings] = useState<PublicListing[]>(listingsCache ?? []);

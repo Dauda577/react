@@ -645,6 +645,8 @@ const Account = () => {
                                         if (result.success) {
                                           setIsVerified(true);
                                           setSubaccountCode(result.subaccount_code);
+                                          // Clear listings cache so buyers see updated subaccount_code immediately
+                                          (window as any).__listingsCache = null;
                                           toast.success("🎉 You're now a verified seller! Your badge is now live.", { duration: 6000 });
                                         } else {
                                           throw new Error(result.error ?? "Verification failed");
