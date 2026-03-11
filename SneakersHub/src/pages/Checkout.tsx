@@ -27,36 +27,49 @@ const regions = [
 
 const SELLER_PHONE = "+233 24 000 0000";
 
-// Delivery fee tiers based on seller→buyer region relationship
-const getDeliveryEstimate = (buyerRegion: string, sellerRegion?: string | null) => {
-  if (!buyerRegion) return null;
+// ── Distance-based delivery pricing ──
+const DELIVERY_BASE = 10;       // GHS base fee
+const DELIVERY_PER_KM = 1.5;   // GHS per km
+const DELIVERY_MIN = 15;        // GHS minimum
+const DELIVERY_MAX = 200;       // GHS cap
 
-  const sameRegion = sellerRegion && buyerRegion === sellerRegion;
-  const southernRegions = ["Greater Accra", "Central", "Eastern", "Volta", "Western", "Ashanti"];
-  const northernRegions = ["Northern", "North East", "Savannah", "Upper East", "Upper West", "Oti", "Bono", "Bono East", "Ahafo", "Western North"];
-  const bothSouth = sellerRegion && southernRegions.includes(sellerRegion) && southernRegions.includes(buyerRegion);
-  const bothNorth = sellerRegion && northernRegions.includes(sellerRegion) && northernRegions.includes(buyerRegion);
-  const nearbyZone = bothSouth || bothNorth;
+const calcFee = (km: number) =>
+  Math.min(DELIVERY_MAX, Math.max(DELIVERY_MIN, Math.round(DELIVERY_BASE + km * DELIVERY_PER_KM)));
 
-  if (sameRegion) {
-    // Same region — cheapest
-    return {
-      standard: { label: "Local Delivery", fee: 20, days: "1–2 business days" },
-      express:  { label: "Same-Day Delivery", fee: 40, days: "Today (order before 12pm)" },
-    };
-  }
-  if (nearbyZone) {
-    // Adjacent/nearby region — mid tier
-    return {
-      standard: { label: "Regional Delivery", fee: 40, days: "2–4 business days" },
-      express:  { label: "Express Regional", fee: 80, days: "Next day" },
-    };
-  }
-  // Cross-country (south↔north) — most expensive
-  return {
-    standard: { label: "Inter-Region Delivery", fee: 90, days: "4–7 business days" },
-    express:  { label: "Express Inter-Region", fee: 150, days: "2–3 business days" },
-  };
+// Geocode an address string using Nominatim (OpenStreetMap) — free, no API key
+const geocode = async (query: string): Promise<[number, number] | null> => {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + ", Ghana")}&format=json&limit=1`,
+      { headers: { "Accept-Language": "en", "User-Agent": "SneakersHub/1.0" } }
+    );
+    const data = await res.json();
+    if (!data?.[0]) return null;
+    return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+  } catch { return null; }
+};
+
+// Get road distance in km using OSRM (free, no API key)
+const getRoadKm = async (from: [number, number], to: [number, number]): Promise<number | null> => {
+  try {
+    const res = await fetch(
+      `https://router.project-osrm.org/route/v1/driving/${from[1]},${from[0]};${to[1]},${to[0]}?overview=false`
+    );
+    const data = await res.json();
+    const meters = data?.routes?.[0]?.distance;
+    return meters ? Math.round(meters / 1000) : null;
+  } catch { return null; }
+};
+
+// Fallback: flat fee by region tier (used when location unavailable)
+const getFallbackFee = (buyerRegion: string, sellerRegion?: string | null) => {
+  if (!buyerRegion) return { standard: 40, express: 80 };
+  if (sellerRegion && buyerRegion === sellerRegion) return { standard: 20, express: 40 };
+  const south = ["Greater Accra","Central","Eastern","Volta","Ashanti","Western"];
+  const north = ["Northern","North East","Savannah","Upper East","Upper West","Oti","Bono","Bono East","Ahafo","Western North"];
+  const nearbyZone = (south.includes(buyerRegion) && south.includes(sellerRegion ?? "")) ||
+                     (north.includes(buyerRegion) && north.includes(sellerRegion ?? ""));
+  return nearbyZone ? { standard: 40, express: 80 } : { standard: 90, express: 150 };
 };
 
 function ensurePaystackScript(): Promise<void> {
@@ -164,6 +177,13 @@ const Checkout = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [delivery, setDelivery] = useState("standard");
+  const [locationState, setLocationState] = useState<"idle" | "detecting" | "detected" | "denied" | "fallback">("idle");
+  const [buyerCoords, setBuyerCoords] = useState<[number, number] | null>(null);
+  const [sellerCoords, setSellerCoords] = useState<[number, number] | null>(null);
+  const [distanceKm, setDistanceKm] = useState<number | null>(null);
+  const [deliveryFees, setDeliveryFees] = useState<{ standard: number; express: number } | null>(null);
+  const [locationQuery, setLocationQuery] = useState("");
+  const [geocoding, setGeocoding] = useState(false);
   const [form, setForm] = useState({
     firstName: "", lastName: "", phone: "", address: "", city: "", region: "",
   });
@@ -184,7 +204,69 @@ const Checkout = () => {
   }, [requiresPayment]);
 
   const sellerRegion = currentGroup?.sellerRegion ?? null;
-  const deliveryEstimate = getDeliveryEstimate(form.region, sellerRegion);
+  const sellerCity = currentGroup?.sellerCity ?? null;
+
+  // Geocode seller location once when seller group changes
+  useEffect(() => {
+    setDistanceKm(null);
+    setDeliveryFees(null);
+    setBuyerCoords(null);
+    setSellerCoords(null);
+    setLocationState("idle");
+    const sellerQuery = [sellerCity, sellerRegion].filter(Boolean).join(", ");
+    if (!sellerQuery) return;
+    geocode(sellerQuery).then((coords) => {
+      if (coords) setSellerCoords(coords);
+    });
+  }, [currentGroup?.sellerId]);
+
+  // Try GPS on mount
+  useEffect(() => {
+    setLocationState("detecting");
+    if (!navigator.geolocation) { setLocationState("denied"); return; }
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+        setBuyerCoords(coords);
+        setLocationState("detected");
+      },
+      () => setLocationState("denied"),
+      { timeout: 6000 }
+    );
+  }, []);
+
+  // Calculate distance whenever both coords are ready
+  useEffect(() => {
+    if (!buyerCoords || !sellerCoords) return;
+    getRoadKm(sellerCoords, buyerCoords).then((km) => {
+      if (km !== null) {
+        setDistanceKm(km);
+        const std = calcFee(km);
+        setDeliveryFees({ standard: std, express: Math.min(DELIVERY_MAX, Math.round(std * 1.8)) });
+      } else {
+        // OSRM failed — use fallback
+        setDeliveryFees(getFallbackFee(form.region, sellerRegion));
+      }
+    });
+  }, [buyerCoords, sellerCoords]);
+
+  // Geocode typed location query
+  const handleGeocode = async () => {
+    if (!locationQuery.trim()) return;
+    setGeocoding(true);
+    const coords = await geocode(locationQuery);
+    setGeocoding(false);
+    if (coords) {
+      setBuyerCoords(coords);
+      setLocationState("detected");
+    } else {
+      toast.error("Couldn't find that location — try a nearby landmark or town name");
+      setDeliveryFees(getFallbackFee(form.region, sellerRegion));
+      setLocationState("fallback");
+    }
+  };
+
+  const currentDeliveryFee = delivery === "pickup" ? 0 : (deliveryFees?.[delivery as "standard" | "express"] ?? null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -192,9 +274,10 @@ const Checkout = () => {
 
   const buildDeliveryInfo = () => {
     if (delivery === "pickup") return { label: "Pickup at Hub", estimatedCost: "Free", days: "Ready in 24hrs" };
-    const estimate = getDeliveryEstimate(form.region, sellerRegion);
-    const opt = estimate?.[delivery as "standard" | "express"];
-    return { label: opt?.label ?? delivery, estimatedCost: opt?.fee ? `GHS ${opt.fee}` : "Contact seller", days: opt?.days ?? "" };
+    const fee = deliveryFees?.[delivery as "standard" | "express"] ?? getFallbackFee(form.region, sellerRegion)[delivery as "standard" | "express"];
+    const days = delivery === "express" ? "Next day / Same day" : distanceKm && distanceKm < 20 ? "1–2 business days" : distanceKm && distanceKm < 100 ? "2–4 business days" : "4–7 business days";
+    const label = delivery === "express" ? "Express Delivery" : "Standard Delivery";
+    return { label, estimatedCost: `GHS ${fee}`, days };
   };
 
   const submitGroupOrder = async (group: SellerGroup, paystackRef?: string) => {
@@ -209,8 +292,8 @@ const Checkout = () => {
       delivery,
       deliveryInfo,
       subtotal: group.total,
-      deliveryFee: delivery === "pickup" ? 0 : (getDeliveryEstimate(form.region, sellerRegion)?.[delivery as "standard" | "express"]?.fee ?? 0),
-      total: group.total + (delivery === "pickup" ? 0 : (getDeliveryEstimate(form.region, sellerRegion)?.[delivery as "standard" | "express"]?.fee ?? 0)),
+      deliveryFee: currentDeliveryFee ?? 0,
+      total: group.total + (currentDeliveryFee ?? 0),
       ...(paystackRef ? {
         // Verified seller with subaccount = split already happened at Paystack, mark released
         // Verified seller without subaccount = needs manual transfer, mark pending
@@ -290,9 +373,7 @@ const Checkout = () => {
           }
         }
 
-        const groupDeliveryFee = delivery === "pickup"
-          ? 0
-          : (getDeliveryEstimate(form.region, sellerRegion)?.[delivery as "standard" | "express"]?.fee ?? 0);
+        const groupDeliveryFee = currentDeliveryFee ?? 0;
         const chargeTotal = group.total + groupDeliveryFee;
 
         const handler = PaystackPop.setup({
@@ -488,82 +569,101 @@ const Checkout = () => {
 
             {/* Delivery options */}
             <div className="rounded-2xl border border-border p-6">
-              <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center justify-between mb-4">
                 <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Delivery Method</p>
-                <div className="flex items-center gap-2">
-                  {currentGroup?.sellerCity && (
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-primary" />
-                      Ships from {currentGroup.sellerCity}{currentGroup.sellerRegion ? `, ${currentGroup.sellerRegion}` : ""}
-                    </span>
-                  )}
-                </div>
+                {currentGroup?.sellerCity && (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <MapPin className="w-3 h-3 text-primary" />
+                    Ships from {currentGroup.sellerCity}{sellerRegion ? `, ${sellerRegion}` : ""}
+                  </span>
+                )}
               </div>
 
-              {!form.region && (
-                <div className="flex items-center gap-3 px-4 py-3.5 rounded-xl border border-dashed border-border bg-muted/20">
-                  <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                  <p className="text-sm text-muted-foreground">
-                    Select your region above to see delivery estimates.
-                    {currentGroup?.sellerRegion && <span className="block mt-0.5 text-xs">Seller is in <span className="text-foreground font-medium">{currentGroup.sellerRegion}</span> — same region means cheaper delivery.</span>}
-                  </p>
+              {/* Location detection */}
+              {locationState === "detecting" && (
+                <div className="flex items-center gap-3 px-4 py-3.5 rounded-xl border border-dashed border-border bg-muted/20 mb-4">
+                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full flex-shrink-0" />
+                  <p className="text-sm text-muted-foreground">Detecting your location...</p>
                 </div>
               )}
 
-              {form.region && deliveryEstimate && (
-                <div className="space-y-2">
-                  {(["standard", "express"] as const).map((type) => {
-                    const opt = deliveryEstimate[type];
-                    return (
-                      <button key={type} onClick={() => setDelivery(type)}
-                        className={`w-full flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-200
-                          ${delivery === type ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}>
-                        <div className="flex items-center gap-3">
-                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors
-                            ${delivery === type ? "border-primary" : "border-muted-foreground/40"}`}>
-                            {delivery === type && <div className="w-2 h-2 rounded-full bg-primary" />}
-                          </div>
-                          <div>
-                            <p className={`text-sm font-display font-semibold ${delivery === type ? "text-foreground" : "text-muted-foreground"}`}>{opt.label}</p>
-                            <p className="text-xs text-muted-foreground mt-0.5">{opt.days}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className={`text-sm font-display font-bold ${delivery === type ? "text-primary" : "text-muted-foreground"}`}>`GHS ${opt.fee}`</p>
-                          <p className="text-[10px] text-muted-foreground">estimated</p>
-                        </div>
-                      </button>
-                    );
-                  })}
+              {(locationState === "denied" || locationState === "fallback") && (
+                <div className="mb-4 space-y-2">
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-primary" />
+                    {locationState === "denied" ? "Location access denied — enter your area for accurate pricing" : "Couldn't find that location — try again or use region pricing"}
+                  </p>
+                  <div className="flex gap-2">
+                    <input value={locationQuery} onChange={e => setLocationQuery(e.target.value)}
+                      onKeyDown={e => e.key === "Enter" && handleGeocode()}
+                      placeholder="e.g. Kumasi, Adum, Madina..."
+                      className="flex-1 px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
+                        placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]" />
+                    <button onClick={handleGeocode} disabled={geocoding}
+                      className="px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 transition-opacity">
+                      {geocoding ? "..." : "Go"}
+                    </button>
+                  </div>
+                </div>
+              )}
 
-                  <button onClick={() => setDelivery("pickup")}
-                    className={`w-full flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-200
-                      ${delivery === "pickup" ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors
-                        ${delivery === "pickup" ? "border-primary" : "border-muted-foreground/40"}`}>
-                        {delivery === "pickup" && <div className="w-2 h-2 rounded-full bg-primary" />}
+              {locationState === "detected" && distanceKm !== null && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-green-500/10 border border-green-500/20 mb-4">
+                  <CheckCircle className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+                  <p className="text-xs text-green-600 font-medium">{distanceKm} km from seller · pricing calculated</p>
+                </div>
+              )}
+
+              {/* Delivery options */}
+              <div className="space-y-2">
+                {(["standard", "express"] as const).map((type) => {
+                  const fee = deliveryFees?.[type] ?? (locationState === "detecting" ? null : getFallbackFee(form.region, sellerRegion)[type]);
+                  const label = type === "express" ? "Express Delivery" : "Standard Delivery";
+                  const days = type === "express"
+                    ? (distanceKm && distanceKm < 30 ? "Same day (order before 12pm)" : "Next day")
+                    : (distanceKm && distanceKm < 20 ? "1–2 business days" : distanceKm && distanceKm < 100 ? "2–4 business days" : "4–7 business days");
+                  return (
+                    <button key={type} onClick={() => setDelivery(type)}
+                      className={`w-full flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-200
+                        ${delivery === type ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}>
+                      <div className="flex items-center gap-3">
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors
+                          ${delivery === type ? "border-primary" : "border-muted-foreground/40"}`}>
+                          {delivery === type && <div className="w-2 h-2 rounded-full bg-primary" />}
+                        </div>
+                        <div>
+                          <p className={`text-sm font-display font-semibold ${delivery === type ? "text-foreground" : "text-muted-foreground"}`}>{label}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{days}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className={`text-sm font-display font-semibold ${delivery === "pickup" ? "text-foreground" : "text-muted-foreground"}`}>Pickup at Hub</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">Ready in 24hrs</p>
+                      <div className="text-right">
+                        {fee !== null
+                          ? <p className={`text-sm font-display font-bold ${delivery === type ? "text-primary" : "text-muted-foreground"}`}>GHS {fee}</p>
+                          : <p className="text-xs text-muted-foreground">Calculating...</p>
+                        }
+                        {distanceKm !== null && <p className="text-[10px] text-muted-foreground">{distanceKm}km</p>}
                       </div>
+                    </button>
+                  );
+                })}
+
+                <button onClick={() => setDelivery("pickup")}
+                  className={`w-full flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-200
+                    ${delivery === "pickup" ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors
+                      ${delivery === "pickup" ? "border-primary" : "border-muted-foreground/40"}`}>
+                      {delivery === "pickup" && <div className="w-2 h-2 rounded-full bg-primary" />}
                     </div>
-                    <p className={`text-sm font-display font-bold ${delivery === "pickup" ? "text-primary" : "text-muted-foreground"}`}>Free</p>
-                  </button>
-                </div>
-              )}
-
-              {form.region && (
-                <div className="mt-4 flex items-start gap-2.5 px-4 py-3 rounded-xl bg-primary/5 border border-primary/10">
-                  <Phone className="w-3.5 h-3.5 text-primary flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Delivery fees are <span className="font-semibold text-foreground">estimates only</span>.
-                    For exact pricing,{" "}
-                    <a href={`tel:${SELLER_PHONE}`} className="text-primary font-semibold hover:opacity-70 transition-opacity">contact the seller</a>.
-                  </p>
-                </div>
-              )}
+                    <div>
+                      <p className={`text-sm font-display font-semibold ${delivery === "pickup" ? "text-foreground" : "text-muted-foreground"}`}>Pickup at Hub</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Ready in 24hrs</p>
+                    </div>
+                  </div>
+                  <p className={`text-sm font-display font-bold ${delivery === "pickup" ? "text-primary" : "text-muted-foreground"}`}>Free</p>
+                </button>
+              </div>
             </div>
 
             {/* Payment method note — rebuilt per tier */}
@@ -667,20 +767,26 @@ const Checkout = () => {
                 <span className="font-medium">
                   {delivery === "pickup"
                     ? <span className="text-green-500 font-semibold">Free</span>
-                    : deliveryEstimate
-                      ? <span className="font-semibold text-foreground">GHS {deliveryEstimate[delivery as "standard" | "express"]?.fee ?? "—"}</span>
-                      : <span className="text-muted-foreground text-xs">Select region</span>
+                    : currentDeliveryFee !== null
+                      ? <span className="font-semibold text-foreground">GHS {currentDeliveryFee}</span>
+                      : <span className="text-muted-foreground text-xs">{locationState === "detecting" ? "Calculating..." : "Share location for pricing"}</span>
                   }
                 </span>
               </div>
+              {distanceKm !== null && delivery !== "pickup" && (
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>Distance</span>
+                  <span>{distanceKm} km</span>
+                </div>
+              )}
               <div className="flex justify-between border-t border-border pt-2.5 mt-2">
                 <span className="font-display font-bold">Total</span>
                 <div className="text-right">
                   <span className="font-display font-bold text-lg">
-                    GHS {(currentGroup?.total ?? 0) + (delivery === "pickup" ? 0 : (deliveryEstimate?.[delivery as "standard" | "express"]?.fee ?? 0))}
+                    GHS {(currentGroup?.total ?? 0) + (currentDeliveryFee ?? 0)}
                   </span>
-                  {delivery !== "pickup" && deliveryEstimate && (
-                    <p className="text-[10px] text-muted-foreground">incl. GHS {deliveryEstimate[delivery as "standard" | "express"]?.fee} delivery</p>
+                  {delivery !== "pickup" && currentDeliveryFee !== null && (
+                    <p className="text-[10px] text-muted-foreground">incl. GHS {currentDeliveryFee} delivery</p>
                   )}
                 </div>
               </div>
