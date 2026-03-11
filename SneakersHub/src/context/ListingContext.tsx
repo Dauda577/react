@@ -18,6 +18,8 @@ export type Listing = {
   boosted: boolean;
   boostExpiresAt: string | null;
   createdAt: string;
+  city: string | null;
+  region: string | null;
 };
 
 type ListingContextType = {
@@ -221,6 +223,13 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
       }
     }
 
+    // Fetch seller's default city/region from profile
+    const { data: sellerProfile } = await supabase
+      .from("profiles")
+      .select("city, region")
+      .eq("id", user.id)
+      .single();
+
     const { data, error } = await supabase.from("listings").insert({
       seller_id: user.id,
       name: listing.name,
@@ -229,6 +238,8 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
       category: listing.category,
       sizes: listing.sizes,
       description: listing.description,
+      city: listing.city ?? sellerProfile?.city ?? null,
+      region: listing.region ?? sellerProfile?.region ?? null,
     }).select().single();
 
     if (error) throw new Error(error.message);
@@ -250,7 +261,9 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateListing = async (id: string, updates: Partial<Listing>, imageFile?: File) => {
-    const dbUpdates: Partial<ListingRow> = {};
+    const dbUpdates: any = {};
+    if (updates.city !== undefined) dbUpdates.city = updates.city;
+    if (updates.region !== undefined) dbUpdates.region = updates.region;
     if (updates.name !== undefined) dbUpdates.name = updates.name;
     if (updates.brand !== undefined) dbUpdates.brand = updates.brand;
     if (updates.price !== undefined) dbUpdates.price = updates.price;

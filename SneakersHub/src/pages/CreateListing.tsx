@@ -11,8 +11,15 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import PayoutDetailsGuard from "@/components/PayoutDetailsGuard";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 
 const categories = ["Running", "Lifestyle", "Basketball", "Outdoor", "Training", "Other"];
+const ghanaRegions = [
+  "Greater Accra", "Ashanti", "Western", "Central", "Eastern", "Volta",
+  "Northern", "North East", "Savannah", "Upper East", "Upper West",
+  "Oti", "Bono", "Bono East", "Ahafo", "Western North",
+];
 const allSizes = [36, 37, 38, 39, 40, 41, 42, 43, 44, 45];
 const brands = ["Nike", "Adidas", "New Balance", "Jordan", "Puma", "Reebok", "Converse", "Vans", "STRIDE", "AERO", "LEGACY", "NOMAD", "Other"];
 
@@ -23,12 +30,28 @@ const CreateListing = () => {
 
   const editing = location.state?.listing as Listing | undefined;
 
+  const { user } = useAuth();
   const [form, setForm] = useState({
     name: editing?.name ?? "",
     brand: editing?.brand ?? brands[0],
     price: editing?.price?.toString() ?? "",
     category: editing?.category ?? categories[0],
     description: editing?.description ?? "",
+    city: editing?.city ?? "",
+    region: editing?.region ?? "",
+  });
+
+  // Pre-fill city/region from seller profile if not editing
+  useState(() => {
+    if (!editing && user) {
+      supabase.from("profiles").select("city, region").eq("id", user.id).single().then(({ data }) => {
+        if (data) setForm((prev) => ({
+          ...prev,
+          city: prev.city || data.city || "",
+          region: prev.region || data.region || "",
+        }));
+      });
+    }
   });
   const [selectedSizes, setSelectedSizes] = useState<number[]>(editing?.sizes ?? []);
   const [image, setImage] = useState<string | null>(editing?.image ?? null);
@@ -61,8 +84,9 @@ const CreateListing = () => {
 
   const handleSubmit = async () => {
     const { name, brand, price, category, description } = form;
-    if (!name || !brand || !price || !category || !description) {
-      toast.error("Please fill in all fields");
+    const { city, region } = form;
+    if (!name || !brand || !price || !category || !description || !region) {
+      toast.error(!region ? "Please select your region" : "Please fill in all fields");
       return;
     }
     if (selectedSizes.length === 0) {
@@ -76,14 +100,15 @@ const CreateListing = () => {
 
     setLoading(true);
     try {
+      const { city, region } = form;
       if (editing) {
         await updateListing(editing.id, {
-          name, brand, price: Number(price), category, description, sizes: selectedSizes,
+          name, brand, price: Number(price), category, description, sizes: selectedSizes, city: city || null, region: region || null,
         }, imageFile ?? undefined);
         toast.success("Listing updated!");
       } else {
         await addListing({
-          name, brand, price: Number(price), category, description, sizes: selectedSizes, image: null,
+          name, brand, price: Number(price), category, description, sizes: selectedSizes, image: null, city: city || null, region: region || null,
         }, imageFile ?? undefined);
         toast.success("Listing published!");
       }
@@ -213,6 +238,32 @@ const CreateListing = () => {
                 <input name="price" value={form.price} onChange={handleChange} placeholder="0.00" type="number" min="0"
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
                     placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]" />
+              </div>
+            </div>
+
+            {/* City + Region */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
+                  City
+                </label>
+                <input name="city" value={form.city} onChange={handleChange} placeholder="e.g. Kumasi"
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
+                    placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]" />
+              </div>
+              <div>
+                <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
+                  Region <span className="text-red-400">*</span>
+                </label>
+                <div className="relative">
+                  <select name="region" value={form.region} onChange={handleChange}
+                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
+                      focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit] appearance-none cursor-pointer">
+                    <option value="">Select region</option>
+                    {ghanaRegions.map((r) => <option key={r}>{r}</option>)}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                </div>
               </div>
             </div>
 

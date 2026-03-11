@@ -7,7 +7,7 @@ import {
   MapPin, Eye, Pencil, Trash2, Plus, CheckCircle, ArrowRight, LogOut,
   Store, Tag, Package, Phone, Zap, Star, Sparkles, BadgeCheck,
   Bell, ShieldCheck, Shield, Lock, Trash, ChevronRight, MessageCircle, BarChart2, Share,
-  Camera, Type, DollarSign, Ruler, X, AlertTriangle, Wallet, CreditCard,
+  Camera, Type, DollarSign, Ruler, X, AlertTriangle, Wallet, CreditCard, ChevronDown,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -264,6 +264,12 @@ function ensurePaystackScript(): Promise<void> {
   });
 }
 
+const ghanaRegions = [
+  "Greater Accra", "Ashanti", "Western", "Central", "Eastern", "Volta",
+  "Northern", "North East", "Savannah", "Upper East", "Upper West",
+  "Oti", "Bono", "Bono East", "Ahafo", "Western North",
+];
+
 const Account = () => {
   const { user, isGuest, logout } = useAuth();
   const navigate = useNavigate();
@@ -306,6 +312,7 @@ const Account = () => {
     name: user?.name ?? "Guest",
     phone: "",
     city: "",
+    region: "",
     bio: isGuest
       ? "Browsing as guest."
       : role === "seller"
@@ -346,11 +353,11 @@ const Account = () => {
     if (!user?.id) return;
     import("@/lib/supabase").then(({ supabase }) => {
       supabase.from("profiles")
-        .select("name, phone, city, verified, is_official, subaccount_code, payout_method, payout_number, payout_name")
+        .select("name, phone, city, region, verified, is_official, subaccount_code, payout_method, payout_number, payout_name")
         .eq("id", user.id).single()
         .then(({ data }) => {
           if (!data) return;
-          setProfileForm(p => ({ ...p, name: data.name ?? p.name, phone: data.phone ?? "", city: data.city ?? "" }));
+          setProfileForm(p => ({ ...p, name: data.name ?? p.name, phone: data.phone ?? "", city: data.city ?? "", region: data.region ?? "" }));
           setIsVerified(data.verified ?? false);
           setSubaccountCode(data.subaccount_code ?? null);
           setIsOfficial(data.is_official ?? false);
@@ -395,10 +402,14 @@ const Account = () => {
 
   const handleSaveProfile = async () => {
     if (!user) return;
+    if (role === "seller" && !profileForm.region) {
+      toast.error("Please select your region — buyers need to know where you ship from");
+      return;
+    }
     try {
       const { supabase } = await import("@/lib/supabase");
       const { error } = await supabase.from("profiles").update({
-        name: profileForm.name, phone: profileForm.phone || null, city: profileForm.city || null,
+        name: profileForm.name, phone: profileForm.phone || null, city: profileForm.city || null, region: profileForm.region || null,
       }).eq("id", user.id);
       if (error) throw error;
       setEditMode(false); toast.success("Profile updated!");
@@ -481,7 +492,7 @@ const Account = () => {
               </h1>
               <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
                 <MapPin className="w-3 h-3 text-primary" />
-                {isGuest ? "Ghana" : [profileForm.city, "Ghana"].filter(Boolean).join(", ") || "Ghana"}
+                {isGuest ? "Ghana" : [profileForm.city, profileForm.region, "Ghana"].filter(Boolean).join(", ") || "Ghana"}
               </p>
               {!isGuest && role === "seller" && (() => {
                 const result  = getSellerStats(user?.id ?? "");
@@ -560,7 +571,7 @@ const Account = () => {
                         { label: "Full Name", name: "name",  value: editMode ? profileForm.name : (user?.name ?? ""), placeholder: "Your name" },
                         { label: "Email",     name: "email", value: user?.email ?? "", placeholder: "", disabled: true },
                         { label: "Phone",     name: "phone", value: profileForm.phone, placeholder: "+233 24 000 0000" },
-                        { label: "City",      name: "city",  value: profileForm.city,  placeholder: "Accra" },
+                        { label: "City",      name: "city",  value: profileForm.city,  placeholder: "Kumasi" },
                       ].map(({ label, name, value, placeholder, disabled }) => (
                         <div key={name}>
                           <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">{label}</label>
@@ -569,6 +580,21 @@ const Account = () => {
                             className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-[inherit]" />
                         </div>
                       ))}
+                      {/* Region — dropdown, required for sellers */}
+                      <div>
+                        <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
+                          Region {role === "seller" && <span className="text-red-400 normal-case tracking-normal font-normal text-[10px] ml-1">required</span>}
+                        </label>
+                        <div className="relative">
+                          <select value={profileForm.region} onChange={e => setProfileForm(p => ({ ...p, region: e.target.value }))}
+                            disabled={!editMode}
+                            className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-[inherit] appearance-none cursor-pointer">
+                            <option value="">Select region</option>
+                            {ghanaRegions.map((r) => <option key={r}>{r}</option>)}
+                          </select>
+                          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                        </div>
+                      </div>
                       <div className="col-span-full">
                         <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Bio</label>
                         <textarea value={profileForm.bio} onChange={e => setProfileForm(p => ({ ...p, bio: e.target.value }))}

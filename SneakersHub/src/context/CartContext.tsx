@@ -12,6 +12,8 @@ export type CartItem = {
     sellerVerified: boolean;
     sellerIsOfficial: boolean;
   sellerSubaccountCode: string | null;
+  sellerCity: string | null;
+  sellerRegion: string | null;
   };
   size: number;
   quantity: number;
@@ -24,6 +26,8 @@ export type SellerGroup = {
   sellerVerified: boolean;
   sellerIsOfficial: boolean;
   sellerSubaccountCode: string | null;
+  sellerCity: string | null;
+  sellerRegion: string | null;
   tier: "official" | "verified" | "standard";
   items: CartItem[];
   total: number;
@@ -32,10 +36,10 @@ export type SellerGroup = {
 export function groupBySeller(items: CartItem[]): SellerGroup[] {
   const map = new Map<string, SellerGroup>();
   for (const item of items) {
-    const { sellerId, sellerName, sellerVerified, sellerIsOfficial, sellerSubaccountCode } = item.sneaker;
+    const { sellerId, sellerName, sellerVerified, sellerIsOfficial, sellerSubaccountCode, sellerCity, sellerRegion } = item.sneaker;
     const tier = sellerIsOfficial ? "official" : sellerVerified ? "verified" : "standard";
     if (!map.has(sellerId)) {
-      map.set(sellerId, { sellerId, sellerName, sellerVerified, sellerIsOfficial, sellerSubaccountCode: sellerSubaccountCode ?? null, tier, items: [], total: 0 });
+      map.set(sellerId, { sellerId, sellerName, sellerVerified, sellerIsOfficial, sellerSubaccountCode: sellerSubaccountCode ?? null, sellerCity: sellerCity ?? null, sellerRegion: sellerRegion ?? null, tier, items: [], total: 0 });
     }
     const group = map.get(sellerId)!;
     group.items.push(item);

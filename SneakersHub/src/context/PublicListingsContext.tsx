@@ -78,6 +78,8 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
           sellerPhone: p?.phone ?? null,
           sellerCity: p?.city ?? null,
           sellerRegion: p?.region ?? null,
+          city: r.city ?? p?.city ?? null,
+          region: r.region ?? p?.region ?? null,
           sellerVerified: p?.verified ?? false,
           sellerIsOfficial: p?.is_official ?? false,
           sellerSubaccountCode: p?.subaccount_code ?? null,

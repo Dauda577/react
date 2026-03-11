@@ -27,24 +27,35 @@ const regions = [
 
 const SELLER_PHONE = "+233 24 000 0000";
 
-const getDeliveryEstimate = (buyerRegion: string) => {
+// Delivery fee tiers based on seller→buyer region relationship
+const getDeliveryEstimate = (buyerRegion: string, sellerRegion?: string | null) => {
   if (!buyerRegion) return null;
-  if (buyerRegion === "Greater Accra") {
+
+  const sameRegion = sellerRegion && buyerRegion === sellerRegion;
+  const southernRegions = ["Greater Accra", "Central", "Eastern", "Volta", "Western", "Ashanti"];
+  const northernRegions = ["Northern", "North East", "Savannah", "Upper East", "Upper West", "Oti", "Bono", "Bono East", "Ahafo", "Western North"];
+  const bothSouth = sellerRegion && southernRegions.includes(sellerRegion) && southernRegions.includes(buyerRegion);
+  const bothNorth = sellerRegion && northernRegions.includes(sellerRegion) && northernRegions.includes(buyerRegion);
+  const nearbyZone = bothSouth || bothNorth;
+
+  if (sameRegion) {
+    // Same region — cheapest
     return {
-      standard: { label: "Local Delivery", range: "GHS 15–25", days: "1–2 business days" },
-      express: { label: "Same-Day Delivery", range: "GHS 40–60", days: "Today (order before 12pm)" },
+      standard: { label: "Local Delivery", range: "GHS 15–25", fee: 20, days: "1–2 business days" },
+      express:  { label: "Same-Day Delivery", range: "GHS 35–50", fee: 40, days: "Today (order before 12pm)" },
     };
   }
-  const nearbyRegions = ["Central", "Eastern", "Volta", "Ashanti", "Western"];
-  if (nearbyRegions.includes(buyerRegion)) {
+  if (nearbyZone) {
+    // Adjacent/nearby region — mid tier
     return {
-      standard: { label: "Regional Delivery", range: "GHS 30–50", days: "2–4 business days" },
-      express: { label: "Express Regional", range: "GHS 70–100", days: "Next day" },
+      standard: { label: "Regional Delivery", range: "GHS 30–50", fee: 40, days: "2–4 business days" },
+      express:  { label: "Express Regional", range: "GHS 70–100", fee: 80, days: "Next day" },
     };
   }
+  // Cross-country (south↔north) — most expensive
   return {
-    standard: { label: "Inter-Region Delivery", range: "GHS 60–120", days: "4–7 business days" },
-    express: { label: "Express Inter-Region", range: "GHS 120–180", days: "2–3 business days" },
+    standard: { label: "Inter-Region Delivery", range: "GHS 60–120", fee: 90, days: "4–7 business days" },
+    express:  { label: "Express Inter-Region", range: "GHS 120–180", fee: 150, days: "2–3 business days" },
   };
 };
 
@@ -172,7 +183,8 @@ const Checkout = () => {
     if (requiresPayment) ensurePaystackScript();
   }, [requiresPayment]);
 
-  const deliveryEstimate = getDeliveryEstimate(form.region);
+  const sellerRegion = currentGroup?.sellerRegion ?? null;
+  const deliveryEstimate = getDeliveryEstimate(form.region, sellerRegion);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -180,7 +192,7 @@ const Checkout = () => {
 
   const buildDeliveryInfo = () => {
     if (delivery === "pickup") return { label: "Pickup at Hub", estimatedCost: "Free", days: "Ready in 24hrs" };
-    const estimate = getDeliveryEstimate(form.region);
+    const estimate = getDeliveryEstimate(form.region, sellerRegion);
     const opt = estimate?.[delivery as "standard" | "express"];
     return { label: opt?.label ?? delivery, estimatedCost: opt?.range ?? "Contact seller", days: opt?.days ?? "" };
   };
@@ -197,8 +209,8 @@ const Checkout = () => {
       delivery,
       deliveryInfo,
       subtotal: group.total,
-      deliveryFee: 0,
-      total: group.total,
+      deliveryFee: delivery === "pickup" ? 0 : (getDeliveryEstimate(form.region, sellerRegion)?.[delivery as "standard" | "express"]?.fee ?? 0),
+      total: group.total + (delivery === "pickup" ? 0 : (getDeliveryEstimate(form.region, sellerRegion)?.[delivery as "standard" | "express"]?.fee ?? 0)),
       ...(paystackRef ? {
         // Verified seller with subaccount = split already happened at Paystack, mark released
         // Verified seller without subaccount = needs manual transfer, mark pending
@@ -473,17 +485,23 @@ const Checkout = () => {
             <div className="rounded-2xl border border-border p-6">
               <div className="flex items-center justify-between mb-5">
                 <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Delivery Method</p>
-                {form.region && (
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <MapPin className="w-3 h-3 text-primary" /> {form.region}
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {currentGroup?.sellerCity && (
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <MapPin className="w-3 h-3 text-primary" />
+                      Ships from {currentGroup.sellerCity}{currentGroup.sellerRegion ? `, ${currentGroup.sellerRegion}` : ""}
+                    </span>
+                  )}
+                </div>
               </div>
 
               {!form.region && (
                 <div className="flex items-center gap-3 px-4 py-3.5 rounded-xl border border-dashed border-border bg-muted/20">
                   <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                  <p className="text-sm text-muted-foreground">Select your region above to see delivery estimates.</p>
+                  <p className="text-sm text-muted-foreground">
+                    Select your region above to see delivery estimates.
+                    {currentGroup?.sellerRegion && <span className="block mt-0.5 text-xs">Seller is in <span className="text-foreground font-medium">{currentGroup.sellerRegion}</span> — same region means cheaper delivery.</span>}
+                  </p>
                 </div>
               )}
 
