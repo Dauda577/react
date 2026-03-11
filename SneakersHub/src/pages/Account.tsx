@@ -1049,7 +1049,7 @@ const Account = () => {
                           </div>
                           <p className="font-display font-bold text-base flex-shrink-0">GHS {listing.price}</p>
                         </div>
-                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex-wrap">
+                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50 transition-opacity flex-wrap">
                           <button onClick={() => navigate("/listings/new", { state: { listing } })}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-primary/10 hover:border-primary/30 transition-colors text-muted-foreground hover:text-foreground">
                             <Pencil className="w-3 h-3" /> Edit
@@ -1080,12 +1080,7 @@ const Account = () => {
                               <Sparkles className="w-3 h-3" /> Official · Always Featured
                             </span>
                           )}
-                          {listing.status === "active" && (
-                            <button onClick={() => { markSold(listing.id); toast.success("Marked as sold"); }}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-green-500/10 hover:border-green-500/30 transition-colors text-muted-foreground hover:text-green-600">
-                              <CheckCircle className="w-3 h-3" /> Mark Sold
-                            </button>
-                          )}
+
                           <button onClick={() => { deleteListing(listing.id); toast.success("Listing removed"); }}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-red-500/10 hover:border-red-500/30 transition-colors text-muted-foreground hover:text-red-500 ml-auto">
                             <Trash2 className="w-3 h-3" /> Delete
