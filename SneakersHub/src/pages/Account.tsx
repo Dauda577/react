@@ -593,6 +593,17 @@ const Account = () => {
                             disabled={verificationLoading}
                             onClick={async () => {
                               if (!user?.email) { toast.error("Please add your email first"); return; }
+                              // Capture payout details NOW before async work
+                              const payoutNumber = payoutForm.number?.trim();
+                              const payoutMethod = payoutForm.method?.trim();
+                              if (!payoutNumber) {
+                                toast.error("Please save your MoMo/bank payout details in Settings first before verifying.");
+                                return;
+                              }
+                              // Map payout method to Paystack bank code
+                              const settlementBank = payoutMethod === "momo_telecel" ? "VOD"
+                                : payoutMethod === "momo_airteltigo" ? "ATL"
+                                : "MTN"; // default MTN
                               setVerificationLoading(true);
                               try {
                                 await ensurePaystackScript();
@@ -624,8 +635,8 @@ const Account = () => {
                                           body: JSON.stringify({
                                             seller_id: user.id,
                                             paystack_reference: ref,
-                                            settlement_bank: "MTN",
-                                            account_number: payoutForm.number || "",
+                                            settlement_bank: settlementBank,
+                                            account_number: payoutNumber,
                                             percentage_charge: 95,
                                           }),
                                         });
