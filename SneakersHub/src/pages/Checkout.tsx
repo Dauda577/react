@@ -111,10 +111,10 @@ const TierBanner = ({ tier }: { tier: SellerTier }) => {
       <div className="space-y-1.5">
         <p className="text-sm font-display font-semibold text-green-700 dark:text-green-400">Verified Seller — Secure Payment</p>
         <p className="text-xs text-muted-foreground leading-relaxed">
-          Pay securely via card or Mobile Money. Funds transfer to the seller when they dispatch your order.
+          Pay securely via card or Mobile Money. Funds go directly to the seller via Paystack split — settled next business day.
         </p>
         <div className="flex flex-wrap gap-3 pt-1">
-          {["Secure Paystack payment", "Verified seller", "Instant transfer on dispatch"].map(point => (
+          {["Secure Paystack payment", "Verified seller", "Funds split at checkout"].map(point => (
             <span key={point} className="flex items-center gap-1 text-[11px] font-medium text-green-600">
               <CheckCircle className="w-3 h-3 flex-shrink-0" /> {point}
             </span>
@@ -560,7 +560,7 @@ const Checkout = () => {
                     {tier === "official" ? "Pay now — Official Store" : "Pay now — Secure Payment"}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                    Your payment is collected now via card or Mobile Money and transferred to the seller once they dispatch your order.
+                    Your payment is split at checkout via Paystack — 95% goes directly to the seller, settled next business day.
                   </p>
                 </div>
               </div>

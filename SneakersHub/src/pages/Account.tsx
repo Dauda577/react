@@ -585,7 +585,7 @@ const Account = () => {
                           <ShieldCheck className="w-4 h-4 text-green-500" />
                         </div>
                         <div className="flex-1">
-                          <p className="font-display font-semibold text-sm text-green-700 dark:text-green-400 mb-1">Get Verified — GHS 1 one-time fee (test)</p>
+                          <p className="font-display font-semibold text-sm text-green-700 dark:text-green-400 mb-1">Get Verified — GHS 50 one-time fee</p>
                           <p className="text-xs text-muted-foreground leading-relaxed mb-3">
                             Verified sellers get a ✅ badge, Paystack split payments (buyers pay you directly), and significantly more sales.
                           </p>
@@ -614,7 +614,7 @@ const Account = () => {
                                 const handler = PaystackPop.setup({
                                   key: "pk_live_9e1705a04e21f148e758dc11c1e920ed6393702b",
                                   email: user.email,
-                                  amount: 100, // GHS 1 in pesewas (test — change to 5000 for GHS 50 in production)
+                                  amount: 5000, // GHS 50 in pesewas
                                   currency: "GHS",
                                   ref,
                                   channels: ["card", "mobile_money"],
@@ -670,7 +670,7 @@ const Account = () => {
                               }
                             }}
                             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-green-500 text-white text-xs font-semibold hover:bg-green-600 transition-colors disabled:opacity-60">
-                            {verificationLoading ? <><span className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" /> Processing...</> : <><ShieldCheck className="w-3.5 h-3.5" /> Pay GHS 1 to Get Verified</>}
+                            {verificationLoading ? <><span className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" /> Processing...</> : <><ShieldCheck className="w-3.5 h-3.5" /> Pay GHS 50 to Get Verified</>}
                           </button>
                           <p className="text-[11px] text-muted-foreground mt-2">Make sure your payout details are saved in Settings before paying.</p>
                         </div>
@@ -686,7 +686,7 @@ const Account = () => {
                           <p className="font-display font-semibold text-sm text-green-700 dark:text-green-400">Verified Seller ✅</p>
                           <p className="text-xs text-muted-foreground mt-0.5">
                             {subaccountCode
-                              ? "Buyers pay you directly via Paystack split — funds go straight to your MoMo."
+                              ? "Buyers pay via Paystack split — 95% goes directly to your MoMo, settled next business day."
                               : "Your listings show the verified badge. Buyers pay via Paystack and funds transfer to you when you dispatch."}
                           </p>
                         </div>
