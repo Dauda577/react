@@ -3,6 +3,7 @@ import { SpeedInsights } from "@vercel/speed-insights/react";
 import { supabase } from "@/lib/supabase";
 import App from "./App.tsx";
 import "./index.css";
+import "./styles/safari-fixes.css";
 
 // ── Service Worker registration ───────────────────────────────────────────
 if ("serviceWorker" in navigator) {

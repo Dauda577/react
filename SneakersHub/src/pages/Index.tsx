@@ -42,12 +42,12 @@ const Index = () => {
       {/* Hero */}
       <section className="relative min-h-screen flex items-center overflow-hidden pt-16">
         <div className="absolute inset-0 opacity-20 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-64 h-64 md:w-96 md:h-96 bg-primary/20 rounded-full blur-[120px]" />
-          <div className="absolute bottom-1/4 right-1/4 w-48 h-48 md:w-72 md:h-72 bg-primary/10 rounded-full blur-[100px]" />
+          <div className="absolute top-1/4 left-1/4 w-64 h-64 md:w-96 md:h-96 bg-primary/20 rounded-full hidden md:block blur-[120px]" />
+          <div className="absolute bottom-1/4 right-1/4 w-48 h-48 md:w-72 md:h-72 bg-primary/10 rounded-full hidden md:block blur-[100px]" />
         </div>
         <div className="section-padding max-w-7xl mx-auto w-full grid lg:grid-cols-2 gap-12 items-center relative z-10">
           <motion.div initial={{ opacity: 0, x: -60 }} animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }} className="w-full min-w-0">
+            transition={{ duration: 0.6, ease: "easeOut" }} className="w-full min-w-0">
             <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
               className="text-primary font-display text-sm font-semibold uppercase tracking-[0.3em] mb-4">
@@ -73,8 +73,8 @@ const Index = () => {
             </div>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, scale: 0.8, rotate: -10 }}
-            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+          <motion.div initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1, ease: "easeOut", delay: 0.3 }}
             className="relative flex items-center justify-center w-full min-w-0">
             <div className="absolute inset-0 bg-primary/5 rounded-full blur-3xl" />

@@ -61,7 +61,7 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
       <button
         onClick={handleSave}
         className={`absolute top-3 right-3 z-10 w-8 h-8 rounded-full flex items-center justify-center
-          backdrop-blur-sm border transition-all duration-200
+          supports-[backdrop-filter]:backdrop-blur-sm border transition-all duration-200
           ${saved
             ? "bg-red-500/10 border-red-300 text-red-500"
             : "bg-background/70 border-border text-muted-foreground hover:text-red-400 hover:border-red-200"

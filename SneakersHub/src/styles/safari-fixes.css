@@ -1,0 +1,40 @@
+/* ── Safari Performance Fixes ──────────────────────────────────────────────── */
+
+/* Force GPU compositing on animated elements */
+.motion-safe\:animate-any {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: transform, opacity;
+}
+
+/* Fix Safari 100vh issue */
+.min-h-screen {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+/* Prevent Safari from blocking smooth scroll */
+html {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Reduce motion for users who prefer it (also helps Safari) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Fix Safari input zoom — prevents page zoom on input focus */
+input, select, textarea {
+  font-size: 16px !important;
+}
+
+/* Safari button fix */
+button {
+  -webkit-appearance: none;
+  cursor: pointer;
+}
