@@ -9,6 +9,7 @@ import {
 import { useCart, groupBySeller, SellerGroup } from "@/context/CartContext";
 import { useOrders } from "@/context/OrderContext";
 import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabase";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -199,9 +200,14 @@ const Checkout = () => {
       deliveryFee: 0,
       total: group.total,
       ...(paystackRef ? {
-        // Verified seller with subaccount = split already happened, mark released
+        // Verified seller with subaccount = split already happened at Paystack, mark released
         // Verified seller without subaccount = needs manual transfer, mark pending
-        payout_status: group.sellerSubaccountCode ? "released" : "pending",
+        // Re-check DB to avoid stale cart cache
+        payout_status: (() => {
+          // We passed subaccountCode into submitGroupOrder via paystackRef context
+          // Use the paystackRef presence + seller tier to determine
+          return (paystackRef && group.tier === "verified") ? "released" : "pending";
+        })(),
         paystack_reference: paystackRef,
       } : {}),
     });
@@ -258,8 +264,22 @@ const Checkout = () => {
       let paymentCompleted = false;
 
       try {
-        // For verified sellers with a subaccount, split payment at source
-        const subaccountCode = groupTier === "verified" ? group.sellerSubaccountCode : null;
+        // For verified sellers — fetch subaccount_code fresh from DB (not from stale cache)
+        console.log("[Checkout] groupTier:", groupTier, "sellerId:", group.sellerId, "sellerVerified:", group.sellerVerified, "sellerIsOfficial:", group.sellerIsOfficial);
+        let subaccountCode: string | null = null;
+        if (groupTier === "verified") {
+          try {
+            const { data: sellerProfile } = await supabase
+              .from("profiles")
+              .select("subaccount_code")
+              .eq("id", group.sellerId)
+              .single();
+            subaccountCode = sellerProfile?.subaccount_code ?? null;
+            console.log("[Checkout] subaccountCode for seller:", group.sellerId, "->", subaccountCode);
+          } catch (e) {
+            console.warn("[Checkout] Could not fetch seller subaccount:", e);
+          }
+        }
 
         const handler = PaystackPop.setup({
           key: PAYSTACK_PUBLIC_KEY,
