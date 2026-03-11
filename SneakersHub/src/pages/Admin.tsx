@@ -51,7 +51,6 @@ const payoutColors: Record<string, string> = {
   auto_released:"bg-blue-500/10 text-blue-600 border-blue-500/20",
   disputed:     "bg-red-500/10 text-red-600 border-red-500/20",
   refunded:     "bg-purple-500/10 text-purple-600 border-purple-500/20",
-  refunded:     "bg-purple-500/10 text-purple-600 border-purple-500/20",
 };
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
