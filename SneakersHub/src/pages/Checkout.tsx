@@ -281,6 +281,26 @@ const Checkout = () => {
   };
 
   const submitGroupOrder = async (group: SellerGroup, paystackRef?: string) => {
+    // ── Server-side price validation for paid orders ──
+    if (paystackRef) {
+      try {
+        const verifyRes = await fetch(`https://api.paystack.co/transaction/verify/${paystackRef}`, {
+          headers: { Authorization: `Bearer ${PAYSTACK_PUBLIC_KEY}` },
+        });
+        const verifyData = await verifyRes.json();
+        const paidAmount = verifyData.data?.amount ?? 0; // in pesewas
+        const expectedAmount = Math.round((group.total + (currentDeliveryFee ?? 0)) * 100);
+        if (verifyData.data?.status !== "success") {
+          throw new Error("Payment not confirmed by Paystack");
+        }
+        if (paidAmount < expectedAmount) {
+          throw new Error(`Payment amount mismatch — expected GHS ${(expectedAmount/100).toFixed(2)}, got GHS ${(paidAmount/100).toFixed(2)}`);
+        }
+      } catch (err: any) {
+        throw new Error(err.message ?? "Payment verification failed");
+      }
+    }
+
     const deliveryInfo = buildDeliveryInfo();
     await placeOrder({
       sellerId: group.sellerId,

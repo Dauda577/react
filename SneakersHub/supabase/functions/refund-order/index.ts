@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL         = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const PAYSTACK_SECRET      = Deno.env.get("PAYSTACK_SECRET_KEY")!;
+const SUPABASE_ANON_KEY    = Deno.env.get("SUPABASE_ANON_KEY")!;
 const ARKESEL_API_KEY      = Deno.env.get("ARKESEL_API_KEY")!;
 
 const corsHeaders = {
@@ -23,12 +24,32 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const { order_id, paystack_reference, reason, buyer_phone, seller_phone } = await req.json();
-    if (!order_id || !paystack_reference || !reason) {
-      return new Response("Missing fields", { status: 400, headers: corsHeaders });
+    // ── Auth: only official (admin) accounts can issue refunds ──
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    }
+
+    const callerClient = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user: caller } } = await callerClient.auth.getUser();
+    if (!caller?.id) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+
+    const { data: callerProfile } = await supabase
+      .from("profiles").select("is_official").eq("id", caller.id).single();
+    if (!callerProfile?.is_official) {
+      return new Response(JSON.stringify({ error: "Forbidden — admin only" }), { status: 403, headers: corsHeaders });
+    }
+
+    const { order_id, paystack_reference, reason, buyer_phone, seller_phone } = await req.json();
+    if (!order_id || !reason) {
+      return new Response("Missing fields", { status: 400, headers: corsHeaders });
+    }
 
     console.log("[refund-order] Issuing refund for order:", order_id, "ref:", paystack_reference);
 

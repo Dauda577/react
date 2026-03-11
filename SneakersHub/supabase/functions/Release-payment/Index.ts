@@ -102,24 +102,37 @@ serve(async (req) => {
     console.log(`[release-payment] order=${order_id} trigger=${trigger} caller=${caller_id}`);
     if (!order_id) throw new Error("order_id is required");
 
-    // Only check is_official for direct manual admin calls.
-    // "immediate" = seller confirmed dispatch (trusted internal)
-    // "auto"      = cron job
-    // "retry"     = admin retry function
-    if (caller_id && trigger === "manual") {
+    // ── Auth: verify the caller is allowed to trigger this release ──
+    // manual  = admin only (must be is_official)
+    // immediate = seller confirmed dispatch — verify caller is the order's seller
+    // auto/retry = internal cron/system — allow but verify order exists and is pending
+    const { data: order, error: orderErr } = await supabase
+      .from("orders").select("*").eq("id", order_id).single();
+    if (orderErr || !order) throw new Error("Order not found");
+
+    if (trigger === "manual") {
+      if (!caller_id) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const { data: callerProfile } = await supabase
         .from("profiles").select("is_official").eq("id", caller_id).single();
       if (!callerProfile?.is_official) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        return new Response(JSON.stringify({ error: "Forbidden — admin only" }), {
           status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
     }
 
-    // ── Fetch order ───────────────────────────────────────────────────────────
-    const { data: order, error: orderErr } = await supabase
-      .from("orders").select("*").eq("id", order_id).single();
-    if (orderErr || !order) throw new Error("Order not found");
+    if (trigger === "immediate") {
+      // Seller must be the one who confirmed dispatch
+      if (!caller_id || caller_id !== order.seller_id) {
+        return new Response(JSON.stringify({ error: "Forbidden — not the seller of this order" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     // Skip already-processed orders
     if (order.payout_status !== "pending") {

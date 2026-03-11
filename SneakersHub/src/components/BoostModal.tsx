@@ -58,13 +58,26 @@ const BoostModal = ({ listing, onClose }: Props) => {
     const ref = `boost_${listing.id.slice(0, 8)}_${Date.now()}`;
 
     const onPaymentSuccess = function(response: { reference: string }) {
-      boostListing(listing.id)
+      // Verify payment with Paystack before boosting
+      const paystackRef = response.reference;
+      fetch(`https://api.paystack.co/transaction/verify/${paystackRef}`, {
+        headers: { Authorization: `Bearer ${import.meta.env.VITE_PAYSTACK_PUBLIC_KEY}` },
+      })
+        .then(r => r.json())
+        .then(data => {
+          if (data.data?.status === "success" && data.data?.amount >= 500) {
+            // Payment confirmed — now boost
+            return boostListing(listing.id);
+          } else {
+            throw new Error("Payment not confirmed by Paystack");
+          }
+        })
         .then(() => {
           setStep("success");
           toast.success("Listing boosted!");
         })
         .catch(() => {
-          toast.error(`Payment done (ref: ${response.reference}) but boost failed. Contact support.`);
+          toast.error(`Payment done (ref: ${paystackRef}) but boost failed. Contact support.`);
         })
         .finally(() => {
           setLoading(false);
@@ -110,7 +123,7 @@ const BoostModal = ({ listing, onClose }: Props) => {
         className="fixed inset-0 z-50 flex items-center justify-center px-4"
         onClick={(e) => { if (e.target === e.currentTarget && step !== "success") onClose(); }}
       >
-        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
+        <div className="absolute inset-0 bg-background/80 supports-[backdrop-filter]:backdrop-blur-sm" />
 
         <motion.div
           initial={{ opacity: 0, scale: 0.92, y: 20 }}

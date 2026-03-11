@@ -226,6 +226,14 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
 
   const confirmAsSeller = async (orderId: string) => {
     const order = orders.find((o) => o.id === orderId);
+
+    // ── Ownership check: caller must be the seller of this order ──
+    if (!order || order.sellerId !== user?.id) {
+      console.error("[confirmAsSeller] Unauthorized — caller is not the seller of this order");
+      toast.error("Unauthorized action");
+      return;
+    }
+
     const newStatus = order?.buyerConfirmed ? "delivered" : "shipped";
 
     // Check if seller is official
@@ -269,6 +277,13 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
 
   const confirmAsBuyer = async (orderId: string) => {
     const order = orders.find((o) => o.id === orderId);
+
+    // ── Ownership check: caller must be the buyer of this order ──
+    if (!order || order.buyerId !== user?.id) {
+      console.error("[confirmAsBuyer] Unauthorized — caller is not the buyer of this order");
+      toast.error("Unauthorized action");
+      return;
+    }
     const newStatus = order?.sellerConfirmed ? "delivered" : "pending";
 
     setOrders((prev) =>
@@ -312,7 +327,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
           "Authorization": `Bearer ${session?.access_token}`,
           "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
         },
-        body: JSON.stringify({ order_id: orderId, trigger }),
+        body: JSON.stringify({ order_id: orderId, trigger, caller_id: user?.id }),
       });
       if (!res.ok) console.warn("Payment release failed (non-fatal):", await res.text());
     } catch (err) {
