@@ -38,3 +38,19 @@ button {
   -webkit-appearance: none;
   cursor: pointer;
 }
+
+/* ── PWA Safe Area Fix (notch / Dynamic Island) ────────────────────────────── */
+
+/* Push page content below the safe area */
+#root {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* But navbar already handles its own top inset, so reset root top padding */
+/* The navbar uses env(safe-area-inset-top) directly */
+#root {
+  padding-top: 0;
+}
