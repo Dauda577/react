@@ -186,10 +186,19 @@ const Admin = () => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const { data: rawOrders } = await supabase
-        .from("orders")
-        .select("*, seller:profiles!orders_seller_id_fkey(name, phone, is_official)")
-        .order("placed_at", { ascending: false });
+      // Use edge function so admin can read all orders via service_role (bypasses RLS)
+      const { data: session } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-data`,
+        {
+          headers: {
+            Authorization: `Bearer ${session.session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+        }
+      );
+      if (!res.ok) throw new Error("Failed to fetch admin data");
+      const rawOrders = await res.json();
 
       setOrders((rawOrders ?? []).map((o: any) => ({
         ...o,
