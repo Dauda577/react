@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { CheckCircle, MapPin, Phone, Package, ArrowRight, ShoppingBag } from "lucide-react";
 import { useOrders } from "@/context/OrderContext";
+import { TrackingDisplay } from "@/components/TrackingDisplay";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -167,7 +168,7 @@ const OrderConfirmation = () => {
             </div>
             <div className="mt-4 px-3 py-2.5 rounded-xl bg-primary/5 border border-primary/10">
               <p className="text-xs text-muted-foreground">
-{isPaid
+                {isPaid
                   ? <><span className="mr-1">✅</span> Paid via Paystack · <span className="font-semibold text-foreground">Payout to seller within 24hrs</span></>
                   : <><span className="mr-1">💳</span> Pay with <span className="font-semibold text-foreground">Cash or MoMo</span> on delivery</>
                 }
@@ -175,6 +176,48 @@ const OrderConfirmation = () => {
             </div>
           </motion.div>
         </div>
+
+        {/* ═════════════════════════════════════════════════════════════════════════════════════════════════════════════ */}
+        {/* TRACKING NUMBER - SHOWN IF SELLER HAS ADDED IT */}
+        {/* ═════════════════════════════════════════════════════════════════════════════════════════════════════════════ */}
+        {latestOrder.trackingNumber && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.42 }}
+            className="rounded-2xl border border-border p-5 mb-5"
+          >
+            <TrackingDisplay
+              trackingNumber={latestOrder.trackingNumber}
+              trackingUrl={latestOrder.trackingUrl}
+              status={latestOrder.status}
+              sellerConfirmed={latestOrder.sellerConfirmed}
+            />
+          </motion.div>
+        )}
+
+        {/* WAITING FOR TRACKING - SHOWN WHILE SELLER PREPARING SHIPMENT */}
+        {!latestOrder.trackingNumber && latestOrder.sellerConfirmed && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.42 }}
+            className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5 mb-5"
+          >
+            <div className="flex items-start gap-3">
+              <Package className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-display font-semibold text-sm text-amber-700 dark:text-amber-400">
+                  Preparing Your Shipment
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Your seller is getting your order ready. A tracking number will be provided within 24 hours. Check back here or visit your Orders page.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+        {/* ═════════════════════════════════════════════════════════════════════════════════════════════════════════════ */}
 
         {/* Items */}
         <motion.div

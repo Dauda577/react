@@ -8,6 +8,7 @@ import {
   Store, Tag, Package, Phone, Zap, Star, Sparkles, BadgeCheck,
   Bell, ShieldCheck, Shield, Lock, Trash, ChevronRight, MessageCircle, BarChart2, Share,
   Camera, Type, DollarSign, Ruler, X, AlertTriangle, Wallet, CreditCard, ChevronDown,
+  Copy, ExternalLink,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -18,6 +19,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useListings, boostDaysLeft, isBoostActive } from "@/context/ListingContext";
 import { useRatings } from "@/context/RatingContext";
 import { useMessages } from "@/context/MessageContext";
+import { TrackingDisplay } from "@/components/TrackingDisplay";
 const BoostModal = lazy(() => import("@/components/BoostModal"));
 const RatingModal = lazy(() => import("@/components/RatingModal"));
 import MessagesInbox from "@/components/MessagesInbox";
@@ -1035,22 +1037,32 @@ const Account = () => {
                         </div>
                         <div className="border-t border-border pt-4 space-y-3">
 
-                          {/* Tracking number — shown once seller adds it */}
+                          {/* ═════════════════════════════════════════════════════════════════════════════════════════════ */}
+                          {/* TRACKING DISPLAY - BUYERS SEE THIS WHEN SELLER ADDS TRACKING NUMBER */}
+                          {/* ═════════════════════════════════════════════════════════════════════════════════════════════ */}
                           {order.trackingNumber && (
-                            <div>
-                              <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Tracking</p>
-                              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20">
-                                <Package className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-xs font-semibold text-blue-600">{order.trackingNumber}</p>
-                                  {order.trackingUrl && (
-                                    <a href={order.trackingUrl} target="_blank" rel="noopener noreferrer"
-                                      className="text-[11px] text-blue-400 underline">Track package →</a>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
+                            <TrackingDisplay
+                              trackingNumber={order.trackingNumber}
+                              trackingUrl={order.trackingUrl}
+                              status={order.status}
+                              sellerConfirmed={order.sellerConfirmed}
+                            />
                           )}
+
+                          {/* Waiting for tracking — shown while seller hasn't added it yet */}
+                          {!order.trackingNumber && order.sellerConfirmed && order.status === "shipped" && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 6 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              className="px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-2"
+                            >
+                              <Package className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                              <p className="text-xs text-amber-600 font-medium">
+                                Seller is preparing your shipment. Tracking will appear here soon.
+                              </p>
+                            </motion.div>
+                          )}
+                          {/* ═════════════════════════════════════════════════════════════════════════════════════════════ */}
 
                           <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-3">Confirmation</p>
                           <div className="flex flex-col sm:flex-row gap-2">
