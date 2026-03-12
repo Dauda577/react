@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { triggerSMS } from "@/lib/sms";
 
 export interface Message {
   id: string;
@@ -240,9 +239,6 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
       return updated;
     });
 
-    if (data.receiver_id !== user.id) {
-      await triggerSMS({ type: "message.created", record: data });
-    }
   }, [user?.id, buildConversations]);
 
   const markConversationSeen = useCallback(async (conversationId: string) => {
