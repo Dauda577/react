@@ -19,7 +19,7 @@ export const usePush = () => {
 
 const checkSupported = () => {
   try {
-    return typeof window !== "undefined" && "Notification" in window && typeof Notification !== "undefined";
+    return typeof window !== "undefined" && "Notification" in window && typeof (window as any).Notification !== "undefined";
   } catch { return false; }
 };
 
@@ -29,7 +29,7 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
 
   const getPermission = (): NotificationPermission => {
     try {
-      return checkSupported() ? Notification.permission : "denied";
+      return checkSupported() ? (window as any).Notification.permission : "denied";
     } catch { return "denied"; }
   };
   const permission: NotificationPermission = getPermission();
@@ -51,7 +51,7 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const showLocalNotification = (title: string, body: string, url = "/account") => {
-    if (!checkSupported() || Notification.permission !== "granted") return;
+    if (!checkSupported() || (window as any).Notification?.permission !== "granted") return;
 
     const options = {
       body,
@@ -66,9 +66,9 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
     if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
       navigator.serviceWorker.ready
         .then((reg) => reg.showNotification(title, options as NotificationOptions))
-        .catch(() => new Notification(title, { body, icon: "/icons/icon-192.png" }));
+        .catch(() => new (window as any).Notification(title, { body, icon: "/icons/icon-192.png" }));
     } else {
-      new Notification(title, { body, icon: "/icons/icon-192.png" });
+      new (window as any).Notification(title, { body, icon: "/icons/icon-192.png" });
     }
   };
 
@@ -76,9 +76,9 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
   const requestPermission = async (): Promise<boolean> => {
     if (!checkSupported()) return false;
     try {
-      if (Notification.permission === "granted") return true;
-      if (Notification.permission === "denied") return false;
-      const result = await Notification.requestPermission();
+      if ((window as any).Notification?.permission === "granted") return true;
+      if ((window as any).Notification?.permission === "denied") return false;
+      const result = await (window as any).Notification.requestPermission();
       return result === "granted";
     } catch { return false; }
   };
@@ -94,7 +94,7 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
 
   // ── Subscribe to realtime push events ────────────────────────────────────
   useEffect(() => {
-    if (!user?.id || !checkSupported() || Notification.permission !== "granted") return;
+    if (!user?.id || !checkSupported() || (window as any).Notification?.permission !== "granted") return;
 
     // Delay push subscriptions so they don't compete with page mount
     const t = setTimeout(async () => {
