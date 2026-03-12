@@ -58,15 +58,15 @@ button {
   }
   /* pt-20 pages */
   .pwa-offset-20 {
-    padding-top: calc(5rem + var(--safe-top)) !important;
+    padding-top: calc(8rem + var(--safe-top)) !important;
   }
   /* pt-24 pages: Cart, About, CreateListing, OrderConfirmation, Checkout */
   .pwa-offset-24 {
-    padding-top: calc(6rem + var(--safe-top)) !important;
+    padding-top: calc(9rem + var(--safe-top)) !important;
   }
   /* pt-28 pages: Shop, ProductDetail */
   .pwa-offset-28 {
-    padding-top: calc(7rem + var(--safe-top)) !important;
+    padding-top: calc(8rem + var(--safe-top)) !important;
   }
   /* pt-32 pages */
   .pwa-offset-32 {
