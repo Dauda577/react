@@ -20,6 +20,8 @@ export type Listing = {
   createdAt: string;
   city: string | null;
   region: string | null;
+  shippingCost: number;
+  handlingTime: string;
 };
 
 type ListingContextType = {
@@ -141,7 +143,7 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     const { data, error } = await supabase
       .from("listings")
-      .select("id, seller_id, name, brand, price, category, sizes, description, image_url, status, boosted, boost_expires_at, views, created_at, city, region")
+      .select("id, seller_id, name, brand, price, category, sizes, description, image_url, status, boosted, boost_expires_at, views, created_at, city, region, shipping_cost, handling_time")
       .eq("seller_id", user.id)
       .order("created_at", { ascending: false });
     if (!error && data) setListings((data as ListingRow[]).map(rowToListing));
@@ -279,6 +281,8 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
     if (updates.sizes !== undefined) dbUpdates.sizes = updates.sizes;
     if (updates.description !== undefined) dbUpdates.description = updates.description;
     if (updates.status !== undefined) dbUpdates.status = updates.status;
+    if ((updates as any).shippingCost !== undefined) dbUpdates.shipping_cost = (updates as any).shippingCost;
+    if ((updates as any).handlingTime !== undefined) dbUpdates.handling_time = (updates as any).handlingTime;
     if (updates.boosted !== undefined) dbUpdates.boosted = updates.boosted;
     if (updates.boostExpiresAt !== undefined) dbUpdates.boost_expires_at = updates.boostExpiresAt;
 

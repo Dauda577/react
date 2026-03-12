@@ -38,6 +38,10 @@ export type Order = {
   payoutStatus: "pending" | "released" | "auto_released" | "transfer_failed";
   disputeReason: string | null; // kept for DB compat
   paystackReference: string | null;
+  trackingNumber: string | null;
+  trackingUrl: string | null;
+  handlingTime: string | null;
+  shippingCost: number;
 };
 
 type OrderContextType = {
@@ -51,6 +55,7 @@ type OrderContextType = {
   raiseDispute: (orderId: string, reason: string) => Promise<void>;
   markOrdersSeen: () => Promise<void>;
   fetchOrders: () => Promise<void>;
+  addTracking: (orderId: string, trackingNumber: string, trackingUrl?: string) => Promise<void>;
 };
 
 const OrderContext = createContext<OrderContextType | null>(null);
@@ -95,6 +100,10 @@ const rowToOrder = (row: OrderRow, items: OrderItemRow[]): Order => ({
   payoutStatus: (row as any).payout_status ?? "pending",
   disputeReason: (row as any).dispute_reason ?? null,
   paystackReference: (row as any).paystack_reference ?? null,
+  trackingNumber: (row as any).tracking_number ?? null,
+  trackingUrl: (row as any).tracking_url ?? null,
+  handlingTime: (row as any).handling_time ?? null,
+  shippingCost: (row as any).shipping_cost ?? 0,
 });
 
 export const OrderProvider = ({ children }: { children: ReactNode }) => {
@@ -276,6 +285,20 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const addTracking = async (orderId: string, trackingNumber: string, trackingUrl?: string) => {
+    const order = orders.find((o) => o.id === orderId);
+    if (!order || order.sellerId !== user?.id) { toast.error("Unauthorized"); return; }
+    setOrders((prev) => prev.map((o) => o.id === orderId
+      ? { ...o, trackingNumber, trackingUrl: trackingUrl ?? null }
+      : o
+    ));
+    await supabase.from("orders").update({
+      tracking_number: trackingNumber,
+      tracking_url: trackingUrl ?? null,
+    }).eq("id", orderId);
+    toast.success("Tracking number saved — buyer can now track their order.");
+  };
+
   const confirmAsBuyer = async (orderId: string) => {
     const order = orders.find((o) => o.id === orderId);
 
@@ -353,7 +376,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
   return (
     <OrderContext.Provider value={{
       orders, latestOrder, unseenCount, loading,
-      placeOrder, confirmAsSeller, confirmAsBuyer, raiseDispute,
+      placeOrder, confirmAsSeller, confirmAsBuyer, raiseDispute, addTracking,
       markOrdersSeen, fetchOrders,
     }}>
       {children}

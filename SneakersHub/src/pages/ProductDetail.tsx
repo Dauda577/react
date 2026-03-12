@@ -308,6 +308,8 @@ const ProductDetail = () => {
       sellerSubaccountCode: listing.sellerSubaccountCode ?? null,
       sellerCity: listing.city ?? listing.sellerCity ?? null,
       sellerRegion: listing.region ?? listing.sellerRegion ?? null,
+      shippingCost: listing.shippingCost ?? 0,
+      handlingTime: listing.handlingTime ?? "Ships in 1-3 days",
     }, selectedSize);
     setAdded(true);
     toast.success("Added to cart!");

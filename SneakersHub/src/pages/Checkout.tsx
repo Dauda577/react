@@ -98,10 +98,14 @@ export default function Checkout() {
 
   const sellerRegion = currentGroup?.sellerRegion ?? null;
   const sellerCity = currentGroup?.sellerCity ?? null;
+  // Only verified/official sellers have seller-defined shipping
+  // Standard (unverified) sellers use pay-on-delivery so shipping cost doesn't apply
+  const isVerifiedSeller = tier === "verified" || tier === "official";
+  const sellerShippingCost = isVerifiedSeller ? (currentGroup?.shippingCost ?? 0) : 0;
+  const sellerHandlingTime = isVerifiedSeller ? (currentGroup?.handlingTime ?? "Ships in 1-3 days") : "";
 
-  // Delivery fees — instant, region-based
-  const deliveryFees = getDeliveryFees(form.region, sellerRegion);
-  const currentDeliveryFee = delivery === "pickup" ? 0 : deliveryFees[delivery as "standard" | "express"];
+  // Use seller-defined shipping cost for verified/official, 0 for standard
+  const currentDeliveryFee = delivery === "pickup" ? 0 : sellerShippingCost;
 
   useEffect(() => {
     if (requiresPayment) ensurePaystackScript();
@@ -220,7 +224,8 @@ export default function Checkout() {
       const PaystackPop = (window as any).PaystackPop;
       if (!PaystackPop) throw new Error("Payment SDK not available");
 
-      const groupDeliveryFee = delivery === "pickup" ? 0 : deliveryFees[delivery as "standard" | "express"];
+      const isVerified = group.tier === "verified" || group.tier === "official";
+      const groupDeliveryFee = delivery === "pickup" ? 0 : (isVerified ? (group.shippingCost ?? 0) : 0);
       const chargeTotal = group.total + groupDeliveryFee;
 
       let paymentCompleted = false;
@@ -453,7 +458,7 @@ export default function Checkout() {
                 {sellerCity && (
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <MapPin className="w-3 h-3 text-primary" />
-                    Ships from {sellerCity}{sellerRegion ? `, ${sellerRegion}` : ""}
+                    Ships from {sellerCity}{sellerRegion ? `, ${sellerRegion}` : ""} · {sellerHandlingTime}
                   </span>
                 )}
               </div>
@@ -538,7 +543,7 @@ export default function Checkout() {
                   <span className="font-medium">
                     {delivery === "pickup"
                       ? <span className="text-green-500 font-semibold">Free</span>
-                      : <span className="font-semibold text-foreground">GHS {currentDeliveryFee}</span>
+                      : <span className="font-semibold text-foreground">{currentDeliveryFee === 0 ? "Free" : `GHS ${currentDeliveryFee}`}</span>
                     }
                   </span>
                 </div>
