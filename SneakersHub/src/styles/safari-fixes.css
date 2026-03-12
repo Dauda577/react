@@ -57,19 +57,19 @@ button {
 
 @media all and (display-mode: standalone) {
   .pwa-offset-16 {
-    padding-top: calc(var(--navbar-h) + var(--safe-top)) !important;
-  }
-  .pwa-offset-20 {
     padding-top: calc(5rem + var(--safe-top)) !important;
   }
-  .pwa-offset-24 {
+  .pwa-offset-20 {
     padding-top: calc(6rem + var(--safe-top)) !important;
   }
-  .pwa-offset-28 {
+  .pwa-offset-24 {
     padding-top: calc(7rem + var(--safe-top)) !important;
   }
-  .pwa-offset-32 {
+  .pwa-offset-28 {
     padding-top: calc(8rem + var(--safe-top)) !important;
+  }
+  .pwa-offset-32 {
+    padding-top: calc(9rem + var(--safe-top)) !important;
   }
 }
 
