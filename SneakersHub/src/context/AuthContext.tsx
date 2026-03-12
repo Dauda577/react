@@ -99,7 +99,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         doneLoading();
         // Verify in background — update silently if profile changed
         fetchProfile(session.user.id, session.user.email ?? "").then((fresh) => {
-          if (fresh) setUser(fresh);
+          if (fresh) {
+            setUser(fresh);
+          } else {
+            // Profile deleted (e.g. account deleted on another device) — force sign out
+            supabase.auth.signOut().then(() => {
+              setUser(null);
+              localStorage.removeItem("sneakershub_user");
+              sessionStorage.clear();
+            });
+          }
         });
         return;
       }
@@ -107,14 +116,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const profile = await fetchProfile(session.user.id, session.user.email ?? "");
 
       if (!profile) {
-        const name =
-          session.user.user_metadata?.full_name ??
-          session.user.user_metadata?.name ??
-          session.user.email?.split("@")[0] ??
-          "User";
-        setPendingSession({ id: session.user.id, email: session.user.email ?? "", name });
-        setNeedsRole(true);
-        setUser(null);
+        // Check if this is a brand new OAuth user (has provider identity but no profile yet)
+        // vs a deleted account (profile row removed). New OAuth users have identities array.
+        const isNewOAuth = (session.user.identities?.length ?? 0) > 0 &&
+          session.user.app_metadata?.provider !== "email";
+        const accountAge = Date.now() - new Date(session.user.created_at).getTime();
+        const isVeryNew = accountAge < 60_000; // created less than 60s ago
+
+        if (isNewOAuth || isVeryNew) {
+          // Genuine new user — let them pick a role
+          const name =
+            session.user.user_metadata?.full_name ??
+            session.user.user_metadata?.name ??
+            session.user.email?.split("@")[0] ??
+            "User";
+          setPendingSession({ id: session.user.id, email: session.user.email ?? "", name });
+          setNeedsRole(true);
+          setUser(null);
+        } else {
+          // Profile missing for an existing session = account was deleted elsewhere
+          supabase.auth.signOut().then(() => {
+            setUser(null);
+            setNeedsRole(false);
+            setPendingSession(null);
+            localStorage.removeItem("sneakershub_user");
+            sessionStorage.clear();
+          });
+        }
       } else {
         setUser(profile);
         setNeedsRole(false);
@@ -150,8 +178,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
+    // Periodically re-validate session — catches account deletions on other devices
+    const interval = setInterval(async () => {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      if (!currentSession?.user) return; // not logged in, nothing to check
+      const { data: profile } = await supabase
+        .from("profiles").select("id").eq("id", currentSession.user.id).single();
+      if (!profile) {
+        // Profile gone — sign out this device
+        await supabase.auth.signOut();
+        setUser(null);
+        setNeedsRole(false);
+        setPendingSession(null);
+        localStorage.removeItem("sneakershub_user");
+        sessionStorage.clear();
+      }
+    }, 60_000); // check every 60 seconds
+
     return () => {
       clearTimeout(timeout);
+      clearInterval(interval);
       subscription.unsubscribe();
     };
   }, []);
