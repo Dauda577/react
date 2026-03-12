@@ -1,10 +1,99 @@
 /**
  * Image utility functions for thumbnail generation and optimization
+ * Used throughout the SneakersHub application for image optimization
  */
 
 /**
+ * Generates a card image URL for sneaker cards
+ * Optimized for display in card components (300x300)
+ * @param imageUrl - The original image URL
+ * @returns Optimized card image URL
+ */
+export const cardImage = (imageUrl: string | null | undefined): string => {
+  if (!imageUrl) {
+    return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Crect fill='%23f0f0f0' width='200' height='200'/%3E%3Ctext x='50%' y='50%' text-anchor='middle' dy='.3em' fill='%23999' font-size='14' font-family='sans-serif'%3ENo Image%3C/text%3E%3C/svg%3E";
+  }
+
+  if (imageUrl.startsWith("data:")) {
+    return imageUrl;
+  }
+
+  if (imageUrl.includes("supabase.co")) {
+    try {
+      const url = new URL(imageUrl);
+      url.searchParams.set("width", "300");
+      url.searchParams.set("height", "300");
+      url.searchParams.set("resize", "contain");
+      url.searchParams.set("quality", "80");
+      return url.toString();
+    } catch {
+      return imageUrl;
+    }
+  }
+
+  if (imageUrl.includes("unsplash.com")) {
+    try {
+      const url = new URL(imageUrl);
+      url.searchParams.set("w", "300");
+      url.searchParams.set("h", "300");
+      url.searchParams.set("fit", "crop");
+      url.searchParams.set("q", "80");
+      return url.toString();
+    } catch {
+      return imageUrl;
+    }
+  }
+
+  return imageUrl;
+};
+
+/**
+ * Generates a detail page image URL for product detail pages
+ * Optimized for large display (800x800)
+ * @param imageUrl - The original image URL
+ * @returns Optimized detail image URL
+ */
+export const detailImage = (imageUrl: string | null | undefined): string => {
+  if (!imageUrl) {
+    return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 400'%3E%3Crect fill='%23f0f0f0' width='400' height='400'/%3E%3Ctext x='50%' y='50%' text-anchor='middle' dy='.3em' fill='%23999' font-size='20' font-family='sans-serif'%3ENo Image%3C/text%3E%3C/svg%3E";
+  }
+
+  if (imageUrl.startsWith("data:")) {
+    return imageUrl;
+  }
+
+  if (imageUrl.includes("supabase.co")) {
+    try {
+      const url = new URL(imageUrl);
+      url.searchParams.set("width", "800");
+      url.searchParams.set("height", "800");
+      url.searchParams.set("resize", "contain");
+      url.searchParams.set("quality", "85");
+      return url.toString();
+    } catch {
+      return imageUrl;
+    }
+  }
+
+  if (imageUrl.includes("unsplash.com")) {
+    try {
+      const url = new URL(imageUrl);
+      url.searchParams.set("w", "800");
+      url.searchParams.set("h", "800");
+      url.searchParams.set("fit", "crop");
+      url.searchParams.set("q", "85");
+      return url.toString();
+    } catch {
+      return imageUrl;
+    }
+  }
+
+  return imageUrl;
+};
+
+/**
  * Generates a thumbnail URL from an image URL
- * Supports common image services and CDNs
+ * Optimized for small thumbnail displays (150x150)
  * @param imageUrl - The original image URL
  * @param width - Desired thumbnail width (default: 150)
  * @param height - Desired thumbnail height (default: 150)
@@ -15,21 +104,17 @@ export const thumbImage = (
   width: number = 150,
   height: number = 150
 ): string => {
-  // Handle null/undefined
   if (!imageUrl) {
     return "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%23f0f0f0' width='100' height='100'/%3E%3C/svg%3E";
   }
 
-  // If it's a data URL, return as-is
   if (imageUrl.startsWith("data:")) {
     return imageUrl;
   }
 
-  // If it's a Supabase storage URL, optimize it
   if (imageUrl.includes("supabase.co")) {
     try {
       const url = new URL(imageUrl);
-      // Add Supabase image optimization params
       url.searchParams.set("width", String(width));
       url.searchParams.set("height", String(height));
       url.searchParams.set("resize", "contain");
@@ -39,7 +124,6 @@ export const thumbImage = (
     }
   }
 
-  // If it's an Unsplash URL, optimize it
   if (imageUrl.includes("unsplash.com")) {
     try {
       const url = new URL(imageUrl);
@@ -52,19 +136,10 @@ export const thumbImage = (
     }
   }
 
-  // If it's a Cloudinary URL, optimize it
   if (imageUrl.includes("cloudinary.com")) {
-    try {
-      const url = new URL(imageUrl);
-      // Cloudinary uses path-based transformations
-      // This is a simple approach - adjust based on your Cloudinary setup
-      return imageUrl;
-    } catch {
-      return imageUrl;
-    }
+    return imageUrl;
   }
 
-  // Default: return original URL
   return imageUrl;
 };
 
