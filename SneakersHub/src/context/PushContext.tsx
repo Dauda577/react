@@ -19,12 +19,19 @@ export const usePush = () => {
   return ctx;
 };
 
-// Safely check if the Notification API exists — never access it directly
+// SAFER Notification API detection (Safari-safe)
 const getNotificationAPI = (): any => {
   try {
     if (typeof window === "undefined") return null;
-    const n = (window as any)["Notification"];
-    return typeof n === "function" ? n : null;
+
+    // Safari-safe existence check
+    if (!("Notification" in window)) return null;
+
+    const api = (window as any).Notification;
+
+    if (typeof api !== "function") return null;
+
+    return api;
   } catch {
     return null;
   }
@@ -54,11 +61,15 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
         .select("name, quantity")
         .eq("order_id", orderId);
       if (!data || data.length === 0) return "your order";
-      const parts = data.map((i: any) => i.quantity > 1 ? `${i.name} (x${i.quantity})` : i.name);
+      const parts = data.map((i: any) =>
+        i.quantity > 1 ? `${i.name} (x${i.quantity})` : i.name
+      );
       if (parts.length === 1) return parts[0];
       if (parts.length === 2) return parts.join(" & ");
       return `${parts[0]} + ${parts.length - 1} more`;
-    } catch { return "your order"; }
+    } catch {
+      return "your order";
+    }
   };
 
   const showLocalNotification = (title: string, body: string, url = "/account") => {
@@ -79,9 +90,15 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
       if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
         navigator.serviceWorker.ready
           .then((reg) => reg.showNotification(title, options as NotificationOptions))
-          .catch(() => { try { new api(title, { body, icon: "/icons/icon-192.png" }); } catch {} });
+          .catch(() => {
+            try {
+              new api(title, { body, icon: "/icons/icon-192.png" });
+            } catch {}
+          });
       } else {
-        try { new api(title, { body, icon: "/icons/icon-192.png" }); } catch {}
+        try {
+          new api(title, { body, icon: "/icons/icon-192.png" });
+        } catch {}
       }
     } catch {}
   };
@@ -94,7 +111,9 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
       if (api.permission === "denied") return false;
       const result = await api.requestPermission();
       return result === "granted";
-    } catch { return false; }
+    } catch {
+      return false;
+    }
   };
 
   const clearChannels = () => {
@@ -104,6 +123,8 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const api = getNotificationAPI();
+
+    // HARD SAFETY GUARD
     if (!user?.id || !api || api.permission !== "granted") return;
 
     const t = setTimeout(async () => {
@@ -112,69 +133,144 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
       if (user.role === "seller") {
         const verifiedCh = supabase
           .channel(`push:verified:${user.id}`)
-          .on("postgres_changes", { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${user.id}` },
+          .on(
+            "postgres_changes",
+            {
+              event: "UPDATE",
+              schema: "public",
+              table: "profiles",
+              filter: `id=eq.${user.id}`,
+            },
             (payload: any) => {
               if (!payload.old?.verified && payload.new?.verified) {
-                showLocalNotification("✅ Account Verified!", "Your SneakersHub seller account is now verified.", "/account");
+                showLocalNotification(
+                  "✅ Account Verified!",
+                  "Your SneakersHub seller account is now verified.",
+                  "/account"
+                );
               }
-            })
+            }
+          )
           .subscribe();
+
         channelsRef.current.push(verifiedCh);
 
         const listingCh = supabase
           .channel(`push:listings:${user.id}`)
-          .on("postgres_changes", { event: "INSERT", schema: "public", table: "listings", filter: `seller_id=eq.${user.id}` },
+          .on(
+            "postgres_changes",
+            {
+              event: "INSERT",
+              schema: "public",
+              table: "listings",
+              filter: `seller_id=eq.${user.id}`,
+            },
             (payload: any) => {
               const name = payload.new?.name ?? "Your listing";
-              showLocalNotification("✅ Listing Published!", `"${name}" is now live on SneakersHub.`, "/account");
-            })
+              showLocalNotification(
+                "✅ Listing Published!",
+                `"${name}" is now live on SneakersHub.`,
+                "/account"
+              );
+            }
+          )
           .subscribe();
+
         channelsRef.current.push(listingCh);
 
         const { data: profileData } = await supabase
-          .from("profiles").select("is_official").eq("id", user.id).single();
+          .from("profiles")
+          .select("is_official")
+          .eq("id", user.id)
+          .single();
+
         if (profileData?.is_official) {
           const disputeCh = supabase
             .channel(`push:disputes:${user.id}`)
-            .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders" },
+            .on(
+              "postgres_changes",
+              { event: "UPDATE", schema: "public", table: "orders" },
               async (payload: any) => {
                 if (payload.new.payout_status !== "disputed") return;
+
                 const orderId = (() => {
-                  const num = parseInt(payload.new.id.replace(/-/g, "").slice(0, 10), 16) % 1000000000;
+                  const num =
+                    parseInt(payload.new.id.replace(/-/g, "").slice(0, 10), 16) %
+                    1000000000;
                   return `#${num.toString().padStart(9, "0")}`;
                 })();
+
                 const items = await getOrderSummary(payload.new.id);
-                showLocalNotification(`⚠️ Dispute — ${orderId}`, `${items} — GHS ${payload.new.total}. Review in admin.`, "/admin");
-              })
+
+                showLocalNotification(
+                  `⚠️ Dispute — ${orderId}`,
+                  `${items} — GHS ${payload.new.total}. Review in admin.`,
+                  "/admin"
+                );
+              }
+            )
             .subscribe();
+
           channelsRef.current.push(disputeCh);
         }
 
         if (localStorage.getItem("notif_orders") !== "false") {
           const orderCh = supabase
             .channel(`push:orders:${user.id}`)
-            .on("postgres_changes", { event: "INSERT", schema: "public", table: "orders", filter: `seller_id=eq.${user.id}` },
+            .on(
+              "postgres_changes",
+              {
+                event: "INSERT",
+                schema: "public",
+                table: "orders",
+                filter: `seller_id=eq.${user.id}`,
+              },
               async (payload: any) => {
                 const items = await getOrderSummary(payload.new.id);
+
                 const orderId = (() => {
-                  const num = parseInt(payload.new.id.replace(/-/g, "").slice(0, 10), 16) % 1000000000;
+                  const num =
+                    parseInt(payload.new.id.replace(/-/g, "").slice(0, 10), 16) %
+                    1000000000;
                   return `#${num.toString().padStart(9, "0")}`;
                 })();
-                showLocalNotification(`🛒 New Order ${orderId}`, `${items} — GHS ${payload.new.total}`, "/account");
-              })
+
+                showLocalNotification(
+                  `🛒 New Order ${orderId}`,
+                  `${items} — GHS ${payload.new.total}`,
+                  "/account"
+                );
+              }
+            )
             .subscribe();
+
           channelsRef.current.push(orderCh);
         }
 
         if (localStorage.getItem("notif_messages") !== "false") {
           const msgCh = supabase
             .channel(`push:seller:msgs:${user.id}`)
-            .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` },
+            .on(
+              "postgres_changes",
+              {
+                event: "INSERT",
+                schema: "public",
+                table: "messages",
+                filter: `receiver_id=eq.${user.id}`,
+              },
               (payload: any) => {
                 const content: string = payload.new.content ?? "";
-                showLocalNotification("💬 New Message", content.length > 60 ? content.slice(0, 60) + "..." : content, "/account");
-              })
+                showLocalNotification(
+                  "💬 New Message",
+                  content.length > 60
+                    ? content.slice(0, 60) + "..."
+                    : content,
+                  "/account"
+                );
+              }
+            )
             .subscribe();
+
           channelsRef.current.push(msgCh);
         }
       }
@@ -183,51 +279,92 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
         if (localStorage.getItem("notif_orders") !== "false") {
           const orderCh = supabase
             .channel(`push:buyer:orders:${user.id}`)
-            .on("postgres_changes", { event: "UPDATE", schema: "public", table: "orders", filter: `buyer_id=eq.${user.id}` },
+            .on(
+              "postgres_changes",
+              {
+                event: "UPDATE",
+                schema: "public",
+                table: "orders",
+                filter: `buyer_id=eq.${user.id}`,
+              },
               (payload: any) => {
                 const { status } = payload.new;
+
                 const orderId = (() => {
-                  const num = parseInt(payload.new.id.replace(/-/g, "").slice(0, 10), 16) % 1000000000;
+                  const num =
+                    parseInt(payload.new.id.replace(/-/g, "").slice(0, 10), 16) %
+                    1000000000;
                   return `#${num.toString().padStart(9, "0")}`;
                 })();
+
                 if (status === "shipped") {
-                  getOrderSummary(payload.new.id).then(items => {
-                    showLocalNotification(`📦 Order ${orderId} Shipped!`, `${items} — GHS ${payload.new.total} is on its way.`, "/account");
+                  getOrderSummary(payload.new.id).then((items) => {
+                    showLocalNotification(
+                      `📦 Order ${orderId} Shipped!`,
+                      `${items} — GHS ${payload.new.total} is on its way.`,
+                      "/account"
+                    );
                   });
                 } else if (status === "delivered") {
-                  getOrderSummary(payload.new.id).then(items => {
-                    showLocalNotification(`✅ Order ${orderId} Confirmed!`, `${items} — GHS ${payload.new.total}. Enjoy your kicks! 👟`, "/account");
+                  getOrderSummary(payload.new.id).then((items) => {
+                    showLocalNotification(
+                      `✅ Order ${orderId} Confirmed!`,
+                      `${items} — GHS ${payload.new.total}. Enjoy your kicks! 👟`,
+                      "/account"
+                    );
                   });
                 }
-              })
+              }
+            )
             .subscribe();
+
           channelsRef.current.push(orderCh);
         }
 
         if (localStorage.getItem("notif_messages") !== "false") {
           const msgCh = supabase
             .channel(`push:buyer:msgs:${user.id}`)
-            .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` },
+            .on(
+              "postgres_changes",
+              {
+                event: "INSERT",
+                schema: "public",
+                table: "messages",
+                filter: `receiver_id=eq.${user.id}`,
+              },
               (payload: any) => {
                 const content: string = payload.new.content ?? "";
-                showLocalNotification("💬 New Message", content.length > 60 ? content.slice(0, 60) + "..." : content, "/account");
-              })
+                showLocalNotification(
+                  "💬 New Message",
+                  content.length > 60
+                    ? content.slice(0, 60) + "..."
+                    : content,
+                  "/account"
+                );
+              }
+            )
             .subscribe();
+
           channelsRef.current.push(msgCh);
         }
       }
     }, 3000);
 
-    return () => { clearTimeout(t); clearChannels(); };
-  }, [user?.id, user?.role, permission]);
+    return () => {
+      clearTimeout(t);
+      clearChannels();
+    };
+  }, [user?.id, user?.role]);
 
   return (
-    <PushContext.Provider value={{
-      requestPermission,
-      isSupported: checkSupported(),
-      permission,
-      showLocalNotification,
-    }}>
+    <PushContext.Provider
+      value={{
+        requestPermission,
+        isSupported: checkSupported(),
+        permission,
+        showLocalNotification,
+      }}
+    >
       {children}
     </PushContext.Provider>
   );
