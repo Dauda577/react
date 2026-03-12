@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, Component, ReactNode } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -36,6 +36,37 @@ const Admin = lazy(() => import("./pages/Admin"));
 const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
 
 
+class ErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean; error: string }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: "" };
+  }
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error: error?.message ?? "Unknown error" };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
+          <div className="text-4xl mb-4">⚠️</div>
+          <h2 className="font-display text-xl font-bold mb-2">Something went wrong</h2>
+          <p className="text-sm text-muted-foreground mb-6 max-w-xs">{this.state.error}</p>
+          <button
+            onClick={() => { this.setState({ hasError: false, error: "" }); window.location.href = "/"; }}
+            className="px-6 py-2.5 rounded-full bg-primary text-primary-foreground text-sm font-semibold"
+          >
+            Go Home
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const ProtectedRoute = ({ children, allowGuest = false }: { children: React.ReactNode; allowGuest?: boolean }) => {
   const { user, isGuest, loading } = useAuth();
   if (loading) return <Spinner />;
@@ -51,6 +82,7 @@ const GuestRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const App = () => (
+  <ErrorBoundary>
   <TooltipProvider>
       <AuthProvider>
         <OrderProvider>
@@ -104,6 +136,7 @@ const App = () => (
         </OrderProvider>
       </AuthProvider>
     </TooltipProvider>
+  </ErrorBoundary>
 );
 
 export default App;

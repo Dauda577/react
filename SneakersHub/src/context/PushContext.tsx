@@ -17,16 +17,22 @@ export const usePush = () => {
   return ctx;
 };
 
-const checkSupported = () =>
-  typeof window !== "undefined" && "Notification" in window;
+const checkSupported = () => {
+  try {
+    return typeof window !== "undefined" && "Notification" in window && typeof Notification !== "undefined";
+  } catch { return false; }
+};
 
 export const PushProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const channelsRef = useRef<any[]>([]);
 
-  const permission: NotificationPermission = checkSupported()
-    ? Notification.permission
-    : "denied";
+  const getPermission = (): NotificationPermission => {
+    try {
+      return checkSupported() ? Notification.permission : "denied";
+    } catch { return "denied"; }
+  };
+  const permission: NotificationPermission = getPermission();
 
   // ── Show a notification (works in browser AND installed PWA) ─────────────
   // Fetch item names for a given order_id to enrich push notifications
@@ -69,10 +75,12 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
   // ── Request permission ────────────────────────────────────────────────────
   const requestPermission = async (): Promise<boolean> => {
     if (!checkSupported()) return false;
-    if (Notification.permission === "granted") return true;
-    if (Notification.permission === "denied") return false;
-    const result = await Notification.requestPermission();
-    return result === "granted";
+    try {
+      if (Notification.permission === "granted") return true;
+      if (Notification.permission === "denied") return false;
+      const result = await Notification.requestPermission();
+      return result === "granted";
+    } catch { return false; }
   };
 
   // NOTE: Permission is requested in Auth.tsx right after login/signup.
@@ -269,7 +277,6 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
         channelsRef.current.push(msgCh);
       }
     }
-
     }, 3000);
     return () => { clearTimeout(t); clearChannels(); };
   }, [user?.id, user?.role, permission]);
