@@ -649,51 +649,26 @@ const Account = () => {
 
                     {/* ── Verification Terms Modal ── */}
                     {showVerifyTerms && (
-                      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm px-4 pb-6 sm:pb-0">
+                      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm px-4 pb-4 sm:pb-0">
                         <motion.div
                           initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}
-                          className="w-full max-w-md bg-card border border-border rounded-2xl p-6 shadow-2xl">
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center flex-shrink-0">
-                              <ShieldCheck className="w-5 h-5 text-green-500" />
-                            </div>
-                            <div>
-                              <h3 className="font-display font-bold text-base">Seller Verification Terms</h3>
-                              <p className="text-xs text-muted-foreground">Please read and accept before continuing</p>
-                            </div>
+                          className="w-full max-w-md bg-card border border-border rounded-2xl p-4 shadow-2xl">
+                          <div className="flex items-center gap-2 mb-3">
+                            <ShieldCheck className="w-4 h-4 text-green-500 flex-shrink-0" />
+                            <h3 className="font-display font-bold text-sm">Seller Verification Terms</h3>
                           </div>
 
-                          <div className="space-y-3 mb-6">
-                            <div className="flex items-start gap-3 p-3 rounded-xl bg-muted/40">
-                              <span className="text-green-500 mt-0.5 flex-shrink-0">✓</span>
-                              <p className="text-sm text-foreground leading-relaxed">
-                                <span className="font-semibold">Confirm & ship orders promptly.</span> Buyers pay upfront — you must confirm and dispatch every order once payment is received. Failure to fulfil orders will result in account suspension.
-                              </p>
-                            </div>
-                            <div className="flex items-start gap-3 p-3 rounded-xl bg-muted/40">
-                              <span className="text-green-500 mt-0.5 flex-shrink-0">✓</span>
-                              <p className="text-sm text-foreground leading-relaxed">
-                                <span className="font-semibold">Payments are processed by Paystack.</span> SneakersHub does not hold your money — Paystack handles all transactions securely and in compliance with financial regulations.
-                              </p>
-                            </div>
-                            <div className="flex items-start gap-3 p-3 rounded-xl bg-muted/40">
-                              <span className="text-green-500 mt-0.5 flex-shrink-0">✓</span>
-                              <p className="text-sm text-foreground leading-relaxed">
-                                <span className="font-semibold">Payouts guaranteed within 24 hours.</span> Once an order is confirmed and dispatched, your payout (95% of sale price) will be sent to your registered MoMo or bank account within 24 hours.
-                              </p>
-                            </div>
-                            <div className="flex items-start gap-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                              <span className="text-amber-500 mt-0.5 flex-shrink-0">!</span>
-                              <p className="text-sm text-muted-foreground leading-relaxed">
-                                The GHS 50 verification fee is a <span className="font-semibold text-foreground">one-time payment</span> and is non-refundable. It covers your Paystack subaccount setup.
-                              </p>
-                            </div>
+                          <div className="space-y-2 mb-4 text-xs text-muted-foreground">
+                            <p className="flex items-start gap-2"><span className="text-green-500 flex-shrink-0">✓</span><span><span className="font-semibold text-foreground">Confirm & ship all orders.</span> Buyers pay upfront — you must dispatch every order on time or risk suspension.</span></p>
+                            <p className="flex items-start gap-2"><span className="text-green-500 flex-shrink-0">✓</span><span><span className="font-semibold text-foreground">Powered by Paystack.</span> SneakersHub never holds your money — Paystack processes all payments securely.</span></p>
+                            <p className="flex items-start gap-2"><span className="text-green-500 flex-shrink-0">✓</span><span><span className="font-semibold text-foreground">Payout within 24 hours.</span> 95% of each sale goes directly to your MoMo/bank after dispatch.</span></p>
+                            <p className="flex items-start gap-2"><span className="text-amber-500 flex-shrink-0">!</span><span>The GHS 50 fee is a <span className="font-semibold text-foreground">one-time, non-refundable</span> subaccount setup charge.</span></p>
                           </div>
 
-                          <div className="flex gap-3">
+                          <div className="flex gap-2">
                             <button
                               onClick={() => setShowVerifyTerms(false)}
-                              className="flex-1 py-3 rounded-xl border border-border text-sm font-semibold text-muted-foreground hover:bg-muted/50 transition-colors">
+                              className="flex-1 py-2 rounded-xl border border-border text-xs font-semibold text-muted-foreground hover:bg-muted/50 transition-colors">
                               Decline
                             </button>
                             <button
@@ -769,7 +744,7 @@ const Account = () => {
                                 setVerificationLoading(false);
                               }
                             }}
-                              className="flex-1 py-3 rounded-xl bg-green-500 text-white text-sm font-semibold hover:bg-green-600 transition-colors disabled:opacity-60 inline-flex items-center justify-center gap-2">
+                              className="flex-1 py-2 rounded-xl bg-green-500 text-white text-xs font-semibold hover:bg-green-600 transition-colors disabled:opacity-60 inline-flex items-center justify-center gap-2">
                               {verificationLoading ? <><span className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" /> Processing...</> : <><ShieldCheck className="w-4 h-4" /> I Accept — Pay GHS 50</>}
                             </button>
                           </div>
