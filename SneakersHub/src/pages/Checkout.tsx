@@ -305,7 +305,7 @@ export default function Checkout() {
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
 
-      <main className="flex-1 max-w-lg mx-auto w-full px-4 py-8 pb-24 page-safe">
+      <main className="flex-1 max-w-lg mx-auto w-full px-4 py-8 pb-24 pt-24" style={{ paddingTop: `calc(96px + env(safe-area-inset-top, 0px))` }}>
 
         {/* Header */}
         <div className="flex items-center gap-3 mb-8">

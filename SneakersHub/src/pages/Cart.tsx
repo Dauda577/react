@@ -14,7 +14,7 @@ const Cart = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      <div className="pt-24 pwa-offset-24 section-padding max-w-4xl mx-auto min-h-[70vh]">
+      <div className="pt-24 section-padding max-w-4xl mx-auto min-h-[70vh]" style={{ paddingTop: `calc(96px + env(safe-area-inset-top, 0px))` }}>
         <motion.h1
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}

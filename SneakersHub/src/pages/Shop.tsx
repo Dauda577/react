@@ -47,7 +47,7 @@ const Shop = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      <div className="section-padding max-w-7xl mx-auto pt-28 pwa-offset-28 pb-20">
+      <div className="section-padding max-w-7xl mx-auto pt-28 pb-20" style={{ paddingTop: `calc(112px + env(safe-area-inset-top, 0px))` }}>
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-10">
           <p className="text-primary font-display text-xs font-semibold uppercase tracking-[0.3em] mb-2">Browse</p>
