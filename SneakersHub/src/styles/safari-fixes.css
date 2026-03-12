@@ -14,10 +14,12 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Prevent Safari input zoom on focus */
-input, select, textarea {
-  font-size: max(16px, 1em) !important;
-  -webkit-overflow-scrolling: touch;
+/* Prevent Safari/iOS zoom on input focus — belt AND suspenders approach */
+input, input:focus,
+select, select:focus,
+textarea, textarea:focus {
+  font-size: 16px !important;
+  touch-action: manipulation;
 }
 
 .reset-zoom {
