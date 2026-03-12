@@ -250,23 +250,24 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
       description: listing.description,
       city: listing.city ?? sellerProfile?.city ?? null,
       region: listing.region ?? sellerProfile?.region ?? null,
+      shipping_cost: (listing as any).shippingCost ?? 0,
+      handling_time: (listing as any).handlingTime ?? "Ships in 1-3 days",
     }).select().single();
 
     if (error) throw new Error(error.message);
 
-    // SMS confirmation to seller
-    await triggerSMS({ type: "listing.created", record: data });
+    // SMS confirmation to seller (fire and forget)
+    triggerSMS({ type: "listing.created", record: data }).catch(() => {});
 
-    let imageUrl: string | null = null;
+    // Upload image in background — don't block navigation
     if (imageFile && data) {
-      imageUrl = await uploadImage(imageFile, data.id);
-      if (imageUrl) {
-        await supabase.from("listings").update({ image_url: imageUrl }).eq("id", data.id);
-        // Update the row in state with the image URL
+      uploadImage(imageFile, data.id).then((imageUrl) => {
+        if (!imageUrl) return;
+        supabase.from("listings").update({ image_url: imageUrl }).eq("id", data.id);
         setListings((prev) =>
           prev.map((l) => l.id === data.id ? { ...l, image: imageUrl } : l)
         );
-      }
+      }).catch(() => {});
     }
   };
 
