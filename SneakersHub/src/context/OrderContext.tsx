@@ -181,10 +181,40 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     return () => { supabase.removeChannel(channel); };
   }, [user?.id]);
 
-  const placeOrder = async (
-    order: Omit<Order, "id" | "placedAt" | "seen" | "sellerConfirmed" | "buyerConfirmed" | "status" | "buyerId" | "releaseAt" | "payoutStatus" | "disputeReason" | "paystackReference"> & { sellerId: string }
-  ) => {
+  const placeOrder = async (order: {
+    sellerId: string;
+    items: { sneakerId?: string; name: string; brand: string; size?: number; price: number; quantity: number; imageUrl?: string; image?: string; id?: string; }[];
+    subtotal: number;
+    deliveryFee: number;
+    total: number;
+    deliveryMethod?: string;
+    deliveryAddress?: string;
+    buyerPhone?: string;
+    buyerName?: string;
+    paystackReference?: string | null;
+    subaccountCode?: string | null;
+    // also accept nested shapes for backwards compat
+    delivery?: string;
+    deliveryInfo?: { label?: string; estimatedCost?: string; days?: string };
+    buyer?: { firstName?: string; lastName?: string; phone?: string; address?: string; city?: string; region?: string };
+  }) => {
     if (!user) throw new Error("Not authenticated");
+
+    // Normalise flat vs nested shapes
+    const deliveryMethod = order.deliveryMethod ?? order.delivery ?? "";
+    const deliveryLabel = order.deliveryInfo?.label ?? (deliveryMethod === "express" ? "Express Delivery" : deliveryMethod === "pickup" ? "Hub Pickup" : "Standard Delivery");
+    const deliveryEstimatedCost = order.deliveryInfo?.estimatedCost ?? (order.deliveryFee === 0 ? "Free" : `GHS ${order.deliveryFee}`);
+    const deliveryDays = order.deliveryInfo?.days ?? "";
+    const [buyerFirstName, ...rest] = (order.buyerName ?? `${order.buyer?.firstName ?? ""} ${order.buyer?.lastName ?? ""}`.trim()).split(" ");
+    const buyerLastName = rest.join(" ");
+    const buyerPhone = order.buyerPhone ?? order.buyer?.phone ?? "";
+    const [buyerAddress, buyerCity, buyerRegion] = (() => {
+      if (order.deliveryAddress) {
+        const parts = order.deliveryAddress.split(", ");
+        return [parts[0] ?? "", parts[1] ?? "", parts[2] ?? ""];
+      }
+      return [order.buyer?.address ?? "", order.buyer?.city ?? "", order.buyer?.region ?? ""];
+    })();
 
     const { data: orderRow, error } = await supabase.from("orders").insert({
       buyer_id: user.id,
@@ -192,17 +222,18 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       subtotal: order.subtotal,
       delivery_fee: order.deliveryFee,
       total: order.total,
-      delivery_method: order.delivery,
-      delivery_label: order.deliveryInfo.label,
-      delivery_estimated_cost: order.deliveryInfo.estimatedCost,
-      delivery_days: order.deliveryInfo.days,
-      buyer_first_name: order.buyer.firstName,
-      buyer_last_name: order.buyer.lastName,
-      buyer_phone: order.buyer.phone,
-      buyer_address: order.buyer.address,
-      buyer_city: order.buyer.city,
-      buyer_region: order.buyer.region,
+      delivery_method: deliveryMethod,
+      delivery_label: deliveryLabel,
+      delivery_estimated_cost: deliveryEstimatedCost,
+      delivery_days: deliveryDays,
+      buyer_first_name: buyerFirstName ?? "",
+      buyer_last_name: buyerLastName ?? "",
+      buyer_phone: buyerPhone,
+      buyer_address: buyerAddress,
+      buyer_city: buyerCity,
+      buyer_region: buyerRegion,
       payout_status: "pending",
+      paystack_reference: order.paystackReference ?? null,
     }).select().single();
 
     if (error) throw new Error(error.message);
@@ -211,9 +242,9 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       order_id: orderRow.id,
       name: item.name,
       brand: item.brand,
-      image_url: item.image,
+      image_url: item.imageUrl ?? item.image ?? null,
       price: item.price,
-      size: item.size,
+      size: item.size ?? item.sneakerId ?? null,
       quantity: item.quantity,
     }));
 
