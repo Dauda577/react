@@ -1,21 +1,18 @@
 /* ── Safari / iOS Performance Fixes ─────────────────────────────────────── */
 
-* {
-  -webkit-tap-highlight-color: transparent;
-}
+* { -webkit-tap-highlight-color: transparent; }
 
 body {
   min-height: 100vh;
   min-height: -webkit-fill-available;
 }
-
 html {
   height: -webkit-fill-available;
   -webkit-overflow-scrolling: touch;
   scroll-behavior: smooth;
 }
 
-/* Prevent Safari input zoom on focus — font-size >= 16px prevents zoom */
+/* Prevent Safari input zoom on focus */
 input, select, textarea {
   font-size: max(16px, 1em) !important;
   -webkit-overflow-scrolling: touch;
@@ -35,41 +32,39 @@ button {
 }
 
 /* ── PWA Safe Area ───────────────────────────────────────────────────────────
-   In the browser, safe-area-inset-top = 0, so env() adds nothing.
-   In PWA (standalone) mode, iOS sets safe-area-inset-top to ~50-59px.
-   The navbar has paddingTop: env(safe-area-inset-top) so it grows taller.
-   Pages need to add that same extra inset on top of their normal pt- offset.
-
-   We ONLY add the safe-area delta in standalone mode — in browser mode the
-   normal pt-16/pt-24/etc Tailwind classes are already correct.
+   Browser mode: safe-area-inset-top = 0, so pt-16/pt-24/etc work perfectly.
+   PWA standalone: safe-area-inset-top ≈ 50-59px (notch / Dynamic Island).
+   The navbar grows by that amount, so pages need to add ONLY the safe-area
+   delta on top of their existing pt- value.
+   
+   In browser:  pt-16 = 64px  ✓ (pwa-offset does nothing extra)
+   In PWA:      pt-16 + safe-area-inset-top ≈ 64px + 59px = 123px  ✓
 ─────────────────────────────────────────────────────────────────────────────── */
 
 :root {
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --navbar-h: 4rem; /* 64px = h-16 */
 }
 
-/* Only apply in PWA standalone mode */
+/* Only fires in PWA — adds ONLY the safe-area on top of existing pt- */
 @media all and (display-mode: standalone) {
   .pwa-offset-16 {
-    padding-top: calc(6rem + var(--safe-top)) !important;  /* was 5rem, bumped to 6rem */
+    padding-top: calc(4rem + var(--safe-top)) !important;
   }
   .pwa-offset-20 {
-    padding-top: calc(6rem + var(--safe-top)) !important;  /* was 5rem */
+    padding-top: calc(5rem + var(--safe-top)) !important;
   }
   .pwa-offset-24 {
-    padding-top: calc(7rem + var(--safe-top)) !important;  /* was 6rem */
+    padding-top: calc(6rem + var(--safe-top)) !important;
   }
   .pwa-offset-28 {
-    padding-top: calc(8rem + var(--safe-top)) !important;  /* was 7rem */
+    padding-top: calc(7rem + var(--safe-top)) !important;
   }
   .pwa-offset-32 {
-    padding-top: calc(9rem + var(--safe-top)) !important;  /* was 8rem */
+    padding-top: calc(8rem + var(--safe-top)) !important;
   }
 }
 
-/* Bottom safe area for fixed bottom UI */
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
