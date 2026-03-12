@@ -32,33 +32,39 @@ button {
 }
 
 /* ── Safe Area ───────────────────────────────────────────────────────────────
-   Browser mode (Safari/Chrome on iPhone):
-     - safe-area-inset-top is the STATUS BAR height (~50px)
-     - The navbar sits BELOW the status bar naturally
-     - Pages just need pt-16 (64px) = navbar height only
-     - DO NOT add safe-area here or content gets pushed too far down
+   Target: make PWA look exactly like the browser version.
 
-   PWA standalone mode:
-     - The app runs edge-to-edge, status bar overlaps the app
-     - Navbar needs paddingTop: safe-area to clear the status bar
-     - Pages need 64px + safe-area to clear the taller navbar
+   Browser: navbar sits below status bar automatically.
+            Navbar height = 64px (h-16). No safe-area needed.
+            page-safe = 64px. ✓
 
-   So: browser = pt-16 only, PWA = pt-16 + safe-area
+   PWA:     App is fullscreen. Status bar overlaps the app.
+            Navbar must pad itself by safe-area-inset-top to clear status bar.
+            Navbar total height = 64px + safe-area-inset-top.
+            page-safe must match = 64px + safe-area-inset-top. ✓
 ─────────────────────────────────────────────────────────────────────────────── */
 
 :root {
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --navbar-h: 4rem;
+  --navbar-h: 4rem; /* 64px */
 }
 
-/* browser: page-safe = just navbar height (64px) */
+/* Browser: plain 64px — matches navbar exactly */
 .page-safe {
   padding-top: var(--navbar-h);
 }
 
-/* PWA only: add safe-area-inset-top on top of navbar height */
+/* Navbar: no extra padding in browser */
+.navbar-safe {
+  padding-top: 0;
+}
+
+/* PWA only: both navbar and pages add safe-area-inset-top */
 @media all and (display-mode: standalone) {
+  .navbar-safe {
+    padding-top: var(--safe-top);
+  }
   .page-safe {
     padding-top: calc(var(--navbar-h) + var(--safe-top));
   }
@@ -66,16 +72,4 @@ button {
 
 .pb-safe {
   padding-bottom: var(--safe-bottom);
-}
-
-/* Navbar: no safe-area in browser (status bar is outside browser chrome)
-   Only add it in PWA where app runs edge-to-edge */
-.navbar-safe {
-  padding-top: 0;
-}
-
-@media all and (display-mode: standalone) {
-  .navbar-safe {
-    padding-top: var(--safe-top);
-  }
 }
