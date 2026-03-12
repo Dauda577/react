@@ -90,6 +90,30 @@ export default function Checkout() {
   const sellerGroups = groupBySeller(items);
   const totalPrice = items.reduce((sum, i) => sum + i.sneaker.price * i.quantity, 0);
 
+  // ── Fetch fresh shipping data from DB (cart may have stale/missing values) ─
+  const [freshShipping, setFreshShipping] = useState<Record<string, { shippingCost: number; handlingTime: string }>>({});
+
+  useEffect(() => {
+    const ids = items.map((i) => i.sneaker.id);
+    if (ids.length === 0) return;
+    supabase
+      .from("listings")
+      .select("id, shipping_cost, handling_time")
+      .in("id", ids)
+      .then(({ data }) => {
+        if (!data) return;
+        const map: Record<string, { shippingCost: number; handlingTime: string }> = {};
+        for (const row of data) {
+          map[row.id] = {
+            shippingCost: row.shipping_cost ?? 0,
+            handlingTime: row.handling_time ?? "Ships in 1-3 days",
+          };
+        }
+        setFreshShipping(map);
+      });
+  }, []);
+
+
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
   const [completedGroups, setCompletedGroups] = useState<string[]>([]);
   const currentGroup: SellerGroup | undefined = sellerGroups[currentGroupIndex];
@@ -101,8 +125,11 @@ export default function Checkout() {
   // Only verified/official sellers have seller-defined shipping
   // Standard (unverified) sellers use pay-on-delivery so shipping cost doesn't apply
   const isVerifiedSeller = tier === "verified" || tier === "official";
-  const sellerShippingCost = isVerifiedSeller ? (currentGroup?.shippingCost ?? 0) : 0;
-  const sellerHandlingTime = isVerifiedSeller ? (currentGroup?.handlingTime ?? "Ships in 1-3 days") : "";
+  // Use fresh DB data if available, fall back to cart data
+  const firstItemId = currentGroup?.items[0]?.sneaker.id ?? "";
+  const freshData = freshShipping[firstItemId];
+  const sellerShippingCost = isVerifiedSeller ? (freshData?.shippingCost ?? currentGroup?.shippingCost ?? 0) : 0;
+  const sellerHandlingTime = isVerifiedSeller ? (freshData?.handlingTime ?? currentGroup?.handlingTime ?? "Ships in 1-3 days") : "";
 
   // Use seller-defined shipping cost for verified/official, 0 for standard
   const currentDeliveryFee = delivery === "pickup" ? 0 : sellerShippingCost;

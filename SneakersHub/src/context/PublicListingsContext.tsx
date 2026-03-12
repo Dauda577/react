@@ -14,6 +14,8 @@ export type PublicListing = {
   sellerMemberSince: string;
   shippingCost: number;
   handlingTime: string;
+  city: string | null;
+  region: string | null;
   name: string;
   brand: string;
   price: number;
@@ -63,7 +65,7 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
         description, image_url, boosted, boost_expires_at,
         views, created_at, city, region, shipping_cost, handling_time,
         profiles (
-          name, phone, verified, is_official, subaccount_code, created_at
+          name, phone, city, verified, is_official, subaccount_code, created_at
         )
       `)
       .eq("status", "active")
