@@ -1,11 +1,9 @@
 /* ── Safari Performance Fixes ──────────────────────────────────────────────── */
 
-/* Force GPU compositing on animated elements */
 * {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Safari viewport fix */
 body {
   min-height: 100vh;
   min-height: -webkit-fill-available;
@@ -19,11 +17,9 @@ html {
 /* Prevent Safari input zoom on focus — font-size >= 16px prevents zoom */
 input, select, textarea {
   font-size: max(16px, 1em) !important;
-  /* Prevent scroll bounce on inputs */
   -webkit-overflow-scrolling: touch;
 }
 
-/* Reset viewport zoom when leaving a page with inputs */
 .reset-zoom {
   touch-action: manipulation;
 }
@@ -33,7 +29,6 @@ button {
   cursor: pointer;
 }
 
-/* Reduce motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -42,38 +37,36 @@ button {
   }
 }
 
-/* ── PWA Safe Area (notch / Dynamic Island) ─────────────────────────────────
-   When installed as PWA, iOS adds safe-area-inset-top (e.g. 59px on iPhone 14 Pro).
-   The navbar already has paddingTop: env(safe-area-inset-top).
-   All pages need to offset by navbar height (64px) + safe area.
-   We override the common pt- classes used across pages.
+/* ── PWA Safe Area ───────────────────────────────────────────────────────────
+   env(safe-area-inset-top) = 0px in browser → no effect on web layout
+   env(safe-area-inset-top) = ~59px in PWA   → pushes content below navbar
+
+   Applied unconditionally — browser safe-area is always 0 so web is unaffected.
+   No @media standalone needed.
 ────────────────────────────────────────────────────────────────────────────── */
 
 :root {
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --navbar-h: 4rem; /* 64px = h-16 */
+  --navbar-h: 4rem;
 }
 
-@media all and (display-mode: standalone) {
-  .pwa-offset-16 {
-    padding-top: calc(7rem + var(--safe-top)) !important;
-  }
-  .pwa-offset-20 {
-    padding-top: calc(8rem + var(--safe-top)) !important;
-  }
-  .pwa-offset-24 {
-    padding-top: calc(9rem + var(--safe-top)) !important;
-  }
-  .pwa-offset-28 {
-    padding-top: calc(10rem + var(--safe-top)) !important;
-  }
-  .pwa-offset-32 {
-    padding-top: calc(11rem + var(--safe-top)) !important;
-  }
+.pwa-offset-16 {
+  padding-top: calc(var(--navbar-h) + var(--safe-top)) !important;
+}
+.pwa-offset-20 {
+  padding-top: calc(5rem + var(--safe-top)) !important;
+}
+.pwa-offset-24 {
+  padding-top: calc(6rem + var(--safe-top)) !important;
+}
+.pwa-offset-28 {
+  padding-top: calc(7rem + var(--safe-top)) !important;
+}
+.pwa-offset-32 {
+  padding-top: calc(8rem + var(--safe-top)) !important;
 }
 
-/* Bottom safe area for any fixed bottom UI */
 .pb-safe {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
