@@ -305,7 +305,7 @@ export default function Checkout() {
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
 
-      <main className="flex-1 max-w-lg mx-auto w-full px-4 py-8 pb-24 pt-24 pwa-offset-24">
+      <main className="flex-1 max-w-lg mx-auto w-full px-4 py-8 pb-24 page-safe">
 
         {/* Header */}
         <div className="flex items-center gap-3 mb-8">

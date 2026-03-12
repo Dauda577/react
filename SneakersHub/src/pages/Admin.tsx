@@ -160,7 +160,6 @@ const Admin = () => {
 
     // No user at all
     if (!user?.id) {
-      console.log("[Admin] No user, redirecting");
       navigate("/");
       return;
     }
@@ -172,12 +171,9 @@ const Admin = () => {
       .eq("id", user.id)
       .single()
       .then(({ data, error }) => {
-        console.log("[Admin] Profile check:", { data, error, userId: user.id });
         if (error || !data?.is_official) {
-          console.log("[Admin] Not official, denying access");
           setAccessDenied(true);
         } else {
-          console.log("[Admin] Access granted");
           setAuthChecked(true);
         }
       });
@@ -302,7 +298,7 @@ const Admin = () => {
       <Navbar />
 
       {/* Header */}
-      <section className="border-b border-border pt-16 pwa-offset-16">
+      <section className="border-b border-border page-safe">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-0">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
             className="flex items-center gap-4 pb-6">

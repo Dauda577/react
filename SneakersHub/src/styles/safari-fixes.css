@@ -12,7 +12,7 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Prevent Safari input zoom on focus — 16px stops iOS auto-zoom */
+/* Prevent Safari input zoom on focus */
 input, select, textarea {
   font-size: max(16px, 1em) !important;
   -webkit-overflow-scrolling: touch;
@@ -31,34 +31,25 @@ button {
   }
 }
 
-/* ── PWA Safe Area ───────────────────────────────────────────────────────────
-
-   STRUCTURE:
-     Navbar  →  height: 64px  +  padding-top: safe-area-inset-top  (via inline style)
-     Page    →  padding-top: 64px  (pt-16 / pt-24 / etc)
-
-   Browser mode:  safe-area = 0   →  navbar = 64px,  page pt = 64px  ✓
-   PWA mode:      safe-area ≈ 59px →  navbar = 123px, page pt needs 123px
-
-   So in PWA we override pt to: base + safe-area-inset-top.
-   The existing pt-X class already handles browser mode — we don't touch it.
-   The pwa-offset-X class ONLY activates in standalone mode.
-─────────────────────────────────────────────────────────────────────────────── */
+/* ── Safe Area System (iOS / PWA / Android) ──────────────────────────────── */
 
 :root {
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --navbar-h: 4rem; /* 64px */
 }
 
-@media all and (display-mode: standalone) {
-  .pwa-offset-16 { padding-top: calc(4rem + var(--safe-top)) !important; }
-  .pwa-offset-20 { padding-top: calc(5rem + var(--safe-top)) !important; }
-  .pwa-offset-24 { padding-top: calc(6rem + var(--safe-top)) !important; }
-  .pwa-offset-28 { padding-top: calc(7rem + var(--safe-top)) !important; }
-  .pwa-offset-32 { padding-top: calc(8rem + var(--safe-top)) !important; }
+/* Navbar respects notch / Dynamic Island */
+.safe-top {
+  padding-top: var(--safe-top);
 }
 
-/* Bottom safe area for fixed bottom UI */
-.pb-safe {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+/* Page content below fixed navbar — auto-expands in PWA */
+.page-safe {
+  padding-top: calc(var(--navbar-h) + var(--safe-top));
+}
+
+/* Bottom safe area */
+.safe-bottom, .pb-safe {
+  padding-bottom: var(--safe-bottom);
 }

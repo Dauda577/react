@@ -44,7 +44,7 @@ const About = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      <div className="pt-24 pwa-offset-24 section-padding max-w-4xl mx-auto pb-20">
+      <div className="page-safe section-padding max-w-4xl mx-auto pb-20">
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
@@ -77,7 +77,7 @@ const About = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.2 }}
-          className="grid grid-cols-3 gap-6 mt-16 pwa-offset-16"
+          className="grid grid-cols-3 gap-6 mt-16 "
         >
           {stats.map((stat, i) => (
             <motion.div
@@ -169,8 +169,8 @@ const About = () => {
             <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-5">How it works</p>
             <div className="space-y-4">
               {[
-                { step: "1", text: "Save your MoMo  details in your Account settings" },
-                { step: "2", text: "Tap 'Get Verified' and pay GHS 50 via  Mobile Money" },
+                { step: "1", text: "Save your MoMo or bank details in your Account settings" },
+                { step: "2", text: "Tap 'Get Verified' and pay GHS 50 via card or Mobile Money" },
                 { step: "3", text: "Your Paystack subaccount is created instantly — badge goes live immediately" },
               ].map(({ step, text }) => (
                 <div key={step} className="flex items-center gap-4">
