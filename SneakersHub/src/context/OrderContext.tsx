@@ -167,7 +167,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
           );
         }
       )
-      .subscribe((status) =>
+      .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, [user?.id]);

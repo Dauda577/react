@@ -1,5 +1,5 @@
 // Payment transfers immediately when seller marks as sent
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -18,10 +18,10 @@ import { useAuth } from "@/context/AuthContext";
 import { useListings, boostDaysLeft, isBoostActive } from "@/context/ListingContext";
 import { useRatings } from "@/context/RatingContext";
 import { useMessages } from "@/context/MessageContext";
-import BoostModal from "@/components/BoostModal";
-import RatingModal from "@/components/RatingModal";
+const BoostModal = lazy(() => import("@/components/BoostModal"));
+const RatingModal = lazy(() => import("@/components/RatingModal"));
 import MessagesInbox from "@/components/MessagesInbox";
-import SellerDashboard from "@/components/SellerDashboard";
+const SellerDashboard = lazy(() => import("@/components/SellerDashboard"));
 import { usePush } from "@/context/PushContext";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -647,7 +647,7 @@ const Account = () => {
                                 if (!PaystackPop) throw new Error("Payment SDK not available");
                                 const ref = `verify_${Date.now()}_${user.id.slice(0, 6)}`;
                                 const handler = PaystackPop.setup({
-                                  key: "pk_live_9e1705a04e21f148e758dc11c1e920ed6393702b",
+                                  key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY ?? "pk_live_9e1705a04e21f148e758dc11c1e920ed6393702b",
                                   email: user.email,
                                   amount: 5000, // GHS 50 in pesewas
                                   currency: "GHS",
@@ -1137,7 +1137,7 @@ const Account = () => {
                     ))}
                   </AnimatePresence>
                 </div>
-                {boostingListing && <BoostModal listing={boostingListing} onClose={() => setBoostingListing(null)} />}
+                {boostingListing && <Suspense fallback={null}><BoostModal listing={boostingListing} onClose={() => setBoostingListing(null)} /></Suspense>}
               </div>
             )}
 
@@ -1193,7 +1193,7 @@ const Account = () => {
               </div>
             )}
 
-            {activeTab === "analytics" && role === "seller" && !isGuest && <SellerDashboard />}
+            {activeTab === "analytics" && role === "seller" && !isGuest && <Suspense fallback={<div className="p-8 text-center text-muted-foreground text-sm">Loading analytics...</div>}><SellerDashboard /></Suspense>}
             {activeTab === "messages" && isGuest && <GuestAuthBanner action="view messages" />}
             {activeTab === "messages" && !isGuest && <MessagesInbox />}
             {activeTab === "settings" && isGuest && <GuestAuthBanner action="access settings" />}
