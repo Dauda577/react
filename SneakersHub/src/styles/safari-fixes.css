@@ -31,25 +31,29 @@ button {
   }
 }
 
-/* ── Safe Area System (iOS / PWA / Android) ──────────────────────────────── */
+/* ── Safe Area ───────────────────────────────────────────────────────────────
+   Navbar = h-16 (64px) inner content + paddingTop: env(safe-area-inset-top)
+   So total navbar height = 64px + safe-area-inset-top
+
+   page-safe matches this exactly:
+     padding-top: 64px + env(safe-area-inset-top)
+
+   Browser (safe-area = 0):  page-safe = 64px  ✓
+   PWA    (safe-area = 59px): page-safe = 123px ✓
+─────────────────────────────────────────────────────────────────────────────── */
 
 :root {
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --navbar-h: 4rem; /* 64px */
+  --navbar-h: 4rem; /* 64px = h-16 */
 }
 
-/* Navbar respects notch / Dynamic Island */
-.safe-top {
-  padding-top: var(--safe-top);
-}
-
-/* Page content below fixed navbar — auto-expands in PWA */
+/* Used on every page's first container */
 .page-safe {
   padding-top: calc(var(--navbar-h) + var(--safe-top));
 }
 
 /* Bottom safe area */
-.safe-bottom, .pb-safe {
+.pb-safe {
   padding-bottom: var(--safe-bottom);
 }
