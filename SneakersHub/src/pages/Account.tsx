@@ -351,6 +351,7 @@ const Account = () => {
 
   useEffect(() => {
     if (!user?.id) return;
+    const t = setTimeout(() => {
     import("@/lib/supabase").then(({ supabase }) => {
       supabase.from("profiles")
         .select("name, phone, city, region, verified, is_official, subaccount_code, payout_method, payout_number, payout_name")
@@ -370,6 +371,8 @@ const Account = () => {
           if (data.verified && (!data.payout_method || !data.payout_number)) setHasMissingPayoutDetails(true);
         });
     });
+    }, 300);
+    return () => clearTimeout(t);
   }, [user?.id]);
 
   useEffect(() => { if (role === "seller" && activeTab === "orders") markOrdersSeen(); }, [role, activeTab]);

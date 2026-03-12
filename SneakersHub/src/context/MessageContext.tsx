@@ -139,7 +139,8 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!user?.id) return;
 
-    fetchConversations();
+    // Delay fetch so it doesn't compete with page mount on mobile
+    const t = setTimeout(() => fetchConversations(), 2000);
 
     channelRef.current = supabase
       .channel(`messages:${user.id}`)
@@ -177,6 +178,7 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
       .subscribe();
 
     return () => {
+      clearTimeout(t);
       if (channelRef.current) supabase.removeChannel(channelRef.current);
     };
   }, [user?.id]);

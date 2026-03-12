@@ -88,6 +88,8 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!user?.id || !checkSupported() || Notification.permission !== "granted") return;
 
+    // Delay push subscriptions so they don't compete with page mount
+    const t = setTimeout(async () => {
     clearChannels();
 
     // ── SELLER ───────────────────────────────────────────────────────────────
@@ -131,6 +133,33 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
         })
         .subscribe();
       channelsRef.current.push(listingCh);
+
+      // Dispute push — check if this seller is official (admin)
+      const { data: profileData } = await supabase
+        .from("profiles").select("is_official").eq("id", user.id).single();
+      if (profileData?.is_official) {
+        const disputeCh = supabase
+          .channel(`push:disputes:${user.id}`)
+          .on("postgres_changes", {
+            event: "UPDATE",
+            schema: "public",
+            table: "orders",
+          }, async (payload: any) => {
+            if (payload.new.payout_status !== "disputed") return;
+            const orderId = (() => {
+              const num = parseInt(payload.new.id.replace(/-/g, "").slice(0, 10), 16) % 1000000000;
+              return `#${num.toString().padStart(9, "0")}`;
+            })();
+            const items = await getOrderSummary(payload.new.id);
+            showLocalNotification(
+              `⚠️ Dispute — ${orderId}`,
+              `${items} — GHS ${payload.new.total}. Review in admin.`,
+              "/admin"
+            );
+          })
+          .subscribe();
+        channelsRef.current.push(disputeCh);
+      }
 
       // New orders — DB-level filter so only this seller's orders fire
       if (localStorage.getItem("notif_orders") !== "false") {
@@ -241,7 +270,8 @@ export const PushProvider = ({ children }: { children: ReactNode }) => {
       }
     }
 
-    return clearChannels;
+    }, 3000);
+    return () => { clearTimeout(t); clearChannels(); };
   }, [user?.id, user?.role, permission]);
 
   return (
