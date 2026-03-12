@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { Trash2, ShoppingBag, ArrowRight } from "lucide-react";
+import { thumbImage } from "@/lib/imageUtils";
 import { useCart } from "@/context/CartContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -52,7 +53,7 @@ const Cart = () => {
                   className="flex items-center gap-4 p-4 rounded-xl bg-card border border-border"
                 >
                   <Link to={`/product/${item.sneaker.id}`} className="w-20 h-20 bg-secondary rounded-lg flex-shrink-0 flex items-center justify-center p-2">
-                    <img src={item.sneaker.image} alt={item.sneaker.name} className="w-full h-full object-contain" />
+                    <img src={thumbImage(item.sneaker.image)} alt={item.sneaker.name} className="w-full h-full object-contain" />
                   </Link>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-muted-foreground uppercase tracking-widest">{item.sneaker.brand}</p>

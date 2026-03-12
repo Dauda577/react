@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import { detailImage } from "@/lib/imageUtils";
 import { usePublicListings } from "@/context/PublicListingsContext";
 import { useRatings } from "@/context/RatingContext";
 import Navbar from "@/components/Navbar";
@@ -384,7 +385,7 @@ const ProductDetail = () => {
             className="relative rounded-2xl overflow-hidden bg-card border aspect-square flex items-center justify-center"
             style={{ borderColor: tier === "official" ? "rgba(109,40,217,0.3)" : tier === "verified" ? "rgba(34,197,94,0.2)" : undefined }}>
             {listing.image
-              ? <img src={listing.image} alt={listing.name} className="w-full h-full object-cover" />
+              ? <img src={detailImage(listing.image)} alt={listing.name} className="w-full h-full object-cover" />
               : <span className="text-8xl">👟</span>
             }
             {tier === "official" && (

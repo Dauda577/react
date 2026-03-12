@@ -6,6 +6,7 @@ import {
   ShoppingBag, ChevronDown, ArrowRight, ShieldAlert, X,
   ShieldCheck, CreditCard, Lock, Sparkles, BadgeCheck, Package,
 } from "lucide-react";
+import { thumbImage } from "@/lib/imageUtils";
 import { useCart, groupBySeller, SellerGroup } from "@/context/CartContext";
 import { useOrders } from "@/context/OrderContext";
 import { useAuth } from "@/context/AuthContext";
@@ -393,7 +394,7 @@ export default function Checkout() {
             <div className="rounded-2xl border border-border divide-y divide-border overflow-hidden">
               {currentGroup?.items.map((item) => (
                 <div key={`${item.sneaker.id}-${item.sneaker.size}`} className="flex items-center gap-3 p-4">
-                  <img src={item.sneaker.image} alt={item.sneaker.name}
+                  <img src={thumbImage(item.sneaker.image)} alt={item.sneaker.name}
                     className="w-14 h-14 rounded-xl object-cover bg-muted flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate">{item.sneaker.name}</p>

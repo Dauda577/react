@@ -81,7 +81,7 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
       <Link to={`/product/${sneaker.id}`} className="sneaker-card block group">
         <div className="relative aspect-square bg-secondary overflow-hidden flex items-center justify-center p-8">
           {sneaker.image
-            ? <img src={sneaker.image} alt={sneaker.name} className="sneaker-image w-full h-full object-contain" loading="lazy" />
+            ? <img src={cardImage(sneaker.image)} alt={sneaker.name} className="sneaker-image w-full h-full object-contain" loading="lazy" />
             : <span className="text-6xl">👟</span>
           }
 

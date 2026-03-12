@@ -86,7 +86,7 @@ const compressImage = (file: File): Promise<Blob> => {
     const url = URL.createObjectURL(file);
     img.onload = () => {
       URL.revokeObjectURL(url);
-      const MAX_WIDTH = 1200;
+      const MAX_WIDTH = 900;
       let { width, height } = img;
       if (width > MAX_WIDTH) {
         height = Math.round((height * MAX_WIDTH) / width);
@@ -101,7 +101,7 @@ const compressImage = (file: File): Promise<Blob> => {
       canvas.toBlob(
         (blob) => blob ? resolve(blob) : reject(new Error("Compression failed")),
         "image/webp",
-        0.85 // 85% quality — visually identical to original
+        0.75 // 75% quality — good balance of size vs quality
       );
     };
     img.onerror = () => reject(new Error("Image load failed"));
