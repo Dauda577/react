@@ -52,25 +52,20 @@ button {
 
 /* Only apply in PWA standalone mode */
 @media all and (display-mode: standalone) {
-  /* pt-16 pages: Account, Index, Admin */
   .pwa-offset-16 {
-    padding-top: calc(var(--navbar-h) + var(--safe-top)) !important;
+    padding-top: calc(5rem + var(--safe-top)) !important;  /* was 4rem (var(--navbar-h)) */
   }
-  /* pt-20 pages */
   .pwa-offset-20 {
-    padding-top: calc(8rem + var(--safe-top)) !important;
+    padding-top: calc(6rem + var(--safe-top)) !important;  /* was 5rem */
   }
-  /* pt-24 pages: Cart, About, CreateListing, OrderConfirmation, Checkout */
   .pwa-offset-24 {
-    padding-top: calc(9rem + var(--safe-top)) !important;
+    padding-top: calc(7rem + var(--safe-top)) !important;  /* was 6rem */
   }
-  /* pt-28 pages: Shop, ProductDetail */
   .pwa-offset-28 {
-    padding-top: calc(8rem + var(--safe-top)) !important;
+    padding-top: calc(8rem + var(--safe-top)) !important;  /* was 7rem */
   }
-  /* pt-32 pages */
   .pwa-offset-32 {
-    padding-top: calc(8rem + var(--safe-top)) !important;
+    padding-top: calc(9rem + var(--safe-top)) !important;  /* was 8rem */
   }
 }
 
