@@ -364,7 +364,7 @@ const ProductDetail = () => {
         )}
       </AnimatePresence>
 
-      <div className="section-padding max-w-6xl mx-auto pt-28 pb-20">
+      <div className="section-padding max-w-6xl mx-auto pt-28 pwa-offset-28 pb-20">
 
         {/* Back + Share row */}
         <div className="flex items-center justify-between mb-8 pt-2">

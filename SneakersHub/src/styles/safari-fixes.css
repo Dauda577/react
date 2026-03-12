@@ -16,9 +16,17 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Prevent Safari input zoom on focus */
+/* Prevent Safari input zoom on focus — font-size >= 16px prevents zoom */
 input, select, textarea {
   font-size: max(16px, 1em) !important;
+  /* Prevent scroll bounce on inputs */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Reset viewport zoom when leaving a page with inputs */
+/* This fires via the meta viewport manipulation in main.tsx */
+.reset-zoom {
+  touch-action: manipulation;
 }
 
 button {
