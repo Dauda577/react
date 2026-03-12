@@ -40,7 +40,7 @@ export const RatingProvider = ({ children }: { children: ReactNode }) => {
   const fetchReviews = useCallback(async (sellerId: string) => {
     const { data, error } = await supabase
       .from("reviews")
-      .select("*")
+      .select("id, order_id, seller_id, buyer_id, buyer_name, stars, comment, created_at")
       .eq("seller_id", sellerId)
       .order("created_at", { ascending: false });
 

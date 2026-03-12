@@ -89,7 +89,6 @@ serve(async (req) => {
     let body: any = {};
     try {
       const text = await req.text();
-      console.log("[release-payment] raw body:", text);
       if (text) body = JSON.parse(text);
     } catch {
       throw new Error("Invalid request body");
@@ -98,8 +97,6 @@ serve(async (req) => {
     const order_id  = body.order_id ?? body.orderId ?? null;
     const trigger   = body.trigger  ?? "manual";
     const caller_id = body.caller_id ?? null;
-
-    console.log(`[release-payment] order=${order_id} trigger=${trigger} caller=${caller_id}`);
     if (!order_id) throw new Error("order_id is required");
 
     // ── Auth: verify the caller is allowed to trigger this release ──
@@ -107,7 +104,7 @@ serve(async (req) => {
     // immediate = seller confirmed dispatch — verify caller is the order's seller
     // auto/retry = internal cron/system — allow but verify order exists and is pending
     const { data: order, error: orderErr } = await supabase
-      .from("orders").select("*").eq("id", order_id).single();
+      .from("orders").select("id, seller_id, buyer_id, payout_status, paystack_reference, total, delivery_fee, subaccount_code").eq("id", order_id).single();
     if (orderErr || !order) throw new Error("Order not found");
 
     if (trigger === "manual") {
@@ -136,7 +133,6 @@ serve(async (req) => {
 
     // Skip already-processed orders
     if (order.payout_status !== "pending") {
-      console.log(`Order ${order_id} already ${order.payout_status} — skipping`);
       return new Response(JSON.stringify({ message: `Already ${order.payout_status}` }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -199,7 +195,6 @@ serve(async (req) => {
     // ── Calculate payout ──────────────────────────────────────────────────────
     const commission   = Math.round(order.total * COMMISSION_RATE * 100) / 100;
     const payoutAmount = Math.round((order.total - commission) * 100) / 100;
-    console.log(`Total: GHS ${order.total} | Commission: GHS ${commission} | Payout: GHS ${payoutAmount}`);
 
     // ── Create recipient & initiate transfer ──────────────────────────────────
     let transferCode: string;
@@ -215,7 +210,6 @@ serve(async (req) => {
       const transfer = await initiateTransfer(recipientCode, payoutAmount, order_id);
       transferCode   = transfer.transfer_code;
       transferStatus = transfer.status;
-      console.log(`Transfer initiated: ${transferCode} status: ${transferStatus}`);
     } catch (transferErr) {
       console.error("Transfer failed:", transferErr);
       const attempts = (order.transfer_attempts ?? 0) + 1;

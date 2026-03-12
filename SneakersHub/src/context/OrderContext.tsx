@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef, Re
 import { supabase, OrderRow, OrderItemRow } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { triggerSMS } from "@/lib/sms";
+import { toast } from "sonner";
 
 export type OrderItem = {
   id: string;
@@ -135,7 +136,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
           if (ordersRef.current.some((o) => o.id === row.id)) return;
 
           const { data: itemData } = await supabase
-            .from("order_items").select("*").eq("order_id", row.id);
+            .from("order_items").select("id, order_id, name, brand, price, size, quantity, image_url").eq("order_id", row.id);
           const items = (itemData as OrderItemRow[]) ?? [];
           setOrders((prev) => {
             if (prev.some((o) => o.id === row.id)) return prev;
@@ -166,7 +167,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
           );
         }
       )
-      .subscribe((status) => console.log("[Orders] realtime:", status));
+      .subscribe((status) =>
 
     return () => { supabase.removeChannel(channel); };
   }, [user?.id]);

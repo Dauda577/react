@@ -61,7 +61,7 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
         description, image_url, boosted, boost_expires_at,
         views, created_at, city, region,
         profiles (
-          name, phone, city, region, verified, is_official, subaccount_code, created_at
+          name, phone, verified, is_official, subaccount_code, created_at
         )
       `)
       .eq("status", "active")
@@ -78,8 +78,8 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
           sellerPhone: p?.phone ?? null,
           sellerCity: p?.city ?? null,
           sellerRegion: p?.region ?? null,
-          city: row.city ?? p?.city ?? null,
-          region: row.region ?? p?.region ?? null,
+          city: row.city ?? null,
+          region: row.region ?? null,
           sellerVerified: p?.verified ?? false,
           sellerIsOfficial: p?.is_official ?? false,
           sellerSubaccountCode: p?.subaccount_code ?? null,

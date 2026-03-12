@@ -141,7 +141,7 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     const { data, error } = await supabase
       .from("listings")
-      .select("*")
+      .select("id, seller_id, name, brand, price, category, sizes, description, image_url, status, boosted, boost_expires_at, views, created_at, city, region")
       .eq("seller_id", user.id)
       .order("created_at", { ascending: false });
     if (!error && data) setListings((data as ListingRow[]).map(rowToListing));
