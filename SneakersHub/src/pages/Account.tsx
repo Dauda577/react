@@ -447,7 +447,7 @@ const Account = () => {
       <Navbar />
 
       {/* ── Profile header ── */}
-      <section className="relative page-safe border-b border-border">
+      <section className="relative pt-16 pwa-offset-16 border-b border-border">
         <div className="section-padding max-w-4xl mx-auto pt-14 pb-0">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
             className="flex items-center gap-5 pb-8">

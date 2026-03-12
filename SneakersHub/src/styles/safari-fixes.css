@@ -1,7 +1,11 @@
-/* ── Safari / iOS Performance Fixes ─────────────────────────────────────── */
+/* ── Safari Performance Fixes ──────────────────────────────────────────────── */
 
-* { -webkit-tap-highlight-color: transparent; }
+/* Force GPU compositing on animated elements */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
 
+/* Safari viewport fix */
 body {
   min-height: 100vh;
   min-height: -webkit-fill-available;
@@ -12,10 +16,16 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Prevent Safari input zoom on focus */
+/* Prevent Safari input zoom on focus — font-size >= 16px prevents zoom */
 input, select, textarea {
   font-size: max(16px, 1em) !important;
+  /* Prevent scroll bounce on inputs */
   -webkit-overflow-scrolling: touch;
+}
+
+/* Reset viewport zoom when leaving a page with inputs */
+.reset-zoom {
+  touch-action: manipulation;
 }
 
 button {
@@ -23,6 +33,7 @@ button {
   cursor: pointer;
 }
 
+/* Reduce motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -31,45 +42,38 @@ button {
   }
 }
 
-/* ── Safe Area ───────────────────────────────────────────────────────────────
-   Target: make PWA look exactly like the browser version.
-
-   Browser: navbar sits below status bar automatically.
-            Navbar height = 64px (h-16). No safe-area needed.
-            page-safe = 64px. ✓
-
-   PWA:     App is fullscreen. Status bar overlaps the app.
-            Navbar must pad itself by safe-area-inset-top to clear status bar.
-            Navbar total height = 64px + safe-area-inset-top.
-            page-safe must match = 64px + safe-area-inset-top. ✓
-─────────────────────────────────────────────────────────────────────────────── */
+/* ── PWA Safe Area (notch / Dynamic Island) ─────────────────────────────────
+   When installed as PWA, iOS adds safe-area-inset-top (e.g. 59px on iPhone 14 Pro).
+   The navbar already has paddingTop: env(safe-area-inset-top).
+   All pages need to offset by navbar height (64px) + safe area.
+   We override the common pt- classes used across pages.
+────────────────────────────────────────────────────────────────────────────── */
 
 :root {
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --navbar-h: 4rem; /* 64px */
+  --navbar-h: 4rem; /* 64px = h-16 */
 }
 
-/* Browser: plain 64px — matches navbar exactly */
-.page-safe {
-  padding-top: var(--navbar-h);
-}
-
-/* Navbar: no extra padding in browser */
-.navbar-safe {
-  padding-top: 0;
-}
-
-/* PWA only: both navbar and pages add safe-area-inset-top */
 @media all and (display-mode: standalone) {
-  .navbar-safe {
-    padding-top: var(--safe-top);
+  .pwa-offset-16 {
+    padding-top: calc(var(--navbar-h) + var(--safe-top)) !important;
   }
-  .page-safe {
-    padding-top: calc(var(--navbar-h) + var(--safe-top));
+  .pwa-offset-20 {
+    padding-top: calc(5rem + var(--safe-top)) !important;
+  }
+  .pwa-offset-24 {
+    padding-top: calc(6rem + var(--safe-top)) !important;
+  }
+  .pwa-offset-28 {
+    padding-top: calc(7rem + var(--safe-top)) !important;
+  }
+  .pwa-offset-32 {
+    padding-top: calc(8rem + var(--safe-top)) !important;
   }
 }
 
+/* Bottom safe area for any fixed bottom UI */
 .pb-safe {
-  padding-bottom: var(--safe-bottom);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }

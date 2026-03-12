@@ -44,7 +44,7 @@ const About = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      <div className="page-safe section-padding max-w-4xl mx-auto pb-20">
+      <div className="pt-24 pwa-offset-24 section-padding max-w-4xl mx-auto pb-20">
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}

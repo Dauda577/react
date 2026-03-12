@@ -124,7 +124,7 @@ const CreateListing = () => {
       <Navbar />
 
       {/* pt-24 +  so content clears navbar + Dynamic Island */}
-      <div className="page-safe section-padding max-w-2xl mx-auto pb-20">
+      <div className="pt-24 pwa-offset-24 section-padding max-w-2xl mx-auto pb-20">
 
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">

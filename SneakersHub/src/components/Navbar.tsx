@@ -34,7 +34,7 @@ const Navbar = () => {
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.6, ease: "easeOut" }}
-      className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-border navbar-safe"
+      className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-border" style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
       <div className="section-padding flex items-center justify-between h-16 max-w-7xl mx-auto">
         <Link to="/" className="font-display text-xl font-bold tracking-tighter">
