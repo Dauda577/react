@@ -464,32 +464,24 @@ export default function Checkout() {
               </div>
 
               <div className="space-y-2">
-                {(["standard", "express"] as const).map((type) => {
-                  const fee = deliveryFees[type];
-                  const label = type === "express" ? "Express Delivery" : "Standard Delivery";
-                  const days = type === "express"
-                    ? (sellerRegion && form.region === sellerRegion ? "Same day / Next day" : "Next day")
-                    : (sellerRegion && form.region === sellerRegion ? "1–2 business days" : form.region && sellerRegion ? "2–5 business days" : "3–7 business days");
-                  return (
-                    <button key={type} onClick={() => setDelivery(type)}
-                      className={`w-full flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-200
-                        ${delivery === type ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}>
-                      <div className="flex items-center gap-3">
-                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors
-                          ${delivery === type ? "border-primary" : "border-muted-foreground/40"}`}>
-                          {delivery === type && <div className="w-2 h-2 rounded-full bg-primary" />}
-                        </div>
-                        <div>
-                          <p className={`text-sm font-display font-semibold ${delivery === type ? "text-foreground" : "text-muted-foreground"}`}>{label}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">{days}</p>
-                        </div>
-                      </div>
-                      <p className={`text-sm font-display font-bold ${delivery === type ? "text-primary" : "text-muted-foreground"}`}>
-                        GHS {fee}
-                      </p>
-                    </button>
-                  );
-                })}
+                {/* Standard delivery — uses seller-defined shipping cost for verified sellers */}
+                <button onClick={() => setDelivery("standard")}
+                  className={`w-full flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-200
+                    ${delivery === "standard" ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors
+                      ${delivery === "standard" ? "border-primary" : "border-muted-foreground/40"}`}>
+                      {delivery === "standard" && <div className="w-2 h-2 rounded-full bg-primary" />}
+                    </div>
+                    <div>
+                      <p className={`text-sm font-display font-semibold ${delivery === "standard" ? "text-foreground" : "text-muted-foreground"}`}>Standard Delivery</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{sellerHandlingTime || "3–7 business days"}</p>
+                    </div>
+                  </div>
+                  <p className={`text-sm font-display font-bold ${delivery === "standard" ? "text-primary" : "text-muted-foreground"}`}>
+                    {sellerShippingCost === 0 ? "Free" : `GHS ${sellerShippingCost}`}
+                  </p>
+                </button>
 
                 <button onClick={() => setDelivery("pickup")}
                   className={`w-full flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-200
