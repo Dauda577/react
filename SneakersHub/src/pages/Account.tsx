@@ -355,7 +355,7 @@ const Account = () => {
     const t = setTimeout(() => {
     import("@/lib/supabase").then(({ supabase }) => {
       supabase.from("profiles")
-        .select("name, phone, city, region, verified, is_official, subaccount_code, payout_method, payout_number, payout_name")
+        .select("name, phone, city, region, verified, is_official, subaccount_code, payout_method, payout_number, payout_name, listing_count, role")
         .eq("id", user.id).single()
         .then(({ data }) => {
           if (!data) return;
@@ -364,10 +364,9 @@ const Account = () => {
           setSubaccountCode(data.subaccount_code ?? null);
           setIsOfficial(data.is_official ?? false);
           if (data.payout_method) setPayoutForm({ method: data.payout_method, number: data.payout_number ?? "", name: data.payout_name ?? "", bankCode: data.payout_bank_code ?? "" });
-          // Fetch total listings ever created for limit display
+          // Read permanent listing counter from profile (never decrements on delete)
           if (data.role === "seller") {
-            supabase.from("listings").select("id", { count: "exact", head: true }).eq("seller_id", id)
-              .then(({ count }) => setTotalListingsCreated(count ?? 0));
+            setTotalListingsCreated(data.listing_count ?? 0);
           }
           if (data.verified && (!data.payout_method || !data.payout_number)) setHasMissingPayoutDetails(true);
         });

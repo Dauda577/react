@@ -211,16 +211,19 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
     const isVerified = profile?.verified === true || profile?.is_official === true;
 
     if (!isVerified) {
-      // Count total listings ever created (including deleted/sold) from DB
-      // so deleting listings doesn't reset the counter
-      const { count } = await supabase
-        .from("listings")
-        .select("id", { count: "exact", head: true })
-        .eq("seller_id", user.id);
+      // Use listing_count on profiles — a counter that only ever increments,
+      // never decrements on delete, so sellers can't bypass limit by deleting
+      const { data: countData } = await supabase
+        .from("profiles")
+        .select("listing_count")
+        .eq("id", user.id)
+        .single();
 
-      if ((count ?? 0) >= UNVERIFIED_MAX) {
+      const totalCreated = countData?.listing_count ?? 0;
+
+      if (totalCreated >= UNVERIFIED_MAX) {
         throw new Error(
-          `Unverified sellers can create up to ${UNVERIFIED_MAX} listings total. Get verified to list unlimited sneakers.`
+          `Unverified sellers can create up to ${UNVERIFIED_MAX} listings. Get verified to list unlimited sneakers.`
         );
       }
     }
@@ -231,6 +234,9 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
       .select("city, region")
       .eq("id", user.id)
       .single();
+
+    // Increment the permanent listing counter on the profile (never decremented)
+    await supabase.rpc("increment_listing_count", { seller_id: user.id });
 
     const { data, error } = await supabase.from("listings").insert({
       seller_id: user.id,
