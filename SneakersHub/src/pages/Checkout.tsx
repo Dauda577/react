@@ -185,7 +185,7 @@ export default function Checkout() {
         size: i.sneaker.size,
         price: i.sneaker.price,
         quantity: i.quantity,
-        imageUrl: i.sneaker.imageUrl,
+        imageUrl: i.sneaker.image,
       })),
       subtotal: group.total,
       deliveryFee: currentDeliveryFee,
@@ -366,7 +366,7 @@ export default function Checkout() {
             <div className="rounded-2xl border border-border divide-y divide-border overflow-hidden">
               {currentGroup?.items.map((item) => (
                 <div key={`${item.sneaker.id}-${item.sneaker.size}`} className="flex items-center gap-3 p-4">
-                  <img src={item.sneaker.imageUrl} alt={item.sneaker.name}
+                  <img src={item.sneaker.image} alt={item.sneaker.name}
                     className="w-14 h-14 rounded-xl object-cover bg-muted flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate">{item.sneaker.name}</p>
