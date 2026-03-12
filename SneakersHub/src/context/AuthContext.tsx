@@ -105,7 +105,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // Profile deleted (e.g. account deleted on another device) — force sign out
             supabase.auth.signOut().then(() => {
               setUser(null);
-              localStorage.removeItem("sneakershub_user");
+              localStorage.removeItem(CACHE_KEY);
               sessionStorage.clear();
             });
           }
@@ -121,7 +121,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const isNewOAuth = (session.user.identities?.length ?? 0) > 0 &&
           session.user.app_metadata?.provider !== "email";
         const accountAge = Date.now() - new Date(session.user.created_at).getTime();
-        const isVeryNew = accountAge < 60_000; // created less than 60s ago
+        const isVeryNew = accountAge < 300_000; // created less than 5 min ago
 
         if (isNewOAuth || isVeryNew) {
           // Genuine new user — let them pick a role
@@ -139,7 +139,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUser(null);
             setNeedsRole(false);
             setPendingSession(null);
-            localStorage.removeItem("sneakershub_user");
+            localStorage.removeItem(CACHE_KEY);
             sessionStorage.clear();
           });
         }
@@ -190,7 +190,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(null);
         setNeedsRole(false);
         setPendingSession(null);
-        localStorage.removeItem("sneakershub_user");
+        localStorage.removeItem(CACHE_KEY);
         sessionStorage.clear();
       }
     }, 60_000); // check every 60 seconds
@@ -215,8 +215,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
     if (error) throw new Error(error.message);
     if (!data.user) throw new Error("Signup failed");
-    // Save phone to profile immediately
+    // Upsert profile FIRST, then set user state — avoids race where
+    // onAuthStateChange fires before profile row exists
     await supabase.from("profiles").upsert({ id: data.user.id, name, role, phone });
+    const newUser: User = { id: data.user.id, name, email, role };
+    setUser(newUser);
+    setNeedsRole(false);
+    setPendingSession(null);
     setIsGuest(false);
   };
 
