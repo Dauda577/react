@@ -53,7 +53,7 @@ button {
 /* Only apply in PWA standalone mode */
 @media all and (display-mode: standalone) {
   .pwa-offset-16 {
-    padding-top: calc(5rem + var(--safe-top)) !important;  /* was 4rem (var(--navbar-h)) */
+    padding-top: calc(6rem + var(--safe-top)) !important;  /* was 5rem, bumped to 6rem */
   }
   .pwa-offset-20 {
     padding-top: calc(6rem + var(--safe-top)) !important;  /* was 5rem */
