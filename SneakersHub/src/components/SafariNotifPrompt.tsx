@@ -24,7 +24,7 @@ const SafariNotifPrompt = () => {
     if (!user) return; // only show when logged in
     if (!isSafariStandalone()) return;
     if (!("Notification" in window)) return;
-    if (Notification.permission !== "default") return;
+    if ((window as any)?.Notification?.permission !== "default") return;
     if (localStorage.getItem(SAFARI_NOTIF_KEY)) return;
 
     // Slight delay so the app feels settled before prompting
@@ -34,7 +34,7 @@ const SafariNotifPrompt = () => {
 
   const handleEnable = async () => {
     try {
-      const result = await Notification.requestPermission();
+      const result = await (window as any).Notification?.requestPermission?.();
       setState(result === "granted" ? "granted" : "denied");
       localStorage.setItem(SAFARI_NOTIF_KEY, "true");
       // Auto-close after showing result
@@ -103,7 +103,7 @@ const SafariNotifPrompt = () => {
                       {state === "granted"
                         ? "You'll be notified about orders & messages"
                         : state === "denied"
-                        ? "Enable via iOS Settings → SneakersHub"
+                        ? "Go to iOS Settings → SneakersHub → Notifications"
                         : "Orders, messages & shipping updates"}
                     </p>
                   </div>

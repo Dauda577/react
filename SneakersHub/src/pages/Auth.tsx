@@ -35,8 +35,8 @@ const Auth = () => {
   const afterAuth = (destination = "/") => {
     navigate(destination);
     setTriggerInstall(true);
-    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission().catch(() => {});
+    if (typeof window !== "undefined" && "Notification" in window && (window as any).Notification?.permission === "default") {
+      (window as any).Notification?.requestPermission?.().catch(() => {});
     }
   };
 

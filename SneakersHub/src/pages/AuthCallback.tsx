@@ -13,8 +13,8 @@ const AuthCallback = () => {
       navigate("/auth", { replace: true });
     } else if (user) {
       // Auto-request notifications for Google sign-ins
-      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "default") {
-        Notification.requestPermission().catch(() => {});
+      if (typeof window !== "undefined" && "Notification" in window && (window as any).Notification?.permission === "default") {
+        (window as any).Notification?.requestPermission?.().catch(() => {});
       }
       navigate("/", { replace: true });
     } else {

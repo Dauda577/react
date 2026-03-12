@@ -327,7 +327,7 @@ const Account = () => {
     if (!dismissed && listings.length === 0) {
       setShowFirstListingBanner(true);
       const notifSent = localStorage.getItem(FIRST_LISTING_NOTIF_KEY);
-      if (!notifSent && Notification.permission === "granted") {
+      if (!notifSent && (window as any)?.Notification?.permission === "granted") {
         setTimeout(() => {
           showLocalNotification("👟 Ready to start selling?", "Create your first listing — it takes less than 2 minutes!", "/account");
           localStorage.setItem(FIRST_LISTING_NOTIF_KEY, "true");
