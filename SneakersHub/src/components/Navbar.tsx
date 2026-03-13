@@ -6,7 +6,7 @@ import { useMessages } from "@/context/MessageContext";
 import { useAuth } from "@/context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
-import BecomeSellerDrawer from "@/components/BecomeSellerDrawer";
+import BecomeSellerDrawer from "@/components/Becomesellerdrawer";
 
 const Navbar = () => {
   const { totalItems } = useCart();
