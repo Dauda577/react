@@ -106,21 +106,38 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     if (error || !data) return;
 
-    const remoteItems: CartItem[] = data.map((row) => ({
-      sneaker: {
-        ...(row.sneaker_data as CartItem["sneaker"]),
-        shippingCost: (row.sneaker_data as any).shippingCost ?? 0,
-        handlingTime: (row.sneaker_data as any).handlingTime ?? "Ships in 1-3 days",
-      },
-      size: row.size,
-      quantity: row.quantity,
-    }));
+    // Check which listing IDs are still active
+    const listingIds = data.map((r) => r.sneaker_id).filter(Boolean);
+    const { data: activeListings } = listingIds.length > 0
+      ? await supabase.from("listings").select("id").in("id", listingIds).eq("status", "active")
+      : { data: [] };
+    const activeIds = new Set((activeListings ?? []).map((l: any) => l.id));
+
+    // Remove stale cart rows for deleted/sold listings
+    const staleIds = listingIds.filter((id) => !activeIds.has(id));
+    if (staleIds.length > 0) {
+      await supabase.from("carts").delete().eq("user_id", userId).in("sneaker_id", staleIds);
+    }
+
+    const remoteItems: CartItem[] = data
+      .filter((row) => activeIds.has(row.sneaker_id))
+      .map((row) => ({
+        sneaker: {
+          ...(row.sneaker_data as CartItem["sneaker"]),
+          shippingCost: (row.sneaker_data as any).shippingCost ?? 0,
+          handlingTime: (row.sneaker_data as any).handlingTime ?? "Ships in 1-3 days",
+        },
+        size: row.size,
+        quantity: row.quantity,
+      }));
 
     // Merge guest cart items (added before login) into remote
     const guestItems = loadFromStorage(); // guest key has no userId
     const merged = [...remoteItems];
 
     for (const local of guestItems) {
+      // Skip if listing no longer active
+      if (!activeIds.has(local.sneaker.id)) continue;
       const exists = merged.find(
         (r) => r.sneaker.id === local.sneaker.id && r.size === local.size
       );

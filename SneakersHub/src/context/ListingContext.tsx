@@ -111,6 +111,7 @@ const compressImage = (file: File): Promise<Blob> => {
 };
 
 const uploadImage = async (file: File, listingId: string): Promise<string | null> => {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
   try {
     // Compress to WebP before uploading
     const compressed = await compressImage(file);
@@ -120,17 +121,15 @@ const uploadImage = async (file: File, listingId: string): Promise<string | null
       contentType: "image/webp",
     });
     if (error) throw error;
-    const { data } = supabase.storage.from("listings").getPublicUrl(path);
-    return data.publicUrl;
+    // Construct URL directly — more reliable than getPublicUrl on some configs
+    return `${supabaseUrl}/storage/v1/object/public/listings/${path}`;
   } catch (err) {
     console.warn("Image compression failed, uploading original:", err);
-    // Fallback — upload original if compression fails
     const ext = file.name.split(".").pop();
     const path = `${listingId}.${ext}`;
     const { error } = await supabase.storage.from("listings").upload(path, file, { upsert: true });
     if (error) return null;
-    const { data } = supabase.storage.from("listings").getPublicUrl(path);
-    return data.publicUrl;
+    return `${supabaseUrl}/storage/v1/object/public/listings/${path}`;
   }
 };
 
@@ -324,6 +323,8 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
       await fetchListings();
       throw new Error(error.message);
     }
+    // Remove from all buyers' carts
+    supabase.from("carts").delete().eq("sneaker_id", id).then(() => {});
   };
 
   const markSold = (id: string) => updateListing(id, { status: "sold" });
