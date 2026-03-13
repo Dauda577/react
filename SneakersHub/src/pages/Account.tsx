@@ -25,6 +25,7 @@ const SellerDashboard = lazy(() => import("@/components/SellerDashboard"));
 import { usePush } from "@/context/PushContext";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import BecomeSellerDrawer from "@/components/BecomeSellerDrawer";
 
 const isSafari = () =>
   typeof navigator !== "undefined" &&
