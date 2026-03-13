@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, SlidersHorizontal, X, Package } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import SneakerCard from "@/components/SneakerCard";
 import { usePublicListings } from "@/context/PublicListingsContext";
 import { Button } from "@/components/ui/button";
 
-const categories = ["All", "Running", "Lifestyle", "Basketball", "Outdoor"];
+const categories = ["All", "Running", "Lifestyle", "Basketball", "Outdoor", "Training", "Other"];
 const sortOptions = [
   { label: "Newest", value: "newest" },
   { label: "Price: Low to High", value: "price_asc" },
@@ -17,10 +18,17 @@ const sortOptions = [
 
 const Shop = () => {
   const { listings, loading } = usePublicListings();
+  const [searchParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [sort, setSort] = useState("newest");
   const [showFilters, setShowFilters] = useState(false);
+
+  // Read category from URL on mount
+  useEffect(() => {
+    const cat = searchParams.get("category");
+    if (cat && categories.includes(cat)) setCategory(cat);
+  }, [searchParams]);
 
   const now = new Date();
   const isActiveBoost = (l: (typeof listings)[0]) =>

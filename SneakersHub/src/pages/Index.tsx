@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { ArrowRight, Truck, Shield, RotateCcw, Zap, Star, Users, TrendingUp } from "lucide-react";
@@ -7,6 +8,7 @@ import Footer from "@/components/Footer";
 import heroImage from "@/assets/sneaker-hero.png";
 import { Button } from "@/components/ui/button";
 import { usePublicListings } from "@/context/PublicListingsContext";
+import { supabase } from "@/lib/supabase";
 
 // Sneaker outline SVG for empty states
 const SneakerOutline = ({ className = "" }: { className?: string }) => (
@@ -22,22 +24,30 @@ const SneakerOutline = ({ className = "" }: { className?: string }) => (
 );
 
 const CATEGORIES = [
-  { label: "Running", emoji: "🏃", color: "from-blue-500/10 to-blue-500/5 border-blue-500/20 text-blue-600" },
-  { label: "Lifestyle", emoji: "✨", color: "from-purple-500/10 to-purple-500/5 border-purple-500/20 text-purple-600" },
+  { label: "Running",    emoji: "🏃", color: "from-blue-500/10 to-blue-500/5 border-blue-500/20 text-blue-600" },
+  { label: "Lifestyle",  emoji: "✨", color: "from-purple-500/10 to-purple-500/5 border-purple-500/20 text-purple-600" },
   { label: "Basketball", emoji: "🏀", color: "from-orange-500/10 to-orange-500/5 border-orange-500/20 text-orange-600" },
-  { label: "Outdoor", emoji: "🏔️", color: "from-green-500/10 to-green-500/5 border-green-500/20 text-green-600" },
-  { label: "Training", emoji: "💪", color: "from-red-500/10 to-red-500/5 border-red-500/20 text-red-600" },
-  { label: "Other", emoji: "👟", color: "from-zinc-500/10 to-zinc-500/5 border-zinc-500/20 text-zinc-600" },
-];
-
-const SOCIAL_PROOF = [
-  { name: "Kwame A.", location: "Accra", rating: 5, text: "Got my Jordan 1s in 2 days. Seller was legit, exactly as described." },
-  { name: "Abena M.", location: "Kumasi", rating: 5, text: "Finally a platform I can trust. Buyer protection made me feel safe." },
-  { name: "Kofi B.", location: "Tamale", rating: 5, text: "Sold out in 3 hours. Best place to move heat in Ghana 🔥" },
+  { label: "Outdoor",    emoji: "🏔️", color: "from-green-500/10 to-green-500/5 border-green-500/20 text-green-600" },
+  { label: "Training",   emoji: "💪", color: "from-red-500/10 to-red-500/5 border-red-500/20 text-red-600" },
+  { label: "Other",      emoji: "👟", color: "from-zinc-500/10 to-zinc-500/5 border-zinc-500/20 text-zinc-600" },
 ];
 
 const Index = () => {
   const { listings, loading } = usePublicListings();
+  const [reviews, setReviews] = useState<{ buyer_name: string; stars: number; comment: string; created_at: string }[]>([]);
+
+  // Fetch latest 5-star reviews for social proof
+  useEffect(() => {
+    supabase
+      .from("reviews")
+      .select("buyer_name, stars, comment, created_at")
+      .gte("stars", 4)
+      .not("comment", "is", null)
+      .neq("comment", "")
+      .order("created_at", { ascending: false })
+      .limit(6)
+      .then(({ data }) => { if (data) setReviews(data); });
+  }, []);
 
   const now = Date.now();
   const isActiveBoost = (l: typeof listings[0]) => {
@@ -265,34 +275,38 @@ const Index = () => {
       </section>
 
       {/* ── Social Proof ── */}
-      <section className="section-padding max-w-7xl mx-auto pb-16 w-full">
-        <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-          className="mb-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground mb-1">Real Reviews</p>
-          <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight">What People Say</h2>
-        </motion.div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {SOCIAL_PROOF.map((r, i) => (
-            <motion.div key={r.name} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }} transition={{ delay: i * 0.1 }}
-              className="rounded-2xl border border-border bg-muted/10 p-5 space-y-3">
-              <div className="flex items-center gap-0.5">
-                {[...Array(r.rating)].map((_, j) => <Star key={j} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />)}
-              </div>
-              <p className="text-sm leading-relaxed text-foreground/80">"{r.text}"</p>
-              <div className="flex items-center gap-2 pt-1">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-zinc-600 to-zinc-800 flex items-center justify-center text-[10px] font-bold text-white">
-                  {r.name[0]}
+      {reviews.length > 0 && (
+        <section className="section-padding max-w-7xl mx-auto pb-16 w-full">
+          <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="mb-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground mb-1">Real Reviews</p>
+            <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight">What People Say</h2>
+          </motion.div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {reviews.slice(0, 3).map((r, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }} transition={{ delay: i * 0.1 }}
+                className="rounded-2xl border border-border bg-muted/10 p-5 space-y-3">
+                <div className="flex items-center gap-0.5">
+                  {[...Array(r.stars)].map((_, j) => <Star key={j} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />)}
                 </div>
-                <div>
-                  <p className="text-xs font-semibold">{r.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{r.location}</p>
+                <p className="text-sm leading-relaxed text-foreground/80">"{r.comment}"</p>
+                <div className="flex items-center gap-2 pt-1">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-zinc-600 to-zinc-800 flex items-center justify-center text-[10px] font-bold text-white">
+                    {r.buyer_name?.[0]?.toUpperCase() ?? "?"}
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold">{r.buyer_name}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {new Date(r.created_at).toLocaleDateString("en-GH", { month: "short", year: "numeric" })}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </section>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ── CTA Banner — dark premium card ── */}
       <section className="section-padding max-w-7xl mx-auto pb-20 w-full">
