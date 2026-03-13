@@ -25,7 +25,7 @@ const SellerDashboard = lazy(() => import("@/components/SellerDashboard"));
 import { usePush } from "@/context/PushContext";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import BecomeSellerDrawer from "@/components/Becomesellerdrawer";
+import BecomeSellerDrawer from "@/components/BecomeSellerDrawer";
 
 const isSafari = () =>
   typeof navigator !== "undefined" &&
@@ -265,6 +265,35 @@ function ensurePaystackScript(): Promise<void> {
   });
 }
 
+// Fix Paystack iframe rendering on iOS PWA — iframe uses fixed positioning that
+// gets clipped by the PWA viewport. This overrides it to fill the screen properly.
+const injectPaystackPWAFix = () => {
+  const id = "paystack-pwa-fix";
+  if (document.getElementById(id)) return;
+  const style = document.createElement("style");
+  style.id = id;
+  style.textContent = `
+    div[id^="paystack-iframe-container"],
+    iframe[src*="paystack"] {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      height: 100dvh !important;
+      z-index: 99999 !important;
+      border: none !important;
+    }
+    .paystack-modal-overlay, [class*="paystack"] > div {
+      top: 0 !important;
+      left: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+    }
+  `;
+  document.head.appendChild(style);
+};
+
 const ghanaRegions = [
   "Greater Accra", "Ashanti", "Western", "Central", "Eastern", "Volta",
   "Northern", "North East", "Savannah", "Upper East", "Upper West",
@@ -377,7 +406,10 @@ const SellerApplicationStatus = ({ userId, userEmail, onActivated }: {
           toast("Payment cancelled — tap the button again when you're ready.");
         },
       });
-      handler.openIframe();
+      // Inject CSS fix for Paystack iframe on iOS PWA before opening
+      injectPaystackPWAFix();
+      window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+      setTimeout(() => handler.openIframe(), 100);
     } catch (err: any) {
       toast.error(err.message ?? "Could not start payment");
       setPaying(false);
@@ -904,7 +936,7 @@ const Account = () => {
                                 const handler = PaystackPop.setup({
                                   key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY ?? "pk_live_9e1705a04e21f148e758dc11c1e920ed6393702b",
                                   email: user.email,
-                                  amount: 100, // GHS 50 in pesewas
+                                  amount: 5000, // GHS 50 in pesewas
                                   currency: "GHS",
                                   ref,
                                   channels: ["card", "mobile_money"],
@@ -953,7 +985,10 @@ const Account = () => {
                                     toast("Payment cancelled — tap the button again when you're ready.");
                                   },
                                 });
-                                handler.openIframe();
+                                // Inject CSS fix for Paystack iframe on iOS PWA before opening
+                                injectPaystackPWAFix();
+                                window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+                                setTimeout(() => handler.openIframe(), 100);
                               } catch (err: any) {
                                 toast.error(err.message ?? "Payment error");
                                 setVerificationLoading(false);
