@@ -270,6 +270,95 @@ const ghanaRegions = [
   "Oti", "Bono", "Bono East", "Ahafo", "Western North",
 ];
 
+
+// ── Seller Application Status Card ───────────────────────────────────────────
+const SellerApplicationStatus = ({ userId, onGoToSettings }: { userId?: string; onGoToSettings?: () => void }) => {
+  const [status, setStatus] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    if (!userId) { setLoading(false); return; }
+    supabase.from("seller_applications").select("status").eq("user_id", userId).maybeSingle()
+      .then(({ data }) => { setStatus(data?.status ?? null); setLoading(false); });
+  }, [userId]);
+
+  if (loading) return null;
+
+  return (
+    <div className="rounded-2xl border border-border overflow-hidden">
+      <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border bg-muted/20">
+        <Store className="w-4 h-4 text-primary" />
+        <p className="font-display font-semibold text-sm">Sell on SneakersHub</p>
+      </div>
+      <div className="px-5 py-5 space-y-4">
+        {status === null && (
+          <>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Turn your sneaker collection into cash. Apply to become a seller — our team reviews applications within 24 hours.
+            </p>
+            <button
+              onClick={() => setDrawerOpen(true)}
+              className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground font-display font-semibold text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2">
+              <Store className="w-4 h-4" /> Apply to Sell
+            </button>
+          </>
+        )}
+        {status === "pending" && (
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
+              <Clock className="w-4 h-4 text-amber-500" />
+            </div>
+            <div>
+              <p className="font-semibold text-sm">Application Under Review</p>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                Our team is reviewing your store details. You'll be notified within 24 hours. Once approved, you'll need to pay the GHS 50 verification fee to activate your seller account.
+              </p>
+            </div>
+          </div>
+        )}
+        {status === "approved" && (
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+              <CheckCircle className="w-4 h-4 text-green-500" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-sm">Application Approved! 🎉</p>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                Pay the one-time GHS 50 verification fee to activate your seller account and start listing.
+              </p>
+              <button
+                onClick={() => onGoToSettings?.()}
+                className="mt-3 w-full py-2 rounded-xl bg-green-500 text-white font-bold text-sm hover:opacity-90 transition-opacity">
+                Pay GHS 50 & Activate →
+              </button>
+            </div>
+          </div>
+        )}
+        {status === "rejected" && (
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-full bg-red-500/10 flex items-center justify-center shrink-0">
+              <X className="w-4 h-4 text-red-500" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold text-sm">Application Not Approved</p>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                Unfortunately your application wasn't approved this time. You're welcome to re-apply with more details about your store.
+              </p>
+              <button
+                onClick={() => setDrawerOpen(true)}
+                className="mt-3 w-full py-2 rounded-xl border border-border text-sm font-semibold hover:bg-muted/30 transition-colors">
+                Re-apply
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+      <BecomeSellerDrawer open={drawerOpen} onClose={() => { setDrawerOpen(false); setStatus("pending"); }} />
+    </div>
+  );
+};
+
 const Account = () => {
   const { user, isGuest, logout } = useAuth();
   const navigate = useNavigate();
@@ -296,7 +385,6 @@ const Account = () => {
   const [verificationLoading, setVerificationLoading] = useState(false);
   const [showVerifyTerms, setShowVerifyTerms] = useState(false);
   const [trackingInputs, setTrackingInputs] = useState<Record<string, string>>({});
-  const [enablingSellingLoading, setEnablingSellingLoading] = useState(false);
   const [savingTracking, setSavingTracking] = useState<Record<string, boolean>>({});
   const [isOfficial,      setIsOfficial]      = useState(false);
   const [showFirstListingBanner, setShowFirstListingBanner] = useState(false);
@@ -1297,33 +1385,8 @@ const Account = () => {
             {activeTab === "settings" && isGuest && <GuestAuthBanner action="access settings" />}
             {activeTab === "settings" && !isGuest && (
               <div className="space-y-6 max-w-lg">
-                {/* Enable selling — shown to pure buyers */}
-                {!canSell && (
-                  <div className="rounded-2xl border border-border overflow-hidden">
-                    <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border bg-muted/20">
-                      <Store className="w-4 h-4 text-primary" />
-                      <p className="font-display font-semibold text-sm">Start Selling</p>
-                    </div>
-                    <div className="px-5 py-5 space-y-4">
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        List your sneakers on SneakersHub. You'll still be able to shop as a buyer — switching between modes is instant from the top bar.
-                      </p>
-                      <button
-                        disabled={enablingSellingLoading}
-                        onClick={async () => {
-                          if (!user?.id) return;
-                          setEnablingSellingLoading(true);
-                          const { error } = await supabase.from("profiles").update({ is_seller: true }).eq("id", user.id);
-                          if (error) { toast.error("Failed to enable selling"); setEnablingSellingLoading(false); return; }
-                          toast.success("Selling enabled! You can now list sneakers.");
-                          window.location.reload();
-                        }}
-                        className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground font-display font-semibold text-sm hover:bg-primary/90 transition-colors disabled:opacity-50">
-                        {enablingSellingLoading ? "Enabling..." : "Enable Selling"}
-                      </button>
-                    </div>
-                  </div>
-                )}
+                {/* Become a Seller card — shown to non-sellers */}
+                {!canSell && <SellerApplicationStatus userId={user?.id} onGoToSettings={() => setActiveTab("settings")} />}
 
                 <div className="rounded-2xl border border-border overflow-hidden">
                   <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border bg-muted/20">

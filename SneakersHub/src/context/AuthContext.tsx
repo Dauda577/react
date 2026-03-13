@@ -9,6 +9,7 @@ type User = {
   role: "buyer" | "seller";
   isBuyer: boolean;  // can shop
   isSeller: boolean; // can list
+  sellerAppStatus: "none" | "pending" | "approved" | "rejected"; // seller application state
 };
 
 type AuthContextType = {
@@ -74,17 +75,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchProfile = async (id: string, email: string): Promise<User | null> => {
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, name, role, is_seller")
-        .eq("id", id)
-        .single();
+      const [{ data, error }, { data: app }] = await Promise.all([
+        supabase.from("profiles").select("id, name, role, is_seller").eq("id", id).single(),
+        supabase.from("seller_applications").select("status").eq("user_id", id).order("submitted_at", { ascending: false }).limit(1).maybeSingle(),
+      ]);
       if (error || !data) return null;
       const profile = data as any;
       if (!profile.role) return null;
       const isSeller = profile.role === "seller" || profile.is_seller === true;
       const isBuyer = profile.role === "buyer" || profile.is_seller === true;
-      return { id: profile.id, name: profile.name, email, role: profile.role, isBuyer, isSeller };
+      const sellerAppStatus: User["sellerAppStatus"] = isSeller ? "none" : ((app?.status ?? "none") as User["sellerAppStatus"]);
+      return { id: profile.id, name: profile.name, email, role: profile.role, isBuyer, isSeller, sellerAppStatus };
     } catch {
       return null;
     }
@@ -226,7 +227,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Upsert profile FIRST, then set user state — avoids race where
     // onAuthStateChange fires before profile row exists
     await supabase.from("profiles").upsert({ id: data.user.id, name, role, phone, is_seller: role === "seller" });
-    const newUser: User = { id: data.user.id, name, email, role, isBuyer: true, isSeller: role === "seller" };
+    const newUser: User = { id: data.user.id, name, email, role, isBuyer: true, isSeller: role === "seller", sellerAppStatus: "none" };
     setUser(newUser);
     setNeedsRole(false);
     setPendingSession(null);
