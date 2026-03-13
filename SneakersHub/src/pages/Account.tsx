@@ -904,7 +904,7 @@ const Account = () => {
                                 const handler = PaystackPop.setup({
                                   key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY ?? "pk_live_9e1705a04e21f148e758dc11c1e920ed6393702b",
                                   email: user.email,
-                                  amount: 5000, // GHS 50 in pesewas
+                                  amount: 100, // GHS 50 in pesewas
                                   currency: "GHS",
                                   ref,
                                   channels: ["card", "mobile_money"],
