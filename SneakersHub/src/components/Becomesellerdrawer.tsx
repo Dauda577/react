@@ -86,6 +86,7 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
             initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 28, stiffness: 300 }}
             className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-md bg-background border-l border-border flex flex-col shadow-2xl"
+            style={{ paddingTop: "env(safe-area-inset-top, 0px)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
