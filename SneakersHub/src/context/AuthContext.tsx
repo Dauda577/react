@@ -282,6 +282,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       isAuthenticated: !!user || isGuest,
       loading, needsRole,
       login, signup, signInWithGoogle, assignRole, continueAsGuest, logout, resetPassword,
+      activeMode, switchMode,
     }}>
       {children}
     </AuthContext.Provider>
