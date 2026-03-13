@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Heart, Zap, CheckCircle, Sparkles, BadgeCheck } from "lucide-react";
 import { useSaved } from "@/context/SavedContext";
-import { cardImage } from "@/lib/imageutils";
+import { cardImage } from "@/lib/imageUtils";
 import { toast } from "sonner";
 
 interface SneakerCardSneaker {
@@ -81,7 +81,16 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
       <Link to={`/product/${sneaker.id}`} className="sneaker-card block group">
         <div className="relative aspect-square bg-secondary overflow-hidden flex items-center justify-center p-8">
           {sneaker.image
-            ? <img src={cardImage(sneaker.image)} alt={sneaker.name} className="sneaker-image w-full h-full object-contain" loading="lazy" />
+            ? <img
+                src={cardImage(sneaker.image)}
+                alt={sneaker.name}
+                className="sneaker-image w-full h-full object-contain"
+                loading="lazy"
+                onError={(e) => {
+                  console.error("Image failed to load:", sneaker.image);
+                  (e.target as HTMLImageElement).style.display = "none";
+                }}
+              />
             : <span className="text-6xl">👟</span>
           }
 
