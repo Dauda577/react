@@ -17,6 +17,7 @@ import InstallPrompt from "@/components/InstallPrompt";
 import Spinner from "@/components/Spinner";
 
 import Index from "./pages/Index";
+import Privacy from "@/pages/Privacy";
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
 import ResetPassword from "./pages/ResetPassword";
@@ -118,6 +119,7 @@ const App = () => (
                               <Route path="/listings/new" element={
                                 <ProtectedRoute><CreateListing /></ProtectedRoute>
                               } />
+                              <Route path="/privacy" element={<Privacy />} />
                               <Route path="/auth/callback" element={<AuthCallback />} />
                               <Route path="/reset-password" element={<ResetPassword />} />
                               <Route path="/admin" element={<Admin />} />
