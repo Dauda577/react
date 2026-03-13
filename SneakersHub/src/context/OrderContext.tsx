@@ -295,6 +295,22 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       payout_status: isOfficial ? "released" : "pending",
     }).eq("id", orderId);
 
+    // Record payout history
+    const { data: sellerProfile2 } = await supabase
+      .from("profiles").select("commission_rate").eq("id", order.sellerId).single();
+    const commRate = sellerProfile2?.commission_rate ?? 5;
+    const commAmount = order.total * commRate / 100;
+    await supabase.from("payout_history").insert({
+      seller_id: order.sellerId,
+      order_id: orderId,
+      gross_amount: order.total,
+      commission_rate: commRate,
+      commission_amount: commAmount,
+      net_amount: order.total - commAmount,
+      status: "paid",
+      paid_at: new Date().toISOString(),
+    });
+
     // Trigger payout for verified sellers without subaccount
     if (!isOfficial) {
       triggerRelease(orderId, "immediate").catch((err) =>

@@ -7,6 +7,8 @@ type User = {
   name: string;
   email: string;
   role: "buyer" | "seller";
+  isBuyer: boolean;  // can shop
+  isSeller: boolean; // can list
 };
 
 type AuthContextType = {
@@ -22,6 +24,8 @@ type AuthContextType = {
   continueAsGuest: () => void;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  activeMode: "buyer" | "seller";
+  switchMode: (mode: "buyer" | "seller") => void;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -48,6 +52,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // If we have a cached user, start with loading: false — show app immediately
   // If no cache, show spinner until session resolves
   const [user, setUserState] = useState<User | null>(cachedUser);
+  const [activeMode, setActiveMode] = useState<"buyer" | "seller">(cachedUser?.role ?? "buyer");
   const [loading, setLoading] = useState(!cachedUser);
   const [isGuest, setIsGuest] = useState(false);
   const [needsRole, setNeedsRole] = useState(false);
@@ -58,6 +63,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const setUser = (u: User | null) => {
     setUserState(u);
     setCachedUser(u);
+    if (u) setActiveMode(u.role);
   };
 
   const doneLoading = () => {
@@ -70,13 +76,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, name, role")
+        .select("id, name, role, is_seller")
         .eq("id", id)
         .single();
       if (error || !data) return null;
-      const profile = data as Pick<Profile, "id" | "name" | "role">;
+      const profile = data as any;
       if (!profile.role) return null;
-      return { id: profile.id, name: profile.name, email, role: profile.role };
+      const isSeller = profile.role === "seller" || profile.is_seller === true;
+      const isBuyer = profile.role === "buyer" || profile.is_seller === true;
+      return { id: profile.id, name: profile.name, email, role: profile.role, isBuyer, isSeller };
     } catch {
       return null;
     }
@@ -245,6 +253,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const continueAsGuest = () => { setIsGuest(true); setUser(null); };
+
+  const switchMode = (mode: "buyer" | "seller") => {
+    if (!user) return;
+    if (mode === "seller" && !user.isSeller) return;
+    if (mode === "buyer" && !user.isBuyer) return;
+    setActiveMode(mode);
+  };
 
   const resetPassword = async (email: string) => {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {

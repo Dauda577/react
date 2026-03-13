@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ShoppingBag, Menu, X, Bell, Zap } from "lucide-react";
+import { ShoppingBag, Menu, X, Bell, Zap, Store, ShoppingCart } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useOrders } from "@/context/OrderContext";
 import { useMessages } from "@/context/MessageContext";
@@ -11,7 +11,7 @@ const Navbar = () => {
   const { totalItems } = useCart();
   const { unseenCount } = useOrders();
   const { totalUnread } = useMessages();
-  const { user, role } = useAuth();
+  const { user, role, activeMode, switchMode } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const showOrderBadge = user?.role === "seller" && unseenCount > 0;
@@ -81,8 +81,28 @@ const Navbar = () => {
             </Link>
           )}
 
-          {/* Cart — buyers only */}
-          {role !== "seller" && <Link to="/cart" className="relative group">
+          {/* Mode switcher — shown for users who can do both */}
+          {user?.isSeller && user?.isBuyer && (
+            <div className="flex items-center gap-0.5 bg-muted/50 rounded-full p-0.5 border border-border">
+              <button
+                onClick={() => switchMode("buyer")}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${
+                  activeMode === "buyer" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}>
+                <ShoppingCart className="w-3 h-3" /> Buy
+              </button>
+              <button
+                onClick={() => switchMode("seller")}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${
+                  activeMode === "seller" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}>
+                <Store className="w-3 h-3" /> Sell
+              </button>
+            </div>
+          )}
+
+          {/* Cart — only in buyer mode */}
+          {activeMode === "buyer" && <Link to="/cart" className="relative group">
             <ShoppingBag className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
             {totalItems > 0 && (
               <motion.span

@@ -22,14 +22,15 @@ export type Listing = {
   region: string | null;
   shippingCost: number;
   handlingTime: string;
+  images: string[];
 };
 
 type ListingContextType = {
   listings: Listing[];
   boostedListings: Listing[];
   loading: boolean;
-  addListing: (listing: Omit<Listing, "id" | "sellerId" | "views" | "createdAt" | "status" | "boosted" | "boostExpiresAt">, imageFile?: File) => Promise<void>;
-  updateListing: (id: string, data: Partial<Listing>, imageFile?: File) => Promise<void>;
+  addListing: (listing: Omit<Listing, "id" | "sellerId" | "views" | "createdAt" | "status" | "boosted" | "boostExpiresAt">, imageFile?: File, extraImages?: File[]) => Promise<void>;
+  updateListing: (id: string, data: Partial<Listing>, imageFile?: File, extraImages?: File[]) => Promise<void>;
   deleteListing: (id: string) => Promise<void>;
   markSold: (id: string) => Promise<void>;
   boostListing: (id: string) => Promise<void>;
@@ -143,7 +144,7 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     const { data, error } = await supabase
       .from("listings")
-      .select("id, seller_id, name, brand, price, category, sizes, description, image_url, status, boosted, boost_expires_at, views, created_at, city, region, shipping_cost, handling_time")
+      .select("id, seller_id, name, brand, price, category, sizes, description, image_url, images, status, boosted, boost_expires_at, views, created_at, city, region, shipping_cost, handling_time")
       .eq("seller_id", user.id)
       .order("created_at", { ascending: false });
     if (!error && data) setListings((data as ListingRow[]).map(rowToListing));
@@ -198,7 +199,8 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
 
   const addListing = async (
     listing: Omit<Listing, "id" | "sellerId" | "views" | "createdAt" | "status" | "boosted" | "boostExpiresAt">,
-    imageFile?: File
+    imageFile?: File,
+    extraImages?: File[]
   ) => {
     if (!user) throw new Error("Not authenticated");
 
@@ -259,19 +261,24 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
     // SMS confirmation to seller (fire and forget)
     triggerSMS({ type: "listing.created", record: data }).catch(() => {});
 
-    // Upload image in background — don't block navigation
+    // Upload images in background — don't block navigation
     if (imageFile && data) {
-      uploadImage(imageFile, data.id).then((imageUrl) => {
-        if (!imageUrl) return;
-        supabase.from("listings").update({ image_url: imageUrl }).eq("id", data.id);
+      const allFiles = [imageFile, ...(extraImages ?? [])];
+      Promise.all(allFiles.map((f, i) => uploadImage(f, `${data.id}-${i}`))).then((urls) => {
+        const validUrls = urls.filter(Boolean) as string[];
+        const coverUrl = validUrls[0] ?? null;
+        supabase.from("listings").update({
+          image_url: coverUrl,
+          images: validUrls,
+        }).eq("id", data.id);
         setListings((prev) =>
-          prev.map((l) => l.id === data.id ? { ...l, image: imageUrl } : l)
+          prev.map((l) => l.id === data.id ? { ...l, image: coverUrl, images: validUrls } : l)
         );
       }).catch(() => {});
     }
   };
 
-  const updateListing = async (id: string, updates: Partial<Listing>, imageFile?: File) => {
+  const updateListing = async (id: string, updates: Partial<Listing>, imageFile?: File, extraImages?: File[]) => {
     const dbUpdates: any = {};
     if (updates.city !== undefined) dbUpdates.city = updates.city;
     if (updates.region !== undefined) dbUpdates.region = updates.region;
@@ -288,8 +295,10 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
     if (updates.boostExpiresAt !== undefined) dbUpdates.boost_expires_at = updates.boostExpiresAt;
 
     if (imageFile) {
-      const imageUrl = await uploadImage(imageFile, id);
-      if (imageUrl) dbUpdates.image_url = imageUrl;
+      const allFiles = [imageFile, ...(extraImages ?? [])];
+      const urls = await Promise.all(allFiles.map((f, i) => uploadImage(f, `${id}-${i}`)));
+      const validUrls = urls.filter(Boolean) as string[];
+      if (validUrls[0]) { dbUpdates.image_url = validUrls[0]; dbUpdates.images = validUrls; }
     } else if (updates.image !== undefined) {
       dbUpdates.image_url = updates.image;
     }

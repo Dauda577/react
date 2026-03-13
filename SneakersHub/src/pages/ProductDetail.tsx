@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-import { detailImage } from "@/lib/imageutils";
+import { detailImage } from "@/lib/imageUtils";
 import { usePublicListings } from "@/context/PublicListingsContext";
 import { useRatings } from "@/context/RatingContext";
 import Navbar from "@/components/Navbar";
@@ -288,6 +288,10 @@ const ProductDetail = () => {
   }, [listing?.sellerId]);
 
   const { average, count } = listing ? getSellerStats(listing.sellerId) : { average: 0, count: 0 };
+  const allImages = listing ? [(listing as any).images ?? [], listing.image].flat().filter(Boolean) as string[] : [];
+  const uniqueImages = [...new Set(allImages)];
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const activeImage = selectedImage ?? uniqueImages[0] ?? null;
 
   const handleAddToCart = () => {
     if (authLoading) return;
@@ -384,8 +388,8 @@ const ProductDetail = () => {
           <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }}
             className="relative rounded-2xl overflow-hidden bg-card border aspect-square flex items-center justify-center"
             style={{ borderColor: tier === "official" ? "rgba(109,40,217,0.3)" : tier === "verified" ? "rgba(34,197,94,0.2)" : undefined }}>
-            {listing.image
-              ? <img src={detailImage(listing.image)} alt={listing.name} className="w-full h-full object-cover" />
+            {activeImage
+              ? <img src={detailImage(activeImage)} alt={listing.name} className="w-full h-full object-cover" />
               : <span className="text-8xl">👟</span>
             }
             {tier === "official" && (
@@ -407,6 +411,20 @@ const ProductDetail = () => {
               </div>
             )}
           </motion.div>
+
+          {/* ── Image thumbnails ── */}
+          {uniqueImages.length > 1 && (
+            <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
+              {uniqueImages.map((img, i) => (
+                <button key={i} onClick={() => setSelectedImage(img)}
+                  className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${
+                    activeImage === img ? "border-primary" : "border-border hover:border-primary/40"
+                  }`}>
+                  <img src={img} alt={`View ${i + 1}`} className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* ── Info ── */}
           <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">

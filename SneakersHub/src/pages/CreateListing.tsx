@@ -43,25 +43,27 @@ const CreateListing = () => {
     handling_time: (editing as any)?.handlingTime ?? "Ships in 1-3 days",
   });
 
-  // Pre-fill city/region from seller profile if not editing
-  useState(() => {
-    if (!editing && user) {
-      supabase.from("profiles").select("city, region, verified, is_official").eq("id", user.id).single().then(({ data }) => {
-        if (data) {
+  // Pre-fill city/region and check verified status from profile
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("profiles").select("city, region, verified, is_official").eq("id", user.id).single().then(({ data }) => {
+      if (data) {
+        if (!editing) {
           setForm((prev) => ({
             ...prev,
             city: prev.city || data.city || "",
             region: prev.region || data.region || "",
           }));
-          setIsVerifiedSeller(data.verified === true || data.is_official === true);
         }
-      });
-    }
-  });
+        setIsVerifiedSeller(data.verified === true || data.is_official === true);
+      }
+    });
+  }, [user?.id]);
   const [isVerifiedSeller, setIsVerifiedSeller] = useState(false);
   const [selectedSizes, setSelectedSizes] = useState<number[]>(editing?.sizes ?? []);
-  const [image, setImage] = useState<string | null>(editing?.image ?? null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [images, setImages] = useState<string[]>(editing?.image ? [editing.image] : []);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const MAX_IMAGES = 5;
   const [loading, setLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -76,16 +78,22 @@ const CreateListing = () => {
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+    const remaining = MAX_IMAGES - images.length;
+    const toAdd = files.slice(0, remaining);
+    const file = toAdd[0]; // size check on first
     if (file.size > 5 * 1024 * 1024) {
       toast.error("Image must be under 5MB");
       return;
     }
     const reader = new FileReader();
-    reader.onload = () => setImage(reader.result as string);
-    reader.readAsDataURL(file);
-    setImageFile(file);
+    toAdd.forEach((f) => {
+      const r = new FileReader();
+      r.onload = () => setImages(prev => [...prev, r.result as string].slice(0, MAX_IMAGES));
+      r.readAsDataURL(f);
+    });
+    setImageFiles(prev => [...prev, ...toAdd].slice(0, MAX_IMAGES));
   };
 
   const handleSubmit = async () => {
@@ -109,13 +117,13 @@ const CreateListing = () => {
         await updateListing(editing.id, {
           name, brand, price: Number(price), category, description, sizes: selectedSizes, city: city || null, region: region || null,
           shippingCost: Number(shipping_cost) || 0, handlingTime: handling_time || "Ships in 1-3 days",
-        }, imageFile ?? undefined);
+        }, imageFiles[0] ?? undefined, imageFiles.slice(1));
         toast.success("Listing updated!");
       } else {
         await addListing({
           name, brand, price: Number(price), category, description, sizes: selectedSizes, image: null, city: city || null, region: region || null,
           shippingCost: Number(shipping_cost) || 0, handlingTime: handling_time || "Ships in 1-3 days",
-        }, imageFile ?? undefined);
+        }, imageFiles[0] ?? undefined, imageFiles.slice(1));
         toast.success("Listing published!");
       }
       navigate("/account");
@@ -159,32 +167,35 @@ const CreateListing = () => {
               <Image className="inline w-3.5 h-3.5 mr-1.5" /> Photo
             </p>
 
-            {image ? (
-              <div className="relative w-full aspect-square max-w-xs mx-auto rounded-xl overflow-hidden bg-secondary">
-                <img src={image} alt="Listing" className="w-full h-full object-contain p-4" />
+            <div className="grid grid-cols-3 gap-2">
+              {images.map((img, idx) => (
+                <div key={idx} className="relative aspect-square rounded-xl overflow-hidden bg-secondary border border-border">
+                  <img src={img} alt={`Photo ${idx + 1}`} className="w-full h-full object-contain p-2" />
+                  <button
+                    onClick={() => {
+                      setImages(prev => prev.filter((_, i) => i !== idx));
+                      setImageFiles(prev => prev.filter((_, i) => i !== idx));
+                    }}
+                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-background/90 border border-border flex items-center justify-center hover:bg-background transition-colors">
+                    <X className="w-3 h-3" />
+                  </button>
+                  {idx === 0 && (
+                    <span className="absolute bottom-1 left-1 text-[10px] font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">Cover</span>
+                  )}
+                </div>
+              ))}
+              {images.length < MAX_IMAGES && (
                 <button
-                  onClick={() => setImage(null)}
-                  className="absolute top-2 right-2 w-7 h-7 rounded-full bg-background/80 border border-border flex items-center justify-center hover:bg-background transition-colors"
-                >
-                  <X className="w-3.5 h-3.5" />
+                  onClick={() => fileRef.current?.click()}
+                  className="aspect-square rounded-xl border-2 border-dashed border-border hover:border-primary/50
+                    flex flex-col items-center justify-center gap-1 transition-colors group">
+                  <Upload className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <p className="text-[11px] text-muted-foreground">{images.length === 0 ? "Add photo" : "Add more"}</p>
                 </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => fileRef.current?.click()}
-                className="w-full aspect-video max-h-48 rounded-xl border-2 border-dashed border-border hover:border-primary/50
-                  flex flex-col items-center justify-center gap-3 transition-colors group"
-              >
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                  <Upload className="w-5 h-5 text-primary" />
-                </div>
-                <div className="text-center">
-                  <p className="text-sm font-medium text-foreground">Click to upload photo</p>
-                  <p className="text-xs text-muted-foreground mt-1">PNG, JPG up to 5MB</p>
-                </div>
-              </button>
-            )}
-            <input ref={fileRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-2 text-center">{images.length}/{MAX_IMAGES} photos · First photo is the cover</p>
+            <input ref={fileRef} type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" />
           </motion.div>
 
           {/* Basic info */}

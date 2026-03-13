@@ -93,7 +93,7 @@ const loadFromStorage = (userId?: string): CartItem[] => {
 };
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
-  const { user, role } = useAuth();
+  const { user, activeMode } = useAuth();
   const [items, setItems] = useState<CartItem[]>(() => loadFromStorage());
   const [synced, setSynced] = useState(false);
 
@@ -145,16 +145,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (user?.id && role === "buyer") {
+    if (user?.id && activeMode === "buyer") {
       fetchCart(user.id);
     } else {
-      // Seller or logged out — clear cart entirely
+      // Seller mode or logged out — clear cart from memory
       setItems([]);
-      if (user?.id) {
-        // Clear any stale DB cart for seller accounts
-        supabase.from("carts").delete().eq("user_id", user.id).then(() => {});
-        try { localStorage.removeItem(storageKey(user.id)); } catch {}
-      }
       setSynced(true);
     }
   }, [user?.id, fetchCart]);
@@ -193,7 +188,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   // ── Actions ──────────────────────────────────────────────────────────────
   const addItem = (sneaker: CartItem["sneaker"], size: number) => {
-    if (role === "seller") return; // sellers cannot buy
+    if (activeMode === "seller") return; // in seller mode, cannot add to cart
     setItems((prev) => {
       const existing = prev.find((i) => i.sneaker.id === sneaker.id && i.size === size);
       const newQuantity = existing ? existing.quantity + 1 : 1;

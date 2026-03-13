@@ -5,7 +5,7 @@ import {
   ShieldAlert, TrendingUp, Package, Wallet, AlertTriangle,
   CheckCircle, Clock, RefreshCw, ChevronDown, ChevronUp,
   ArrowUpRight, DollarSign, BarChart2, X,
-  Filter, Search, Phone, MapPin,
+  Filter, Search, Phone, MapPin, Users, Percent, BadgeCheck,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
@@ -94,7 +94,10 @@ const Admin = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"overview" | "failed" | "orders" | "payouts">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "sellers" | "failed" | "orders" | "payouts">("overview");
+  const [sellers, setSellers] = useState<any[]>([]);
+  const [editingCommission, setEditingCommission] = useState<Record<string, string>>({});
+  const [savingCommission, setSavingCommission] = useState<Record<string, boolean>>({});
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -178,6 +181,31 @@ const Admin = () => {
         }
       });
   }, [user?.id, authLoading]);
+
+  const fetchSellers = useCallback(async () => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, name, phone, region, city, verified, is_official, commission_rate, created_at, listing_count")
+      .eq("role", "seller")
+      .order("created_at", { ascending: false });
+    if (data) setSellers(data);
+  }, []);
+
+  const pendingSellers = sellers.filter(s => !s.verified && !s.is_official);
+  const verifiedSellers = sellers.filter(s => s.verified || s.is_official);
+
+  useEffect(() => { fetchSellers(); }, [fetchSellers]);
+
+  const saveCommission = async (sellerId: string) => {
+    const val = parseFloat(editingCommission[sellerId]);
+    if (isNaN(val) || val < 0 || val > 100) { toast.error("Enter a valid rate (0–100)"); return; }
+    setSavingCommission(p => ({ ...p, [sellerId]: true }));
+    await supabase.from("profiles").update({ commission_rate: val }).eq("id", sellerId);
+    setSellers(prev => prev.map(s => s.id === sellerId ? { ...s, commission_rate: val } : s));
+    setEditingCommission(p => { const n = { ...p }; delete n[sellerId]; return n; });
+    setSavingCommission(p => ({ ...p, [sellerId]: false }));
+    toast.success("Commission rate updated");
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -288,7 +316,8 @@ const Admin = () => {
 
   const tabs = [
     { id: "overview",  label: "Overview",   icon: BarChart2 },
-    { id: "failed",    label: "Failed Transfers", icon: AlertTriangle, badge: failedOrders.length },
+    { id: "sellers",   label: "Sellers",    icon: ShieldAlert, badge: pendingSellers.length },
+    { id: "failed",    label: "Failed",     icon: AlertTriangle, badge: failedOrders.length },
     { id: "orders",    label: "All Orders", icon: Package },
     { id: "payouts",   label: "Payouts",    icon: Wallet },
   ] as const;
@@ -371,6 +400,109 @@ const Admin = () => {
             )}
 
             {/* ── Failed Transfers tab ── */}
+
+            {activeTab === "sellers" && (
+              <div className="space-y-8">
+                {/* Pending sellers */}
+                <div>
+                  <SectionHeader title="Pending Verification" icon={Clock} count={pendingSellers.length} />
+                  {pendingSellers.length === 0 ? (
+                    <div className="text-center py-12 rounded-2xl border border-border">
+                      <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
+                      <p className="font-display font-bold">All sellers verified</p>
+                      <p className="text-sm text-muted-foreground mt-1">No pending applications.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {pendingSellers.map((seller) => (
+                        <motion.div key={seller.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                          className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="font-display font-bold text-sm">{seller.name}</p>
+                              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                <Phone className="w-3 h-3" />{seller.phone ?? "—"}
+                                {seller.city && <><MapPin className="w-3 h-3 ml-2" />{seller.city}, {seller.region}</>}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground mt-1">
+                                Joined {new Date(seller.created_at).toLocaleDateString("en-GH", { day: "numeric", month: "short", year: "numeric" })}
+                                {" · "}{seller.listing_count ?? 0} listing{seller.listing_count !== 1 ? "s" : ""}
+                              </p>
+                            </div>
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20 whitespace-nowrap">
+                              Unverified
+                            </span>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Verified sellers + commission control */}
+                <div>
+                  <SectionHeader title="Verified Sellers" icon={BadgeCheck} count={verifiedSellers.length} />
+                  {verifiedSellers.length === 0 ? (
+                    <div className="text-center py-12 rounded-2xl border border-border">
+                      <Users className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">No verified sellers yet.</p>
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl border border-border overflow-hidden">
+                      <div className="hidden sm:grid grid-cols-4 px-5 py-3 bg-muted/30 border-b border-border">
+                        {["Seller", "Location", "Listings", "Commission Rate"].map(h => (
+                          <p key={h} className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{h}</p>
+                        ))}
+                      </div>
+                      {verifiedSellers.map((seller, i) => (
+                        <motion.div key={seller.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                          transition={{ delay: i * 0.03 }}
+                          className={`grid grid-cols-2 sm:grid-cols-4 items-center px-5 py-4 gap-3 ${i > 0 ? "border-t border-border" : ""} hover:bg-muted/10 transition-colors`}>
+                          <div>
+                            <p className="font-display font-bold text-sm">{seller.name}</p>
+                            <p className="text-[11px] text-muted-foreground">{seller.phone ?? "—"}</p>
+                          </div>
+                          <p className="text-sm text-muted-foreground hidden sm:block">
+                            {seller.city ? `${seller.city}, ${seller.region}` : seller.region ?? "—"}
+                          </p>
+                          <p className="text-sm font-medium hidden sm:block">{seller.listing_count ?? 0}</p>
+                          <div className="flex items-center gap-2">
+                            {editingCommission[seller.id] !== undefined ? (
+                              <>
+                                <div className="relative flex-1">
+                                  <input
+                                    type="number" min="0" max="100" step="0.5"
+                                    value={editingCommission[seller.id]}
+                                    onChange={(e) => setEditingCommission(p => ({ ...p, [seller.id]: e.target.value }))}
+                                    className="w-full px-3 py-1.5 pr-6 rounded-lg border border-primary text-sm bg-background focus:outline-none" />
+                                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+                                </div>
+                                <button onClick={() => saveCommission(seller.id)} disabled={savingCommission[seller.id]}
+                                  className="px-2.5 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50">
+                                  {savingCommission[seller.id] ? "..." : "Save"}
+                                </button>
+                                <button onClick={() => setEditingCommission(p => { const n={...p}; delete n[seller.id]; return n; })}
+                                  className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                onClick={() => setEditingCommission(p => ({ ...p, [seller.id]: String(seller.commission_rate ?? 5) }))}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-all text-sm font-semibold">
+                                <Percent className="w-3 h-3" />
+                                {seller.commission_rate ?? 5}%
+                              </button>
+                            )}
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {activeTab === "failed" && (
               <div className="space-y-4">
                 {failedOrders.length === 0 ? (

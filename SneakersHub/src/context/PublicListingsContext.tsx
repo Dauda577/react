@@ -14,6 +14,7 @@ export type PublicListing = {
   sellerMemberSince: string;
   shippingCost: number;
   handlingTime: string;
+  images: string[];
   city: string | null;
   region: string | null;
   name: string;
@@ -62,7 +63,7 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
       .from("listings")
       .select(`
         id, seller_id, name, brand, price, category, sizes,
-        description, image_url, boosted, boost_expires_at,
+        description, image_url, images, boosted, boost_expires_at,
         views, created_at, city, region, shipping_cost, handling_time,
         profiles (
           name, phone, city, verified, is_official, subaccount_code, created_at
@@ -92,6 +93,7 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
             : new Date(row.created_at).getFullYear().toString(),
           shippingCost: row.shipping_cost ?? 0,
           handlingTime: row.handling_time ?? "Ships in 1-3 days",
+          images: row.images ?? [],
           name: row.name,
           brand: row.brand,
           price: row.price,
