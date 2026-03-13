@@ -113,23 +113,22 @@ const compressImage = (file: File): Promise<Blob> => {
 const uploadImage = async (file: File, listingId: string): Promise<string | null> => {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
   try {
-    // Compress to WebP before uploading
-    const compressed = await compressImage(file);
-    const path = `${listingId}.webp`;
-    const { error } = await supabase.storage.from("listings").upload(path, compressed, {
-      upsert: true,
-      contentType: "image/webp",
-    });
-    if (error) throw error;
-    // Construct URL directly — more reliable than getPublicUrl on some configs
-    return `${supabaseUrl}/storage/v1/object/public/listings/${path}`;
-  } catch (err) {
-    console.warn("Image compression failed, uploading original:", err);
-    const ext = file.name.split(".").pop();
+    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
     const path = `${listingId}.${ext}`;
-    const { error } = await supabase.storage.from("listings").upload(path, file, { upsert: true });
-    if (error) return null;
-    return `${supabaseUrl}/storage/v1/object/public/listings/${path}`;
+    const { error } = await supabase.storage.from("listings").upload(path, file, {
+      upsert: true,
+      contentType: file.type || "image/jpeg",
+    });
+    if (error) {
+      console.error("Image upload error:", error.message);
+      return null;
+    }
+    const url = `${supabaseUrl}/storage/v1/object/public/listings/${path}`;
+    console.log("Image uploaded:", url);
+    return url;
+  } catch (err) {
+    console.error("Image upload exception:", err);
+    return null;
   }
 };
 
@@ -260,20 +259,21 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
     // SMS confirmation to seller (fire and forget)
     triggerSMS({ type: "listing.created", record: data }).catch(() => {});
 
-    // Upload images in background — don't block navigation
+    // Upload images — await so image_url is saved before navigation
     if (imageFile && data) {
       const allFiles = [imageFile, ...(extraImages ?? [])];
-      Promise.all(allFiles.map((f, i) => uploadImage(f, `${data.id}-${i}`))).then((urls) => {
-        const validUrls = urls.filter(Boolean) as string[];
-        const coverUrl = validUrls[0] ?? null;
-        supabase.from("listings").update({
+      const urls = await Promise.all(allFiles.map((f, i) => uploadImage(f, `${data.id}-${i}`)));
+      const validUrls = urls.filter(Boolean) as string[];
+      const coverUrl = validUrls[0] ?? null;
+      if (coverUrl) {
+        await supabase.from("listings").update({
           image_url: coverUrl,
           images: validUrls,
         }).eq("id", data.id);
         setListings((prev) =>
           prev.map((l) => l.id === data.id ? { ...l, image: coverUrl, images: validUrls } : l)
         );
-      }).catch(() => {});
+      }
     }
   };
 
