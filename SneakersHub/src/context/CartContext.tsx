@@ -73,11 +73,11 @@ type CartContextType = {
 };
 
 const CartContext = createContext<CartContextType | null>(null);
-const STORAGE_KEY = "sneakershub-cart";
+const storageKey = (userId?: string) => userId ? `sneakershub-cart-${userId}` : "sneakershub-cart-guest";
 
-const loadFromStorage = (): CartItem[] => {
+const loadFromStorage = (userId?: string): CartItem[] => {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = localStorage.getItem(storageKey(userId));
     if (!saved) return [];
     const parsed: CartItem[] = JSON.parse(saved);
     // Sanitize old items that may be missing new fields
@@ -93,8 +93,8 @@ const loadFromStorage = (): CartItem[] => {
 };
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
-  const { user } = useAuth();
-  const [items, setItems] = useState<CartItem[]>(loadFromStorage);
+  const { user, role } = useAuth();
+  const [items, setItems] = useState<CartItem[]>(() => loadFromStorage());
   const [synced, setSynced] = useState(false);
 
   // ── Fetch cart from Supabase when user logs in ──────────────────────────
@@ -116,18 +116,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       quantity: row.quantity,
     }));
 
-    // Merge: remote wins over local for logged-in users
-    // Also push any local-only items (added before login) to Supabase
-    const localItems = loadFromStorage();
+    // Merge guest cart items (added before login) into remote
+    const guestItems = loadFromStorage(); // guest key has no userId
     const merged = [...remoteItems];
 
-    for (const local of localItems) {
+    for (const local of guestItems) {
       const exists = merged.find(
         (r) => r.sneaker.id === local.sneaker.id && r.size === local.size
       );
       if (!exists) {
         merged.push(local);
-        // Push to Supabase
         await supabase.from("carts").upsert({
           user_id: userId,
           sneaker_id: local.sneaker.id,
@@ -138,16 +136,25 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       }
     }
 
+    // Clear guest cart now that user is logged in
+    localStorage.removeItem(storageKey());
+
     setItems(merged);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+    localStorage.setItem(storageKey(userId), JSON.stringify(merged));
     setSynced(true);
   }, []);
 
   useEffect(() => {
-    if (user?.id) {
+    if (user?.id && role === "buyer") {
       fetchCart(user.id);
     } else {
-      // Logged out — use localStorage only
+      // Seller or logged out — clear cart entirely
+      setItems([]);
+      if (user?.id) {
+        // Clear any stale DB cart for seller accounts
+        supabase.from("carts").delete().eq("user_id", user.id).then(() => {});
+        try { localStorage.removeItem(storageKey(user.id)); } catch {}
+      }
       setSynced(true);
     }
   }, [user?.id, fetchCart]);
@@ -155,7 +162,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   // ── Persist to localStorage on every change ─────────────────────────────
   useEffect(() => {
     if (!synced) return;
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); } catch {}
+    try { localStorage.setItem(storageKey(user?.id), JSON.stringify(items)); } catch {}
   }, [items, synced]);
 
   // ── Sync helpers ─────────────────────────────────────────────────────────
@@ -186,6 +193,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   // ── Actions ──────────────────────────────────────────────────────────────
   const addItem = (sneaker: CartItem["sneaker"], size: number) => {
+    if (role === "seller") return; // sellers cannot buy
     setItems((prev) => {
       const existing = prev.find((i) => i.sneaker.id === sneaker.id && i.size === size);
       const newQuantity = existing ? existing.quantity + 1 : 1;
@@ -209,6 +217,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const clearCart = () => {
     clearRemote();
     setItems([]);
+    try { localStorage.removeItem(storageKey(user?.id)); } catch {}
   };
 
   const totalPrice = items.reduce((sum, i) => sum + i.sneaker.price * i.quantity, 0);

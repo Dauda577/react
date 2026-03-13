@@ -11,7 +11,7 @@ const Navbar = () => {
   const { totalItems } = useCart();
   const { unseenCount } = useOrders();
   const { totalUnread } = useMessages();
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const showOrderBadge = user?.role === "seller" && unseenCount > 0;
@@ -81,8 +81,8 @@ const Navbar = () => {
             </Link>
           )}
 
-          {/* Cart */}
-          <Link to="/cart" className="relative group">
+          {/* Cart — buyers only */}
+          {role !== "seller" && <Link to="/cart" className="relative group">
             <ShoppingBag className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
             {totalItems > 0 && (
               <motion.span
@@ -93,7 +93,7 @@ const Navbar = () => {
                 {totalItems}
               </motion.span>
             )}
-          </Link>
+          </Link>}
 
           <button className="md:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
