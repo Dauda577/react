@@ -6,7 +6,7 @@ import {
   ShoppingBag, ChevronDown, ArrowRight, ShieldAlert, X,
   ShieldCheck, CreditCard, Lock, Sparkles, BadgeCheck, Package,
 } from "lucide-react";
-import { thumbImage } from "@/lib/imageutils";
+import { thumbImage } from "@/lib/imageUtils";
 import { useCart, groupBySeller, SellerGroup } from "@/context/CartContext";
 import { useOrders } from "@/context/OrderContext";
 import { useAuth } from "@/context/AuthContext";
