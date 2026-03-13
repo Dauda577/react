@@ -44,7 +44,6 @@ const sellerTabs = [
   { id: "profile",   label: "Profile",   icon: User },
   { id: "orders",    label: "Orders",    icon: ShoppingBag },
   { id: "listings",  label: "Listings",  icon: LayoutGrid },
-  { id: "earnings",  label: "Earnings",  icon: Wallet },
   { id: "analytics", label: "Analytics", icon: BarChart2 },
   { id: "messages",  label: "Messages",  icon: MessageCircle },
   { id: "settings",  label: "Settings",  icon: Settings },
@@ -297,8 +296,6 @@ const Account = () => {
   const [verificationLoading, setVerificationLoading] = useState(false);
   const [showVerifyTerms, setShowVerifyTerms] = useState(false);
   const [trackingInputs, setTrackingInputs] = useState<Record<string, string>>({});
-  const [payouts, setPayouts] = useState<any[]>([]);
-  const [payoutsLoading, setPayoutsLoading] = useState(false);
   const [enablingSellingLoading, setEnablingSellingLoading] = useState(false);
   const [savingTracking, setSavingTracking] = useState<Record<string, boolean>>({});
   const [isOfficial,      setIsOfficial]      = useState(false);
@@ -386,24 +383,9 @@ const Account = () => {
   useEffect(() => { if (role === "seller" && activeTab === "orders") markOrdersSeen(); }, [role, activeTab]);
 
   useEffect(() => {
-    if (role === "seller" && activeTab === "earnings" && user?.id && payouts.length === 0) {
-      setPayoutsLoading(true);
-      supabase
-        .from("payout_history")
-        .select("*")
-        .eq("seller_id", user.id)
-        .order("created_at", { ascending: false })
-        .then(({ data }) => {
-          setPayouts(data ?? []);
-          setPayoutsLoading(false);
-        });
-    }
-  }, [role, activeTab, user?.id]);
-
-  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab");
-    if (tab && ["profile","orders","listings","earnings","analytics","messages","settings"].includes(tab)) {
+    if (tab && ["profile","orders","listings","analytics","messages","settings"].includes(tab)) {
       setActiveTab(tab as any);
       window.history.replaceState({}, "", window.location.pathname);
     }
@@ -1309,74 +1291,6 @@ const Account = () => {
                 )}
               </div>
             )}
-
-            {activeTab === "earnings" && canSell && (
-              <div>
-                {(() => {
-                  const totalGross = payouts.reduce((s, p) => s + p.gross_amount, 0);
-                  const totalComm  = payouts.reduce((s, p) => s + p.commission_amount, 0);
-                  const totalNet   = payouts.reduce((s, p) => s + p.net_amount, 0);
-                  const thisMonth  = payouts.filter(p => new Date(p.paid_at).getMonth() === new Date().getMonth());
-                  const monthNet   = thisMonth.reduce((s, p) => s + p.net_amount, 0);
-                  return (
-                    <div className="grid grid-cols-2 gap-3 mb-6">
-                      {[
-                        { label: "Total Earned", value: `GHS ${totalNet.toFixed(2)}`, sub: `from ${payouts.length} orders`, accent: "text-green-600" },
-                        { label: "This Month",   value: `GHS ${monthNet.toFixed(2)}`, sub: `${thisMonth.length} orders`, accent: "text-primary" },
-                        { label: "Total Sales",  value: `GHS ${totalGross.toFixed(2)}`, sub: "gross", accent: "text-foreground" },
-                        { label: "Platform Fees",value: `GHS ${totalComm.toFixed(2)}`, sub: "deducted", accent: "text-muted-foreground" },
-                      ].map(({ label, value, sub, accent }) => (
-                        <div key={label} className="rounded-2xl border border-border p-4">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-1">{label}</p>
-                          <p className={`font-display text-xl font-bold ${accent}`}>{value}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">{sub}</p>
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })()}
-                {payoutsLoading ? (
-                  <div className="text-center py-12 text-muted-foreground text-sm">Loading earnings...</div>
-                ) : payouts.length === 0 ? (
-                  <div className="text-center py-16 rounded-2xl border border-border">
-                    <Wallet className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-                    <p className="font-display font-bold text-lg">No earnings yet</p>
-                    <p className="text-sm text-muted-foreground mt-1">Earnings appear here once orders are confirmed.</p>
-                  </div>
-                ) : (
-                  <div className="rounded-2xl border border-border overflow-hidden">
-                    <div className="grid grid-cols-3 px-4 py-3 bg-muted/30 border-b border-border">
-                      {["Order / Date", "Sale", "You Received"].map(h => (
-                        <p key={h} className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{h}</p>
-                      ))}
-                    </div>
-                    {payouts.map((p, i) => (
-                      <motion.div key={p.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                        transition={{ delay: i * 0.02 }}
-                        className={`grid grid-cols-3 items-center px-4 py-3.5 gap-2 ${i > 0 ? "border-t border-border" : ""}`}>
-                        <div>
-                          <p className="text-xs font-bold font-display">
-                            #{parseInt((p.order_id ?? p.id).replace(/-/g,"").slice(0,10), 16) % 1000000000}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {new Date(p.paid_at).toLocaleDateString("en-GH", { day: "numeric", month: "short" })}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold">GHS {p.gross_amount.toFixed(2)}</p>
-                          <p className="text-[11px] text-muted-foreground">−GHS {p.commission_amount.toFixed(2)} fee</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-green-600">GHS {p.net_amount.toFixed(2)}</p>
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-600 font-semibold">{p.status}</span>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
             {activeTab === "analytics" && canSell && !isGuest && <Suspense fallback={<div className="p-8 text-center text-muted-foreground text-sm">Loading analytics...</div>}><SellerDashboard /></Suspense>}
             {activeTab === "messages" && isGuest && <GuestAuthBanner action="view messages" />}
             {activeTab === "messages" && !isGuest && <MessagesInbox />}
