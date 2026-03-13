@@ -208,13 +208,14 @@ const Admin = () => {
 
   const handleAppAction = async (appId: string, userId: string, action: "approve" | "reject") => {
     setAppActionLoading(l => ({ ...l, [appId]: true }));
+    const newStatus = action === "approve" ? "approved" : "rejected";
     try {
       const app = applications.find(a => a.id === appId);
 
       // 1. Update application status
       const { error: appError } = await supabase
         .from("seller_applications")
-        .update({ status: action, reviewed_at: new Date().toISOString() })
+        .update({ status: newStatus, reviewed_at: new Date().toISOString() })
         .eq("id", appId);
       if (appError) throw new Error(`Application update failed: ${appError.message}`);
 
@@ -263,7 +264,7 @@ const Admin = () => {
       }).catch(console.error);
 
       // 5. Update local state immediately
-      setApplications(prev => prev.map(a => a.id === appId ? { ...a, status: action } : a));
+      setApplications(prev => prev.map(a => a.id === appId ? { ...a, status: newStatus } : a));
       toast.success(action === "approve"
         ? "✅ Approved — SMS & notification sent to seller"
         : "Application rejected"
