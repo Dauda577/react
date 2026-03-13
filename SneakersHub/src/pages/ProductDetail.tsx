@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-import { detailImage } from "@/lib/imageutils";
+import { detailImage } from "@/lib/imageUtils";
 import { usePublicListings } from "@/context/PublicListingsContext";
 import { useRatings } from "@/context/RatingContext";
 import Navbar from "@/components/Navbar";
