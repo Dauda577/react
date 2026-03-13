@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { Trash2, ShoppingBag, ArrowRight } from "lucide-react";
-import { thumbImage } from "@/lib/imageUtils";
+import { thumbImage } from "@/lib/imageutils";
 import { useCart } from "@/context/CartContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
