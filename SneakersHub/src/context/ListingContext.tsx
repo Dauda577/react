@@ -59,6 +59,9 @@ const rowToListing = (r: ListingRow): Listing => ({
   createdAt: r.created_at,
   city: (r as any).city ?? null,
   region: (r as any).region ?? null,
+  shippingCost: (r as any).shipping_cost ?? 0,
+  handlingTime: (r as any).handling_time ?? "Ships in 1-3 days",
+  images: (r as any).images ?? [],
 });
 
 export const isBoostActive = (listing: Listing): boolean => {
