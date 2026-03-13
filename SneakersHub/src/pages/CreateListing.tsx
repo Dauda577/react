@@ -110,7 +110,7 @@ const CreateListing = () => {
       toast.error("Enter a valid price");
       return;
     }
-
+console.log("imageFiles at submit:", imageFiles.length, imageFiles[0]?.name);
     setLoading(true);
     try {
       if (editing) {
