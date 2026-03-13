@@ -43,6 +43,8 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
     try {
       const { error } = await supabase.from("seller_applications").insert({
         user_id: user.id,
+        applicant_name: user.name,
+        applicant_email: user.email,
         store_name: form.store_name.trim(),
         store_description: form.store_description.trim(),
         momo_number: form.momo_number.trim(),

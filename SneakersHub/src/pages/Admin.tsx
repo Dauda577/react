@@ -96,6 +96,8 @@ const Admin = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"overview" | "sellers" | "failed" | "orders" | "payouts">("overview");
   const [sellers, setSellers] = useState<any[]>([]);
+  const [applications, setApplications] = useState<any[]>([]);
+  const [appActionLoading, setAppActionLoading] = useState<Record<string, boolean>>({});
   const [editingCommission, setEditingCommission] = useState<Record<string, string>>({});
   const [savingCommission, setSavingCommission] = useState<Record<string, boolean>>({});
   const [orders, setOrders] = useState<AdminOrder[]>([]);
@@ -183,16 +185,44 @@ const Admin = () => {
   }, [user?.id, authLoading]);
 
   const fetchSellers = useCallback(async () => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("id, name, phone, region, city, verified, is_official, commission_rate, created_at, listing_count")
-      .eq("role", "seller")
-      .order("created_at", { ascending: false });
-    if (data) setSellers(data);
+    const [{ data: profiles }, { data: apps }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, name, phone, region, city, verified, is_official, commission_rate, created_at, listing_count")
+        .in("role", ["seller", "buyer"])
+        .or("verified.eq.true,is_official.eq.true,is_seller.eq.true")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("seller_applications")
+        .select("*")
+        .order("submitted_at", { ascending: false }),
+    ]);
+    if (profiles) setSellers(profiles);
+    if (apps) setApplications(apps);
   }, []);
 
+  const pendingApplications = applications.filter(a => a.status === "pending");
+  const approvedApplications = applications.filter(a => a.status === "approved");
   const pendingSellers = sellers.filter(s => !s.verified && !s.is_official);
   const verifiedSellers = sellers.filter(s => s.verified || s.is_official);
+
+  const handleAppAction = async (appId: string, userId: string, action: "approve" | "reject") => {
+    setAppActionLoading(l => ({ ...l, [appId]: true }));
+    try {
+      await supabase.from("seller_applications").update({ status: action, reviewed_at: new Date().toISOString() }).eq("id", appId);
+      if (action === "approve") {
+        await supabase.from("profiles").update({ is_seller: true, role: "seller" }).eq("id", userId);
+        toast.success("Application approved — seller can now pay the verification fee");
+      } else {
+        toast.success("Application rejected");
+      }
+      fetchSellers();
+    } catch {
+      toast.error("Action failed");
+    } finally {
+      setAppActionLoading(l => ({ ...l, [appId]: false }));
+    }
+  };
 
   useEffect(() => { fetchSellers(); }, [fetchSellers]);
 
@@ -316,7 +346,7 @@ const Admin = () => {
 
   const tabs = [
     { id: "overview",  label: "Overview",   icon: BarChart2 },
-    { id: "sellers",   label: "Sellers",    icon: ShieldAlert, badge: pendingSellers.length },
+    { id: "sellers",   label: "Sellers",    icon: ShieldAlert, badge: pendingApplications.length },
     { id: "failed",    label: "Failed",     icon: AlertTriangle, badge: failedOrders.length },
     { id: "orders",    label: "All Orders", icon: Package },
     { id: "payouts",   label: "Payouts",    icon: Wallet },
@@ -405,33 +435,72 @@ const Admin = () => {
               <div className="space-y-8">
                 {/* Pending sellers */}
                 <div>
-                  <SectionHeader title="Pending Verification" icon={Clock} count={pendingSellers.length} />
-                  {pendingSellers.length === 0 ? (
+                  <SectionHeader title="Pending Applications" icon={Clock} count={pendingApplications.length} />
+                  {pendingApplications.length === 0 ? (
                     <div className="text-center py-12 rounded-2xl border border-border">
                       <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
-                      <p className="font-display font-bold">All sellers verified</p>
-                      <p className="text-sm text-muted-foreground mt-1">No pending applications.</p>
+                      <p className="font-display font-bold">No pending applications</p>
+                      <p className="text-sm text-muted-foreground mt-1">New seller applications will appear here.</p>
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      {pendingSellers.map((seller) => (
-                        <motion.div key={seller.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                          className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4">
+                    <div className="space-y-4">
+                      {pendingApplications.map((app) => (
+                        <motion.div key={app.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                          className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 space-y-3">
+                          {/* Header */}
                           <div className="flex items-start justify-between gap-3">
                             <div>
-                              <p className="font-display font-bold text-sm">{seller.name}</p>
-                              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                                <Phone className="w-3 h-3" />{seller.phone ?? "—"}
-                                {seller.city && <><MapPin className="w-3 h-3 ml-2" />{seller.city}, {seller.region}</>}
-                              </p>
-                              <p className="text-[11px] text-muted-foreground mt-1">
-                                Joined {new Date(seller.created_at).toLocaleDateString("en-GH", { day: "numeric", month: "short", year: "numeric" })}
-                                {" · "}{seller.listing_count ?? 0} listing{seller.listing_count !== 1 ? "s" : ""}
-                              </p>
+                              <p className="font-display font-bold">{app.store_name}</p>
+                              <p className="text-xs text-muted-foreground mt-0.5">by {app.applicant_name ?? "—"} · {app.applicant_email ?? ""}</p>
                             </div>
                             <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20 whitespace-nowrap">
-                              Unverified
+                              Pending Review
                             </span>
+                          </div>
+                          {/* Description */}
+                          <p className="text-sm text-muted-foreground leading-relaxed border-t border-amber-500/10 pt-3">{app.store_description}</p>
+                          {/* Details grid */}
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <Phone className="w-3 h-3" /> {app.phone}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <Phone className="w-3 h-3 text-green-600" /> MoMo: {app.momo_number}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <MapPin className="w-3 h-3" /> {app.city}, {app.region}
+                            </div>
+                            {app.instagram && (
+                              <div className="flex items-center gap-1.5 text-muted-foreground">
+                                <span className="font-bold">@</span> {app.instagram}
+                              </div>
+                            )}
+                            {app.website && (
+                              <div className="col-span-2 flex items-center gap-1.5 text-muted-foreground truncate">
+                                <span className="font-bold">🌐</span>
+                                <a href={app.website} target="_blank" rel="noreferrer" className="underline truncate">{app.website}</a>
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground">
+                            Submitted {new Date(app.submitted_at).toLocaleDateString("en-GH", { day: "numeric", month: "short", year: "numeric" })}
+                          </p>
+                          {/* Actions */}
+                          <div className="flex gap-2 pt-1">
+                            <button
+                              onClick={() => handleAppAction(app.id, app.user_id, "approve")}
+                              disabled={appActionLoading[app.id]}
+                              className="flex-1 py-2 rounded-xl bg-green-500 text-white text-xs font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
+                            >
+                              {appActionLoading[app.id] ? "…" : "✓ Approve"}
+                            </button>
+                            <button
+                              onClick={() => handleAppAction(app.id, app.user_id, "reject")}
+                              disabled={appActionLoading[app.id]}
+                              className="flex-1 py-2 rounded-xl bg-red-500/10 text-red-600 border border-red-500/20 text-xs font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
+                            >
+                              ✕ Reject
+                            </button>
                           </div>
                         </motion.div>
                       ))}

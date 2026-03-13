@@ -7,7 +7,7 @@ import {
   MapPin, Eye, Pencil, Trash2, Plus, CheckCircle, ArrowRight, LogOut,
   Store, Tag, Package, Phone, Zap, Star, Sparkles, BadgeCheck,
   Bell, ShieldCheck, Shield, Lock, Trash, ChevronRight, MessageCircle, BarChart2, Share,
-  Camera, Type, DollarSign, Ruler, X, AlertTriangle, Wallet, CreditCard, ChevronDown,
+  Camera, Type, DollarSign, Ruler, X, AlertTriangle, Wallet, CreditCard, ChevronDown, Clock,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
