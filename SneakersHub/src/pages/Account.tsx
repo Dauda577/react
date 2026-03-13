@@ -278,7 +278,9 @@ const Account = () => {
   const [editMode, setEditMode]   = useState(false);
 
   const role = user?.role ?? "buyer";
-  const tabs = isGuest ? guestTabs : role === "seller" ? sellerTabs : buyerTabs;
+  const canSell = user?.isSeller ?? role === "seller";
+  const canBuy  = user?.isBuyer  ?? true;
+  const tabs = isGuest ? guestTabs : canSell ? sellerTabs : buyerTabs;
 
   const { saved, toggleSaved } = useSaved();
   const { orders, unseenCount, markOrdersSeen, confirmAsSeller, confirmAsBuyer, addTracking } = useOrders();
@@ -297,6 +299,7 @@ const Account = () => {
   const [trackingInputs, setTrackingInputs] = useState<Record<string, string>>({});
   const [payouts, setPayouts] = useState<any[]>([]);
   const [payoutsLoading, setPayoutsLoading] = useState(false);
+  const [enablingSellingLoading, setEnablingSellingLoading] = useState(false);
   const [savingTracking, setSavingTracking] = useState<Record<string, boolean>>({});
   const [isOfficial,      setIsOfficial]      = useState(false);
   const [showFirstListingBanner, setShowFirstListingBanner] = useState(false);
@@ -845,7 +848,7 @@ const Account = () => {
             {activeTab === "orders" && isGuest && <GuestAuthBanner action="view or place orders" />}
 
             {/* Seller Orders */}
-            {!isGuest && role === "seller" && activeTab === "orders" && (
+            {!isGuest && canSell && activeTab === "orders" && (
               <div>
                 <div className="flex items-center justify-between mb-6">
                   <p className="text-sm text-muted-foreground">{orders.length} {orders.length === 1 ? "order" : "orders"} received</p>
@@ -991,7 +994,7 @@ const Account = () => {
             )}
 
             {/* Buyer Orders */}
-            {!isGuest && role === "buyer" && activeTab === "orders" && (
+            {!isGuest && !canSell && activeTab === "orders" && (
               <div>
                 {orders.length === 0 ? (
                   <div className="text-center py-20">
@@ -1127,7 +1130,7 @@ const Account = () => {
             )}
 
             {/* Seller Listings */}
-            {!isGuest && role === "seller" && activeTab === "listings" && (
+            {!isGuest && canSell && activeTab === "listings" && (
               <div>
                 <AnimatePresence>
                   {showFirstListingBanner && <FirstListingBanner onDismiss={dismissFirstListingBanner} onStart={startFirstListing} />}
@@ -1307,7 +1310,7 @@ const Account = () => {
               </div>
             )}
 
-            {activeTab === "earnings" && role === "seller" && (
+            {activeTab === "earnings" && canSell && (
               <div>
                 {(() => {
                   const totalGross = payouts.reduce((s, p) => s + p.gross_amount, 0);
@@ -1374,12 +1377,40 @@ const Account = () => {
               </div>
             )}
 
-            {activeTab === "analytics" && role === "seller" && !isGuest && <Suspense fallback={<div className="p-8 text-center text-muted-foreground text-sm">Loading analytics...</div>}><SellerDashboard /></Suspense>}
+            {activeTab === "analytics" && canSell && !isGuest && <Suspense fallback={<div className="p-8 text-center text-muted-foreground text-sm">Loading analytics...</div>}><SellerDashboard /></Suspense>}
             {activeTab === "messages" && isGuest && <GuestAuthBanner action="view messages" />}
             {activeTab === "messages" && !isGuest && <MessagesInbox />}
             {activeTab === "settings" && isGuest && <GuestAuthBanner action="access settings" />}
             {activeTab === "settings" && !isGuest && (
               <div className="space-y-6 max-w-lg">
+                {/* Enable selling — shown to pure buyers */}
+                {!canSell && (
+                  <div className="rounded-2xl border border-border overflow-hidden">
+                    <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border bg-muted/20">
+                      <Store className="w-4 h-4 text-primary" />
+                      <p className="font-display font-semibold text-sm">Start Selling</p>
+                    </div>
+                    <div className="px-5 py-5 space-y-4">
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        List your sneakers on SneakersHub. You'll still be able to shop as a buyer — switching between modes is instant from the top bar.
+                      </p>
+                      <button
+                        disabled={enablingSellingLoading}
+                        onClick={async () => {
+                          if (!user?.id) return;
+                          setEnablingSellingLoading(true);
+                          const { error } = await supabase.from("profiles").update({ is_seller: true }).eq("id", user.id);
+                          if (error) { toast.error("Failed to enable selling"); setEnablingSellingLoading(false); return; }
+                          toast.success("Selling enabled! You can now list sneakers.");
+                          window.location.reload();
+                        }}
+                        className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground font-display font-semibold text-sm hover:bg-primary/90 transition-colors disabled:opacity-50">
+                        {enablingSellingLoading ? "Enabling..." : "Enable Selling"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <div className="rounded-2xl border border-border overflow-hidden">
                   <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border bg-muted/20">
                     <Bell className="w-4 h-4 text-primary" />

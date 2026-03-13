@@ -225,8 +225,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!data.user) throw new Error("Signup failed");
     // Upsert profile FIRST, then set user state — avoids race where
     // onAuthStateChange fires before profile row exists
-    await supabase.from("profiles").upsert({ id: data.user.id, name, role, phone });
-    const newUser: User = { id: data.user.id, name, email, role };
+    await supabase.from("profiles").upsert({ id: data.user.id, name, role, phone, is_seller: role === "seller" });
+    const newUser: User = { id: data.user.id, name, email, role, isBuyer: true, isSeller: role === "seller" };
     setUser(newUser);
     setNeedsRole(false);
     setPendingSession(null);

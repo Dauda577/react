@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Mail, Lock, User, Tag, Store, ArrowRight, CheckCircle, AlertCircle, Phone } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, ArrowRight, CheckCircle, AlertCircle, Phone } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -20,7 +20,6 @@ const GoogleIcon = () => (
 
 const Auth = () => {
   const [mode, setMode] = useState<Mode>("login");
-  const [role, setRole] = useState<"buyer" | "seller">("buyer");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -54,8 +53,8 @@ const Auth = () => {
         await login(form.email, form.password);
         toast.success("Welcome back!");
       } else {
-        await signup(form.name, form.email, form.password, role, form.phone);
-        toast.success(`${role === "buyer" ? "Buyer" : "Seller"} account created!`);
+        await signup(form.name, form.email, form.password, "buyer", form.phone);
+        toast.success("Account created! Welcome to SneakersHub.");
       }
       afterAuth("/");
     } catch (err: any) {
@@ -118,13 +117,13 @@ const Auth = () => {
         <div className="relative z-10 w-full max-w-md px-6 py-10">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
             <p className="text-primary font-display text-xs font-semibold uppercase tracking-[0.3em] mb-2">One last step</p>
-            <h1 className="font-display text-3xl font-bold tracking-tighter">How will you use SneakersHub?</h1>
-            <p className="text-muted-foreground text-sm mt-2">Your account type is permanent and can't be changed later.</p>
+            <h1 className="font-display text-3xl font-bold tracking-tighter">Almost there!</h1>
+            <p className="text-muted-foreground text-sm mt-2">Just add your phone number to complete your account.</p>
           </motion.div>
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
             className="rounded-2xl border border-border bg-background p-6 shadow-sm space-y-4">
 
-            {/* Phone number — required for Google users too */}
+            {/* Phone number */}
             <div>
               <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
                 Phone Number <span className="text-primary">*</span>
@@ -138,28 +137,14 @@ const Auth = () => {
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
                 />
               </div>
-              <p className="text-xs text-muted-foreground mt-1.5">Used for order & message SMS alerts.</p>
+              <p className="text-xs text-muted-foreground mt-1.5">Used for order notifications.</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              {([
-                { value: "buyer", label: "Buy Sneakers", icon: Tag, desc: "Browse & purchase from sellers" },
-                { value: "seller", label: "Sell Sneakers", icon: Store, desc: "List & manage your inventory" },
-              ] as const).map(({ value, label, icon: Icon, desc }) => (
-                <button key={value} onClick={() => handleAssignRole(value)}
-                  className="flex flex-col items-start gap-1 p-4 rounded-xl border border-border hover:border-primary hover:bg-primary/5 text-left transition-all duration-200 group">
-                  <Icon className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors mb-1" />
-                  <p className="text-sm font-display font-semibold">{label}</p>
-                  <p className="text-xs text-muted-foreground">{desc}</p>
-                </button>
-              ))}
-            </div>
-            <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
-              <AlertCircle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-amber-600 leading-relaxed">
-                Buyers and sellers use <span className="font-semibold">separate accounts</span>. Choose carefully — this cannot be changed.
-              </p>
-            </div>
+            <button onClick={() => handleAssignRole("buyer")}
+              className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-display font-semibold text-sm hover:bg-primary/90 transition-colors">
+              Continue to SneakersHub
+            </button>
+            <p className="text-xs text-muted-foreground text-center">You can start selling anytime from your Account settings.</p>
           </motion.div>
         </div>
         <InstallPrompt triggerAfterAuth={triggerInstall} />
@@ -321,34 +306,7 @@ const Auth = () => {
                     </div>
                   )}
 
-                  {mode === "signup" && (
-                    <div>
-                      <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-2">I want to</label>
-                      <div className="grid grid-cols-2 gap-2 mb-3">
-                        {([
-                          { value: "buyer", label: "Buy Sneakers", icon: Tag, desc: "Browse & purchase" },
-                          { value: "seller", label: "Sell Sneakers", icon: Store, desc: "List & manage" },
-                        ] as const).map(({ value, label, icon: Icon, desc }) => (
-                          <button key={value} onClick={() => setRole(value)}
-                            className={`flex flex-col items-start gap-1 p-3.5 rounded-xl border text-left transition-all duration-200
-                              ${role === value ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}>
-                            <div className="flex items-center justify-between w-full">
-                              <Icon className={`w-4 h-4 ${role === value ? "text-primary" : "text-muted-foreground"}`} />
-                              {role === value && <CheckCircle className="w-3.5 h-3.5 text-primary" />}
-                            </div>
-                            <p className={`text-sm font-display font-semibold mt-1 ${role === value ? "text-foreground" : "text-muted-foreground"}`}>{label}</p>
-                            <p className="text-xs text-muted-foreground">{desc}</p>
-                          </button>
-                        ))}
-                      </div>
-                      <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                        <AlertCircle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
-                        <p className="text-xs text-amber-600 leading-relaxed">
-                          Your account type is <span className="font-semibold">permanent</span>. Choose carefully.
-                        </p>
-                      </div>
-                    </div>
-                  )}
+
 
                   {mode === "login" && (
                     <div className="text-right">
