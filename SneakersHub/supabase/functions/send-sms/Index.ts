@@ -30,14 +30,12 @@ async function getPhone(userId: string): Promise<string | null> {
 async function sendSMS(to: string, message: string) {
   let phone = to.replace(/\s+/g, "").replace(/^\+/, "").replace(/^233/, "").replace(/^0/, "");
   phone = `233${phone}`;
-  console.log("Sending to:", phone);
   const res = await fetch("https://sms.arkesel.com/api/v2/sms/send", {
     method: "POST",
     headers: { "api-key": ARKESEL_API_KEY, "Content-Type": "application/json" },
     body: JSON.stringify({ sender: "SneakersHub", message, recipients: [phone] }),
   });
   const data = await res.json();
-  console.log("Arkesel response:", JSON.stringify(data));
   return data;
 }
 
@@ -61,9 +59,22 @@ function formatItems(items: any[]): string {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // ── Internal auth: must be called from Supabase edge functions or server ──
+  const internalSecret = req.headers.get("x-internal-secret");
+  const expectedSecret = Deno.env.get("INTERNAL_SECRET");
+  if (expectedSecret && internalSecret !== expectedSecret) {
+    // Also allow service-role JWT calls
+    const authHeader = req.headers.get("authorization") ?? "";
+    if (!authHeader.includes("Bearer")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }
+
+
   try {
     const { type, record } = await req.json();
-    console.log("Event type:", type, "Record:", JSON.stringify(record));
 
     if (type === "order.created") {
       const phone = await getPhone(record.seller_id);
@@ -144,6 +155,21 @@ serve(async (req) => {
       }
     }
 
+
+
+    if (type === "application.approved") {
+      const phone = record.momo_number ?? await getPhone(record.user_id);
+      if (phone) await sendSMS(phone,
+        `SneakersHub: Great news! Your seller application for "${record.store_name}" has been approved. Log in to your account and pay the GHS 50 verification fee to activate your seller dashboard. sneakershub.site/account`
+      );
+    }
+
+    if (type === "application.rejected") {
+      const phone = record.momo_number ?? await getPhone(record.user_id);
+      if (phone) await sendSMS(phone,
+        `SneakersHub: Your seller application for "${record.store_name}" was not approved at this time. You're welcome to re-apply with more details. sneakershub.site/account`
+      );
+    }
 
     if (type === "listing.created") {
       const phone = await getPhone(record.seller_id);

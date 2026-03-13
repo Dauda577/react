@@ -25,7 +25,7 @@ const SellerDashboard = lazy(() => import("@/components/SellerDashboard"));
 import { usePush } from "@/context/PushContext";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import BecomeSellerDrawer from "@/components/Becomesellerdrawer";
+import BecomeSellerDrawer from "@/components/BecomeSellerDrawer";
 
 const isSafari = () =>
   typeof navigator !== "undefined" &&
@@ -273,16 +273,116 @@ const ghanaRegions = [
 
 
 // ── Seller Application Status Card ───────────────────────────────────────────
-const SellerApplicationStatus = ({ userId, onGoToSettings }: { userId?: string; onGoToSettings?: () => void }) => {
+const SellerApplicationStatus = ({ userId, userEmail, onActivated }: {
+  userId?: string;
+  userEmail?: string;
+  onActivated?: () => void;
+}) => {
   const [status, setStatus] = useState<string | null>(null);
+  const [appData, setAppData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [paying, setPaying] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
     if (!userId) { setLoading(false); return; }
-    supabase.from("seller_applications").select("status").eq("user_id", userId).maybeSingle()
-      .then(({ data }) => { setStatus(data?.status ?? null); setLoading(false); });
+    supabase.from("seller_applications")
+      .select("status, store_name, momo_number, momo_name")
+      .eq("user_id", userId)
+      .order("submitted_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => { setAppData(data); setStatus(data?.status ?? null); setLoading(false); });
   }, [userId]);
+
+  const handlePay = async () => {
+    if (!userId || !userEmail || !appData) return;
+    setPaying(true);
+    try {
+      // Load Paystack script
+      await new Promise<void>((resolve) => {
+        if ((window as any).PaystackPop) { resolve(); return; }
+        const s = document.createElement("script");
+        s.src = "https://js.paystack.co/v1/inline.js";
+        s.onload = () => resolve();
+        document.head.appendChild(s);
+      });
+
+      const PaystackPop = (window as any).PaystackPop;
+      if (!PaystackPop) throw new Error("Payment SDK not available");
+
+      const ref = `verify_${Date.now()}_${userId.slice(0, 6)}`;
+
+      const handler = PaystackPop.setup({
+        key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY ?? "pk_live_9e1705a04e21f148e758dc11c1e920ed6393702b",
+        email: userEmail,
+        amount: 5000, // GHS 50 in pesewas
+        currency: "GHS",
+        ref,
+        channels: ["card", "mobile_money"],
+        metadata: { custom_fields: [{ display_name: "Purpose", variable_name: "purpose", value: "seller_verification" }] },
+        callback: (response: { reference: string }) => {
+          const ref = response.reference;
+          setTimeout(async () => {
+            try {
+              const { data: { session } } = await supabase.auth.getSession();
+              // Detect MoMo network from number
+              const num = appData.momo_number?.replace(/\D/g, "").replace(/^0/, "").replace(/^233/, "");
+              const settlementBank = num?.startsWith("50") ? "VOD"
+                : (num?.startsWith("26") || num?.startsWith("27")) ? "ATL"
+                : "MTN";
+
+              const res = await fetch(
+                `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-subaccount`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${session?.access_token}`,
+                    "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+                  },
+                  body: JSON.stringify({
+                    seller_id: userId,
+                    paystack_reference: ref,
+                    settlement_bank: settlementBank,
+                    account_number: appData.momo_number,
+                    account_name: appData.momo_name,
+                    percentage_charge: 5,
+                  }),
+                }
+              );
+              const result = await res.json();
+              if (result.success) {
+                // Mark application as paid/complete
+                await supabase.from("seller_applications")
+                  .update({ status: "paid" })
+                  .eq("user_id", userId);
+                setStatus("paid");
+                toast.success("🎉 You're now a verified seller! Refresh to access your seller dashboard.", { duration: 8000 });
+                onActivated?.();
+                // Force full page reload after short delay to reload auth state
+                setTimeout(() => window.location.reload(), 2000);
+              } else {
+                throw new Error(result.error ?? "Verification failed");
+              }
+            } catch (err: any) {
+              toast.error(err.message ?? `Payment went through but setup failed. Contact support with ref: ${ref}`, { duration: 10000 });
+            } finally {
+              setPaying(false);
+            }
+          }, 0);
+        },
+        onClose: () => {
+          setPaying(false);
+          toast("Payment cancelled — tap the button again when you're ready.");
+        },
+      });
+      handler.openIframe();
+    } catch (err: any) {
+      toast.error(err.message ?? "Could not start payment");
+      setPaying(false);
+    }
+  };
 
   if (loading) return null;
 
@@ -313,30 +413,41 @@ const SellerApplicationStatus = ({ userId, onGoToSettings }: { userId?: string; 
             <div>
               <p className="font-semibold text-sm">Application Under Review</p>
               <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                Our team is reviewing your store details. You'll be notified within 24 hours. Once approved, you'll need to pay the GHS 50 verification fee to activate your seller account.
+                Our team is reviewing your store details. You'll be notified by SMS once approved — usually within 24 hours.
               </p>
             </div>
           </div>
         )}
         {status === "approved" && (
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-              <CheckCircle className="w-4 h-4 text-green-500" />
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+                <CheckCircle className="w-4 h-4 text-green-500" />
+              </div>
+              <div>
+                <p className="font-semibold text-sm">Application Approved! 🎉</p>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  One last step — pay the GHS 50 one-time verification fee to activate your seller account and start listing.
+                </p>
+              </div>
             </div>
-            <div className="flex-1">
-              <p className="font-semibold text-sm">Application Approved! 🎉</p>
-              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                Pay the one-time GHS 50 verification fee to activate your seller account and start listing.
-              </p>
-              <button
-                onClick={() => onGoToSettings?.()}
-                className="mt-3 w-full py-2 rounded-xl bg-green-500 text-white font-bold text-sm hover:opacity-90 transition-opacity">
-                Pay GHS 50 & Activate →
-              </button>
+            <div className="rounded-xl bg-green-500/5 border border-green-500/20 p-3 text-xs text-green-700 space-y-1">
+              <p>✓ Your sales go directly to: <strong>+233{appData?.momo_number} ({appData?.momo_name})</strong></p>
+              <p>✓ One-time fee, no monthly charges</p>
+              <p>✓ Verified badge on all your listings</p>
             </div>
+            <button
+              onClick={handlePay}
+              disabled={paying}
+              className="w-full py-3 rounded-xl bg-green-500 text-white font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2">
+              {paying
+                ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Processing...</>
+                : <><ShieldCheck className="w-4 h-4" /> Pay GHS 50 & Activate Account</>
+              }
+            </button>
           </div>
         )}
-        {status === "rejected" && (
+        {(status === "rejected") && (
           <div className="flex items-start gap-3">
             <div className="w-9 h-9 rounded-full bg-red-500/10 flex items-center justify-center shrink-0">
               <X className="w-4 h-4 text-red-500" />
@@ -351,6 +462,17 @@ const SellerApplicationStatus = ({ userId, onGoToSettings }: { userId?: string; 
                 className="mt-3 w-full py-2 rounded-xl border border-border text-sm font-semibold hover:bg-muted/30 transition-colors">
                 Re-apply
               </button>
+            </div>
+          </div>
+        )}
+        {status === "paid" && (
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+              <CheckCircle className="w-4 h-4 text-green-500" />
+            </div>
+            <div>
+              <p className="font-semibold text-sm">Setting up your account…</p>
+              <p className="text-xs text-muted-foreground mt-1">Payment received. Refreshing your dashboard…</p>
             </div>
           </div>
         )}
@@ -1387,7 +1509,7 @@ const Account = () => {
             {activeTab === "settings" && !isGuest && (
               <div className="space-y-6 max-w-lg">
                 {/* Become a Seller card — shown to non-sellers */}
-                {!canSell && <SellerApplicationStatus userId={user?.id} onGoToSettings={() => setActiveTab("settings")} />}
+                {!canSell && <SellerApplicationStatus userId={user?.id} userEmail={user?.email} onActivated={() => window.location.reload()} />}
 
                 <div className="rounded-2xl border border-border overflow-hidden">
                   <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border bg-muted/20">

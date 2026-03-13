@@ -209,16 +209,69 @@ const Admin = () => {
   const handleAppAction = async (appId: string, userId: string, action: "approve" | "reject") => {
     setAppActionLoading(l => ({ ...l, [appId]: true }));
     try {
-      await supabase.from("seller_applications").update({ status: action, reviewed_at: new Date().toISOString() }).eq("id", appId);
+      const app = applications.find(a => a.id === appId);
+
+      // 1. Update application status
+      const { error: appError } = await supabase
+        .from("seller_applications")
+        .update({ status: action, reviewed_at: new Date().toISOString() })
+        .eq("id", appId);
+      if (appError) throw new Error(`Application update failed: ${appError.message}`);
+
+      // 2. If approving, flip profile to seller role
       if (action === "approve") {
-        await supabase.from("profiles").update({ is_seller: true, role: "seller" }).eq("id", userId);
-        toast.success("Application approved — seller can now pay the verification fee");
-      } else {
-        toast.success("Application rejected");
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({ is_seller: true, role: "seller" })
+          .eq("id", userId);
+        if (profileError) throw new Error(`Profile update failed: ${profileError.message}`);
       }
+
+      // 3. Send SMS notification
+      const { data: { session } } = await supabase.auth.getSession();
+      const smsUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-sms`;
+      fetch(smsUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token}`,
+          "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          type: action === "approve" ? "application.approved" : "application.rejected",
+          record: app,
+        }),
+      }).catch(console.error);
+
+      // 4. Send push notification
+      const pushUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-push`;
+      fetch(pushUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session?.access_token}`,
+          "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          title: action === "approve" ? "🎉 Application Approved!" : "Application Update",
+          body: action === "approve"
+            ? `Your store "${app?.store_name}" is approved! Pay GHS 50 to activate your seller account.`
+            : `Your application for "${app?.store_name}" was not approved. You can re-apply.`,
+          url: "/account",
+        }),
+      }).catch(console.error);
+
+      // 5. Update local state immediately
+      setApplications(prev => prev.map(a => a.id === appId ? { ...a, status: action } : a));
+      toast.success(action === "approve"
+        ? "✅ Approved — SMS & notification sent to seller"
+        : "Application rejected"
+      );
       fetchSellers();
-    } catch {
-      toast.error("Action failed");
+    } catch (err: any) {
+      toast.error(err.message ?? "Action failed");
+      console.error("handleAppAction error:", err);
     } finally {
       setAppActionLoading(l => ({ ...l, [appId]: false }));
     }
