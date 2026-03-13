@@ -154,7 +154,6 @@ const Footer = () => {
               <p className="text-sm text-muted-foreground leading-relaxed mb-5">
                 Premium sneakers for those who demand the best. Curated collections from top brands.
               </p>
-              {/* WhatsApp */}
               <a href={WHATSAPP} target="_blank" rel="noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-green-500/30 bg-green-500/5
                   text-sm font-medium text-green-600 hover:bg-green-500/10 hover:border-green-500/50 transition-all">
@@ -163,7 +162,6 @@ const Footer = () => {
               </a>
             </div>
 
-            {/* Merged links */}
             <div className="md:col-span-2 grid grid-cols-2 gap-8">
               <div>
                 <h4 className="font-display font-semibold text-sm uppercase tracking-wider mb-4">Quick Links</h4>
@@ -204,8 +202,9 @@ const Footer = () => {
             </div>
           </div>
 
-          <div className="border-t border-border mt-10 pt-6 text-center text-xs text-muted-foreground">
-            © 2026 SneakersHub · Made in Ghana 🇬🇭
+          <div className="border-t border-border mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
+            <span>© 2026 SneakersHub · Made in Ghana 🇬🇭</span>
+            <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
           </div>
         </div>
       </motion.footer>
