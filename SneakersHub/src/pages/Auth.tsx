@@ -44,25 +44,42 @@ const Auth = () => {
   };
 
   const handleSubmit = async () => {
-    if (!form.email || !form.password) { toast.error("Please fill in all fields"); return; }
-    if (mode === "signup" && !form.name) { toast.error("Please enter your name"); return; }
-    if (mode === "signup" && !form.phone) { toast.error("Please enter your phone number"); return; }
-    setLoading(true);
-    try {
-      if (mode === "login") {
-        await login(form.email, form.password);
-        toast.success("Welcome back!");
-      } else {
-        await signup(form.name, form.email, form.password, "buyer", form.phone);
-        toast.success("Account created! Welcome to SneakersHub.");
-      }
+  if (!form.email || !form.password) { toast.error("Please fill in all fields"); return; }
+  if (mode === "signup" && !form.name) { toast.error("Please enter your name"); return; }
+  if (mode === "signup" && !form.phone) { toast.error("Please enter your phone number"); return; }
+  
+  setLoading(true);
+  try {
+    if (mode === "login") {
+      await login(form.email, form.password);
+      toast.success("Welcome back!");
       afterAuth("/");
-    } catch (err: any) {
-      toast.error(err.message ?? "Something went wrong. Please try again.");
-    } finally {
-      setLoading(false);
+    } else {
+      // FIX: Pass as an options object instead of multiple parameters
+      const { error } = await supabase.auth.signUp({
+        email: form.email,
+        password: form.password,
+        options: {
+          data: {
+            name: form.name,
+            phone: form.phone,
+            role: "buyer"
+          }
+        }
+      });
+      
+      if (error) throw error;
+      
+      toast.success("Account created! Please check your email for confirmation.");
+      // Don't redirect immediately - they need to confirm email
+      // afterAuth("/"); // Remove this line
     }
-  };
+  } catch (err: any) {
+    toast.error(err.message ?? "Something went wrong. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleForgotPassword = async () => {
     if (!form.email) { toast.error("Enter your email address first"); return; }
