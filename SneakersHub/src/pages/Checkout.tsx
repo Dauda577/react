@@ -227,24 +227,6 @@ export default function Checkout() {
     });
   };
 
-  const advanceOrFinish = (group: SellerGroup) => {
-    const newCompleted = [...completedGroups, group.sellerId];
-    setCompletedGroups(newCompleted);
-    if (currentGroupIndex + 1 < sellerGroups.length) {
-      setCurrentGroupIndex((i) => i + 1);
-      setLoading(false);
-    } else {
-      clearCart();
-      navigate("/order-confirmation", {
-        state: {
-          buyerName: `${form.firstName} ${form.lastName}`.trim(),
-          total: totalPrice,
-          paystackReference: undefined,
-        },
-      });
-    }
-  };
-
   const handlePaystackPayment = async (group: SellerGroup) => {
     setLoading(true);
     try {
@@ -275,8 +257,24 @@ export default function Checkout() {
         callback: (response: { reference: string }) => {
           paymentCompleted = true;
           toast.success(tier === "official" ? "Payment received — Official order placed!" : "Payment received");
+          
+          // Don't navigate immediately - wait for order to save
           submitGroupOrder(group, response.reference)
-            .then(() => advanceOrFinish(group))
+            .then(() => {
+              // Only advance after order is confirmed saved
+              const newCompleted = [...completedGroups, group.sellerId];
+              setCompletedGroups(newCompleted);
+              
+              if (currentGroupIndex + 1 < sellerGroups.length) {
+                // Move to next seller
+                setCurrentGroupIndex((i) => i + 1);
+                setLoading(false);
+              } else {
+                // All done - clear cart and navigate
+                clearCart();
+                navigate(`/order-confirmation?reference=${response.reference}`);
+              }
+            })
             .catch((err) => {
               console.error("Order placement failed after payment:", err);
               toast.error("Payment received but order failed to save. Contact support with ref: " + response.reference);
@@ -306,7 +304,16 @@ export default function Checkout() {
     setLoading(true);
     try {
       await submitGroupOrder(group);
-      advanceOrFinish(group);
+      const newCompleted = [...completedGroups, group.sellerId];
+      setCompletedGroups(newCompleted);
+      
+      if (currentGroupIndex + 1 < sellerGroups.length) {
+        setCurrentGroupIndex((i) => i + 1);
+        setLoading(false);
+      } else {
+        clearCart();
+        navigate("/order-confirmation");
+      }
     } catch (err: any) {
       toast.error(err.message ?? "Order failed. Please try again.");
       setLoading(false);
