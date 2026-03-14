@@ -218,21 +218,68 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signup = async (name: string, email: string, password: string, role: "buyer" | "seller", phone: string) => {
+  try {
+    // First, create the auth user
     const { data, error } = await supabase.auth.signUp({
-      email, password,
-      options: { data: { name, role } },
+      email, 
+      password,
+      options: { 
+        data: { 
+          name, 
+          role,
+          phone // Include phone in metadata as backup
+        } 
+      },
     });
+    
     if (error) throw new Error(error.message);
     if (!data.user) throw new Error("Signup failed");
-    // Upsert profile FIRST, then set user state — avoids race where
-    // onAuthStateChange fires before profile row exists
-    await supabase.from("profiles").upsert({ id: data.user.id, name, role, phone, is_seller: role === "seller" });
-    const newUser: User = { id: data.user.id, name, email, role, isBuyer: true, isSeller: role === "seller", sellerAppStatus: "none" };
+    
+    // Small delay to ensure auth user is fully created
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Then create the profile with ALL required fields
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .insert({
+        id: data.user.id,
+        name: name,
+        email: email,
+        role: role,
+        phone: phone,
+        is_seller: role === "seller",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+    
+    if (profileError) {
+      console.error("Profile creation error:", profileError);
+      
+      // If profile creation fails, clean up the auth user
+      await supabase.auth.admin.deleteUser(data.user.id).catch(() => {});
+      throw new Error(profileError.message);
+    }
+    
+    const newUser: User = { 
+      id: data.user.id, 
+      name, 
+      email, 
+      role, 
+      isBuyer: true, 
+      isSeller: role === "seller", 
+      sellerAppStatus: "none" 
+    };
+    
     setUser(newUser);
     setNeedsRole(false);
     setPendingSession(null);
     setIsGuest(false);
-  };
+    
+  } catch (err: any) {
+    console.error("Signup error:", err);
+    throw err;
+  }
+};
 
   const signInWithGoogle = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
