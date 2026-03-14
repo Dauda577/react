@@ -356,7 +356,7 @@ const SellerApplicationStatus = ({ userId, userEmail, onActivated }: {
       const handler = PaystackPop.setup({
         key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY ?? "pk_live_9e1705a04e21f148e758dc11c1e920ed6393702b",
         email: userEmail,
-        amount: 5000, // GHS 50 in pesewas
+        amount: 100, // CHANGED: GHS 1 in pesewas (was 5000 for GHS 50)
         currency: "GHS",
         ref,
         channels: ["card", "mobile_money"],
@@ -481,7 +481,7 @@ const SellerApplicationStatus = ({ userId, userEmail, onActivated }: {
               <div>
                 <p className="font-semibold text-sm">Application Approved! 🎉</p>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  One last step — pay the GHS 50 one-time verification fee to activate your seller account and start listing.
+                  One last step — pay the GHS 1 one-time verification fee to activate your seller account and start listing.
                 </p>
               </div>
             </div>
@@ -496,7 +496,7 @@ const SellerApplicationStatus = ({ userId, userEmail, onActivated }: {
               className="w-full py-3 rounded-xl bg-green-500 text-white font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2">
               {paying
                 ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Processing...</>
-                : <><ShieldCheck className="w-4 h-4" /> Pay GHS 50 & Activate Account</>
+                : <><ShieldCheck className="w-4 h-4" /> Pay GHS 1 & Activate Account</>
               }
             </button>
           </div>
@@ -895,7 +895,7 @@ const Account = () => {
                           <ShieldCheck className="w-4 h-4 text-green-500" />
                         </div>
                         <div className="flex-1">
-                          <p className="font-display font-semibold text-sm text-green-700 dark:text-green-400 mb-1">Get Verified — GHS 50 one-time fee</p>
+                          <p className="font-display font-semibold text-sm text-green-700 dark:text-green-400 mb-1">Get Verified — GHS 1 one-time fee</p>
                           <p className="text-xs text-muted-foreground leading-relaxed mb-3">
                             Verified sellers get a ✅ badge, Paystack split payments (buyers pay you directly), and significantly more sales.
                           </p>
@@ -910,7 +910,7 @@ const Account = () => {
                               setShowVerifyTerms(true);
                             }}
                             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-green-500 text-white text-xs font-semibold hover:bg-green-600 transition-colors disabled:opacity-60">
-                            {verificationLoading ? <><span className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" /> Processing...</> : <><ShieldCheck className="w-3.5 h-3.5" /> Pay GHS 50 to Get Verified</>}
+                            {verificationLoading ? <><span className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" /> Processing...</> : <><ShieldCheck className="w-3.5 h-3.5" /> Pay GHS 1 to Get Verified</>}
                           </button>
                           <p className="text-[11px] text-muted-foreground mt-2">Make sure your payout details are saved in Settings before paying.</p>
                         </div>
@@ -932,7 +932,7 @@ const Account = () => {
                             <p className="flex items-start gap-2"><span className="text-green-500 flex-shrink-0">✓</span><span><span className="font-semibold text-foreground">Confirm & ship all orders.</span> Buyers pay upfront — you must dispatch every order on time or risk suspension.</span></p>
                             <p className="flex items-start gap-2"><span className="text-green-500 flex-shrink-0">✓</span><span><span className="font-semibold text-foreground">Powered by Paystack.</span> SneakersHub never holds your money — Paystack processes all payments securely.</span></p>
                             <p className="flex items-start gap-2"><span className="text-green-500 flex-shrink-0">✓</span><span><span className="font-semibold text-foreground">Payout within 24 hours.</span> 95% of each sale goes directly to your MoMo/bank after dispatch.</span></p>
-                            <p className="flex items-start gap-2"><span className="text-amber-500 flex-shrink-0">!</span><span>The GHS 50 fee is a <span className="font-semibold text-foreground">one-time, non-refundable</span> subaccount setup charge.</span></p>
+                            <p className="flex items-start gap-2"><span className="text-amber-500 flex-shrink-0">!</span><span>The GHS 1 fee is a <span className="font-semibold text-foreground">one-time, non-refundable</span> subaccount setup charge.</span></p>
                           </div>
 
                           <div className="flex gap-2">
@@ -974,7 +974,7 @@ const Account = () => {
                                 const handler = PaystackPop.setup({
                                   key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY ?? "pk_live_9e1705a04e21f148e758dc11c1e920ed6393702b",
                                   email: user.email,
-                                  amount: 100, // GHS 50 in pesewas
+                                  amount: 100, // CHANGED: GHS 1 in pesewas (was 5000 for GHS 50)
                                   currency: "GHS",
                                   ref,
                                   channels: ["card", "mobile_money"],
@@ -1043,7 +1043,7 @@ const Account = () => {
                               }
                             }}
                               className="flex-1 py-2 rounded-xl bg-green-500 text-white text-xs font-semibold hover:bg-green-600 transition-colors disabled:opacity-60 inline-flex items-center justify-center gap-2">
-                              {verificationLoading ? <><span className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" /> Processing...</> : <><ShieldCheck className="w-4 h-4" /> I Accept — Pay GHS 50</>}
+                              {verificationLoading ? <><span className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" /> Processing...</> : <><ShieldCheck className="w-4 h-4" /> I Accept — Pay GHS 1</>}
                             </button>
                           </div>
                         </motion.div>
