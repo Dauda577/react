@@ -265,30 +265,29 @@ function ensurePaystackScript(): Promise<void> {
   });
 }
 
-// Fix Paystack iframe rendering on iOS PWA — iframe uses fixed positioning that
-// gets clipped by the PWA viewport. This overrides it to fill the screen properly.
+// Fix Paystack iframe rendering on iOS PWA — only apply in standalone mode
 const injectPaystackPWAFix = () => {
+  // Only apply in standalone/PWA mode
+  if (!isStandalone()) return;
+  
   const id = "paystack-pwa-fix";
   if (document.getElementById(id)) return;
   const style = document.createElement("style");
   style.id = id;
   style.textContent = `
-    div[id^="paystack-iframe-container"],
-    iframe[src*="paystack"] {
+    div[id^="paystack-iframe-container"] {
       position: fixed !important;
-      top: 0 !important;
-      left: 0 !important;
-      width: 100vw !important;
-      height: 100vh !important;
-      height: 100dvh !important;
-      z-index: 99999 !important;
-      border: none !important;
-    }
-    .paystack-modal-overlay, [class*="paystack"] > div {
       top: 0 !important;
       left: 0 !important;
       width: 100% !important;
       height: 100% !important;
+      z-index: 99999 !important;
+      border: none !important;
+    }
+    body.paystack-open {
+      overflow: hidden !important;
+      position: fixed !important;
+      width: 100% !important;
     }
   `;
   document.head.appendChild(style);
@@ -328,19 +327,31 @@ const SellerApplicationStatus = ({ userId, userEmail, onActivated }: {
     if (!userId || !userEmail || !appData) return;
     setPaying(true);
     try {
-      // Load Paystack script
-      await new Promise<void>((resolve) => {
-        if ((window as any).PaystackPop) { resolve(); return; }
-        const s = document.createElement("script");
-        s.src = "https://js.paystack.co/v1/inline.js";
-        s.onload = () => resolve();
-        document.head.appendChild(s);
-      });
+      // Clean up any stuck Paystack instances
+      const existing = document.querySelectorAll('div[id^="paystack-iframe-container"]');
+      existing.forEach(el => el.remove());
+      
+      // Remove body classes that might be stuck
+      document.body.classList.remove('paystack-open');
+      
+      // Use the existing helper instead of inline script loading
+      await ensurePaystackScript();
 
       const PaystackPop = (window as any).PaystackPop;
       if (!PaystackPop) throw new Error("Payment SDK not available");
 
       const ref = `verify_${Date.now()}_${userId.slice(0, 6)}`;
+      
+      // Only apply PWA fix when in standalone mode
+      if (isStandalone()) {
+        injectPaystackPWAFix();
+      }
+      
+      // On mobile, ensure viewport is stable
+      if (window.innerWidth < 768) {
+        document.body.style.overflow = 'hidden';
+        document.body.classList.add('paystack-open');
+      }
 
       const handler = PaystackPop.setup({
         key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY ?? "pk_live_9e1705a04e21f148e758dc11c1e920ed6393702b",
@@ -351,6 +362,10 @@ const SellerApplicationStatus = ({ userId, userEmail, onActivated }: {
         channels: ["card", "mobile_money"],
         metadata: { custom_fields: [{ display_name: "Purpose", variable_name: "purpose", value: "seller_verification" }] },
         callback: (response: { reference: string }) => {
+          // Restore body scrolling
+          document.body.style.overflow = '';
+          document.body.classList.remove('paystack-open');
+          
           const ref = response.reference;
           setTimeout(async () => {
             try {
@@ -402,15 +417,22 @@ const SellerApplicationStatus = ({ userId, userEmail, onActivated }: {
           }, 0);
         },
         onClose: () => {
+          // Restore body scrolling
+          document.body.style.overflow = '';
+          document.body.classList.remove('paystack-open');
+          
           setPaying(false);
           toast("Payment cancelled — tap the button again when you're ready.");
         },
       });
-      // Inject CSS fix for Paystack iframe on iOS PWA before opening
-      injectPaystackPWAFix();
-      window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
-      setTimeout(() => handler.openIframe(), 100);
+      
+      // Increased delay to let scroll settle
+      setTimeout(() => handler.openIframe(), 300);
     } catch (err: any) {
+      // Restore body scrolling on error
+      document.body.style.overflow = '';
+      document.body.classList.remove('paystack-open');
+      
       toast.error(err.message ?? "Could not start payment");
       setPaying(false);
     }
@@ -929,10 +951,25 @@ const Account = () => {
                                   : "MTN";
                               setVerificationLoading(true);
                               try {
+                                // Use the existing helper instead of inline script loading
                                 await ensurePaystackScript();
+                                
                                 const PaystackPop = (window as any).PaystackPop;
                                 if (!PaystackPop) throw new Error("Payment SDK not available");
+                                
                                 const ref = `verify_${Date.now()}_${user.id.slice(0, 6)}`;
+                                
+                                // Only apply PWA fix when in standalone mode
+                                if (isStandalone()) {
+                                  injectPaystackPWAFix();
+                                }
+                                
+                                // On mobile, ensure viewport is stable
+                                if (window.innerWidth < 768) {
+                                  document.body.style.overflow = 'hidden';
+                                  document.body.classList.add('paystack-open');
+                                }
+
                                 const handler = PaystackPop.setup({
                                   key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY ?? "pk_live_9e1705a04e21f148e758dc11c1e920ed6393702b",
                                   email: user.email,
@@ -942,7 +979,10 @@ const Account = () => {
                                   channels: ["card", "mobile_money"],
                                   metadata: { custom_fields: [{ display_name: "Purpose", variable_name: "purpose", value: "seller_verification" }] },
                                   callback: (response: { reference: string }) => {
-                                    // Paystack requires a sync callback — run async work outside
+                                    // Restore body scrolling
+                                    document.body.style.overflow = '';
+                                    document.body.classList.remove('paystack-open');
+                                    
                                     const ref = response.reference;
                                     setTimeout(async () => {
                                       try {
@@ -981,15 +1021,22 @@ const Account = () => {
                                     }, 0);
                                   },
                                   onClose: () => {
+                                    // Restore body scrolling
+                                    document.body.style.overflow = '';
+                                    document.body.classList.remove('paystack-open');
+                                    
                                     setVerificationLoading(false);
                                     toast("Payment cancelled — tap the button again when you're ready.");
                                   },
                                 });
-                                // Inject CSS fix for Paystack iframe on iOS PWA before opening
-                                injectPaystackPWAFix();
-                                window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
-                                setTimeout(() => handler.openIframe(), 100);
+                                
+                                // Increased delay to let scroll settle
+                                setTimeout(() => handler.openIframe(), 300);
                               } catch (err: any) {
+                                // Restore body scrolling on error
+                                document.body.style.overflow = '';
+                                document.body.classList.remove('paystack-open');
+                                
                                 toast.error(err.message ?? "Payment error");
                                 setVerificationLoading(false);
                               }
