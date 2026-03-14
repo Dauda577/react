@@ -217,7 +217,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsGuest(false);
   };
 
-  // ── FIXED SIGNUP FUNCTION ─────────────────────────────────────────────────
+  // ── FIXED SIGNUP FUNCTION (no admin.deleteUser) ───────────────────────────
   const signup = async (name: string, email: string, password: string, role: "buyer" | "seller", phone: string) => {
     try {
       // First, create the auth user
@@ -256,8 +256,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (profileError) {
         console.error("Profile creation error:", profileError);
         
-        // If profile creation fails, clean up the auth user
-        await supabase.auth.admin.deleteUser(data.user.id).catch(() => {});
+        // Can't use admin.deleteUser on client - just show the error
+        // The user will exist but without a profile - they'll be prompted to complete setup
         throw new Error(profileError.message);
       }
       
