@@ -99,7 +99,7 @@ const Index = () => {
               </motion.div>
 
               <h1 className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold leading-[0.9] tracking-tighter">
-                Step Into<br /><span className="text-gradient">The Future</span>
+                The Sneaker<br /><span className="text-gradient">Marketplace for Ghana</span>
               </h1>
               <p className="text-muted-foreground mt-6 text-base md:text-lg max-w-md leading-relaxed">
                 Discover premium sneakers from verified Ghanaian sellers. Buyer-protected, authenticity-first.
