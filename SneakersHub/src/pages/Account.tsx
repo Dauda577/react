@@ -356,7 +356,7 @@ const SellerApplicationStatus = ({ userId, userEmail, onActivated }: {
       const handler = PaystackPop.setup({
         key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY ?? "pk_live_9e1705a04e21f148e758dc11c1e920ed6393702b",
         email: userEmail,
-        amount: 100, // CHANGED: GHS 1 in pesewas (was 5000 for GHS 50)
+        amount: 5000, // CHANGED BACK TO GHS 50 (5000 pesewas)
         currency: "GHS",
         ref,
         channels: ["card", "mobile_money"],
@@ -402,17 +402,16 @@ const SellerApplicationStatus = ({ userId, userEmail, onActivated }: {
                   .update({ status: "paid" })
                   .eq("user_id", userId);
 
-                   // ✅ IMPORTANT: Update the user's role in profiles table
-        await supabase
-          .from("profiles")
-          .update({ 
-            role: "seller",
-            is_seller: true,
-            verified: true 
-          })
-          .eq("id", userId);
-
-          
+                // Update the user's role in profiles table
+                await supabase
+                  .from("profiles")
+                  .update({ 
+                    role: "seller",
+                    is_seller: true,
+                    verified: true 
+                  })
+                  .eq("id", userId);
+                
                 setStatus("paid");
                 toast.success("🎉 You're now a verified seller! Refresh to access your seller dashboard.", { duration: 8000 });
                 onActivated?.();
@@ -493,7 +492,7 @@ const SellerApplicationStatus = ({ userId, userEmail, onActivated }: {
               <div>
                 <p className="font-semibold text-sm">Application Approved! 🎉</p>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  One last step — pay the GHS 1 one-time verification fee to activate your seller account and start listing.
+                  One last step — pay the GHS 50 one-time verification fee to activate your seller account and start listing.
                 </p>
               </div>
             </div>
@@ -508,7 +507,7 @@ const SellerApplicationStatus = ({ userId, userEmail, onActivated }: {
               className="w-full py-3 rounded-xl bg-green-500 text-white font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2">
               {paying
                 ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Processing...</>
-                : <><ShieldCheck className="w-4 h-4" /> Pay GHS 1 & Activate Account</>
+                : <><ShieldCheck className="w-4 h-4" /> Pay GHS 50 & Activate Account</>
               }
             </button>
           </div>
@@ -573,7 +572,6 @@ const Account = () => {
   const [isVerified,          setIsVerified]          = useState(false);
   const [subaccountCode,      setSubaccountCode]      = useState<string | null>(null);
   const [verificationLoading, setVerificationLoading] = useState(false);
-  const [showVerifyTerms, setShowVerifyTerms] = useState(false);
   const [trackingInputs, setTrackingInputs] = useState<Record<string, string>>({});
   const [savingTracking, setSavingTracking] = useState<Record<string, boolean>>({});
   const [isOfficial,      setIsOfficial]      = useState(false);
@@ -907,7 +905,7 @@ const Account = () => {
                           <ShieldCheck className="w-4 h-4 text-green-500" />
                         </div>
                         <div className="flex-1">
-                          <p className="font-display font-semibold text-sm text-green-700 dark:text-green-400 mb-1">Get Verified — GHS 1 one-time fee</p>
+                          <p className="font-display font-semibold text-sm text-green-700 dark:text-green-400 mb-1">Get Verified — GHS 50 one-time fee</p>
                           <p className="text-xs text-muted-foreground leading-relaxed mb-3">
                             Verified sellers get a ✅ badge, Paystack split payments (buyers pay you directly), and significantly more sales.
                           </p>
@@ -919,148 +917,20 @@ const Account = () => {
                                 toast.error("Please save your MoMo/bank payout details in Settings first before verifying.");
                                 return;
                               }
-                              setShowVerifyTerms(true);
+                              // REMOVED: setShowVerifyTerms(true);
+                              // Directly open payment modal
+                              handleSellerVerification();
                             }}
                             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-green-500 text-white text-xs font-semibold hover:bg-green-600 transition-colors disabled:opacity-60">
-                            {verificationLoading ? <><span className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" /> Processing...</> : <><ShieldCheck className="w-3.5 h-3.5" /> Pay GHS 1 to Get Verified</>}
+                            {verificationLoading ? <><span className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" /> Processing...</> : <><ShieldCheck className="w-3.5 h-3.5" /> Pay GHS 50 to Get Verified</>}
                           </button>
                           <p className="text-[11px] text-muted-foreground mt-2">Make sure your payout details are saved in Settings before paying.</p>
                         </div>
                       </motion.div>
                     )}
 
-                    {/* ── Verification Terms Modal ── */}
-                    {showVerifyTerms && (
-                      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm px-4 pb-4 sm:pb-0">
-                        <motion.div
-                          initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }}
-                          className="w-full max-w-md bg-card border border-border rounded-2xl p-4 shadow-2xl">
-                          <div className="flex items-center gap-2 mb-3">
-                            <ShieldCheck className="w-4 h-4 text-green-500 flex-shrink-0" />
-                            <h3 className="font-display font-bold text-sm">Seller Verification Terms</h3>
-                          </div>
+                    {/* REMOVED: Verification Terms Modal (lines 1054-1202) */}
 
-                          <div className="space-y-2 mb-4 text-xs text-muted-foreground">
-                            <p className="flex items-start gap-2"><span className="text-green-500 flex-shrink-0">✓</span><span><span className="font-semibold text-foreground">Confirm & ship all orders.</span> Buyers pay upfront — you must dispatch every order on time or risk suspension.</span></p>
-                            <p className="flex items-start gap-2"><span className="text-green-500 flex-shrink-0">✓</span><span><span className="font-semibold text-foreground">Powered by Paystack.</span> SneakersHub never holds your money — Paystack processes all payments securely.</span></p>
-                            <p className="flex items-start gap-2"><span className="text-green-500 flex-shrink-0">✓</span><span><span className="font-semibold text-foreground">Payout within 24 hours.</span> 95% of each sale goes directly to your MoMo/bank after dispatch.</span></p>
-                            <p className="flex items-start gap-2"><span className="text-amber-500 flex-shrink-0">!</span><span>The GHS 1 fee is a <span className="font-semibold text-foreground">one-time, non-refundable</span> subaccount setup charge.</span></p>
-                          </div>
-
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => setShowVerifyTerms(false)}
-                              className="flex-1 py-2 rounded-xl border border-border text-xs font-semibold text-muted-foreground hover:bg-muted/50 transition-colors">
-                              Decline
-                            </button>
-                            <button
-                              disabled={verificationLoading}
-                              onClick={async () => {
-                                setShowVerifyTerms(false);
-                                const payoutNumber = payoutForm.number?.trim();
-                                const payoutMethod = payoutForm.method?.trim();
-                                const settlementBank = payoutMethod === "momo_telecel" ? "VOD"
-                                  : payoutMethod === "momo_airteltigo" ? "ATL"
-                                  : "MTN";
-                              setVerificationLoading(true);
-                              try {
-                                // Use the existing helper instead of inline script loading
-                                await ensurePaystackScript();
-                                
-                                const PaystackPop = (window as any).PaystackPop;
-                                if (!PaystackPop) throw new Error("Payment SDK not available");
-                                
-                                const ref = `verify_${Date.now()}_${user.id.slice(0, 6)}`;
-                                
-                                // Only apply PWA fix when in standalone mode
-                                if (isStandalone()) {
-                                  injectPaystackPWAFix();
-                                }
-                                
-                                // On mobile, ensure viewport is stable
-                                if (window.innerWidth < 768) {
-                                  document.body.style.overflow = 'hidden';
-                                  document.body.classList.add('paystack-open');
-                                }
-
-                                const handler = PaystackPop.setup({
-                                  key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY ?? "pk_live_9e1705a04e21f148e758dc11c1e920ed6393702b",
-                                  email: user.email,
-                                  amount: 100, // CHANGED: GHS 1 in pesewas (was 5000 for GHS 50)
-                                  currency: "GHS",
-                                  ref,
-                                  channels: ["card", "mobile_money"],
-                                  metadata: { custom_fields: [{ display_name: "Purpose", variable_name: "purpose", value: "seller_verification" }] },
-                                  callback: (response: { reference: string }) => {
-                                    // Restore body scrolling
-                                    document.body.style.overflow = '';
-                                    document.body.classList.remove('paystack-open');
-                                    
-                                    const ref = response.reference;
-                                    setTimeout(async () => {
-                                      try {
-                                        const { data: { session } } = await supabase.auth.getSession();
-                                        const fnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-subaccount`;
-                                        const res = await fetch(fnUrl, {
-                                          method: "POST",
-                                          headers: {
-                                            "Content-Type": "application/json",
-                                            "Authorization": `Bearer ${session?.access_token}`,
-                                            "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
-                                          },
-                                          body: JSON.stringify({
-                                            seller_id: user.id,
-                                            paystack_reference: ref,
-                                            settlement_bank: settlementBank,
-                                            account_number: payoutNumber,
-                                            percentage_charge: 5, // platform keeps 5%, seller gets 95%
-                                          }),
-                                        });
-                                        const result = await res.json();
-                                        if (result.success) {
-                                          setIsVerified(true);
-                                          setSubaccountCode(result.subaccount_code);
-                                          // Clear listings cache so buyers see updated subaccount_code immediately
-                                          (window as any).__listingsCache = null;
-                                          toast.success("🎉 You're now a verified seller! Your badge is now live.", { duration: 6000 });
-                                        } else {
-                                          throw new Error(result.error ?? "Verification failed");
-                                        }
-                                      } catch (err: any) {
-                                        toast.error(err.message ?? "Verification failed — your payment went through but setup failed. Contact support with your reference: " + ref, { duration: 10000 });
-                                      } finally {
-                                        setVerificationLoading(false);
-                                      }
-                                    }, 0);
-                                  },
-                                  onClose: () => {
-                                    // Restore body scrolling
-                                    document.body.style.overflow = '';
-                                    document.body.classList.remove('paystack-open');
-                                    
-                                    setVerificationLoading(false);
-                                    toast("Payment cancelled — tap the button again when you're ready.");
-                                  },
-                                });
-                                
-                                // Increased delay to let scroll settle
-                                setTimeout(() => handler.openIframe(), 300);
-                              } catch (err: any) {
-                                // Restore body scrolling on error
-                                document.body.style.overflow = '';
-                                document.body.classList.remove('paystack-open');
-                                
-                                toast.error(err.message ?? "Payment error");
-                                setVerificationLoading(false);
-                              }
-                            }}
-                              className="flex-1 py-2 rounded-xl bg-green-500 text-white text-xs font-semibold hover:bg-green-600 transition-colors disabled:opacity-60 inline-flex items-center justify-center gap-2">
-                              {verificationLoading ? <><span className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" /> Processing...</> : <><ShieldCheck className="w-4 h-4" /> I Accept — Pay GHS 1</>}
-                            </button>
-                          </div>
-                        </motion.div>
-                      </div>
-                    )}
                     {role === "seller" && isVerified && !isOfficial && (
                       <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                         className="flex items-center gap-3 p-4 rounded-2xl border border-green-500/30 bg-green-500/5">
@@ -1632,7 +1502,7 @@ const Account = () => {
                   </div>
                 </div>
 
-                {/* 🌓 Theme Toggle - ADD THIS HERE */}
+                {/* 🌓 Theme Toggle */}
                 <div className="rounded-2xl border border-border overflow-hidden">
                   <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border bg-muted/20">
                     {theme === "light" ? <Sun className="w-4 h-4 text-primary" /> : <Moon className="w-4 h-4 text-primary" />}
