@@ -4,8 +4,9 @@ type Theme = "light" | "dark";
 
 export const useTheme = () => {
   const [theme, setTheme] = useState<Theme>(() => {
+    // Check localStorage first
     const stored = localStorage.getItem("theme") as Theme;
-    if (stored) return stored;
+    if (stored === "light" || stored === "dark") return stored;
     
     // Check system preference
     if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
@@ -22,6 +23,15 @@ export const useTheme = () => {
       root.classList.remove("dark");
     }
     localStorage.setItem("theme", theme);
+    
+    // Also update meta theme-color for mobile browsers
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute(
+        "content",
+        theme === "dark" ? "#09090b" : "#ffffff"
+      );
+    }
   }, [theme]);
 
   const toggleTheme = () => {
