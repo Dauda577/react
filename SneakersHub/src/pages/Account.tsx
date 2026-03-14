@@ -7,8 +7,9 @@ import {
   MapPin, Eye, Pencil, Trash2, Plus, CheckCircle, ArrowRight, LogOut,
   Store, Tag, Package, Phone, Zap, Star, Sparkles, BadgeCheck,
   Bell, ShieldCheck, Shield, Lock, Trash, ChevronRight, MessageCircle, BarChart2, Share,
-  Camera, Type, DollarSign, Ruler, X, AlertTriangle, Wallet, CreditCard, ChevronDown, Clock,
+  Camera, Type, DollarSign, Ruler, X, AlertTriangle, Wallet, CreditCard, ChevronDown, Clock, Moon, Sun,
 } from "lucide-react";
+import { useTheme } from "@/hooks/useTheme";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -299,7 +300,6 @@ const ghanaRegions = [
   "Oti", "Bono", "Bono East", "Ahafo", "Western North",
 ];
 
-
 // ── Seller Application Status Card ───────────────────────────────────────────
 const SellerApplicationStatus = ({ userId, userEmail, onActivated }: {
   userId?: string;
@@ -541,6 +541,7 @@ const Account = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("profile");
   const [editMode, setEditMode]   = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   const role = user?.role ?? "buyer";
   const canSell = user?.isSeller ?? role === "seller";
@@ -1616,6 +1617,54 @@ const Account = () => {
                         </button>
                       </div>
                     ))}
+                  </div>
+                </div>
+
+                {/* 🌓 Theme Toggle - ADD THIS HERE */}
+                <div className="rounded-2xl border border-border overflow-hidden">
+                  <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border bg-muted/20">
+                    {theme === "light" ? <Sun className="w-4 h-4 text-primary" /> : <Moon className="w-4 h-4 text-primary" />}
+                    <p className="font-display font-semibold text-sm">Appearance</p>
+                  </div>
+                  <div className="p-5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium">Theme</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">Switch between light and dark mode</p>
+                      </div>
+                      <button
+                        onClick={toggleTheme}
+                        className="relative w-14 h-8 rounded-full bg-muted border border-border flex items-center px-1 transition-colors duration-200"
+                      >
+                        <div className={`absolute w-6 h-6 rounded-full bg-background shadow-md flex items-center justify-center transition-transform duration-200 ${
+                          theme === "dark" ? "translate-x-6" : "translate-x-0"
+                        }`}>
+                          {theme === "dark" ? (
+                            <Moon className="w-3.5 h-3.5 text-primary" />
+                          ) : (
+                            <Sun className="w-3.5 h-3.5 text-amber-500" />
+                          )}
+                        </div>
+                      </button>
+                    </div>
+                    
+                    {/* Preview */}
+                    <div className="mt-4 grid grid-cols-2 gap-2">
+                      <div className={`p-3 rounded-xl border transition-all ${
+                        theme === "light" ? "border-primary bg-primary/5" : "border-border"
+                      }`}>
+                        <Sun className={`w-4 h-4 mb-1 ${theme === "light" ? "text-primary" : "text-muted-foreground"}`} />
+                        <p className="text-xs font-medium">Light</p>
+                        <p className="text-[10px] text-muted-foreground">Default</p>
+                      </div>
+                      <div className={`p-3 rounded-xl border transition-all ${
+                        theme === "dark" ? "border-primary bg-primary/5" : "border-border"
+                      }`}>
+                        <Moon className={`w-4 h-4 mb-1 ${theme === "dark" ? "text-primary" : "text-muted-foreground"}`} />
+                        <p className="text-xs font-medium">Dark</p>
+                        <p className="text-[10px] text-muted-foreground">Easier on eyes</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
