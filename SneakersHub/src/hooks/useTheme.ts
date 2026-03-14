@@ -8,28 +8,27 @@ export const useTheme = () => {
     const stored = localStorage.getItem("theme") as Theme;
     if (stored === "light" || stored === "dark") return stored;
     
-    // Check system preference
-    if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-      return "dark";
-    }
-    return "light";
+    // Default to dark (since your site is dark by default)
+    return "dark";
   });
 
   useEffect(() => {
     const root = document.documentElement;
-    if (theme === "dark") {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
-    }
+    
+    // Remove both classes first
+    root.classList.remove("light", "dark");
+    
+    // Add the current theme class
+    root.classList.add(theme);
+    
     localStorage.setItem("theme", theme);
     
-    // Also update meta theme-color for mobile browsers
+    // Update meta theme-color for mobile browsers
     const metaThemeColor = document.querySelector('meta[name="theme-color"]');
     if (metaThemeColor) {
       metaThemeColor.setAttribute(
         "content",
-        theme === "dark" ? "#09090b" : "#ffffff"
+        theme === "light" ? "#ffffff" : "#0a0a0a"
       );
     }
   }, [theme]);
