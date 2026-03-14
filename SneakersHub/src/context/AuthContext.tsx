@@ -263,10 +263,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       };
       console.log("Attempting to insert profile:", profileData);
       
-      // Then create the profile with ALL required fields
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .insert(profileData);
+      // Then create the profile with ALL required fields - using upsert instead of insert
+const { error: profileError } = await supabase
+  .from("profiles")
+  .upsert(profileData, { onConflict: 'id' });
       
       if (profileError) {
         console.error("Profile creation error - FULL DETAILS:", profileError);
