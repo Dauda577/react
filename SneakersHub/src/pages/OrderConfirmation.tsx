@@ -1,18 +1,164 @@
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
-import { CheckCircle, MapPin, Phone, Package, ArrowRight, ShoppingBag } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { CheckCircle, MapPin, Phone, Package, ArrowRight, ShoppingBag, AlertTriangle } from "lucide-react";
 import { useOrders } from "@/context/OrderContext";
 import { TrackingDisplay } from "@/components/TrackingDisplay";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 const statusSteps = ["Order Placed", "Confirmed", "Shipped", "Delivered"];
 
 const OrderConfirmation = () => {
-  const { latestOrder } = useOrders();
+  const { latestOrder, refreshOrders } = useOrders();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [manualOrder, setManualOrder] = useState<any>(null);
 
-  if (!latestOrder) {
+  const reference = searchParams.get('reference');
+  const trxRef = searchParams.get('trxref');
+
+  // If we have a reference but no order, try to fetch it
+  useEffect(() => {
+    const fetchOrderByReference = async () => {
+      const ref = reference || trxRef;
+      if (!ref || latestOrder) return;
+
+      setLoading(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Try to find order by paystack_reference
+        const { data: orders, error } = await supabase
+          .from("orders")
+          .select(`
+            *,
+            order_items (*)
+          `)
+          .eq("paystack_reference", ref)
+          .eq("buyer_id", user.id)
+          .order("placed_at", { ascending: false })
+          .limit(1);
+
+        if (error) throw error;
+
+        if (orders && orders.length > 0) {
+          // Transform to match your order format
+          const order = orders[0];
+          setManualOrder({
+            id: order.id,
+            items: order.order_items.map((item: any) => ({
+              id: item.listing_id,
+              name: item.name,
+              brand: item.brand,
+              price: item.price,
+              size: item.size,
+              quantity: item.quantity,
+              image: item.image
+            })),
+            buyer: {
+              firstName: order.buyer_first_name,
+              lastName: order.buyer_last_name,
+              phone: order.buyer_phone,
+              address: order.buyer_address,
+              city: order.buyer_city,
+              region: order.buyer_region
+            },
+            delivery: order.delivery_method,
+            total: order.total_amount,
+            deliveryFee: order.delivery_fee,
+            subtotal: order.subtotal,
+            placedAt: order.placed_at,
+            paystackReference: order.paystack_reference,
+            status: order.status,
+            sellerConfirmed: order.seller_confirmed,
+            buyerConfirmed: order.buyer_confirmed,
+            trackingNumber: order.tracking_number,
+            trackingUrl: order.tracking_url
+          });
+        } else {
+          // No order found with this reference
+          setError("Your payment was successful but we're having trouble loading your order. Please check your Orders page in a few minutes.");
+        }
+      } catch (err) {
+        console.error("Error fetching order:", err);
+        setError("Something went wrong loading your order. Please check your Orders page.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrderByReference();
+  }, [reference, trxRef, latestOrder]);
+
+  // Refresh orders periodically
+  useEffect(() => {
+    if (!latestOrder && !manualOrder) {
+      const interval = setInterval(() => {
+        refreshOrders();
+      }, 3000);
+
+      return () => clearInterval(interval);
+    }
+  }, [latestOrder, manualOrder, refreshOrders]);
+
+  const order = latestOrder || manualOrder;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="pt-24 section-padding max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[60vh]">
+          <div className="w-14 h-14 rounded-full border-4 border-primary/30 border-t-primary animate-spin mb-4" />
+          <p className="text-muted-foreground">Loading your order...</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="pt-24 section-padding max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[60vh]">
+          <div className="w-20 h-20 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-5">
+            <AlertTriangle className="w-10 h-10 text-amber-500" />
+          </div>
+          <h1 className="font-display text-2xl font-bold mb-2">Payment Received</h1>
+          <p className="text-muted-foreground text-sm max-w-md text-center mb-6">
+            {error}
+          </p>
+          <div className="flex gap-3">
+            <Link to="/account?tab=orders">
+              <Button className="btn-primary rounded-full px-6">
+                View My Orders <ArrowRight className="ml-2 w-4 h-4" />
+              </Button>
+            </Link>
+            <Link to="/shop">
+              <Button variant="outline" className="rounded-full px-6">
+                Continue Shopping
+              </Button>
+            </Link>
+          </div>
+          {reference && (
+            <p className="text-xs text-muted-foreground mt-4 font-mono">
+              Reference: {reference}
+            </p>
+          )}
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!order) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
@@ -28,7 +174,7 @@ const OrderConfirmation = () => {
     );
   }
 
-  const { id, items, buyer, delivery, total, deliveryFee, subtotal, placedAt, paystackReference } = latestOrder;
+  const { id, items, buyer, delivery, total, deliveryFee, subtotal, placedAt, paystackReference } = order;
   const isPaid = !!paystackReference;
   const placedDate = new Date(placedAt).toLocaleDateString("en-GH", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
@@ -72,6 +218,11 @@ const OrderConfirmation = () => {
               return `#${num.toString().padStart(9, "0")}`;
             })()}
           </p>
+          {paystackReference && (
+            <p className="text-[10px] text-muted-foreground mt-2 font-mono">
+              Ref: {paystackReference}
+            </p>
+          )}
         </motion.div>
 
         {/* Order status tracker */}
@@ -177,10 +328,8 @@ const OrderConfirmation = () => {
           </motion.div>
         </div>
 
-        {/* ═════════════════════════════════════════════════════════════════════════════════════════════════════════════ */}
         {/* TRACKING NUMBER - SHOWN IF SELLER HAS ADDED IT */}
-        {/* ═════════════════════════════════════════════════════════════════════════════════════════════════════════════ */}
-        {latestOrder.trackingNumber && (
+        {order.trackingNumber && (
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -188,16 +337,16 @@ const OrderConfirmation = () => {
             className="rounded-2xl border border-border p-5 mb-5"
           >
             <TrackingDisplay
-              trackingNumber={latestOrder.trackingNumber}
-              trackingUrl={latestOrder.trackingUrl}
-              status={latestOrder.status}
-              sellerConfirmed={latestOrder.sellerConfirmed}
+              trackingNumber={order.trackingNumber}
+              trackingUrl={order.trackingUrl}
+              status={order.status}
+              sellerConfirmed={order.sellerConfirmed}
             />
           </motion.div>
         )}
 
         {/* WAITING FOR TRACKING - SHOWN WHILE SELLER PREPARING SHIPMENT */}
-        {!latestOrder.trackingNumber && latestOrder.sellerConfirmed && (
+        {!order.trackingNumber && order.sellerConfirmed && (
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -217,7 +366,6 @@ const OrderConfirmation = () => {
             </div>
           </motion.div>
         )}
-        {/* ═════════════════════════════════════════════════════════════════════════════════════════════════════════════ */}
 
         {/* Items */}
         <motion.div
@@ -230,7 +378,7 @@ const OrderConfirmation = () => {
             Items Ordered
           </p>
           <div className="space-y-3">
-            {items.map((item) => (
+            {items.map((item: any) => (
               <div key={`${item.id}-${item.size}`} className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0 p-1.5">
                   <img src={item.image} alt={item.name} className="w-full h-full object-contain" />
@@ -259,8 +407,7 @@ const OrderConfirmation = () => {
             </Button>
           </Link>
           <Link
-            to="/account"
-            onClick={() => localStorage.setItem("account-role", "seller")}
+            to="/account?tab=orders"
             className="flex-1"
           >
             <Button className="btn-primary w-full rounded-full h-11 text-sm">

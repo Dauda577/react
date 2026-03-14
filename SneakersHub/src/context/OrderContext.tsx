@@ -49,7 +49,7 @@ type OrderContextType = {
   latestOrder: Order | null;
   unseenCount: number;
   loading: boolean;
-  placeOrder: (order: Omit<Order, "id" | "placedAt" | "seen" | "sellerConfirmed" | "buyerConfirmed" | "status" | "buyerId" | "releaseAt" | "payoutStatus" | "disputeReason" | "paystackReference"> & { sellerId: string }) => Promise<void>;
+  placeOrder: (order: Omit<Order, "id" | "placedAt" | "seen" | "sellerConfirmed" | "buyerConfirmed" | "status" | "buyerId" | "releaseAt" | "payoutStatus" | "disputeReason" | "paystackReference"> & { sellerId: string }) => Promise<Order>;
   confirmAsSeller: (orderId: string) => Promise<void>;
   confirmAsBuyer: (orderId: string) => Promise<void>;
   raiseDispute: (orderId: string, reason: string) => Promise<void>;
@@ -216,6 +216,41 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       return [order.buyer?.address ?? "", order.buyer?.city ?? "", order.buyer?.region ?? ""];
     })();
 
+    // Check if order already exists with this reference (for recovery)
+    if (order.paystackReference) {
+      const { data: existingOrder } = await supabase
+        .from("orders")
+        .select("id")
+        .eq("paystack_reference", order.paystackReference)
+        .maybeSingle();
+
+      if (existingOrder) {
+        // Order already exists - fetch and return it
+        const { data: fullOrder } = await supabase
+          .from("orders")
+          .select(`*, order_items (*)`)
+          .eq("id", existingOrder.id)
+          .single();
+
+        if (fullOrder) {
+          const { data: itemData } = await supabase
+            .from("order_items")
+            .select("*")
+            .eq("order_id", existingOrder.id);
+          
+          const items = (itemData as OrderItemRow[]) ?? [];
+          const orderObj = rowToOrder(fullOrder as OrderRow, items);
+          
+          setOrders((prev) => {
+            if (prev.some((o) => o.id === orderObj.id)) return prev;
+            return [orderObj, ...prev];
+          });
+
+          return orderObj;
+        }
+      }
+    }
+
     const { data: orderRow, error } = await supabase.from("orders").insert({
       buyer_id: user.id,
       seller_id: order.sellerId,
@@ -251,9 +286,11 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     const { data: insertedItems } = await supabase.from("order_items").insert(itemsToInsert).select();
     const insertedRows = (insertedItems as OrderItemRow[]) ?? [];
 
+    const newOrder = rowToOrder(orderRow, insertedRows);
+
     setOrders((prev) => {
       if (prev.some((o) => o.id === orderRow.id)) return prev;
-      return [rowToOrder(orderRow, insertedRows), ...prev];
+      return [newOrder, ...prev];
     });
 
     await triggerSMS({
@@ -263,6 +300,8 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
         items: order.items,
       }
     });
+
+    return newOrder;
   };
 
   const confirmAsSeller = async (orderId: string) => {
