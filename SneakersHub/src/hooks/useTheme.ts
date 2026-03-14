@@ -6,7 +6,9 @@ export const useTheme = () => {
   const [theme, setTheme] = useState<Theme>(() => {
     // Check localStorage first
     const stored = localStorage.getItem("theme") as Theme;
-    if (stored === "light" || stored === "dark") return stored;
+    if (stored === "light" || stored === "dark") {
+      return stored;
+    }
     
     // Default to dark (since your site is dark by default)
     return "dark";
@@ -15,12 +17,13 @@ export const useTheme = () => {
   useEffect(() => {
     const root = document.documentElement;
     
-    // Remove both classes first
+    // Remove both theme classes
     root.classList.remove("light", "dark");
     
     // Add the current theme class
     root.classList.add(theme);
     
+    // Store in localStorage
     localStorage.setItem("theme", theme);
     
     // Update meta theme-color for mobile browsers
@@ -31,6 +34,12 @@ export const useTheme = () => {
         theme === "light" ? "#ffffff" : "#0a0a0a"
       );
     }
+    
+    // Force a repaint to ensure styles apply immediately
+    document.body.style.display = 'none';
+    document.body.offsetHeight; // Trigger reflow
+    document.body.style.display = '';
+    
   }, [theme]);
 
   const toggleTheme = () => {

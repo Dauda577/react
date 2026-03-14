@@ -91,6 +91,8 @@
     /* Prevent font size inflation on orientation change */
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+    /* Remove transitions from html to prevent flash */
+    transition: none !important;
   }
 
   body {
@@ -101,7 +103,8 @@
     max-width: 100%;
     /* Prevent horizontal scroll on mobile */
     position: relative;
-    transition: background-color 0.3s ease, color 0.3s ease;
+    /* Smooth transitions but don't block theme change */
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   #root {
@@ -114,7 +117,13 @@
     @apply border-border;
     min-width: 0;
     box-sizing: border-box;
-    transition: border-color 0.2s ease, background-color 0.2s ease;
+    /* Faster transitions to feel responsive */
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+  }
+
+  /* Disable transitions on theme change to make it instant */
+  .theme-transition * {
+    transition: none !important;
   }
 
   h1, h2, h3, h4, h5, h6 {
