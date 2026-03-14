@@ -133,13 +133,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const isVeryNew = accountAge < 300_000; // created less than 5 min ago
 
         if (isNewOAuth || isVeryNew) {
+          console.log("🆕 New OAuth user detected:", {
+            id: session.user.id,
+            email: session.user.email,
+            metadata: session.user.user_metadata,
+            identities: session.user.identities,
+            created_at: session.user.created_at
+          });
+          
           // Genuine new user — let them pick a role
           const name =
             session.user.user_metadata?.full_name ??
             session.user.user_metadata?.name ??
             session.user.email?.split("@")[0] ??
             "User";
-          setPendingSession({ id: session.user.id, email: session.user.email ?? "", name });
+          
+          console.log("📝 Setting pending session with name:", name);
+          
+          setPendingSession({ 
+            id: session.user.id, 
+            email: session.user.email ?? "", 
+            name: name 
+          });
+          
           setNeedsRole(true);
           setUser(null);
         } else {
@@ -305,46 +321,65 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (error) throw new Error(error.message);
   };
 
-  // ── FIXED ASSIGN ROLE FUNCTION ────────────────────────────────────────
+  // ── FIXED ASSIGN ROLE FUNCTION WITH DETAILED LOGGING ───────────────────
   const assignRole = async (role: "buyer" | "seller", phone: string) => {
-    if (!pendingSession) return;
+    if (!pendingSession) {
+      console.error("❌ No pending session found!");
+      return;
+    }
+    
     const { id, email, name } = pendingSession;
     
-    console.log("Assigning role with:", { id, email, name, role, phone });
+    console.log("📝 Assigning role with:", { id, email, name, role, phone });
+    
+    const profileData = {
+      id: id,
+      name: name,
+      email: email,
+      phone: phone || null,
+      role: role,
+      is_seller: role === "seller",
+      listing_count: 0,
+      commission_rate: 5,
+      verified: false,
+      is_official: false,
+      created_at: new Date().toISOString()
+    };
+    
+    console.log("📝 Inserting profile:", profileData);
     
     const { error } = await supabase
       .from("profiles")
-      .insert({
-        id: id,
-        name: name,
-        email: email,
-        phone: phone || null,
-        role: role,
-        is_seller: role === "seller",
-        listing_count: 0,
-        commission_rate: 5,
-        verified: false,
-        is_official: false,
-        created_at: new Date().toISOString()
-      });
+      .insert(profileData);
       
     if (error) {
-      // If insert fails because profile already exists, try update instead
-      if (error.code === '23505') { // duplicate key
+      console.error("❌ Profile insert error:", error);
+      console.error("Error code:", error.code);
+      console.error("Error message:", error.message);
+      console.error("Error details:", error.details);
+      
+      if (error.code === '23505') {
+        console.log("🔄 Profile exists, trying update...");
         const { error: updateError } = await supabase
           .from("profiles")
           .update({
             phone: phone,
             role: role,
-            is_seller: role === "seller"
+            is_seller: role === "seller",
+            updated_at: new Date().toISOString()
           })
           .eq('id', id);
           
-        if (updateError) throw new Error(updateError.message);
+        if (updateError) {
+          console.error("❌ Update error:", updateError);
+          throw new Error(updateError.message);
+        }
+        console.log("✅ Profile updated successfully");
       } else {
-        console.error("Profile creation error in assignRole:", error);
         throw new Error(error.message);
       }
+    } else {
+      console.log("✅ Profile created successfully");
     }
     
     setUser({ 
