@@ -6,6 +6,9 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import InstallPrompt from "@/components/InstallPrompt";
+// Add this right after the imports, before the component
+console.log('VITE_SUPABASE_URL:', import.meta.env.VITE_SUPABASE_URL);
+console.log('VITE_SUPABASE_ANON_KEY exists:', !!import.meta.env.VITE_SUPABASE_ANON_KEY);
 
 type Mode = "login" | "signup" | "forgot";
 
