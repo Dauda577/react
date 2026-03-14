@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { ArrowRight, Truck, Shield, RotateCcw, Zap, Star, Users, TrendingUp } from "lucide-react";
+import { ArrowRight, Truck, Shield, RotateCcw, Zap, Star, Users, TrendingUp, ShoppingBag } from "lucide-react";
 import SneakerCard from "@/components/SneakerCard";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import heroImage from "@/assets/sneaker-hero.png";
 import { Button } from "@/components/ui/button";
 import { usePublicListings } from "@/context/PublicListingsContext";
 import { supabase } from "@/lib/supabase";
@@ -36,7 +35,7 @@ const CATEGORIES = [
 const Index = () => {
   const { listings, loading } = usePublicListings();
   const [reviews, setReviews] = useState<{ buyer_name: string; stars: number; comment: string; created_at: string }[]>([]);
-  const isMobile = useMobile(); // ADD THIS
+  const isMobile = useMobile();
 
   // Fetch latest 5-star reviews for social proof
   useEffect(() => {
@@ -60,6 +59,15 @@ const Index = () => {
 
   const featured = listings.filter(isActiveBoost).slice(0, 10);
   const newArrivals = listings.filter((l) => !isActiveBoost(l)).slice(0, 10);
+  
+  // Get 4-6 trending sneakers for the hero grid
+  const trendingSneakers = listings.slice(0, 6).map(l => ({
+    id: l.id,
+    name: l.name,
+    brand: l.brand,
+    price: l.price,
+    image: l.image ?? "",
+  }));
 
   const toCardShape = (l: typeof listings[0], isBoosted = false) => ({
     id: l.id, name: l.name, brand: l.brand, price: l.price, image: l.image ?? "",
@@ -71,7 +79,7 @@ const Index = () => {
     <div className="min-h-screen bg-background overflow-x-hidden w-full">
       <Navbar />
 
-      {/* ── Hero ── */}
+      {/* ── Hero Section with Trending Grid ── */}
       <section className="relative min-h-screen flex items-center overflow-hidden" style={{ paddingTop: `calc(64px + env(safe-area-inset-top, 0px))` }}>
         {/* Subtle ambient glow — remove on mobile */}
         {!isMobile && (
@@ -187,22 +195,100 @@ const Index = () => {
             </div>
           )}
 
-          {/* Hero image - remove floating animation on mobile */}
+          {/* Trending Sneakers Grid - REPLACES THE HERO IMAGE */}
           {!isMobile ? (
-            <motion.div initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 1, ease: "easeOut", delay: 0.25 }}
-              className="relative flex items-center justify-center w-full">
-              <div className="absolute inset-0 bg-primary/5 rounded-full blur-3xl" />
-              <motion.img src={heroImage} alt="Featured sneaker"
-                className="relative z-10 w-full max-w-xs sm:max-w-sm md:max-w-lg drop-shadow-2xl"
-                animate={{ y: [0, -14, 0] }}
-                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }} />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.7, delay: 0.3 }}
+              className="w-full"
+            >
+              {trendingSneakers.length > 0 ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {trendingSneakers.map((sneaker, i) => (
+                    <motion.div
+                      key={sneaker.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 + i * 0.1 }}
+                      whileHover={{ y: -8, transition: { duration: 0.2 } }}
+                      className="group relative aspect-square rounded-2xl bg-card border border-border overflow-hidden cursor-pointer"
+                      onClick={() => window.location.href = `/product/${sneaker.id}`}
+                    >
+                      <img
+                        src={sneaker.image}
+                        alt={sneaker.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                        <p className="text-white font-bold text-sm truncate">{sneaker.name}</p>
+                        <p className="text-white/80 text-xs">GHS {sneaker.price.toLocaleString()}</p>
+                      </div>
+                      {/* Trending badge */}
+                      {i < 2 && (
+                        <div className="absolute top-2 left-2 px-2 py-1 rounded-full bg-primary text-[10px] font-bold text-white">
+                          🔥 Trending
+                        </div>
+                      )}
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {[1, 2, 3, 4].map((_, i) => (
+                    <div
+                      key={i}
+                      className="aspect-square rounded-2xl bg-card border border-border animate-pulse"
+                    />
+                  ))}
+                </div>
+              )}
+              
+              {/* View all link */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1 }}
+                className="flex justify-center mt-4"
+              >
+                <Link
+                  to="/shop"
+                  className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+                >
+                  View all sneakers <ArrowRight className="w-3 h-3" />
+                </Link>
+              </motion.div>
             </motion.div>
           ) : (
-            <div className="relative flex items-center justify-center w-full">
-              <div className="absolute inset-0 bg-primary/5 rounded-full blur-3xl" />
-              <img src={heroImage} alt="Featured sneaker"
-                className="relative z-10 w-full max-w-xs sm:max-w-sm md:max-w-lg drop-shadow-2xl" />
+            /* Mobile version - simplified grid */
+            <div className="w-full mt-8">
+              {trendingSneakers.length > 0 ? (
+                <div className="grid grid-cols-2 gap-2">
+                  {trendingSneakers.slice(0, 4).map((sneaker, i) => (
+                    <Link
+                      key={sneaker.id}
+                      to={`/product/${sneaker.id}`}
+                      className="group relative aspect-square rounded-xl bg-card border border-border overflow-hidden"
+                    >
+                      <img
+                        src={sneaker.image}
+                        alt={sneaker.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {[1, 2, 3, 4].map((_, i) => (
+                    <div
+                      key={i}
+                      className="aspect-square rounded-xl bg-card border border-border animate-pulse"
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
