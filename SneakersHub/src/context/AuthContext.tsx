@@ -217,9 +217,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsGuest(false);
   };
 
-  // ── FIXED SIGNUP FUNCTION (no admin.deleteUser) ───────────────────────────
+  // ── FIXED SIGNUP FUNCTION WITH DETAILED ERROR LOGGING ─────────────────────
   const signup = async (name: string, email: string, password: string, role: "buyer" | "seller", phone: string) => {
     try {
+      console.log("Starting signup with:", { name, email, role, phone });
+      
       // First, create the auth user
       const { data, error } = await supabase.auth.signUp({
         email, 
@@ -233,33 +235,57 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         },
       });
       
-      if (error) throw new Error(error.message);
-      if (!data.user) throw new Error("Signup failed");
+      if (error) {
+        console.error("Auth signup error:", error);
+        throw new Error(error.message);
+      }
+      
+      if (!data.user) {
+        console.error("No user returned from signup");
+        throw new Error("Signup failed - no user created");
+      }
+      
+      console.log("Auth user created successfully:", data.user.id);
       
       // Small delay to ensure auth user is fully created
       await new Promise(resolve => setTimeout(resolve, 500));
       
+      // Log the profile data we're about to insert
+      const profileData = {
+        id: data.user.id,
+        name: name,
+        email: email,
+        role: role,
+        phone: phone,
+        is_seller: role === "seller",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      console.log("Attempting to insert profile:", profileData);
+      
       // Then create the profile with ALL required fields
       const { error: profileError } = await supabase
         .from("profiles")
-        .insert({
-          id: data.user.id,
-          name: name,
-          email: email,
-          role: role,
-          phone: phone,
-          is_seller: role === "seller",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
+        .insert(profileData);
       
       if (profileError) {
-        console.error("Profile creation error:", profileError);
+        console.error("Profile creation error - FULL DETAILS:", profileError);
+        console.error("Error code:", profileError.code);
+        console.error("Error message:", profileError.message);
+        console.error("Error details:", profileError.details);
+        console.error("Error hint:", profileError.hint);
         
-        // Can't use admin.deleteUser on client - just show the error
-        // The user will exist but without a profile - they'll be prompted to complete setup
-        throw new Error(profileError.message);
+        // Check if it's a duplicate key error
+        if (profileError.code === '23505') {
+          throw new Error("A user with this email already exists");
+        } else if (profileError.code === '23502') {
+          throw new Error("Missing required field: " + profileError.message);
+        } else {
+          throw new Error(`Database error: ${profileError.message}`);
+        }
       }
+      
+      console.log("Profile created successfully");
       
       const newUser: User = { 
         id: data.user.id, 
@@ -276,8 +302,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setPendingSession(null);
       setIsGuest(false);
       
+      console.log("Signup complete, user set");
+      
     } catch (err: any) {
-      console.error("Signup error:", err);
+      console.error("Signup error caught in catch:", err);
       throw err;
     }
   };
