@@ -217,7 +217,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsGuest(false);
   };
 
-  // ── FIXED SIGNUP FUNCTION WITH DETAILED ERROR LOGGING ─────────────────────
+  // ── FIXED SIGNUP FUNCTION with all required fields ─────────────────────
   const signup = async (name: string, email: string, password: string, role: "buyer" | "seller", phone: string) => {
     try {
       console.log("Starting signup with:", { name, email, role, phone });
@@ -230,7 +230,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           data: { 
             name, 
             role,
-            phone // Include phone in metadata as backup
+            phone
           } 
         },
       });
@@ -250,55 +250,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Small delay to ensure auth user is fully created
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Log the profile data we're about to insert
-      const profileData = {
-        id: data.user.id,
-        name: name,
-        email: email,
-        role: role,
-        phone: phone,
-        is_seller: role === "seller",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      console.log("Attempting to insert profile:", profileData);
-      
-      // Then create the profile with ALL required fields - using upsert instead of insert
-const { error: profileError } = await supabase
-  .from("profiles")
-  .upsert({
-    id: data.user.id,
-    name: name,
-    email: email,
-    phone: phone,
-    role: role,
-    is_seller: role === "seller",
-    verified: false,
-    is_official: false,
-    listing_count: 0,
-    commission_rate: 5,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  }, { 
-    onConflict: 'id',
-    ignoreDuplicates: false // Set to false to update if exists
-  });
+      // Create profile with ALL required fields based on your schema
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .insert({
+          id: data.user.id,
+          name: name,
+          email: email,
+          phone: phone || null,
+          role: role,
+          is_seller: role === "seller",
+          listing_count: 0,
+          commission_rate: 5,
+          verified: false,
+          is_official: false,
+          created_at: new Date().toISOString()
+        });
       
       if (profileError) {
-        console.error("Profile creation error - FULL DETAILS:", profileError);
-        console.error("Error code:", profileError.code);
-        console.error("Error message:", profileError.message);
-        console.error("Error details:", profileError.details);
-        console.error("Error hint:", profileError.hint);
-        
-        // Check if it's a duplicate key error
-        if (profileError.code === '23505') {
-          throw new Error("A user with this email already exists");
-        } else if (profileError.code === '23502') {
-          throw new Error("Missing required field: " + profileError.message);
-        } else {
-          throw new Error(`Database error: ${profileError.message}`);
-        }
+        console.error("Profile creation error:", profileError);
+        throw new Error(profileError.message);
       }
       
       console.log("Profile created successfully");
@@ -334,12 +305,57 @@ const { error: profileError } = await supabase
     if (error) throw new Error(error.message);
   };
 
+  // ── FIXED ASSIGN ROLE FUNCTION ────────────────────────────────────────
   const assignRole = async (role: "buyer" | "seller", phone: string) => {
     if (!pendingSession) return;
     const { id, email, name } = pendingSession;
-    const { error } = await supabase.from("profiles").upsert({ id, name, role, phone });
-    if (error) throw new Error(error.message);
-    setUser({ id, name, email, role });
+    
+    console.log("Assigning role with:", { id, email, name, role, phone });
+    
+    const { error } = await supabase
+      .from("profiles")
+      .insert({
+        id: id,
+        name: name,
+        email: email,
+        phone: phone || null,
+        role: role,
+        is_seller: role === "seller",
+        listing_count: 0,
+        commission_rate: 5,
+        verified: false,
+        is_official: false,
+        created_at: new Date().toISOString()
+      });
+      
+    if (error) {
+      // If insert fails because profile already exists, try update instead
+      if (error.code === '23505') { // duplicate key
+        const { error: updateError } = await supabase
+          .from("profiles")
+          .update({
+            phone: phone,
+            role: role,
+            is_seller: role === "seller"
+          })
+          .eq('id', id);
+          
+        if (updateError) throw new Error(updateError.message);
+      } else {
+        console.error("Profile creation error in assignRole:", error);
+        throw new Error(error.message);
+      }
+    }
+    
+    setUser({ 
+      id, 
+      name, 
+      email, 
+      role, 
+      isBuyer: true, 
+      isSeller: role === "seller", 
+      sellerAppStatus: "none" 
+    });
     setNeedsRole(false);
     setPendingSession(null);
     setIsGuest(false);
