@@ -401,6 +401,18 @@ const SellerApplicationStatus = ({ userId, userEmail, onActivated }: {
                 await supabase.from("seller_applications")
                   .update({ status: "paid" })
                   .eq("user_id", userId);
+
+                   // ✅ IMPORTANT: Update the user's role in profiles table
+        await supabase
+          .from("profiles")
+          .update({ 
+            role: "seller",
+            is_seller: true,
+            verified: true 
+          })
+          .eq("id", userId);
+
+          
                 setStatus("paid");
                 toast.success("🎉 You're now a verified seller! Refresh to access your seller dashboard.", { duration: 8000 });
                 onActivated?.();
