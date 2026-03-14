@@ -1,440 +1,349 @@
-import { useState, useEffect, lazy, Suspense, useMemo } from "react";
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import { ArrowRight, Truck, Shield, RotateCcw, Zap, Star, Users, TrendingUp } from "lucide-react";
 import SneakerCard from "@/components/SneakerCard";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import heroImage from "@/assets/sneaker-hero.png";
 import { Button } from "@/components/ui/button";
 import { usePublicListings } from "@/context/PublicListingsContext";
-import type { Listing, Sneaker } from "@/types"; // Adjust path as needed
+import { supabase } from "@/lib/supabase";
 
-// Lazy load non-critical components
-const Reviews = lazy(() => import("@/components/Reviews"));
-const CategoryScroll = lazy(() => import("@/components/CategoryScroll"));
-
-// ========== Types ==========
-interface Review {
-  buyer_name: string;
-  stars: number;
-  comment: string | null;
-  created_at: string;
-}
-
-interface Category {
-  label: string;
-  emoji: string;
-  color: string;
-}
-
-// ========== Constants ==========
-const CATEGORIES: Category[] = [
-  { label: "Running", emoji: "🏃", color: "from-blue-500/10 to-blue-500/5 border-blue-500/20 text-blue-600" },
-  { label: "Lifestyle", emoji: "✨", color: "from-purple-500/10 to-purple-500/5 border-purple-500/20 text-purple-600" },
-  { label: "Basketball", emoji: "🏀", color: "from-orange-500/10 to-orange-500/5 border-orange-500/20 text-orange-600" },
-  { label: "Outdoor", emoji: "🏔️", color: "from-green-500/10 to-green-500/5 border-green-500/20 text-green-600" },
-  { label: "Training", emoji: "💪", color: "from-red-500/10 to-red-500/5 border-red-500/20 text-red-600" },
-  { label: "Other", emoji: "👟", color: "from-zinc-500/10 to-zinc-500/5 border-zinc-500/20 text-zinc-600" },
-];
-
-// ========== Custom Hooks ==========
-const useMobile = (): boolean => {
-  const [isMobile, setIsMobile] = useState<boolean>(false);
-  
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-  
-  return isMobile;
-};
-
-const useReducedMotion = (): boolean => {
-  const [reducedMotion, setReducedMotion] = useState<boolean>(false);
-  
-  useEffect(() => {
-    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setReducedMotion(query.matches);
-    
-    const handleChange = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
-    query.addEventListener('change', handleChange);
-    
-    return () => query.removeEventListener('change', handleChange);
-  }, []);
-  
-  return reducedMotion;
-};
-
-// ========== Icon Components (replacing lucide-react) ==========
-const ArrowIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-  </svg>
-);
-
-const StarIcon: React.FC<{ className?: string; filled?: boolean }> = ({ 
-  className = "w-4 h-4", 
-  filled = true 
-}) => (
-  <svg className={`${className} ${filled ? 'fill-current' : ''}`} viewBox="0 0 24 24">
-    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" 
-      stroke="currentColor" fill={filled ? 'currentColor' : 'none'} />
-  </svg>
-);
-
-const TruckIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-      d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-  </svg>
-);
-
-const ShieldIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-      d="M20.618 5.984A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-  </svg>
-);
-
-const RotateIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-  </svg>
-);
-
-const ZapIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
-  <svg className={className} fill="currentColor" viewBox="0 0 24 24">
-    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-  </svg>
-);
-
-const UsersIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-  </svg>
-);
-
-const TrendingIcon: React.FC<{ className?: string }> = ({ className = "w-4 h-4" }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-      d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-  </svg>
-);
-
-// Sneaker outline component
-const SneakerOutline: React.FC<{ className?: string }> = ({ className = "" }) => (
+// Sneaker outline SVG for empty states
+const SneakerOutline = ({ className = "" }: { className?: string }) => (
   <svg className={className} viewBox="0 0 120 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M8 44 C8 44 12 28 28 24 C38 21 46 26 56 24 C66 22 72 16 80 14 C90 12 98 16 104 22 C110 28 112 36 110 42 C108 46 104 48 100 48 L16 48 C12 48 8 46 8 44Z" 
-      stroke="currentColor" strokeWidth="2" strokeLinejoin="round" fill="none"/>
+    <path d="M8 44 C8 44 12 28 28 24 C38 21 46 26 56 24 C66 22 72 16 80 14 C90 12 98 16 104 22 C110 28 112 36 110 42 C108 46 104 48 100 48 L16 48 C12 48 8 46 8 44Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" fill="none"/>
     <path d="M28 24 C28 24 32 32 40 34 C48 36 56 32 56 24" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
     <path d="M56 24 C56 24 60 30 68 30 C74 30 78 26 80 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
     <path d="M8 40 L110 40" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
     <ellipse cx="22" cy="48" rx="8" ry="3" stroke="currentColor" strokeWidth="1.5" fill="none"/>
     <ellipse cx="98" cy="48" rx="8" ry="3" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+    <path d="M14 44 L106 44" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeDasharray="3 3"/>
   </svg>
 );
 
-// ========== Main Component ==========
-const Index: React.FC = () => {
+const CATEGORIES = [
+  { label: "Running",    emoji: "🏃", color: "from-blue-500/10 to-blue-500/5 border-blue-500/20 text-blue-600" },
+  { label: "Lifestyle",  emoji: "✨", color: "from-purple-500/10 to-purple-500/5 border-purple-500/20 text-purple-600" },
+  { label: "Basketball", emoji: "🏀", color: "from-orange-500/10 to-orange-500/5 border-orange-500/20 text-orange-600" },
+  { label: "Outdoor",    emoji: "🏔️", color: "from-green-500/10 to-green-500/5 border-green-500/20 text-green-600" },
+  { label: "Training",   emoji: "💪", color: "from-red-500/10 to-red-500/5 border-red-500/20 text-red-600" },
+  { label: "Other",      emoji: "👟", color: "from-zinc-500/10 to-zinc-500/5 border-zinc-500/20 text-zinc-600" },
+];
+
+const Index = () => {
   const { listings, loading } = usePublicListings();
-  const isMobile = useMobile();
-  const reducedMotion = useReducedMotion();
+  const [reviews, setReviews] = useState<{ buyer_name: string; stars: number; comment: string; created_at: string }[]>([]);
 
-  // Memoized boost checker
-  const isActiveBoost = useMemo(
-    () => (listing: Listing): boolean => {
-      const now = Date.now();
-      if (!listing.boosted) return false;
-      if (!listing.boostExpiresAt) return true;
-      return new Date(listing.boostExpiresAt).getTime() > now;
-    },
-    []
-  );
+  // Fetch latest 5-star reviews for social proof
+  useEffect(() => {
+    supabase
+      .from("reviews")
+      .select("buyer_name, stars, comment, created_at")
+      .gte("stars", 4)
+      .not("comment", "is", null)
+      .neq("comment", "")
+      .order("created_at", { ascending: false })
+      .limit(6)
+      .then(({ data }) => { if (data) setReviews(data); });
+  }, []);
 
-  // Memoized filtered listings
-  const { featured, newArrivals } = useMemo(() => {
-    const activeBoosted = listings.filter(isActiveBoost);
-    const nonBoosted = listings.filter(l => !isActiveBoost(l));
-    
-    return {
-      featured: activeBoosted.slice(0, 10),
-      newArrivals: nonBoosted.slice(0, 10)
-    };
-  }, [listings, isActiveBoost]);
+  const now = Date.now();
+  const isActiveBoost = (l: typeof listings[0]) => {
+    if (!l.boosted) return false;
+    if (!l.boostExpiresAt) return true;
+    return new Date(l.boostExpiresAt).getTime() > now;
+  };
 
-  // Transform listing to sneaker shape
-  const toSneakerShape = (listing: Listing, isBoosted = false): Sneaker => ({
-    id: listing.id,
-    name: listing.name,
-    brand: listing.brand,
-    price: listing.price,
-    image: listing.image ?? "",
-    category: listing.category,
-    sizes: listing.sizes,
-    description: listing.description,
-    isBoosted,
-    sellerVerified: listing.sellerVerified,
-    sellerIsOfficial: listing.sellerIsOfficial,
+  const featured = listings.filter(isActiveBoost).slice(0, 10);
+  const newArrivals = listings.filter((l) => !isActiveBoost(l)).slice(0, 10);
+
+  const toCardShape = (l: typeof listings[0], isBoosted = false) => ({
+    id: l.id, name: l.name, brand: l.brand, price: l.price, image: l.image ?? "",
+    category: l.category, sizes: l.sizes, description: l.description, isBoosted,
+    sellerVerified: l.sellerVerified, sellerIsOfficial: l.sellerIsOfficial,
   });
 
-  // Don't animate if mobile or user prefers reduced motion
-  const shouldAnimate = !isMobile && !reducedMotion;
-
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden w-full">
       <Navbar />
 
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center pt-16 overflow-hidden">
-        {/* Background glow - removed on mobile */}
-        {!isMobile && (
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-primary/8 rounded-full blur-[140px]" />
-          </div>
-        )}
+      {/* ── Hero ── */}
+      <section className="relative min-h-screen flex items-center overflow-hidden" style={{ paddingTop: `calc(64px + env(safe-area-inset-top, 0px))` }}>
+        {/* Subtle ambient glow — contained, not orange everywhere */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-primary/8 rounded-full blur-[140px]" />
+        </div>
 
-        <div className="section-padding max-w-7xl mx-auto w-full grid lg:grid-cols-2 gap-8 items-center py-12">
-          {/* Content */}
-          <div>
+        <div className="section-padding max-w-7xl mx-auto w-full grid lg:grid-cols-2 gap-12 items-center relative z-10 py-16">
+          <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7, ease: "easeOut" }}>
             {/* Social proof badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/60 border border-border mb-6">
+            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/60 border border-border mb-6 backdrop-blur-sm">
               <div className="flex -space-x-1.5">
-                {["K", "A", "E"].map((letter, i) => (
-                  <div 
-                    key={i} 
-                    className="w-5 h-5 rounded-full bg-gradient-to-br from-zinc-600 to-zinc-800 border border-background flex items-center justify-center text-[8px] font-bold text-white"
-                  >
-                    {letter}
-                  </div>
+                {["K","A","E"].map((l, i) => (
+                  <div key={i} className="w-5 h-5 rounded-full bg-gradient-to-br from-zinc-600 to-zinc-800 border border-background flex items-center justify-center text-[8px] font-bold text-white">{l}</div>
                 ))}
               </div>
               <div className="flex items-center gap-0.5">
-                {[...Array(5)].map((_, i) => (
-                  <StarIcon key={i} className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
-                ))}
+                {[...Array(5)].map((_, i) => <Star key={i} className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />)}
               </div>
               <span className="text-xs text-muted-foreground font-medium">Trusted by 500+ buyers</span>
-            </div>
+            </motion.div>
 
-            <h1 className="font-display text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-bold leading-[0.9] tracking-tighter">
+            <h1 className="font-display text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold leading-[0.9] tracking-tighter">
               Step Into<br /><span className="text-gradient">The Future</span>
             </h1>
-            
-            <p className="text-muted-foreground mt-4 text-base max-w-md">
+            <p className="text-muted-foreground mt-6 text-base md:text-lg max-w-md leading-relaxed">
               Discover premium sneakers from verified Ghanaian sellers. Buyer-protected, authenticity-first.
             </p>
 
-            <div className="flex flex-wrap gap-3 mt-6">
+            <div className="flex flex-wrap gap-3 mt-8">
               <Link to="/shop">
-                <Button className="h-11 px-6 rounded-full text-sm">
-                  Shop Now <ArrowIcon className="ml-2 w-4 h-4" />
+                <Button className="btn-primary h-12 px-8 rounded-full text-sm">
+                  Shop Now <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
               </Link>
-              {!isMobile && (
-                <Link to="/about">
-                  <Button variant="outline" className="h-11 px-6 rounded-full text-sm">
-                    Learn More
-                  </Button>
-                </Link>
-              )}
+              <Link to="/about">
+                <Button variant="outline" className="h-12 px-8 rounded-full text-sm border-border hover:bg-muted/50">
+                  Learn More
+                </Button>
+              </Link>
             </div>
 
-            {/* Stats */}
-            <div className="flex gap-6 mt-8 pt-4 border-t border-border/50">
-              <div>
-                <p className="font-display font-bold text-lg">{listings.length}+</p>
-                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                  <UsersIcon className="w-3 h-3" /> Live Listings
-                </p>
-              </div>
-              <div>
-                <p className="font-display font-bold text-lg">GHS 50</p>
-                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                  <ShieldIcon className="w-3 h-3" /> Protection
-                </p>
-              </div>
-              <div>
-                <p className="font-display font-bold text-lg">100%</p>
-                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                  <TrendingIcon className="w-3 h-3" /> Verified
-                </p>
-              </div>
-            </div>
-          </div>
+            {/* Live stats row */}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+              className="flex gap-6 mt-10 pt-8 border-t border-border/50">
+              {[
+                { icon: Users, val: `${listings.length}+`, label: "Live Listings" },
+                { icon: TrendingUp, val: "GHS 50", label: "Buyer Protection" },
+                { icon: Shield, val: "100%", label: "Verified Sellers" },
+              ].map(({ icon: Icon, val, label }) => (
+                <div key={label}>
+                  <p className="font-display font-bold text-lg">{val}</p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                    <Icon className="w-3 h-3" /> {label}
+                  </p>
+                </div>
+              ))}
+            </motion.div>
+          </motion.div>
 
-          {/* Hero Image */}
-          <div className="flex items-center justify-center">
-            <img 
-              src={heroImage} 
-              alt="Featured sneaker"
-              className="w-full max-w-xs md:max-w-lg drop-shadow-2xl"
-              loading="eager"
-              fetchPriority="high"
-            />
-          </div>
+          <motion.div initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1, ease: "easeOut", delay: 0.25 }}
+            className="relative flex items-center justify-center w-full">
+            <div className="absolute inset-0 bg-primary/5 rounded-full blur-3xl" />
+            <motion.img src={heroImage} alt="Featured sneaker"
+              className="relative z-10 w-full max-w-xs sm:max-w-sm md:max-w-lg drop-shadow-2xl"
+              animate={{ y: [0, -14, 0] }}
+              transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }} />
+          </motion.div>
         </div>
       </section>
 
-      {/* Trust Strip - Simplified for mobile */}
-      <section className="border-y border-border bg-muted/20">
-        <div className="section-padding max-w-7xl mx-auto py-4 grid grid-cols-3 gap-2">
-          <div className="text-center">
-            <div className="w-8 h-8 rounded-lg bg-muted border border-border flex items-center justify-center mx-auto mb-1">
-              <TruckIcon className="w-4 h-4" />
-            </div>
-            <p className="text-xs font-medium">Fast Delivery</p>
-          </div>
-          <div className="text-center">
-            <div className="w-8 h-8 rounded-lg bg-muted border border-border flex items-center justify-center mx-auto mb-1">
-              <ShieldIcon className="w-4 h-4" />
-            </div>
-            <p className="text-xs font-medium">Verified Sellers</p>
-          </div>
-          <div className="text-center">
-            <div className="w-8 h-8 rounded-lg bg-muted border border-border flex items-center justify-center mx-auto mb-1">
-              <RotateIcon className="w-4 h-4" />
-            </div>
-            <p className="text-xs font-medium">Buyer Protection</p>
-          </div>
+      {/* ── Trust strip ── */}
+      <section className="border-y border-border w-full bg-muted/20">
+        <div className="section-padding max-w-7xl mx-auto py-7 grid grid-cols-1 md:grid-cols-3 gap-5">
+          {[
+            { icon: Truck, label: "Fast Delivery", desc: "Across all regions in Ghana" },
+            { icon: Shield, label: "Verified Sellers", desc: "Every seller reviewed & approved" },
+            { icon: RotateCcw, label: "Buyer Protection", desc: "Two-sided order confirmation" },
+          ].map((item, i) => (
+            <motion.div key={item.label} initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+              transition={{ delay: i * 0.1 }} className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-muted border border-border flex items-center justify-center flex-shrink-0">
+                <item.icon className="w-4 h-4 text-foreground" />
+              </div>
+              <div>
+                <p className="font-display font-semibold text-sm">{item.label}</p>
+                <p className="text-xs text-muted-foreground">{item.desc}</p>
+              </div>
+            </motion.div>
+          ))}
         </div>
       </section>
 
-      {/* Categories - Lazy Loaded */}
-      <Suspense fallback={<div className="h-24 animate-pulse bg-muted/20 mx-4 rounded-xl" />}>
-        <CategoryScroll categories={CATEGORIES} />
-      </Suspense>
+      {/* ── Category Scroll ── */}
+      <section className="max-w-7xl mx-auto py-12 w-full">
+        <div className="section-padding mb-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground mb-1">Browse By</p>
+          <h2 className="font-display text-2xl font-bold tracking-tight">Categories</h2>
+        </div>
+        <div className="flex gap-3 overflow-x-auto pb-3 px-4 sm:px-6 lg:px-8 snap-x snap-mandatory no-scrollbar">
+          {CATEGORIES.map((cat, i) => (
+            <motion.div key={cat.label} initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}
+              transition={{ delay: i * 0.07 }}>
+              <Link to={`/shop?category=${cat.label}`}
+                className={`snap-start flex-shrink-0 flex flex-col items-center gap-2 px-5 py-4 rounded-2xl border bg-gradient-to-b ${cat.color} hover:scale-105 transition-transform`}>
+                <span className="text-2xl">{cat.emoji}</span>
+                <span className="text-xs font-semibold whitespace-nowrap">{cat.label}</span>
+              </Link>
+            </motion.div>
+          ))}
+        </div>
+      </section>
 
-      {/* Featured Section */}
-      <section className="section-padding max-w-7xl mx-auto py-8">
-        <div className="flex justify-between items-center mb-4">
+      {/* ── Featured / Boosted ── */}
+      <section className="section-padding max-w-7xl mx-auto py-12 w-full">
+        <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }} className="flex justify-between items-end mb-8 gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-primary mb-1 flex items-center gap-1.5">
-              <ZapIcon className="w-3 h-3 fill-current" /> Curated
+              <Zap className="w-3 h-3 fill-current" /> Curated
             </p>
-            <h2 className="font-display text-2xl font-bold">Featured Picks</h2>
+            <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight">Featured Picks</h2>
           </div>
-          <Link to="/featured" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
-            View {!isMobile && 'All'} <ArrowIcon className="w-4 h-4" />
+          <Link to="/featured" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex-shrink-0 flex items-center gap-1">
+            View All <ArrowRight className="w-4 h-4" />
           </Link>
-        </div>
+        </motion.div>
 
         {loading ? (
-          <div className="grid grid-cols-2 gap-3">
-            {[...Array(isMobile ? 4 : 6)].map((_, i) => (
-              <div key={i} className="rounded-xl border border-border bg-card h-48 animate-pulse" />
+          <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="flex-shrink-0 w-[72vw] max-w-[260px] rounded-2xl border border-border bg-card h-72 animate-pulse" />
             ))}
           </div>
         ) : featured.length === 0 ? (
-          <div className="text-center py-12 border border-dashed border-border rounded-2xl bg-muted/10">
-            <SneakerOutline className="w-28 h-14 text-muted-foreground/30 mx-auto mb-4" />
-            <p className="font-display font-bold text-base mb-1">No featured listings yet</p>
-            <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-              Sellers can boost their listings to appear here
+          <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
+            className="text-center py-20 border border-dashed border-border rounded-3xl bg-muted/10">
+            <SneakerOutline className="w-28 h-14 text-muted-foreground/30 mx-auto mb-5" />
+            <p className="font-display font-bold text-lg mb-1">No featured listings yet</p>
+            <p className="text-sm text-muted-foreground max-w-xs mx-auto leading-relaxed">
+              Sellers can boost their listings to appear here and reach more buyers.
             </p>
-          </div>
+          </motion.div>
         ) : (
-          <div className={`grid ${isMobile ? 'grid-cols-2' : 'sm:grid-cols-2 lg:grid-cols-3'} gap-3`}>
-            {featured.slice(0, isMobile ? 4 : 6).map((listing, i) => (
-              <SneakerCard 
-                key={listing.id} 
-                sneaker={toSneakerShape(listing, true)} 
-                index={i} 
-              />
-            ))}
-          </div>
+          <>
+            <div className="flex sm:hidden gap-4 overflow-x-auto pb-3 -mx-4 px-4 snap-x snap-mandatory">
+              {featured.map((l, i) => (
+                <div key={l.id} className="snap-start flex-shrink-0 w-[72vw] max-w-[260px]">
+                  <SneakerCard sneaker={toCardShape(l, true)} index={i} />
+                </div>
+              ))}
+            </div>
+            <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featured.map((l, i) => (
+                <SneakerCard key={l.id} sneaker={toCardShape(l, true)} index={i} />
+              ))}
+            </div>
+          </>
         )}
       </section>
 
-      {/* New Arrivals Section */}
-      <section className="section-padding max-w-7xl mx-auto pb-12">
-        <div className="flex justify-between items-center mb-4">
+      {/* ── New Arrivals ── */}
+      <section className="section-padding max-w-7xl mx-auto pb-16 w-full">
+        <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }} className="flex justify-between items-end mb-8 gap-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground mb-1">Just Dropped</p>
-            <h2 className="font-display text-2xl font-bold">New Arrivals</h2>
+            <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight">New Arrivals</h2>
           </div>
-          <Link to="/shop" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
-            View All <ArrowIcon className="w-4 h-4" />
+          <Link to="/shop" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex-shrink-0 flex items-center gap-1">
+            View All <ArrowRight className="w-4 h-4" />
           </Link>
-        </div>
+        </motion.div>
 
         {loading ? (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="rounded-xl border border-border bg-card h-48 animate-pulse" />
+              <div key={i} className="rounded-2xl border border-border bg-card h-56 sm:h-72 animate-pulse" />
             ))}
           </div>
         ) : newArrivals.length === 0 ? (
-          <div className="text-center py-16 border border-dashed border-border rounded-2xl bg-muted/10">
-            <SneakerOutline className="w-32 h-16 text-muted-foreground/25 mx-auto mb-4" />
-            <p className="font-display font-bold text-lg mb-2">No listings yet</p>
-            <p className="text-sm text-muted-foreground mb-4 max-w-xs mx-auto">
-              Be the first to list your sneakers
+          <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
+            className="text-center py-24 border border-dashed border-border rounded-3xl bg-muted/10">
+            <SneakerOutline className="w-36 h-18 text-muted-foreground/25 mx-auto mb-6" />
+            <p className="font-display font-bold text-xl mb-2">No listings yet</p>
+            <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto leading-relaxed">
+              Be the first to list your sneakers and reach buyers across Ghana.
             </p>
             <Link to="/auth">
-              <Button className="rounded-full h-10 px-5 text-sm">Start Selling</Button>
+              <Button className="btn-primary rounded-full h-11 px-7 text-sm">Start Selling</Button>
             </Link>
-          </div>
+          </motion.div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
-            {newArrivals.slice(0, isMobile ? 4 : 6).map((listing, i) => (
-              <SneakerCard 
-                key={listing.id} 
-                sneaker={toSneakerShape(listing)} 
-                index={i} 
-              />
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+            {newArrivals.map((l, i) => (
+              <SneakerCard key={l.id} sneaker={toCardShape(l)} index={i} />
             ))}
           </div>
         )}
       </section>
 
-      {/* Reviews - Lazy Loaded */}
-      <Suspense fallback={null}>
-        <Reviews />
-      </Suspense>
+      {/* ── Social Proof ── */}
+      {reviews.length > 0 && (
+        <section className="section-padding max-w-7xl mx-auto pb-16 w-full">
+          <motion.div initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+            className="mb-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground mb-1">Real Reviews</p>
+            <h2 className="font-display text-3xl md:text-4xl font-bold tracking-tight">What People Say</h2>
+          </motion.div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {reviews.slice(0, 3).map((r, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }} transition={{ delay: i * 0.1 }}
+                className="rounded-2xl border border-border bg-muted/10 p-5 space-y-3">
+                <div className="flex items-center gap-0.5">
+                  {[...Array(r.stars)].map((_, j) => <Star key={j} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />)}
+                </div>
+                <p className="text-sm leading-relaxed text-foreground/80">"{r.comment}"</p>
+                <div className="flex items-center gap-2 pt-1">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-zinc-600 to-zinc-800 flex items-center justify-center text-[10px] font-bold text-white">
+                    {r.buyer_name?.[0]?.toUpperCase() ?? "?"}
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold">{r.buyer_name}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {new Date(r.created_at).toLocaleDateString("en-GH", { month: "short", year: "numeric" })}
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+      )}
 
-      {/* CTA Banner */}
-      <section className="section-padding max-w-7xl mx-auto pb-16">
-        <div className="relative overflow-hidden rounded-2xl p-6 md:p-10 text-center bg-zinc-950 dark:bg-zinc-900 border border-zinc-800">
-          {!isMobile && (
-            <>
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-24 bg-primary/20 blur-[60px] rounded-full" />
-              <div className="absolute inset-0 opacity-[0.03]" 
-                style={{ backgroundImage: "linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px)", backgroundSize: "40px 40px" }} 
-              />
-            </>
-          )}
+      {/* ── CTA Banner — dark premium card ── */}
+      <section className="section-padding max-w-7xl mx-auto pb-20 w-full">
+        <motion.div initial={{ opacity: 0, scale: 0.97 }} whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          className="relative overflow-hidden rounded-3xl p-8 md:p-14 text-center bg-zinc-950 dark:bg-zinc-900 border border-zinc-800">
+          {/* Subtle glow accent */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-primary/20 blur-[80px] rounded-full pointer-events-none" />
+          {/* Grid texture */}
+          <div className="absolute inset-0 opacity-[0.03]"
+            style={{ backgroundImage: "linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px)", backgroundSize: "40px 40px" }} />
 
           <div className="relative z-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 mb-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 mb-6">
               <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
               <span className="text-xs text-white/60 font-medium">Sellers earning daily</span>
             </div>
-            <h2 className="font-display text-xl sm:text-3xl md:text-4xl font-bold text-white tracking-tight mb-3">
+            <h2 className="font-display text-2xl sm:text-4xl md:text-5xl font-bold text-white tracking-tight mb-4">
               Got Sneakers to Sell?
             </h2>
-            <p className="text-white/50 text-sm md:text-base max-w-sm mx-auto mb-5">
+            <p className="text-white/50 text-base md:text-lg max-w-sm mx-auto mb-8 leading-relaxed">
               List in minutes. Reach buyers across Ghana. Get paid directly to MoMo.
             </p>
-            <div className="flex justify-center gap-2">
+            <div className="flex justify-center gap-3 flex-wrap">
               <Link to="/auth">
-                <Button className="h-10 px-5 rounded-full text-sm bg-white text-zinc-900 hover:bg-white/90">
-                  Start Selling <ArrowIcon className="ml-2 w-4 h-4" />
+                <Button className="btn-primary h-12 px-8 rounded-full text-sm">
+                  Start Selling <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
               </Link>
-              {!isMobile && (
-                <Link to="/shop">
-                  <Button variant="ghost" className="h-10 px-5 rounded-full text-sm text-white/60 hover:text-white hover:bg-white/5">
-                    Browse Shop
-                  </Button>
-                </Link>
-              )}
+              <Link to="/shop">
+                <Button variant="ghost" className="h-12 px-8 rounded-full text-sm text-white/60 hover:text-white hover:bg-white/5">
+                  Browse Shop
+                </Button>
+              </Link>
             </div>
           </div>
-        </div>
+        </motion.div>
       </section>
 
       <Footer />
