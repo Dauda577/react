@@ -266,7 +266,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Then create the profile with ALL required fields - using upsert instead of insert
 const { error: profileError } = await supabase
   .from("profiles")
-  .upsert(profileData, { onConflict: 'id' });
+  .upsert({
+    id: data.user.id,
+    name: name,
+    email: email,
+    phone: phone,
+    role: role,
+    is_seller: role === "seller",
+    verified: false,
+    is_official: false,
+    listing_count: 0,
+    commission_rate: 5,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  }, { 
+    onConflict: 'id',
+    ignoreDuplicates: false // Set to false to update if exists
+  });
       
       if (profileError) {
         console.error("Profile creation error - FULL DETAILS:", profileError);
