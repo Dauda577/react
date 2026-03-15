@@ -321,7 +321,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (error) throw new Error(error.message);
   };
 
-  // ── FIXED ASSIGN ROLE FUNCTION WITH DETAILED LOGGING ───────────────────
+  // ── FIXED ASSIGN ROLE FUNCTION with all required fields ───────────────────
   const assignRole = async (role: "buyer" | "seller", phone: string) => {
     if (!pendingSession) {
       console.error("❌ No pending session found!");
@@ -343,7 +343,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       commission_rate: 5,
       verified: false,
       is_official: false,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
     
     console.log("📝 Inserting profile:", profileData);
