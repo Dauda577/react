@@ -20,8 +20,6 @@ serve(async (req) => {
       );
     }
     
-    console.log("✅ API key is set");
-    
     let phoneNumber = "";
     let message = "";
 
@@ -67,11 +65,6 @@ serve(async (req) => {
         message = `❌ Payout failed for order #${record.order_id?.slice(-8)}. Please check your MoMo details in Settings at sneakershub.site/account`;
         break;
         
-      case "admin.alert":
-        phoneNumber = record.admin_phone;
-        message = record.message;
-        break;
-        
       default:
         console.error("❌ Unknown SMS type:", type);
         return new Response(
@@ -110,35 +103,8 @@ serve(async (req) => {
 
     console.log(`📤 Sending SMS to ${formattedNumber}: ${message}`);
 
-    // Try Arkesel API v1 (most common)
-    console.log("Attempting Arkesel API v1...");
-    const v1Response = await fetch("https://sms.arkesel.com/api/v1/sms/send", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "api-key": ARKESEL_API_KEY,
-      },
-      body: new URLSearchParams({
-        sender: ARKESEL_SENDER_ID,
-        message: message,
-        to: formattedNumber,
-      }),
-    });
-
-    const v1Result = await v1Response.json();
-    console.log("Arkesel v1 response:", JSON.stringify(v1Result, null, 2));
-    
-    if (v1Response.ok) {
-      console.log("✅ SMS sent successfully via v1");
-      return new Response(
-        JSON.stringify({ success: true, result: v1Result }),
-        { headers: { "Content-Type": "application/json" } }
-      );
-    }
-
-    // If v1 fails, try v2
-    console.log("v1 failed, attempting Arkesel API v2...");
-    const v2Response = await fetch("https://sms.arkesel.com/api/v2/sms/send", {
+    // Try Arkesel API with proper error handling
+    const response = await fetch("https://sms.arkesel.com/api/v2/sms/send", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -151,26 +117,38 @@ serve(async (req) => {
       }),
     });
 
-    const v2Result = await v2Response.json();
-    console.log("Arkesel v2 response:", JSON.stringify(v2Result, null, 2));
+    // Check if response is JSON or HTML
+    const contentType = response.headers.get("content-type");
+    let result;
     
-    if (v2Response.ok) {
-      console.log("✅ SMS sent successfully via v2");
+    if (contentType?.includes("application/json")) {
+      result = await response.json();
+    } else {
+      const text = await response.text();
+      console.error("❌ Non-JSON response:", text.substring(0, 200));
       return new Response(
-        JSON.stringify({ success: true, result: v2Result }),
-        { headers: { "Content-Type": "application/json" } }
+        JSON.stringify({ 
+          error: "Invalid response from SMS provider", 
+          status: response.status,
+          response: text.substring(0, 200) 
+        }),
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    
+    console.log("Arkesel response:", JSON.stringify(result, null, 2));
+    
+    if (!response.ok) {
+      console.error("❌ Arkesel API error:", result);
+      return new Response(
+        JSON.stringify({ error: "Failed to send SMS", details: result }),
+        { status: 500, headers: { "Content-Type": "application/json" } }
       );
     }
 
-    // Both failed
-    console.error("❌ Both API versions failed");
     return new Response(
-      JSON.stringify({ 
-        error: "Failed to send SMS", 
-        v1: v1Result,
-        v2: v2Result 
-      }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      JSON.stringify({ success: true, result }),
+      { headers: { "Content-Type": "application/json" } }
     );
 
   } catch (error) {
