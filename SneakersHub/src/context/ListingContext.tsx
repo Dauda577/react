@@ -209,11 +209,12 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
     const UNVERIFIED_MAX = 20;
     const { data: profile } = await supabase
       .from("profiles")
-      .select("verified, is_official")
+      .select("verified, is_official, phone")
       .eq("id", user.id)
       .single();
 
     const isVerified = profile?.verified === true || profile?.is_official === true;
+    const sellerPhone = profile?.phone;
 
     if (!isVerified) {
       // Use listing_count on profiles — a counter that only ever increments,
@@ -259,8 +260,15 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
 
     if (error) throw new Error(error.message);
 
-    // SMS confirmation to seller (fire and forget)
-    triggerSMS({ type: "listing.created", record: data }).catch(() => {});
+    // ✅ FIXED: Add seller's phone number to SMS trigger
+    triggerSMS({ 
+      type: "listing.created", 
+      record: { 
+        ...data, 
+        seller_phone: sellerPhone,
+        listing_name: data.name 
+      } 
+    }).catch(() => {});
 
     // Upload images — await so image_url is saved before navigation
     if (imageFile && data) {
