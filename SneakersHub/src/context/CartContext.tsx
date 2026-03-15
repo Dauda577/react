@@ -214,9 +214,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   // ── Actions ──────────────────────────────────────────────────────────────
   const addItem = (sneaker: CartItem["sneaker"], size: number) => {
-    // ✅ FIX: Use ref to get the latest activeMode
+    // ✅ FIX: Show helpful guidance toast instead of blocking
     if (activeModeRef.current === "seller") {
-      toast.error("Switch to Buyer mode to add items to cart");
+      toast.error("Please switch to Buyer mode to add items to cart", {
+        description: "Use the Buy/Sell toggle in the navbar",
+        duration: 4000,
+        action: {
+          label: "Got it",
+          onClick: () => console.log("User acknowledged")
+        }
+      });
       return;
     }
     
