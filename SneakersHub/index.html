@@ -32,20 +32,24 @@
     <script>
       (function() {
         try {
-          var theme = localStorage.getItem('theme') || 
-            (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+          var theme = localStorage.getItem('theme');
+          // If no theme in localStorage, default to light
+          if (!theme) {
+            theme = 'light';
+          }
           document.documentElement.classList.toggle('dark', theme === 'dark');
           document.documentElement.style.backgroundColor = theme === 'dark' ? '#09090b' : '#ffffff';
         } catch(e) {
-          document.documentElement.classList.add('dark');
-          document.documentElement.style.backgroundColor = '#09090b';
+          // Fallback to light on error
+          document.documentElement.classList.remove('dark');
+          document.documentElement.style.backgroundColor = '#ffffff';
         }
       })();
     </script>
 
     <style>
-      html { background-color: #09090b; }
-      html.light { background-color: #ffffff; }
+      html { background-color: #ffffff; } /* Default to white */
+      html.dark { background-color: #09090b; }
       body { 
         min-height: 100vh;
         min-height: -webkit-fill-available;

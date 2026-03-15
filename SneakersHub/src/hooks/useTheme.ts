@@ -10,8 +10,8 @@ export const useTheme = () => {
       return stored;
     }
     
-    // Default to dark (since your site is dark by default)
-    return "dark";
+    // ✅ CHANGE: Default to light instead of dark
+    return "light";
   });
 
   useEffect(() => {
