@@ -1,4 +1,4 @@
-import { lazy, Suspense, Component, ReactNode } from "react";
+import { lazy, Suspense, Component, ReactNode, useEffect } from "react"; // Add useEffect
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,6 +12,7 @@ import { RatingProvider } from "@/context/RatingContext";
 import { PublicListingsProvider } from "@/context/PublicListingsContext";
 import { MessageProvider } from "@/context/MessageContext";
 import { PushProvider } from "@/context/PushContext";
+import { useTheme } from "@/hooks/useTheme"; // Import useTheme
 import ScrollToTop from "@/components/ScrollToTop";
 import InstallPrompt from "@/components/InstallPrompt";
 import Spinner from "@/components/Spinner";
@@ -35,7 +36,6 @@ const Account = lazy(() => import("./pages/Account"));
 const CreateListing = lazy(() => import("./pages/CreateListing"));
 const Admin = lazy(() => import("./pages/Admin"));
 const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
-
 
 class ErrorBoundary extends Component<
   { children: ReactNode },
@@ -82,9 +82,15 @@ const GuestRoute = ({ children }: { children: React.ReactNode }) => {
   return user ? <Navigate to="/" replace /> : <>{children}</>;
 };
 
+// Create a ThemeWrapper component to use the theme hook
+const ThemeWrapper = ({ children }: { children: React.ReactNode }) => {
+  const { theme } = useTheme(); // This ensures theme is applied at root level
+  return <>{children}</>;
+};
+
 const App = () => (
   <ErrorBoundary>
-  <TooltipProvider>
+    <TooltipProvider>
       <AuthProvider>
         <OrderProvider>
           <RatingProvider>
@@ -94,40 +100,42 @@ const App = () => (
                   <CartProvider>
                     <MessageProvider>
                       <PushProvider>
-                        <Toaster />
-                        <Sonner />
-                        <InstallPrompt />
-                        <SafariNotifPrompt />
-                        <BrowserRouter>
-                          <ScrollToTop />
-                          <Suspense fallback={<Spinner />}>
-                            <Routes>
-                              <Route path="/" element={<Index />} />
-                              <Route path="/shop" element={<Shop />} />
-                              <Route path="/featured" element={<Featured />} />
-                              <Route path="/product/:id" element={<ProductDetail />} />
-                              <Route path="/cart" element={<Cart />} />
-                              <Route path="/checkout" element={<Checkout />} />
-                              <Route path="/order-confirmation" element={<OrderConfirmation />} />
-                              <Route path="/about" element={<About />} />
-                              <Route path="/auth" element={
-                                <GuestRoute><Auth /></GuestRoute>
-                              } />
-                              <Route path="/account" element={
-                                <ProtectedRoute allowGuest><Account /></ProtectedRoute>
-                              } />
-                              <Route path="/listings/new" element={
-                                <ProtectedRoute><CreateListing /></ProtectedRoute>
-                              } />
-                              <Route path="/privacy" element={<Privacy />} />
-                              <Route path="/auth/callback" element={<AuthCallback />} />
-                              <Route path="/reset-password" element={<ResetPassword />} />
-                              <Route path="/admin" element={<Admin />} />
-                              <Route path="/unsubscribe" element={<Unsubscribe />} />
-                              <Route path="*" element={<NotFound />} />
-                            </Routes>
-                          </Suspense>
-                        </BrowserRouter>
+                        <ThemeWrapper> {/* Add ThemeWrapper here */}
+                          <Toaster />
+                          <Sonner />
+                          <InstallPrompt />
+                          <SafariNotifPrompt />
+                          <BrowserRouter>
+                            <ScrollToTop />
+                            <Suspense fallback={<Spinner />}>
+                              <Routes>
+                                <Route path="/" element={<Index />} />
+                                <Route path="/shop" element={<Shop />} />
+                                <Route path="/featured" element={<Featured />} />
+                                <Route path="/product/:id" element={<ProductDetail />} />
+                                <Route path="/cart" element={<Cart />} />
+                                <Route path="/checkout" element={<Checkout />} />
+                                <Route path="/order-confirmation" element={<OrderConfirmation />} />
+                                <Route path="/about" element={<About />} />
+                                <Route path="/auth" element={
+                                  <GuestRoute><Auth /></GuestRoute>
+                                } />
+                                <Route path="/account" element={
+                                  <ProtectedRoute allowGuest><Account /></ProtectedRoute>
+                                } />
+                                <Route path="/listings/new" element={
+                                  <ProtectedRoute><CreateListing /></ProtectedRoute>
+                                } />
+                                <Route path="/privacy" element={<Privacy />} />
+                                <Route path="/auth/callback" element={<AuthCallback />} />
+                                <Route path="/reset-password" element={<ResetPassword />} />
+                                <Route path="/admin" element={<Admin />} />
+                                <Route path="/unsubscribe" element={<Unsubscribe />} />
+                                <Route path="*" element={<NotFound />} />
+                              </Routes>
+                            </Suspense>
+                          </BrowserRouter>
+                        </ThemeWrapper>
                       </PushProvider>
                     </MessageProvider>
                   </CartProvider>
