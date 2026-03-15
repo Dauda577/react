@@ -53,15 +53,104 @@
       body { 
         min-height: 100vh;
         min-height: -webkit-fill-available;
+        margin: 0;
+        padding: 0;
       }
       html {
         height: -webkit-fill-available;
       }
       * { -webkit-tap-highlight-color: transparent; }
+      
+      /* Loader Styles */
+      #initial-loader {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: #ffffff;
+        z-index: 9999;
+        transition: opacity 0.3s ease-out;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+      
+      html.dark #initial-loader {
+        background-color: #09090b;
+      }
+      
+      .loader-spinner {
+        width: 48px;
+        height: 48px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #f97316;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 16px;
+      }
+      
+      html.dark .loader-spinner {
+        border-color: #1f2937;
+        border-top-color: #f97316;
+      }
+      
+      .loader-text {
+        color: #1f2937;
+        font-size: 16px;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+      }
+      
+      html.dark .loader-text {
+        color: #e5e7eb;
+      }
+      
+      .loader-subtext {
+        color: #6b7280;
+        font-size: 14px;
+        margin-top: 8px;
+      }
+      
+      html.dark .loader-subtext {
+        color: #9ca3af;
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      /* Hide loader once React mounts */
+      .loader-hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
     </style>
   </head>
   <body>
+    <div id="initial-loader">
+      <div class="loader-spinner"></div>
+      <div class="loader-text">SneakersHub</div>
+      <div class="loader-subtext">Loading your sneakers...</div>
+    </div>
+    
     <div id="root"></div>
+    
     <script type="module" src="/src/main.tsx"></script>
+    
+    <script>
+      // Hide loader when React mounts
+      window.addEventListener('load', function() {
+        const loader = document.getElementById('initial-loader');
+        if (loader) {
+          setTimeout(() => {
+            loader.classList.add('loader-hidden');
+          }, 100);
+        }
+      });
+    </script>
   </body>
 </html>
