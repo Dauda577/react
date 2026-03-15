@@ -15,23 +15,51 @@ const About = () => {
   const [userCount, setUserCount] = useState<string>("—");
   const [listingCount, setListingCount] = useState<string>("—");
 
-  useEffect(() => {
+  const fetchCounts = async () => {
     // Total users (profiles table = one row per user)
-    supabase
+    const { count: userCountData } = await supabase
       .from("profiles")
-      .select("id", { count: "exact", head: true })
-      .then(({ count }) => {
-        if (count !== null) setUserCount(formatCount(count));
-      });
+      .select("id", { count: "exact", head: true });
+    
+    if (userCountData !== null) setUserCount(formatCount(userCountData));
 
     // Total active listings
-    supabase
+    const { count: listingCountData } = await supabase
       .from("listings")
       .select("id", { count: "exact", head: true })
-      .eq("status", "active")
-      .then(({ count }) => {
-        if (count !== null) setListingCount(formatCount(count));
-      });
+      .eq("status", "active");
+    
+    if (listingCountData !== null) setListingCount(formatCount(listingCountData));
+  };
+
+  useEffect(() => {
+    fetchCounts();
+
+    // Set up realtime subscriptions for live updates
+    const profilesChannel = supabase
+      .channel('profiles-count')
+      .on('postgres_changes', 
+        { event: 'INSERT', schema: 'public', table: 'profiles' }, 
+        () => fetchCounts()
+      )
+      .subscribe();
+
+    const listingsChannel = supabase
+      .channel('listings-count')
+      .on('postgres_changes', 
+        { event: 'INSERT', schema: 'public', table: 'listings' }, 
+        () => fetchCounts()
+      )
+      .on('postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'listings' },
+        () => fetchCounts()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(profilesChannel);
+      supabase.removeChannel(listingsChannel);
+    };
   }, []);
 
   const stats = [
@@ -71,7 +99,7 @@ const About = () => {
           </p>
         </motion.div>
 
-        {/* Stats */}
+        {/* Stats - Now with real-time updates */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
