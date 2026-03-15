@@ -3,13 +3,40 @@ import { Link, useNavigate } from "react-router-dom";
 import { Trash2, ShoppingBag, ArrowRight } from "lucide-react";
 import { thumbImage } from "@/lib/imageutils";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext"; // Add this import
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 
 const Cart = () => {
   const { items, removeItem, totalPrice, totalItems } = useCart();
+  const { activeMode, switchMode } = useAuth(); // Add this
   const navigate = useNavigate();
+
+  // ✅ ADD THIS: Check if user is in seller mode
+  if (activeMode === "seller") {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="pt-32 section-padding max-w-4xl mx-auto text-center">
+          <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-5">
+            <ShoppingBag className="w-8 h-8 text-primary" />
+          </div>
+          <h1 className="font-display text-2xl font-bold mb-2">You're in Seller Mode</h1>
+          <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+            Switch to Buyer mode to view your cart and shop for sneakers
+          </p>
+          <button
+            onClick={() => switchMode("buyer")}
+            className="btn-primary px-6 py-3 rounded-full"
+          >
+            Switch to Buyer Mode
+          </button>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

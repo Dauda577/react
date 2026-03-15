@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner"; // Add this import for toast notifications
 
 export type CartItem = {
   sneaker: {
@@ -205,7 +206,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   // ── Actions ──────────────────────────────────────────────────────────────
   const addItem = (sneaker: CartItem["sneaker"], size: number) => {
-    if (activeMode === "seller") return; // in seller mode, cannot add to cart
+    // ✅ FIX: Check if user is in seller mode
+    if (activeMode === "seller") {
+      toast.error("Switch to Buyer mode to add items to cart");
+      return;
+    }
+    
     setItems((prev) => {
       const existing = prev.find((i) => i.sneaker.id === sneaker.id && i.size === size);
       const newQuantity = existing ? existing.quantity + 1 : 1;

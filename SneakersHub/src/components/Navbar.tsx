@@ -111,8 +111,8 @@ const Navbar = () => {
               </motion.button>
             )}
 
-            {/* Cart */}
-            {activeMode === "buyer" && (
+            {/* ✅ FIXED: Cart icon with disabled state for seller mode */}
+            {activeMode === "buyer" ? (
               <Link to="/cart" className="relative group">
                 <ShoppingBag className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
                 {totalItems > 0 && (
@@ -122,6 +122,14 @@ const Navbar = () => {
                   </motion.span>
                 )}
               </Link>
+            ) : (
+              <div className="relative group cursor-not-allowed">
+                <ShoppingBag className="w-5 h-5 text-muted-foreground opacity-50" />
+                {/* Tooltip */}
+                <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block w-40 p-1.5 bg-gray-900 text-white text-[10px] rounded shadow-lg whitespace-nowrap">
+                  Switch to Buyer mode to shop
+                </div>
+              </div>
             )}
 
             <button className="md:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
