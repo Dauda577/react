@@ -149,18 +149,88 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
     if (!listingsCache) fetchListings();
   }, []);
 
+  // ✅ SOLUTION 2: Enhanced Realtime with full data refresh for new listings
   useEffect(() => {
     const channel = supabase
       .channel("listings-realtime")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "listings" },
-        () => fetchListings()
+      // For INSERT: fetch full listing data to get seller info
+      .on("postgres_changes", 
+        { event: "INSERT", schema: "public", table: "listings" },
+        async (payload) => {
+          // Fetch the complete listing with seller data
+          const { data, error } = await supabase
+            .from("listings")
+            .select(`
+              id, seller_id, name, brand, price, category, sizes,
+              description, image_url, images, boosted, boost_expires_at,
+              views, created_at, city, region, shipping_cost, handling_time,
+              profiles (
+                name, phone, city, verified, is_official, subaccount_code, created_at
+              )
+            `)
+            .eq("id", payload.new.id)
+            .single();
+          
+          if (!error && data) {
+            const p = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
+            const newListing: PublicListing = {
+              id: data.id,
+              sellerId: data.seller_id,
+              sellerName: p?.name ?? "Seller",
+              sellerPhone: p?.phone ?? null,
+              sellerCity: p?.city ?? null,
+              sellerRegion: p?.region ?? null,
+              city: data.city ?? null,
+              region: data.region ?? null,
+              sellerVerified: p?.verified ?? false,
+              sellerIsOfficial: p?.is_official ?? false,
+              sellerSubaccountCode: p?.subaccount_code ?? null,
+              sellerMemberSince: p?.created_at
+                ? new Date(p.created_at).getFullYear().toString()
+                : new Date(data.created_at).getFullYear().toString(),
+              shippingCost: data.shipping_cost ?? 0,
+              handlingTime: data.handling_time ?? "Ships in 1-3 days",
+              images: data.images ?? [],
+              name: data.name,
+              brand: data.brand,
+              price: data.price,
+              category: data.category,
+              sizes: data.sizes,
+              description: data.description ?? "",
+              image: data.image_url,
+              boosted: data.boosted,
+              boostExpiresAt: data.boost_expires_at,
+              views: data.views,
+              createdAt: data.created_at,
+            };
+
+            setListings((prev) => {
+              const updated = [newListing, ...prev];
+              listingsCache = updated;
+              return updated;
+            });
+          }
+        }
       )
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "listings" },
+      .on("postgres_changes", 
+        { event: "UPDATE", schema: "public", table: "listings" },
         (payload) => {
           setListings((prev) => {
             const updated = prev.map((l) =>
               l.id === payload.new.id
-                ? { ...l, boosted: payload.new.boosted, boostExpiresAt: payload.new.boost_expires_at, views: payload.new.views, price: payload.new.price, name: payload.new.name }
+                ? { 
+                    ...l, 
+                    boosted: payload.new.boosted, 
+                    boostExpiresAt: payload.new.boost_expires_at, 
+                    views: payload.new.views, 
+                    price: payload.new.price, 
+                    name: payload.new.name,
+                    description: payload.new.description,
+                    image: payload.new.image_url,
+                    images: payload.new.images ?? [],
+                    category: payload.new.category,
+                    sizes: payload.new.sizes,
+                  }
                 : l
             );
             listingsCache = updated;
@@ -168,7 +238,8 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
           });
         }
       )
-      .on("postgres_changes", { event: "DELETE", schema: "public", table: "listings" },
+      .on("postgres_changes", 
+        { event: "DELETE", schema: "public", table: "listings" },
         (payload) => {
           setListings((prev) => {
             const updated = prev.filter((l) => l.id !== payload.old.id);
