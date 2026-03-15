@@ -57,12 +57,29 @@ serve(async (req) => {
         
       case "payout.missing_details":
         phoneNumber = record.seller_phone;
-        message = `⚠️ Please add your payout details in Settings to receive payments from SneakersHub. Go to sneakershub.site/account`;
+        message = `⚠️ Please add your payout details in Settings to receive payments from SneakersHub. Go to sneakershub.site/account?tab=settings`;
         break;
         
       case "payout.transfer_failed":
         phoneNumber = record.seller_phone;
-        message = `❌ Payout failed for order #${record.order_id?.slice(-8)}. Please check your MoMo details in Settings at sneakershub.site/account`;
+        message = `❌ Payout failed for order #${record.order_id?.slice(-8)}. Please check your MoMo details in Settings at sneakershub.site/account?tab=settings`;
+        break;
+        
+      // ✅ NEW: Seller application approval
+      case "application.approved":
+        phoneNumber = record.phone || record.seller_phone;
+        message = record.message || `🎉 Congratulations! Your seller application has been approved! Pay the GHS 50 verification fee to start selling. Tap here: https://sneakershub.site/account?tab=settings`;
+        break;
+        
+      // ✅ NEW: Seller application rejection
+      case "application.rejected":
+        phoneNumber = record.phone || record.seller_phone;
+        message = record.message || `Your seller application was not approved. You can re-apply anytime. Tap here: https://sneakershub.site/account`;
+        break;
+        
+      case "admin.alert":
+        phoneNumber = record.seller_phone || record.admin_phone;
+        message = record.message;
         break;
         
       default:

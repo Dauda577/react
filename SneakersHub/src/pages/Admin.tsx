@@ -228,7 +228,7 @@ const Admin = () => {
         if (profileError) throw new Error(`Profile update failed: ${profileError.message}`);
       }
 
-      // 3. Send SMS notification
+      // 3. Send SMS notification with direct link to settings
       const { data: { session } } = await supabase.auth.getSession();
       const smsUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-sms`;
       fetch(smsUrl, {
@@ -240,7 +240,12 @@ const Admin = () => {
         },
         body: JSON.stringify({
           type: action === "approve" ? "application.approved" : "application.rejected",
-          record: app,
+          record: {
+            ...app,
+            message: action === "approve" 
+              ? `🎉 Congratulations! Your seller application has been approved. Pay the GHS 50 verification fee to start selling. Tap here: https://sneakershub.site/account?tab=settings`
+              : `Your seller application was not approved. You can re-apply anytime. Tap here: https://sneakershub.site/account`
+          },
         }),
       }).catch(console.error);
 
@@ -257,9 +262,9 @@ const Admin = () => {
           user_id: userId,
           title: action === "approve" ? "🎉 Application Approved!" : "Application Update",
           body: action === "approve"
-            ? `Your store "${app?.store_name}" is approved! Pay GHS 50 to activate your seller account.`
+            ? `Your store "${app?.store_name}" is approved! Pay the GHS 50 fee to activate your seller account.`
             : `Your application for "${app?.store_name}" was not approved. You can re-apply.`,
-          url: "/account",
+          url: "/account?tab=settings",
         }),
       }).catch(console.error);
 
