@@ -118,11 +118,6 @@ function buildEmail(recipientName: string, listings: any[], unsubToken: string) 
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
-  <!-- Email Favicon -->
-  <link rel="icon" type="image/png" sizes="48x48" href="${APP_URL}/icon-48x48.png" />
-  <link rel="icon" type="image/x-icon" href="${APP_URL}/favicon.ico" />
-  
   <title>Featured Drops on SneakersHub</title>
 </head>
 <body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
@@ -221,7 +216,7 @@ serve(async (req) => {
 
     const [listings, recipients] = await Promise.all([
       getFeaturedListings(),
-      getAllRecipients(),
+      getAllRecipients(),  // Changed to get ALL users
     ]);
 
     console.log(`Found ${listings.length} featured listings, ${recipients.length} recipients`);
@@ -235,7 +230,7 @@ serve(async (req) => {
     let sent = 0;
     let failed = 0;
 
-    for (const recipient of recipients) {
+    for (const recipient of recipients) {  // Changed from 'buyer' to 'recipient'
       if (!recipient.email) continue;
       try {
         const token = unsubToken(recipient.id);
