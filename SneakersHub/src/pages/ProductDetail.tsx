@@ -510,7 +510,8 @@ const ProductDetail = () => {
               </Button>
             )}
 
-            {user && !isGuest && !isSeller && tier !== "official" && (
+            {/* ✅ FIX: Allow messaging for all seller tiers, including official */}
+            {user && !isGuest && !isSeller && (
               <button onClick={() => setShowChat(true)}
                 className="w-full h-12 rounded-full border border-border text-sm font-semibold
                   hover:bg-primary/5 hover:border-primary/40 transition-all flex items-center justify-center gap-2 text-foreground">
