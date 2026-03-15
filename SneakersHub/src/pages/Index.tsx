@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { usePublicListings } from "@/context/PublicListingsContext";
 import { supabase } from "@/lib/supabase";
 import { useMobile } from "@/hooks/useMobile";
+import { useAuth } from "@/context/AuthContext"; // ✅ Add this import
 
 // Sneaker outline SVG for empty states
 const SneakerOutline = ({ className = "" }: { className?: string }) => (
@@ -36,6 +37,7 @@ const Index = () => {
   const { listings, loading } = usePublicListings();
   const [reviews, setReviews] = useState<{ buyer_name: string; stars: number; comment: string; created_at: string }[]>([]);
   const isMobile = useMobile();
+  const { user } = useAuth(); // ✅ Add this
 
   // Fetch latest 5-star reviews for social proof
   useEffect(() => {
@@ -470,7 +472,7 @@ const Index = () => {
               <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto leading-relaxed">
                 Be the first to list your sneakers and reach buyers across Ghana.
               </p>
-              <Link to="/auth">
+              <Link to={user ? "/account?tab=settings" : "/auth"}>
                 <Button className="btn-primary rounded-full h-11 px-7 text-sm">Start Selling</Button>
               </Link>
             </motion.div>
@@ -481,7 +483,7 @@ const Index = () => {
               <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto leading-relaxed">
                 Be the first to list your sneakers and reach buyers across Ghana.
               </p>
-              <Link to="/auth">
+              <Link to={user ? "/account?tab=settings" : "/auth"}>
                 <Button className="btn-primary rounded-full h-11 px-7 text-sm">Start Selling</Button>
               </Link>
             </div>
