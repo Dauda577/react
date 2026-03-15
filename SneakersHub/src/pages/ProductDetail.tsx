@@ -268,7 +268,7 @@ const ProductDetail = () => {
   const { listings, loading, incrementViews } = usePublicListings();
   const { getSellerStats, fetchReviews } = useRatings();
   const { addItem } = useCart();
-  // ✅ FIX: Add activeMode to destructuring
+  // ✅ Get activeMode from useAuth
   const { user, isGuest, loading: authLoading, activeMode } = useAuth();
 
   const [selectedSize, setSelectedSize] = useState<number | null>(null);
@@ -294,12 +294,21 @@ const ProductDetail = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const activeImage = selectedImage ?? uniqueImages[0] ?? null;
 
-  // ✅ FIX: Updated handleAddToCart to use activeMode instead of user.role
+  // ✅ FIX: Updated handleAddToCart to prevent buying own items
   const handleAddToCart = () => {
     if (authLoading) return;
     if (!user || isGuest) { setShowGuestModal(true); return; }
     
-    // Check activeMode instead of user.role
+    // Check if user is trying to buy their own listing
+    if (listing?.sellerId === user.id) {
+      toast.error("You cannot buy your own item", {
+        description: "This is your own listing",
+        duration: 4000,
+      });
+      return;
+    }
+    
+    // Check activeMode
     if (activeMode === "seller") {
       toast.error("Please switch to Buyer mode to add items to cart", {
         description: "Use the Buy/Sell toggle in the navbar",

@@ -3,17 +3,18 @@ import { Link, useNavigate } from "react-router-dom";
 import { Trash2, ShoppingBag, ArrowRight } from "lucide-react";
 import { thumbImage } from "@/lib/imageutils";
 import { useCart } from "@/context/CartContext";
-import { useAuth } from "@/context/AuthContext"; // Add this import
+import { useAuth } from "@/context/AuthContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 const Cart = () => {
   const { items, removeItem, totalPrice, totalItems } = useCart();
-  const { activeMode, switchMode } = useAuth(); // Add this
+  const { user, activeMode, switchMode } = useAuth();
   const navigate = useNavigate();
 
-  // ✅ ADD THIS: Check if user is in seller mode
+  // Check if user is in seller mode
   if (activeMode === "seller") {
     return (
       <div className="min-h-screen bg-background">
@@ -37,6 +38,22 @@ const Cart = () => {
       </div>
     );
   }
+
+  // ✅ FIX: Check for own items before checkout
+  const handleCheckout = () => {
+    // Check if any item in cart belongs to the user
+    const hasOwnItem = items.some(item => item.sneaker.sellerId === user?.id);
+    
+    if (hasOwnItem) {
+      toast.error("You cannot purchase your own items", {
+        description: "Please remove your own listings from cart",
+        duration: 5000,
+      });
+      return;
+    }
+    
+    navigate("/checkout");
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -107,7 +124,7 @@ const Cart = () => {
                 <span className="font-display text-2xl font-bold">GHS {totalPrice}</span>
               </div>
               <Button
-                onClick={() => navigate("/checkout")}
+                onClick={handleCheckout}
                 className="btn-primary w-full h-14 rounded-full text-sm"
               >
                 Checkout <ArrowRight className="ml-2 w-4 h-4" />
