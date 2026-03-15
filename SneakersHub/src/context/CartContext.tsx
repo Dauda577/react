@@ -1,7 +1,7 @@
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { toast } from "sonner"; // Add this import for toast notifications
+import { toast } from "sonner";
 
 export type CartItem = {
   sneaker: {
@@ -97,6 +97,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const { user, activeMode } = useAuth();
   const [items, setItems] = useState<CartItem[]>(() => loadFromStorage());
   const [synced, setSynced] = useState(false);
+  
+  // ✅ Add ref to track latest activeMode
+  const activeModeRef = useRef(activeMode);
+
+  // ✅ Update ref when activeMode changes
+  useEffect(() => {
+    activeModeRef.current = activeMode;
+  }, [activeMode]);
 
   // ── Fetch cart from Supabase when user logs in ──────────────────────────
   const fetchCart = useCallback(async (userId: string) => {
@@ -170,7 +178,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       setItems([]);
       setSynced(true);
     }
-  }, [user?.id, fetchCart]);
+  }, [user?.id, activeMode, fetchCart]);
 
   // ── Persist to localStorage on every change ─────────────────────────────
   useEffect(() => {
@@ -206,8 +214,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   // ── Actions ──────────────────────────────────────────────────────────────
   const addItem = (sneaker: CartItem["sneaker"], size: number) => {
-    // ✅ FIX: Check if user is in seller mode
-    if (activeMode === "seller") {
+    // ✅ FIX: Use ref to get the latest activeMode
+    if (activeModeRef.current === "seller") {
       toast.error("Switch to Buyer mode to add items to cart");
       return;
     }
@@ -215,7 +223,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     setItems((prev) => {
       const existing = prev.find((i) => i.sneaker.id === sneaker.id && i.size === size);
       const newQuantity = existing ? existing.quantity + 1 : 1;
-      upsertRemote(sneaker, size, newQuantity);
+      
+      // Don't await - fire and forget
+      upsertRemote(sneaker, size, newQuantity).catch(err => 
+        console.warn("Failed to sync cart:", err)
+      );
+      
       if (existing) {
         return prev.map((i) =>
           i.sneaker.id === sneaker.id && i.size === size
