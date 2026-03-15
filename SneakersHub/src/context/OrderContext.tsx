@@ -293,59 +293,59 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       return [newOrder, ...prev];
     });
 
+    // ✅ FIXED: Added buyer_phone to SMS trigger
     await triggerSMS({
       type: "order.created",
       record: {
         ...orderRow,
         items: order.items,
+        buyer_phone: buyerPhone, // Add phone number
       }
     });
 
     // ── Send push notification to seller if they have subscriptions ─────────
-  try {
-    // Get seller's push subscription
-    const { data: subscriptions } = await supabase
-      .from("push_subscriptions")
-      .select("subscription")
-      .eq("user_id", order.sellerId);
+    try {
+      // Get seller's push subscription
+      const { data: subscriptions } = await supabase
+        .from("push_subscriptions")
+        .select("subscription")
+        .eq("user_id", order.sellerId);
 
-    if (subscriptions && subscriptions.length > 0) {
-      // Format order items for the notification
-      const itemNames = order.items.map(i => i.name).join(", ");
-      const totalAmount = order.total;
-      
-      // Send push notification to each subscription
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      for (const sub of subscriptions) {
-        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-push`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${session?.access_token}`,
-            "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
-          },
-          body: JSON.stringify({
-            subscription: sub.subscription,
-            title: "🛍️ New Order Received!",
-            body: `GHS ${totalAmount} - ${itemNames.substring(0, 50)}${itemNames.length > 50 ? '...' : ''}`,
-            url: "/account?tab=orders",
-            icon: "/icon-192.png",
-            badge: "/badge-72.png",
-            data: {
-              orderId: orderRow.id,
-              timestamp: new Date().toISOString()
-            }
-          })
-        }).catch(err => console.warn("Push send failed:", err));
+      if (subscriptions && subscriptions.length > 0) {
+        // Format order items for the notification
+        const itemNames = order.items.map(i => i.name).join(", ");
+        const totalAmount = order.total;
+        
+        // Send push notification to each subscription
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        for (const sub of subscriptions) {
+          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-push`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${session?.access_token}`,
+              "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+            },
+            body: JSON.stringify({
+              subscription: sub.subscription,
+              title: "🛍️ New Order Received!",
+              body: `GHS ${totalAmount} - ${itemNames.substring(0, 50)}${itemNames.length > 50 ? '...' : ''}`,
+              url: "/account?tab=orders",
+              icon: "/icon-192.png",
+              badge: "/badge-72.png",
+              data: {
+                orderId: orderRow.id,
+                timestamp: new Date().toISOString()
+              }
+            })
+          }).catch(err => console.warn("Push send failed:", err));
+        }
       }
+    } catch (err) {
+      console.warn("Failed to send push notifications:", err);
+      // Non-fatal - don't block order completion
     }
-  } catch (err) {
-    console.warn("Failed to send push notifications:", err);
-    // Non-fatal - don't block order completion
-  }
-
-
 
     return newOrder;
   };
@@ -403,7 +403,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       );
     }
 
-    // SMS buyer
+    // ✅ FIXED: Added buyer_phone to SMS trigger
     await triggerSMS({
       type: "order.shipped",
       record: {
@@ -412,6 +412,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
         buyer: order?.buyer,
         total: order?.total,
         items: order?.items,
+        buyer_phone: order?.buyer?.phone, // Add phone number
         ...order,
       }
     });
@@ -455,6 +456,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
 
     if (error) { await fetchOrders(); throw new Error(error.message); }
 
+    // ✅ FIXED: Added buyer_phone to SMS trigger
     await triggerSMS({
       type: "order.delivered",
       record: {
@@ -463,6 +465,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
         buyer: order?.buyer,
         total: order?.total,
         items: order?.items,
+        buyer_phone: order?.buyer?.phone, // Add phone number
         ...order,
       }
     });
