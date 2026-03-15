@@ -558,7 +558,7 @@ const Index = () => {
         </section>
       )}
 
-      {/* ── CTA Banner — dark premium card ── */}
+            {/* ── CTA Banner — dark premium card ── */}
       <section className="section-padding max-w-7xl mx-auto pb-20 w-full">
         {!isMobile ? (
           <motion.div initial={{ opacity: 0, scale: 0.97 }} whileInView={{ opacity: 1, scale: 1 }}
@@ -582,7 +582,8 @@ const Index = () => {
                 List in minutes. Reach buyers across Ghana. Get paid directly to MoMo.
               </p>
               <div className="flex justify-center gap-3 flex-wrap">
-                <Link to="/auth">
+                {/* ✅ Fixed: Conditional link based on user login status */}
+                <Link to={user ? "/account?tab=settings" : "/auth"}>
                   <Button className="btn-primary h-12 px-8 rounded-full text-sm">
                     Start Selling <ArrowRight className="ml-2 w-4 h-4" />
                   </Button>
@@ -609,7 +610,8 @@ const Index = () => {
                 List in minutes. Reach buyers across Ghana. Get paid directly to MoMo.
               </p>
               <div className="flex justify-center gap-3 flex-wrap">
-                <Link to="/auth">
+                {/* ✅ Fixed: Conditional link based on user login status */}
+                <Link to={user ? "/account?tab=settings" : "/auth"}>
                   <Button className="btn-primary h-12 px-8 rounded-full text-sm">
                     Start Selling <ArrowRight className="ml-2 w-4 h-4" />
                   </Button>
