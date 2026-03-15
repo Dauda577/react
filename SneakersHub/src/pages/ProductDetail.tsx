@@ -268,7 +268,8 @@ const ProductDetail = () => {
   const { listings, loading, incrementViews } = usePublicListings();
   const { getSellerStats, fetchReviews } = useRatings();
   const { addItem } = useCart();
-  const { user, isGuest, loading: authLoading } = useAuth();
+  // ✅ FIX: Add activeMode to destructuring
+  const { user, isGuest, loading: authLoading, activeMode } = useAuth();
 
   const [selectedSize, setSelectedSize] = useState<number | null>(null);
   const [added, setAdded] = useState(false);
@@ -293,10 +294,20 @@ const ProductDetail = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const activeImage = selectedImage ?? uniqueImages[0] ?? null;
 
+  // ✅ FIX: Updated handleAddToCart to use activeMode instead of user.role
   const handleAddToCart = () => {
     if (authLoading) return;
     if (!user || isGuest) { setShowGuestModal(true); return; }
-    if (user.role === "seller") { toast.error("Sellers cannot buy"); return; }
+    
+    // Check activeMode instead of user.role
+    if (activeMode === "seller") {
+      toast.error("Please switch to Buyer mode to add items to cart", {
+        description: "Use the Buy/Sell toggle in the navbar",
+        duration: 4000,
+      });
+      return;
+    }
+    
     if (!selectedSize) { toast.error("Please select a size"); return; }
     if (!listing) return;
 
