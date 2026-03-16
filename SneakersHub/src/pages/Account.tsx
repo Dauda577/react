@@ -1,5 +1,5 @@
 // Payment transfers immediately when seller marks as sent
-import { useState, useEffect, lazy, Suspense, useCallback } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -554,10 +554,14 @@ const Account = () => {
   const [editMode, setEditMode]   = useState(false);
   const { theme, toggleTheme } = useTheme();
 
-  // Use the existing contexts for data
+  const role = user?.role ?? "buyer";
+  const canSell = user?.isSeller ?? role === "seller";
+  const canBuy  = user?.isBuyer  ?? true;
+  const tabs = isGuest ? guestTabs : canSell ? sellerTabs : buyerTabs;
+
   const { saved, toggleSaved } = useSaved();
-  const { orders, unseenCount, markOrdersSeen, confirmAsSeller, confirmAsBuyer, addTracking, fetchOrders } = useOrders();
-  const { listings, deleteListing, markSold, boostListing, fetchListings } = useListings();
+  const { orders, unseenCount, markOrdersSeen, confirmAsSeller, confirmAsBuyer, addTracking } = useOrders();
+  const { listings, deleteListing, markSold, boostListing } = useListings();
   const { getSellerStats, hasReviewed, reviews, fetchReviews } = useRatings();
   const { totalUnread } = useMessages();
   const { requestPermission, isSupported: pushSupported, permission: pushPermission, showLocalNotification } = usePush();
@@ -597,45 +601,6 @@ const Account = () => {
         ? "Trusted seller based in Accra. Quality sneakers, fair prices."
         : "Sneaker enthusiast based in Accra.",
   });
-
-  const role = user?.role ?? "buyer";
-  const canSell = user?.isSeller ?? role === "seller";
-  const canBuy  = user?.isBuyer  ?? true;
-  const tabs = isGuest ? guestTabs : canSell ? sellerTabs : buyerTabs;
-
-  // ── Set up realtime subscriptions that refresh the contexts ──
-  useEffect(() => {
-    if (!user?.id) return;
-
-    // Refresh contexts when data changes
-    const listingsChannel = supabase
-      .channel('account-listings-refresh')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'listings', filter: `seller_id=eq.${user.id}` },
-        () => {
-          fetchListings(); // Refresh the listings context
-        }
-      )
-      .subscribe();
-
-    const ordersChannel = supabase
-      .channel('account-orders-refresh')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'orders' },
-        (payload) => {
-          if (payload.new?.buyer_id === user.id || payload.new?.seller_id === user.id ||
-              payload.old?.buyer_id === user.id || payload.old?.seller_id === user.id) {
-            fetchOrders(); // Refresh the orders context
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(listingsChannel);
-      supabase.removeChannel(ordersChannel);
-    };
-  }, [user?.id, fetchListings, fetchOrders]);
 
   // ── First-listing banner ───────────────────────────────────────────────────
   useEffect(() => {
