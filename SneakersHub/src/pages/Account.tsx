@@ -28,6 +28,18 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import BecomeSellerDrawer from "@/components/Becomesellerdrawer";
 
+// ── Disable Framer Motion animations on mobile ────────────────────────────────
+const isMobileDevice = () =>
+  typeof window !== "undefined" && window.innerWidth < 768;
+
+const mobileStatic = { initial: false as const, animate: {}, exit: {}, transition: { duration: 0 } };
+const desktopProps = (initial: object, animate: object, exit?: object, transition?: object) => ({
+  initial, animate, exit: exit ?? {}, transition: transition ?? {},
+});
+const mp = (initial: object, animate: object, exit?: object, transition?: object) =>
+  isMobileDevice() ? mobileStatic : desktopProps(initial, animate, exit, transition);
+// ─────────────────────────────────────────────────────────────────────────────
+
 const isSafari = () =>
   typeof navigator !== "undefined" &&
   /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
@@ -93,8 +105,7 @@ const GuestAuthBanner = ({ action }: { action: string }) => {
 
 const FirstListingBanner = ({ onDismiss, onStart }: { onDismiss: () => void; onStart: () => void }) => (
   <motion.div
-    initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, height: 0, marginBottom: 0 }} transition={{ duration: 0.3 }}
+    {...mp({ opacity: 0, y: -8 }, { opacity: 1, y: 0 }, { opacity: 0, height: 0, marginBottom: 0 }, { duration: 0.3 })}
     className="rounded-2xl border border-primary/30 bg-primary/5 p-5 mb-6 relative overflow-hidden">
     <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
     <button onClick={onDismiss}
@@ -139,7 +150,7 @@ const FirstListingBanner = ({ onDismiss, onStart }: { onDismiss: () => void; onS
 
 const FirstListingEmptyState = ({ onStart }: { onStart: () => void }) => (
   <div className="text-center py-16">
-    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+    <motion.div {...mp({ opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1 })}
       className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-5">
       <Store className="w-7 h-7 text-primary" />
     </motion.div>
@@ -730,7 +741,7 @@ const Account = () => {
       {/* ── Profile header ── */}
       <section className="relative pt-16 border-b border-border" style={{ paddingTop: `calc(64px + env(safe-area-inset-top, 0px))` }}>
         <div className="section-padding max-w-4xl mx-auto pt-14 pb-0">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
+          <motion.div {...mp({ opacity: 0, y: 20 }, { opacity: 1, y: 0 }, undefined, { duration: 0.5 })}
             className="flex items-center gap-5 pb-8">
             <div className="relative flex-shrink-0">
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
@@ -826,8 +837,7 @@ const Account = () => {
       {/* ── Tab content ── */}
       <section className="section-padding max-w-4xl mx-auto py-10">
         <AnimatePresence mode="wait">
-          <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.25 }}>
+          <motion.div key={activeTab} {...mp({ opacity: 0, y: 10 }, { opacity: 1, y: 0 }, { opacity: 0, y: -6 }, { duration: 0.25 })}>
 
             {/* Profile */}
             {activeTab === "profile" && (
@@ -899,7 +909,7 @@ const Account = () => {
                       </button>
                     </div>
                     {role === "seller" && !isVerified && (
-                      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                      <motion.div {...mp({ opacity: 0, y: 8 }, { opacity: 1, y: 0 })}
                         className="flex items-start gap-4 p-5 rounded-2xl border border-green-500/30 bg-green-500/5">
                         <div className="w-9 h-9 rounded-xl bg-green-500/10 flex items-center justify-center flex-shrink-0">
                           <ShieldCheck className="w-4 h-4 text-green-500" />
@@ -917,8 +927,6 @@ const Account = () => {
                                 toast.error("Please save your MoMo/bank payout details in Settings first before verifying.");
                                 return;
                               }
-                              // REMOVED: setShowVerifyTerms(true);
-                              // Directly open payment modal
                               handleSellerVerification();
                             }}
                             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-green-500 text-white text-xs font-semibold hover:bg-green-600 transition-colors disabled:opacity-60">
@@ -929,10 +937,8 @@ const Account = () => {
                       </motion.div>
                     )}
 
-                    {/* REMOVED: Verification Terms Modal (lines 1054-1202) */}
-
                     {role === "seller" && isVerified && !isOfficial && (
-                      <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                      <motion.div {...mp({ opacity: 0, y: 8 }, { opacity: 1, y: 0 })}
                         className="flex items-center gap-3 p-4 rounded-2xl border border-green-500/30 bg-green-500/5">
                         <div className="w-9 h-9 rounded-xl bg-green-500/10 flex items-center justify-center flex-shrink-0">
                           <ShieldCheck className="w-4 h-4 text-green-500" />
@@ -973,8 +979,8 @@ const Account = () => {
                             <div className="space-y-3">
                               <AnimatePresence>
                                 {sellerReviews.map((review, i) => (
-                                  <motion.div key={review.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: i * 0.05 }} className="rounded-xl border border-border p-4">
+                                  <motion.div key={review.id} {...mp({ opacity: 0, y: 6 }, { opacity: 1, y: 0 }, undefined, { delay: i * 0.05 })}
+                                    className="rounded-xl border border-border p-4">
                                     <div className="flex items-center justify-between gap-3 mb-2">
                                       <div className="flex items-center gap-2">
                                         <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -1020,8 +1026,8 @@ const Account = () => {
                 ) : (
                   <div className="space-y-4">
                     {orders.map((order, i) => (
-                      <motion.div key={order.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.06 }} className="rounded-2xl border border-border p-5">
+                      <motion.div key={order.id} {...mp({ opacity: 0, y: 6 }, { opacity: 1, y: 0 }, undefined, { delay: i * 0.06 })}
+                        className="rounded-2xl border border-border p-5">
                         <div className="flex items-start justify-between gap-3 mb-4">
                           <div>
                             <div className="flex items-center gap-2 flex-wrap">
@@ -1137,7 +1143,7 @@ const Account = () => {
                           )}
 
                           {order.sellerConfirmed && order.buyerConfirmed && (
-                            <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+                            <motion.div {...mp({ opacity: 0, y: 4 }, { opacity: 1, y: 0 })}
                               className="px-4 py-3 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center gap-2">
                               <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
                               <p className="text-xs font-semibold text-green-600">Order complete — both sides confirmed! 🎉</p>
@@ -1165,8 +1171,8 @@ const Account = () => {
                   <div className="space-y-4">
                     <p className="text-sm text-muted-foreground mb-2">{orders.length} {orders.length === 1 ? "order" : "orders"} placed</p>
                     {orders.map((order, i) => (
-                      <motion.div key={order.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.06 }} className="rounded-2xl border border-border p-5">
+                      <motion.div key={order.id} {...mp({ opacity: 0, y: 6 }, { opacity: 1, y: 0 }, undefined, { delay: i * 0.06 })}
+                        className="rounded-2xl border border-border p-5">
                         <div className="flex items-start justify-between gap-3 mb-4">
                           <div>
                             <div className="flex items-center gap-2 flex-wrap">
@@ -1258,7 +1264,7 @@ const Account = () => {
                             )}
                           </div>
                           {order.sellerConfirmed && order.buyerConfirmed && (
-                            <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+                            <motion.div {...mp({ opacity: 0, y: 4 }, { opacity: 1, y: 0 })}
                               className="mt-3 px-4 py-3 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center gap-2">
                               <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
                               <p className="text-xs font-semibold text-green-600">Order complete — enjoy your sneakers! 🎉</p>
@@ -1294,7 +1300,7 @@ const Account = () => {
                   {showFirstListingBanner && <FirstListingBanner onDismiss={dismissFirstListingBanner} onStart={startFirstListing} />}
                 </AnimatePresence>
                 {isVerified && hasMissingPayoutDetails && !isOfficial && (
-                  <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+                  <motion.div {...mp({ opacity: 0, y: -6 }, { opacity: 1, y: 0 })}
                     className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 mb-5 flex items-start gap-3">
                     <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center flex-shrink-0">
                       <AlertTriangle className="w-4 h-4 text-amber-500" />
@@ -1340,8 +1346,7 @@ const Account = () => {
                 <div className="space-y-3">
                   <AnimatePresence>
                     {listings.map((listing, i) => (
-                      <motion.div key={listing.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, x: 20, scale: 0.97 }} transition={{ delay: i * 0.05 }}
+                      <motion.div key={listing.id} {...mp({ opacity: 0, y: 6 }, { opacity: 1, y: 0 }, { opacity: 0, x: 20, scale: 0.97 }, { delay: i * 0.05 })}
                         className={`rounded-2xl border p-4 transition-colors group ${listing.status === "sold" ? "border-border opacity-60" : "border-border hover:border-primary/30 hover:bg-primary/5"}`}>
                         <div className="flex items-center gap-4">
                           <div className="w-16 h-16 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0 overflow-hidden">
@@ -1435,8 +1440,7 @@ const Account = () => {
                     <div className="space-y-2">
                       <AnimatePresence>
                         {saved.map((item, i) => (
-                          <motion.div key={item.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, x: 20, scale: 0.97 }} transition={{ delay: i * 0.05, duration: 0.2 }}
+                          <motion.div key={item.id} {...mp({ opacity: 0, y: 6 }, { opacity: 1, y: 0 }, { opacity: 0, x: 20, scale: 0.97 }, { delay: i * 0.05, duration: 0.2 })}
                             className="flex items-center gap-4 px-5 py-4 rounded-2xl border border-border hover:bg-primary/5 transition-colors group">
                             <div className="w-14 h-14 rounded-xl bg-secondary overflow-hidden flex-shrink-0">
                               {item.image
@@ -1569,8 +1573,8 @@ const Account = () => {
                       </button>
                       <AnimatePresence>
                         {showChangePassword && (
-                          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
-                            exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                          <motion.div {...mp({ opacity: 0, height: 0 }, { opacity: 1, height: "auto" }, { opacity: 0, height: 0 })}
+                            className="overflow-hidden">
                             <div className="pt-4 space-y-3">
                               <input type="password" placeholder="New password" value={newPassword} onChange={e => setNewPassword(e.target.value)}
                                 className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]" />
@@ -1592,7 +1596,7 @@ const Account = () => {
                           </div>
                         </button>
                       ) : (
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+                        <motion.div {...mp({ opacity: 0 }, { opacity: 1 })} className="space-y-4">
                           <div className="flex items-center gap-2">
                             <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0">
                               <Trash className="w-4 h-4 text-red-500" />
