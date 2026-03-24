@@ -1,7 +1,7 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, Search, Zap } from "lucide-react";
+import { ArrowRight, Search, Zap, X } from "lucide-react";
 import SneakerCard from "@/components/SneakerCard";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -32,14 +32,131 @@ const CATEGORIES = [
   { label: "Other",      emoji: "👟" },
 ];
 
+// ─── Search Dropdown ─────────────────────────────────────────────────────────
+
+const SearchDropdown = ({
+  results,
+  query,
+  onClose,
+  onViewAll,
+}: {
+  results: { id: string; name: string; brand: string; price: number; image: string }[];
+  query: string;
+  onClose: () => void;
+  onViewAll: () => void;
+}) => {
+  const navigate = useNavigate();
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.18, ease: "easeOut" }}
+      className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-2xl shadow-xl overflow-hidden z-50"
+    >
+      {results.length === 0 ? (
+        <div className="px-4 py-6 text-center">
+          <p className="text-sm font-medium text-foreground mb-0.5">No results for "{query}"</p>
+          <p className="text-xs text-muted-foreground">Try a different brand or model</p>
+        </div>
+      ) : (
+        <>
+          <div className="divide-y divide-border max-h-[360px] overflow-y-auto">
+            {results.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => { navigate(`/product/${item.id}`); onClose(); }}
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/60 transition-colors text-left"
+              >
+                {/* Thumbnail */}
+                <div className="w-12 h-12 rounded-xl bg-muted flex-shrink-0 overflow-hidden border border-border">
+                  <img
+                    src={item.image || FALLBACK_IMG}
+                    alt={item.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => { e.currentTarget.src = FALLBACK_IMG; }}
+                  />
+                </div>
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground truncate">{item.name}</p>
+                  <p className="text-xs text-muted-foreground">{item.brand}</p>
+                </div>
+                {/* Price */}
+                <p className="text-sm font-bold text-primary flex-shrink-0">
+                  GHS {item.price.toLocaleString()}
+                </p>
+              </button>
+            ))}
+          </div>
+
+          {/* View all footer */}
+          <button
+            onClick={onViewAll}
+            className="w-full flex items-center justify-center gap-1.5 px-4 py-3 bg-muted/40 hover:bg-muted/70 transition-colors text-sm font-medium text-foreground border-t border-border"
+          >
+            View all results for "{query}" <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </>
+      )}
+    </motion.div>
+  );
+};
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 const Index = () => {
   const { listings, loading } = usePublicListings();
   const [query, setQuery] = useState("");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const isMobile = useMobile();
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  // Filter listings based on query
+  const searchResults = query.trim().length > 0
+    ? listings
+        .filter((l) => {
+          const q = query.toLowerCase();
+          return (
+            l.name.toLowerCase().includes(q) ||
+            l.brand.toLowerCase().includes(q) ||
+            l.category?.toLowerCase().includes(q)
+          );
+        })
+        .slice(0, 6)
+        .map((l) => ({ id: l.id, name: l.name, brand: l.brand, price: l.price, image: l.image ?? "" }))
+    : [];
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Open dropdown whenever there's a query
+  useEffect(() => {
+    setIsDropdownOpen(query.trim().length > 0);
+  }, [query]);
+
+  const handleViewAll = () => {
+    navigate(`/shop?q=${encodeURIComponent(query.trim())}`);
+    setIsDropdownOpen(false);
+  };
+
+  const handleClear = () => {
+    setQuery("");
+    setIsDropdownOpen(false);
+    inputRef.current?.focus();
+  };
 
   const now = Date.now();
   const isActiveBoost = (l: typeof listings[0]) => {
@@ -57,11 +174,6 @@ const Index = () => {
     category: l.category, sizes: l.sizes, description: l.description, isBoosted,
     sellerVerified: l.sellerVerified, sellerIsOfficial: l.sellerIsOfficial,
   });
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (query.trim()) navigate(`/shop?q=${encodeURIComponent(query.trim())}`);
-  };
 
   const sellHref = user ? "/account?tab=settings" : "/auth";
 
@@ -92,25 +204,36 @@ const Index = () => {
             Pair.
           </h1>
 
-          {/* Search */}
-          <form
-            onSubmit={handleSearch}
-            className="flex items-center gap-2 bg-muted rounded-full px-4 py-2.5 max-w-sm border border-border"
-          >
-            <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Brand, model, size…"
-              className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
-            />
-            <button
-              type="submit"
-              className="bg-primary text-primary-foreground rounded-full text-[11px] font-semibold px-4 py-1.5 hover:opacity-90 transition-opacity"
-            >
-              Search
-            </button>
-          </form>
+          {/* Search with live dropdown */}
+          <div ref={searchRef} className="relative max-w-sm">
+            <div className={`flex items-center gap-2 bg-muted rounded-full px-4 py-2.5 border transition-colors ${isDropdownOpen ? "border-primary" : "border-border"}`}>
+              <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+              <input
+                ref={inputRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onFocus={() => { if (query.trim()) setIsDropdownOpen(true); }}
+                placeholder="Brand, model, size…"
+                className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+              />
+              {query && (
+                <button onClick={handleClear} className="text-muted-foreground hover:text-foreground transition-colors">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            <AnimatePresence>
+              {isDropdownOpen && (
+                <SearchDropdown
+                  results={searchResults}
+                  query={query}
+                  onClose={() => setIsDropdownOpen(false)}
+                  onViewAll={handleViewAll}
+                />
+              )}
+            </AnimatePresence>
+          </div>
 
           {/* Category pills */}
           <div className="flex flex-wrap gap-2">
@@ -230,9 +353,7 @@ const Index = () => {
             <p className="text-xl font-display font-bold mb-2">Nothing here yet</p>
             <p className="text-sm text-muted-foreground mb-5">Be the first to list your sneakers.</p>
             <Link to={sellHref}>
-              <Button className="btn-primary rounded-full h-11 px-7 text-sm">
-                List a Pair
-              </Button>
+              <Button className="btn-primary rounded-full h-11 px-7 text-sm">List a Pair</Button>
             </Link>
           </div>
         ) : (
