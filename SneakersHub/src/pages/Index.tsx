@@ -183,7 +183,7 @@ const Index = () => {
 
       {/* ── HERO ── */}
       <section
-        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-6 lg:gap-8 items-center min-h-[85vh] lg:min-h-[90vh]"
+        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-4 lg:gap-8 items-center lg:min-h-[90vh]"
         style={{ paddingTop: `calc(64px + env(safe-area-inset-top, 0px))` }}
       >
         {/* Left */}
@@ -192,7 +192,7 @@ const Index = () => {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="flex flex-col gap-4 py-6 lg:py-12"
+          className="flex flex-col gap-3 py-4 lg:py-12"
         >
           <span className="text-xs font-semibold tracking-[0.3em] uppercase text-muted-foreground">
             Ghana's Sneaker Marketplace
@@ -249,7 +249,7 @@ const Index = () => {
           </div>
 
           {/* CTA */}
-          <div className="flex items-center gap-4 pt-1">
+          <div className="flex items-center gap-4">
             <Link to="/shop">
               <Button className="btn-primary rounded-full h-11 px-7 text-sm font-medium">
                 Shop All <ArrowRight className="ml-1.5 w-3.5 h-3.5" />
@@ -301,8 +301,8 @@ const Index = () => {
 
       {/* ── FEATURED PICKS ── */}
       {(featured.length > 0 || loading) && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14 border-t border-border">
-          <div className="flex items-end justify-between mb-5 sm:mb-8">
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-14 border-t border-border">
+          <div className="flex items-end justify-between mb-4 sm:mb-8">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.25em] text-primary mb-1 flex items-center gap-1.5">
                 <Zap className="w-3 h-3 fill-current" /> Featured
@@ -331,8 +331,8 @@ const Index = () => {
       )}
 
       {/* ── NEW ARRIVALS ── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14 border-t border-border">
-        <div className="flex items-end justify-between mb-5 sm:mb-8">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-14 border-t border-border">
+        <div className="flex items-end justify-between mb-4 sm:mb-8">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground mb-1">Just Dropped</p>
             <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">New Arrivals</h2>
@@ -366,8 +366,8 @@ const Index = () => {
       </section>
 
       {/* ── SELL BANNER ── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14">
-        <div className="rounded-3xl bg-foreground px-6 py-10 sm:py-14 md:px-16 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-14">
+        <div className="rounded-3xl bg-foreground px-6 py-8 sm:py-14 md:px-16 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
             <p className="text-xs font-semibold tracking-[0.3em] uppercase text-primary mb-2">For sellers</p>
             <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-background tracking-tight leading-tight">
