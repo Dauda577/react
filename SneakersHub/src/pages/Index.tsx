@@ -66,47 +66,47 @@ const Index = () => {
   const sellHref = user ? "/account?tab=settings" : "/auth";
 
   return (
-    <div className="min-h-screen bg-white overflow-x-hidden w-full">
+    <div className="min-h-screen bg-background overflow-x-hidden w-full">
       <Navbar />
 
       {/* ── HERO ── */}
       <section
-        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-8 items-center min-h-[90vh]"
-        style={{ paddingTop: `calc(80px + env(safe-area-inset-top, 0px))` }}
+        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-6 lg:gap-8 items-center min-h-[85vh] lg:min-h-[90vh]"
+        style={{ paddingTop: `calc(64px + env(safe-area-inset-top, 0px))` }}
       >
-        {/* Left: copy */}
+        {/* Left */}
         <Animate
           isMobile={isMobile}
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="flex flex-col gap-6 py-12"
+          className="flex flex-col gap-4 py-6 lg:py-12"
         >
-          <span className="text-xs font-semibold tracking-[0.3em] uppercase text-zinc-400">
+          <span className="text-xs font-semibold tracking-[0.3em] uppercase text-muted-foreground">
             Ghana's Sneaker Marketplace
           </span>
 
-          <h1 className="font-display text-[clamp(2.8rem,6vw,5rem)] font-bold leading-[1] tracking-[-0.03em] text-zinc-950">
+          <h1 className="font-display text-[clamp(2.6rem,7vw,5rem)] font-bold leading-[1] tracking-[-0.03em] text-foreground">
             Find Your<br />
-            <span className="italic font-light text-zinc-400">next</span>{" "}
+            <span className="italic font-light text-muted-foreground">next</span>{" "}
             Pair.
           </h1>
 
           {/* Search */}
           <form
             onSubmit={handleSearch}
-            className="flex items-center gap-2 bg-zinc-100 rounded-full px-5 py-3 max-w-sm"
+            className="flex items-center gap-2 bg-muted rounded-full px-4 py-2.5 max-w-sm border border-border"
           >
-            <Search className="w-4 h-4 text-zinc-400 flex-shrink-0" />
+            <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Brand, model, size…"
-              className="flex-1 bg-transparent text-sm text-zinc-900 placeholder:text-zinc-400 outline-none"
+              className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
             />
             <button
               type="submit"
-              className="bg-zinc-950 text-white rounded-full text-[11px] font-semibold px-4 py-1.5 hover:bg-zinc-700 transition-colors"
+              className="bg-primary text-primary-foreground rounded-full text-[11px] font-semibold px-4 py-1.5 hover:opacity-90 transition-opacity"
             >
               Search
             </button>
@@ -118,7 +118,7 @@ const Index = () => {
               <Link
                 key={c.label}
                 to={`/shop?category=${c.label}`}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-full border border-zinc-200 text-xs font-medium text-zinc-600 hover:border-zinc-950 hover:text-zinc-950 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border text-xs font-medium text-muted-foreground hover:border-primary hover:text-primary transition-colors"
               >
                 <span>{c.emoji}</span> {c.label}
               </Link>
@@ -126,28 +126,28 @@ const Index = () => {
           </div>
 
           {/* CTA */}
-          <div className="flex items-center gap-4 pt-2">
+          <div className="flex items-center gap-4 pt-1">
             <Link to="/shop">
-              <Button className="bg-zinc-950 text-white hover:bg-zinc-700 rounded-full h-11 px-7 text-sm font-medium">
+              <Button className="btn-primary rounded-full h-11 px-7 text-sm font-medium">
                 Shop All <ArrowRight className="ml-1.5 w-3.5 h-3.5" />
               </Button>
             </Link>
             <Link
               to={sellHref}
-              className="text-sm font-medium text-zinc-500 hover:text-zinc-950 transition-colors underline underline-offset-4"
+              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors underline underline-offset-4"
             >
               Start selling →
             </Link>
           </div>
 
-          {/* Micro stat line */}
-          <p className="text-xs text-zinc-400">
+          {/* Micro stat */}
+          <p className="text-xs text-muted-foreground">
             {listings.length > 0 ? `${listings.length} pairs listed` : "Be the first to list"}
             {" "}· Verified sellers · MoMo payouts
           </p>
         </Animate>
 
-        {/* Right: hero sneaker */}
+        {/* Right — desktop only */}
         {!isMobile && (
           <Animate
             isMobile={false}
@@ -157,19 +157,18 @@ const Index = () => {
             className="relative flex items-center justify-center"
           >
             <div className="relative w-full aspect-square max-w-lg">
-              <div className="absolute inset-8 rounded-full bg-zinc-100" />
+              <div className="absolute inset-8 rounded-full bg-primary/10" />
               <img
                 src={heroImage}
                 alt="Featured sneaker"
                 className="relative z-10 w-full h-full object-contain drop-shadow-2xl"
                 onError={(e) => { e.currentTarget.src = FALLBACK_IMG; }}
               />
-              {/* Floating info card */}
               {featured[0] && (
-                <div className="absolute top-6 right-6 z-20 bg-white border border-zinc-100 rounded-2xl p-3 shadow-lg max-w-[140px]">
-                  <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wide mb-0.5">Featured</p>
-                  <p className="text-xs font-bold text-zinc-950 leading-tight truncate">{featured[0].name}</p>
-                  <p className="text-xs text-zinc-500 mt-0.5">GHS {featured[0].price.toLocaleString()}</p>
+                <div className="absolute top-6 right-6 z-20 bg-card border border-border rounded-2xl p-3 shadow-lg max-w-[140px]">
+                  <p className="text-[10px] font-semibold text-primary uppercase tracking-wide mb-0.5">Featured</p>
+                  <p className="text-xs font-bold text-foreground leading-tight truncate">{featured[0].name}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">GHS {featured[0].price.toLocaleString()}</p>
                 </div>
               )}
             </div>
@@ -179,30 +178,27 @@ const Index = () => {
 
       {/* ── FEATURED PICKS ── */}
       {(featured.length > 0 || loading) && (
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-zinc-100">
-          <div className="flex items-end justify-between mb-10">
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14 border-t border-border">
+          <div className="flex items-end justify-between mb-5 sm:mb-8">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-400 mb-1.5 flex items-center gap-1.5">
-                <Zap className="w-3 h-3" /> Featured
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-primary mb-1 flex items-center gap-1.5">
+                <Zap className="w-3 h-3 fill-current" /> Featured
               </p>
-              <h2 className="font-display text-3xl font-bold tracking-tight text-zinc-950">Picked for you</h2>
+              <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">Picked for you</h2>
             </div>
-            <Link
-              to="/featured"
-              className="text-sm text-zinc-400 hover:text-zinc-950 transition-colors flex items-center gap-1"
-            >
+            <Link to="/featured" className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center gap-1">
               See all <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="rounded-2xl bg-zinc-100 h-64 animate-pulse" />
+                <div key={i} className="rounded-2xl bg-muted h-52 sm:h-64 animate-pulse" />
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6">
               {featured.map((l, i) => (
                 <SneakerCard key={l.id} sneaker={toCardShape(l, true)} index={i} />
               ))}
@@ -212,38 +208,35 @@ const Index = () => {
       )}
 
       {/* ── NEW ARRIVALS ── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 border-t border-zinc-100">
-        <div className="flex items-end justify-between mb-10">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14 border-t border-border">
+        <div className="flex items-end justify-between mb-5 sm:mb-8">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-400 mb-1.5">Just Dropped</p>
-            <h2 className="font-display text-3xl font-bold tracking-tight text-zinc-950">New Arrivals</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground mb-1">Just Dropped</p>
+            <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">New Arrivals</h2>
           </div>
-          <Link
-            to="/shop"
-            className="text-sm text-zinc-400 hover:text-zinc-950 transition-colors flex items-center gap-1"
-          >
+          <Link to="/shop" className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center gap-1">
             See all <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="rounded-2xl bg-zinc-100 h-64 animate-pulse" />
+              <div key={i} className="rounded-2xl bg-muted h-52 sm:h-64 animate-pulse" />
             ))}
           </div>
         ) : newArrivals.length === 0 ? (
-          <div className="text-center py-24">
-            <p className="text-2xl font-display font-bold text-zinc-950 mb-2">Nothing here yet</p>
-            <p className="text-sm text-zinc-400 mb-6">Be the first to list your sneakers.</p>
+          <div className="text-center py-12">
+            <p className="text-xl font-display font-bold mb-2">Nothing here yet</p>
+            <p className="text-sm text-muted-foreground mb-5">Be the first to list your sneakers.</p>
             <Link to={sellHref}>
-              <Button className="bg-zinc-950 text-white hover:bg-zinc-700 rounded-full h-11 px-7 text-sm">
+              <Button className="btn-primary rounded-full h-11 px-7 text-sm">
                 List a Pair
               </Button>
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6">
             {newArrivals.map((l, i) => (
               <SneakerCard key={l.id} sneaker={toCardShape(l)} index={i} />
             ))}
@@ -252,19 +245,19 @@ const Index = () => {
       </section>
 
       {/* ── SELL BANNER ── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="rounded-3xl bg-zinc-950 px-8 py-14 md:px-16 flex flex-col md:flex-row items-center justify-between gap-8">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14">
+        <div className="rounded-3xl bg-foreground px-6 py-10 sm:py-14 md:px-16 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
           <div>
-            <p className="text-xs font-semibold tracking-[0.3em] uppercase text-zinc-500 mb-3">For sellers</p>
-            <h2 className="font-display text-3xl md:text-4xl font-bold text-white tracking-tight leading-tight">
+            <p className="text-xs font-semibold tracking-[0.3em] uppercase text-primary mb-2">For sellers</p>
+            <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-background tracking-tight leading-tight">
               Got pairs<br />to move?
             </h2>
-            <p className="text-zinc-400 text-sm mt-3 max-w-xs leading-relaxed">
+            <p className="text-background/50 text-sm mt-2 max-w-xs leading-relaxed">
               List in minutes. Reach buyers across Ghana. Get paid to MoMo.
             </p>
           </div>
           <Link to={sellHref} className="flex-shrink-0">
-            <Button className="bg-white text-zinc-950 hover:bg-zinc-200 rounded-full h-12 px-8 text-sm font-semibold">
+            <Button className="bg-primary text-primary-foreground hover:opacity-90 rounded-full h-11 px-7 text-sm font-semibold transition-opacity">
               Start Selling <ArrowRight className="ml-2 w-4 h-4" />
             </Button>
           </Link>
