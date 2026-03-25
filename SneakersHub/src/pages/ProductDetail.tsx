@@ -268,7 +268,7 @@ const WhatsAppOrderButton = ({
   if (tier !== "official") return null;
 
   // SneakersHub official WhatsApp number
-  const OFFICIAL_WA = "233XXXXXXXXX"; // 🔁 Replace with your actual SneakersHub WhatsApp number
+  const OFFICIAL_WA = "233256221777"; 
 
   const handleClick = () => {
     if (!selectedSize) {
