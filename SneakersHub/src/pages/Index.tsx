@@ -110,6 +110,7 @@ const Index = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const trustScrollRef = useRef<HTMLDivElement>(null);
   const isMobile = useMobile();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -141,6 +142,38 @@ const Index = () => {
   useEffect(() => {
     setIsDropdownOpen(query.trim().length > 0);
   }, [query]);
+
+  // ── Auto-scroll trust pills on mobile ──
+  useEffect(() => {
+    const el = trustScrollRef.current;
+    if (!el || !isMobile) return;
+
+    let animFrame: number;
+    let pos = 0;
+    const speed = 0.5; // px per frame — adjust to taste
+
+    const scroll = () => {
+      pos += speed;
+      // Reset to start once we've scrolled halfway (items are duplicated)
+      if (pos >= el.scrollWidth / 2) pos = 0;
+      el.scrollLeft = pos;
+      animFrame = requestAnimationFrame(scroll);
+    };
+
+    animFrame = requestAnimationFrame(scroll);
+
+    // Pause on touch so user can still manually browse
+    const pause = () => cancelAnimationFrame(animFrame);
+    const resume = () => { animFrame = requestAnimationFrame(scroll); };
+    el.addEventListener("touchstart", pause, { passive: true });
+    el.addEventListener("touchend", resume, { passive: true });
+
+    return () => {
+      cancelAnimationFrame(animFrame);
+      el.removeEventListener("touchstart", pause);
+      el.removeEventListener("touchend", resume);
+    };
+  }, [isMobile]);
 
   const handleViewAll = () => {
     navigate(`/shop?q=${encodeURIComponent(query.trim())}`);
@@ -267,10 +300,13 @@ const Index = () => {
             </Link>
           </div>
 
-          {/* Trust pills row — horizontal scroll on mobile, wrap on desktop */}
-          <div className="flex lg:flex-wrap gap-3 pt-1 overflow-x-auto lg:overflow-x-visible scrollbar-none -mx-4 px-4 lg:mx-0 lg:px-0">
-            {TRUST_ITEMS.map(({ icon: Icon, label, sub }) => (
-              <div key={label} className="flex items-center gap-2 bg-muted/60 border border-border rounded-xl px-3 py-2 flex-shrink-0">
+          {/* Trust pills row — auto-scrolls on mobile, wraps on desktop */}
+          <div
+            ref={trustScrollRef}
+            className="flex lg:flex-wrap gap-3 pt-1 overflow-x-auto lg:overflow-x-visible scrollbar-none -mx-4 px-4 lg:mx-0 lg:px-0"
+          >
+            {[...TRUST_ITEMS, ...TRUST_ITEMS].map(({ icon: Icon, label, sub }, i) => (
+              <div key={`${label}-${i}`} className="flex items-center gap-2 bg-muted/60 border border-border rounded-xl px-3 py-2 flex-shrink-0">
                 <Icon className="w-3.5 h-3.5 text-primary flex-shrink-0" />
                 <div>
                   <p className="text-[11px] font-semibold text-foreground leading-none">{label}</p>
