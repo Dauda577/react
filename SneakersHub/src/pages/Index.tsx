@@ -172,13 +172,6 @@ const Index = () => {
 
   const sellHref = user ? "/account?tab=settings" : "/auth";
 
-  // Dynamic stat copy — hide low numbers
-  const listingsStat = listings.length >= 50
-    ? `${listings.length}+ pairs listed`
-    : listings.length > 0
-      ? "Growing daily"
-      : "Be the first to list";
-
   return (
     <div className="min-h-screen bg-background overflow-x-hidden w-full">
       <Navbar />
@@ -274,10 +267,10 @@ const Index = () => {
             </Link>
           </div>
 
-          {/* Trust pills row */}
-          <div className="flex flex-wrap gap-3 pt-1">
+          {/* Trust pills row — horizontal scroll on mobile, wrap on desktop */}
+          <div className="flex lg:flex-wrap gap-3 pt-1 overflow-x-auto lg:overflow-x-visible scrollbar-none -mx-4 px-4 lg:mx-0 lg:px-0">
             {TRUST_ITEMS.map(({ icon: Icon, label, sub }) => (
-              <div key={label} className="flex items-center gap-2 bg-muted/60 border border-border rounded-xl px-3 py-2">
+              <div key={label} className="flex items-center gap-2 bg-muted/60 border border-border rounded-xl px-3 py-2 flex-shrink-0">
                 <Icon className="w-3.5 h-3.5 text-primary flex-shrink-0" />
                 <div>
                   <p className="text-[11px] font-semibold text-foreground leading-none">{label}</p>
@@ -286,11 +279,6 @@ const Index = () => {
               </div>
             ))}
           </div>
-
-          {/* Subtle stat */}
-          <p className="text-xs text-muted-foreground/60">
-            {listingsStat}
-          </p>
         </Animate>
 
         {/* Right — desktop only */}
