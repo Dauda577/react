@@ -333,7 +333,7 @@ const Index = () => {
       </section>
 
       {/* ── SOCIAL PROOF STRIP ── */}
-      <section className="border-y border-border bg-muted/30">
+      <section className="hidden sm:block border-y border-border bg-muted/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5"><ShieldCheck className="w-3.5 h-3.5 text-primary" /> Every seller verified</span>
           <span className="hidden sm:block text-border">|</span>
