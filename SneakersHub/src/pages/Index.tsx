@@ -150,13 +150,17 @@ const Index = () => {
 
     let animFrame: number;
     let pos = 0;
-    const speed = 0.5; // px per frame — adjust to taste
+    const speed = 0.5; // px per frame
 
     const scroll = () => {
       pos += speed;
-      // Reset to start once we've scrolled halfway (items are duplicated)
-      if (pos >= el.scrollWidth / 2) pos = 0;
-      el.scrollLeft = pos;
+      // Reset to start once we've scrolled through all items
+      if (pos >= el.scrollWidth) {
+        pos = 0;
+        el.scrollLeft = 0;
+      } else {
+        el.scrollLeft = pos;
+      }
       animFrame = requestAnimationFrame(scroll);
     };
 
@@ -305,7 +309,7 @@ const Index = () => {
             ref={trustScrollRef}
             className="flex lg:flex-wrap gap-3 pt-1 overflow-x-auto lg:overflow-x-visible scrollbar-none -mx-4 px-4 lg:mx-0 lg:px-0"
           >
-            {[...TRUST_ITEMS, ...TRUST_ITEMS].map(({ icon: Icon, label, sub }, i) => (
+            {TRUST_ITEMS.map(({ icon: Icon, label, sub }, i) => (
               <div key={`${label}-${i}`} className="flex items-center gap-2 bg-muted/60 border border-border rounded-xl px-3 py-2 flex-shrink-0">
                 <Icon className="w-3.5 h-3.5 text-primary flex-shrink-0" />
                 <div>
