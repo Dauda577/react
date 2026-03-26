@@ -4,6 +4,10 @@ import { useAuth } from "@/context/AuthContext";
 import { triggerSMS } from "@/lib/sms";
 import { toast } from "sonner";
 
+export type DeliveryMethod = "pickup" | "delivery";
+export type DeliveryStatus = "pending" | "contacted" | "driver_assigned" | "delivered" | "cancelled";
+export type PaymentStatus = "pending" | "completed" | "failed" | "refunded";
+
 export type OrderItem = {
   id: string;
   name: string;
@@ -21,7 +25,8 @@ export type Order = {
     firstName: string; lastName: string; phone: string;
     address: string; city: string; region: string;
   };
-  delivery: string;
+  delivery: DeliveryMethod;
+  deliveryStatus: DeliveryStatus;
   deliveryInfo: { label: string; estimatedCost: string; days: string };
   subtotal: number;
   deliveryFee: number;
@@ -34,14 +39,15 @@ export type Order = {
   sellerId: string;
   buyerId: string;
   // Escrow fields
-  releaseAt: string | null; // kept for DB compat
+  releaseAt: string | null;
   payoutStatus: "pending" | "released" | "auto_released" | "transfer_failed";
-  disputeReason: string | null; // kept for DB compat
+  disputeReason: string | null;
   paystackReference: string | null;
   trackingNumber: string | null;
   trackingUrl: string | null;
   handlingTime: string | null;
   shippingCost: number;
+  orderNotes: string | null;
 };
 
 type OrderContextType = {
@@ -49,17 +55,17 @@ type OrderContextType = {
   latestOrder: Order | null;
   unseenCount: number;
   loading: boolean;
-  placeOrder: (order: Omit<Order, "id" | "placedAt" | "seen" | "sellerConfirmed" | "buyerConfirmed" | "status" | "buyerId" | "releaseAt" | "payoutStatus" | "disputeReason" | "paystackReference"> & { sellerId: string }) => Promise<Order>;
+  placeOrder: (order: Omit<Order, "id" | "placedAt" | "seen" | "sellerConfirmed" | "buyerConfirmed" | "status" | "buyerId" | "releaseAt" | "payoutStatus" | "disputeReason" | "paystackReference"> & { sellerId: string; orderNotes?: string; deliveryStatus?: DeliveryStatus }) => Promise<Order>;
   confirmAsSeller: (orderId: string) => Promise<void>;
   confirmAsBuyer: (orderId: string) => Promise<void>;
   raiseDispute: (orderId: string, reason: string) => Promise<void>;
   markOrdersSeen: () => Promise<void>;
   fetchOrders: () => Promise<void>;
   addTracking: (orderId: string, trackingNumber: string, trackingUrl?: string) => Promise<void>;
+  updateDeliveryStatus: (orderId: string, status: DeliveryStatus, deliveryFee?: number, location?: string) => Promise<void>;
 };
 
 const OrderContext = createContext<OrderContextType | null>(null);
-
 
 const rowToOrder = (row: OrderRow, items: OrderItemRow[]): Order => ({
   id: row.id,
@@ -80,7 +86,8 @@ const rowToOrder = (row: OrderRow, items: OrderItemRow[]): Order => ({
     city: row.buyer_city,
     region: row.buyer_region,
   },
-  delivery: row.delivery_method ?? "",
+  delivery: (row.delivery_method as DeliveryMethod) ?? "delivery",
+  deliveryStatus: (row.delivery_status as DeliveryStatus) ?? "pending",
   deliveryInfo: {
     label: row.delivery_label ?? "",
     estimatedCost: row.delivery_estimated_cost ?? "",
@@ -104,6 +111,7 @@ const rowToOrder = (row: OrderRow, items: OrderItemRow[]): Order => ({
   trackingUrl: (row as any).tracking_url ?? null,
   handlingTime: (row as any).handling_time ?? null,
   shippingCost: (row as any).shipping_cost ?? 0,
+  orderNotes: (row as any).order_notes ?? null,
 });
 
 export const OrderProvider = ({ children }: { children: ReactNode }) => {
@@ -187,24 +195,26 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     subtotal: number;
     deliveryFee: number;
     total: number;
-    deliveryMethod?: string;
+    deliveryMethod?: DeliveryMethod;
+    deliveryStatus?: DeliveryStatus;
     deliveryAddress?: string;
     buyerPhone?: string;
     buyerName?: string;
     paystackReference?: string | null;
     subaccountCode?: string | null;
-    // also accept nested shapes for backwards compat
+    orderNotes?: string;
     delivery?: string;
     deliveryInfo?: { label?: string; estimatedCost?: string; days?: string };
     buyer?: { firstName?: string; lastName?: string; phone?: string; address?: string; city?: string; region?: string };
   }) => {
     if (!user) throw new Error("Not authenticated");
 
-    // Normalise flat vs nested shapes
-    const deliveryMethod = order.deliveryMethod ?? order.delivery ?? "";
-    const deliveryLabel = order.deliveryInfo?.label ?? (deliveryMethod === "express" ? "Express Delivery" : deliveryMethod === "pickup" ? "Hub Pickup" : "Standard Delivery");
+    const deliveryMethod = (order.deliveryMethod ?? order.delivery ?? "delivery") as DeliveryMethod;
+    const deliveryStatus = order.deliveryStatus ?? "pending";
+    const deliveryLabel = order.deliveryInfo?.label ?? (deliveryMethod === "pickup" ? "Store Pickup" : "Delivery");
     const deliveryEstimatedCost = order.deliveryInfo?.estimatedCost ?? (order.deliveryFee === 0 ? "Free" : `GHS ${order.deliveryFee}`);
-    const deliveryDays = order.deliveryInfo?.days ?? "";
+    const deliveryDays = order.deliveryInfo?.days ?? (deliveryMethod === "pickup" ? "Ready in 1-2 days" : "Contact to arrange");
+    
     const [buyerFirstName, ...rest] = (order.buyerName ?? `${order.buyer?.firstName ?? ""} ${order.buyer?.lastName ?? ""}`.trim()).split(" ");
     const buyerLastName = rest.join(" ");
     const buyerPhone = order.buyerPhone ?? order.buyer?.phone ?? "";
@@ -216,7 +226,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       return [order.buyer?.address ?? "", order.buyer?.city ?? "", order.buyer?.region ?? ""];
     })();
 
-    // Check if order already exists with this reference (for recovery)
+    // Check if order already exists with this reference
     if (order.paystackReference) {
       const { data: existingOrder } = await supabase
         .from("orders")
@@ -225,7 +235,6 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
         .maybeSingle();
 
       if (existingOrder) {
-        // Order already exists - fetch and return it
         const { data: fullOrder } = await supabase
           .from("orders")
           .select(`*, order_items (*)`)
@@ -258,6 +267,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       delivery_fee: order.deliveryFee,
       total: order.total,
       delivery_method: deliveryMethod,
+      delivery_status: deliveryStatus,
       delivery_label: deliveryLabel,
       delivery_estimated_cost: deliveryEstimatedCost,
       delivery_days: deliveryDays,
@@ -269,6 +279,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       buyer_region: buyerRegion,
       payout_status: "pending",
       paystack_reference: order.paystackReference ?? null,
+      order_notes: order.orderNotes ?? null,
     }).select().single();
 
     if (error) throw new Error(error.message);
@@ -293,30 +304,28 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       return [newOrder, ...prev];
     });
 
-    // ✅ FIXED: Added buyer_phone to SMS trigger
+    // Send SMS notification
     await triggerSMS({
       type: "order.created",
       record: {
         ...orderRow,
         items: order.items,
-        buyer_phone: buyerPhone, // Add phone number
+        buyer_phone: buyerPhone,
+        delivery_method: deliveryMethod,
       }
     });
 
-    // ── Send push notification to seller if they have subscriptions ─────────
+    // Send push notification to seller
     try {
-      // Get seller's push subscription
       const { data: subscriptions } = await supabase
         .from("push_subscriptions")
         .select("subscription")
         .eq("user_id", order.sellerId);
 
       if (subscriptions && subscriptions.length > 0) {
-        // Format order items for the notification
         const itemNames = order.items.map(i => i.name).join(", ");
         const totalAmount = order.total;
         
-        // Send push notification to each subscription
         const { data: { session } } = await supabase.auth.getSession();
         
         for (const sub of subscriptions) {
@@ -330,7 +339,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
             body: JSON.stringify({
               subscription: sub.subscription,
               title: "🛍️ New Order Received!",
-              body: `GHS ${totalAmount} - ${itemNames.substring(0, 50)}${itemNames.length > 50 ? '...' : ''}`,
+              body: `${deliveryMethod === "pickup" ? "Pickup" : "Delivery"} Order: GHS ${totalAmount} - ${itemNames.substring(0, 50)}${itemNames.length > 50 ? '...' : ''}`,
               url: "/account?tab=orders",
               icon: "/icon-192.png",
               badge: "/badge-72.png",
@@ -344,25 +353,62 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (err) {
       console.warn("Failed to send push notifications:", err);
-      // Non-fatal - don't block order completion
     }
 
     return newOrder;
   };
 
+  const updateDeliveryStatus = async (orderId: string, status: DeliveryStatus, deliveryFee?: number, location?: string) => {
+    const order = orders.find((o) => o.id === orderId);
+    if (!order || order.sellerId !== user?.id) {
+      toast.error("Unauthorized - Only the seller can update delivery status");
+      return;
+    }
+
+    const updates: any = { delivery_status: status };
+    if (deliveryFee !== undefined) updates.delivery_fee = deliveryFee;
+    if (location !== undefined) updates.delivery_location = location;
+
+    setOrders((prev) =>
+      prev.map((o) => o.id === orderId
+        ? { 
+            ...o, 
+            deliveryStatus: status,
+            deliveryFee: deliveryFee ?? o.deliveryFee,
+            deliveryLocation: location ?? (o as any).deliveryLocation
+          }
+        : o
+      )
+    );
+
+    await supabase.from("orders").update(updates).eq("id", orderId);
+
+    // Send SMS to customer about delivery update
+    await triggerSMS({
+      type: "order.delivery_update",
+      record: {
+        id: orderId,
+        buyer_id: order.buyerId,
+        buyer: order.buyer,
+        delivery_status: status,
+        delivery_fee: deliveryFee,
+        ...order,
+      }
+    });
+
+    toast.success(`Delivery status updated to ${status}`);
+  };
+
   const confirmAsSeller = async (orderId: string) => {
     const order = orders.find((o) => o.id === orderId);
 
-    // ── Ownership check: caller must be the seller of this order ──
     if (!order || order.sellerId !== user?.id) {
-      console.error("[confirmAsSeller] Unauthorized — caller is not the seller of this order");
       toast.error("Unauthorized action");
       return;
     }
 
     const newStatus = order?.buyerConfirmed ? "delivered" : "shipped";
 
-    // Check if seller is official
     const { data: sellerProfile } = await supabase
       .from("profiles").select("is_official").eq("id", order?.sellerId ?? "").single();
     const isOfficial = sellerProfile?.is_official ?? false;
@@ -396,14 +442,12 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       paid_at: new Date().toISOString(),
     });
 
-    // Trigger payout for verified sellers without subaccount
     if (!isOfficial) {
       triggerRelease(orderId, "immediate").catch((err) =>
         console.warn("Immediate transfer failed:", err)
       );
     }
 
-    // ✅ FIXED: Added buyer_phone to SMS trigger
     await triggerSMS({
       type: "order.shipped",
       record: {
@@ -412,7 +456,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
         buyer: order?.buyer,
         total: order?.total,
         items: order?.items,
-        buyer_phone: order?.buyer?.phone, // Add phone number
+        buyer_phone: order?.buyer?.phone,
         ...order,
       }
     });
@@ -435,9 +479,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
   const confirmAsBuyer = async (orderId: string) => {
     const order = orders.find((o) => o.id === orderId);
 
-    // ── Ownership check: caller must be the buyer of this order ──
     if (!order || order.buyerId !== user?.id) {
-      console.error("[confirmAsBuyer] Unauthorized — caller is not the buyer of this order");
       toast.error("Unauthorized action");
       return;
     }
@@ -456,7 +498,6 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
 
     if (error) { await fetchOrders(); throw new Error(error.message); }
 
-    // ✅ FIXED: Added buyer_phone to SMS trigger
     await triggerSMS({
       type: "order.delivered",
       record: {
@@ -465,16 +506,12 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
         buyer: order?.buyer,
         total: order?.total,
         items: order?.items,
-        buyer_phone: order?.buyer?.phone, // Add phone number
+        buyer_phone: order?.buyer?.phone,
         ...order,
       }
     });
-
-    // Payment already transferred when seller confirmed dispatch
-    // No additional release needed
   };
 
-  // ── Trigger payment release ───────────────────────────────────────────────
   const triggerRelease = async (orderId: string, trigger: "immediate" | "auto") => {
     try {
       const fnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/release-payment`;
@@ -494,7 +531,6 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // ── Disputes removed — payments transfer immediately on dispatch ─────────
   const raiseDispute = async (_orderId: string, _reason: string) => {
     throw new Error("Disputes are not available — payment was transferred when the seller dispatched your order. Please contact support directly.");
   };
@@ -512,7 +548,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     <OrderContext.Provider value={{
       orders, latestOrder, unseenCount, loading,
       placeOrder, confirmAsSeller, confirmAsBuyer, raiseDispute, addTracking,
-      markOrdersSeen, fetchOrders,
+      markOrdersSeen, fetchOrders, updateDeliveryStatus,
     }}>
       {children}
     </OrderContext.Provider>

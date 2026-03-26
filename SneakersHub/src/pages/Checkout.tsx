@@ -5,6 +5,7 @@ import {
   ArrowLeft, MapPin, Phone, User, CheckCircle,
   ShoppingBag, ChevronDown, ArrowRight, ShieldAlert, X,
   ShieldCheck, CreditCard, Lock, Sparkles, BadgeCheck, Package,
+  Store, Truck, MessageCircle, Clock,
 } from "lucide-react";
 import { thumbImage } from "@/lib/imageutils";
 import { useCart, groupBySeller, SellerGroup } from "@/context/CartContext";
@@ -15,6 +16,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { CheckoutDeliveryOptions } from "@/components/CheckoutDeliveryOptions";
 
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY ?? "pk_live_9e1705a04e21f148e758dc11c1e920ed6393702b";
 
@@ -25,18 +27,6 @@ const regions = [
   "Volta", "Northern", "Upper East", "Upper West", "Bono",
   "Bono East", "Ahafo", "Savannah", "North East", "Oti", "Western North",
 ];
-
-// ── Region-based delivery pricing (instant, no external APIs) ──────────────
-const getDeliveryFees = (buyerRegion: string, sellerRegion?: string | null) => {
-  if (!buyerRegion) return { standard: 40, express: 80 };
-  if (sellerRegion && buyerRegion === sellerRegion) return { standard: 20, express: 40 };
-  const south = ["Greater Accra", "Central", "Eastern", "Volta", "Ashanti", "Western"];
-  const north = ["Northern", "North East", "Savannah", "Upper East", "Upper West", "Oti", "Bono", "Bono East", "Ahafo", "Western North"];
-  const nearbyZone =
-    (south.includes(buyerRegion) && south.includes(sellerRegion ?? "")) ||
-    (north.includes(buyerRegion) && north.includes(sellerRegion ?? ""));
-  return nearbyZone ? { standard: 40, express: 80 } : { standard: 90, express: 150 };
-};
 
 function ensurePaystackScript(): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -65,7 +55,6 @@ function ensurePaystackScript(): Promise<void> {
   });
 }
 
-// ── Delivery info builder for order ──────────────────────────────────────────
 type DeliveryInfo = {
   method: string;
   address: string;
@@ -82,16 +71,16 @@ export default function Checkout() {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(false);
-  const [delivery, setDelivery] = useState("standard");
+  const [deliveryMethod, setDeliveryMethod] = useState<"pickup" | "delivery" | null>(null);
   const [form, setForm] = useState({
     firstName: "", lastName: "", phone: "", address: "", city: "", region: "",
   });
+  const [orderNotes, setOrderNotes] = useState("");
 
   // Group cart items by seller
   const sellerGroups = groupBySeller(items);
   const totalPrice = items.reduce((sum, i) => sum + i.sneaker.price * i.quantity, 0);
 
-  // ── Fetch fresh shipping data from DB (cart may have stale/missing values) ─
   const [freshShipping, setFreshShipping] = useState<Record<string, { shippingCost: number; handlingTime: string }>>({});
 
   useEffect(() => {
@@ -114,7 +103,6 @@ export default function Checkout() {
       });
   }, []);
 
-
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0);
   const [completedGroups, setCompletedGroups] = useState<string[]>([]);
   const currentGroup: SellerGroup | undefined = sellerGroups[currentGroupIndex];
@@ -123,17 +111,14 @@ export default function Checkout() {
 
   const sellerRegion = currentGroup?.sellerRegion ?? null;
   const sellerCity = currentGroup?.sellerCity ?? null;
-  // Only verified/official sellers have seller-defined shipping
-  // Standard (unverified) sellers use pay-on-delivery so shipping cost doesn't apply
   const isVerifiedSeller = tier === "verified" || tier === "official";
-  // Use fresh DB data if available, fall back to cart data
   const firstItemId = currentGroup?.items[0]?.sneaker.id ?? "";
   const freshData = freshShipping[firstItemId];
   const sellerShippingCost = isVerifiedSeller ? (freshData?.shippingCost ?? currentGroup?.shippingCost ?? 0) : 0;
   const sellerHandlingTime = isVerifiedSeller ? (freshData?.handlingTime ?? currentGroup?.handlingTime ?? "Ships in 1-3 days") : "";
 
-  // Use seller-defined shipping cost for verified/official, 0 for standard
-  const currentDeliveryFee = delivery === "pickup" ? 0 : sellerShippingCost;
+  // Delivery fee is now handled after order - no upfront fee
+  const currentDeliveryFee = 0;
 
   useEffect(() => {
     if (requiresPayment) ensurePaystackScript();
@@ -174,16 +159,15 @@ export default function Checkout() {
   }
 
   const buildDeliveryInfo = (): DeliveryInfo => ({
-    method: delivery,
+    method: deliveryMethod === "pickup" ? "pickup" : "delivery",
     address: form.address,
     city: form.city,
     region: form.region,
     phone: form.phone,
-    fee: currentDeliveryFee,
+    fee: 0,
   });
 
   const submitGroupOrder = async (group: SellerGroup, paystackRef?: string) => {
-   
     const deliveryInfo = buildDeliveryInfo();
     await placeOrder({
       sellerId: group.sellerId,
@@ -197,14 +181,16 @@ export default function Checkout() {
         imageUrl: i.sneaker.image,
       })),
       subtotal: group.total,
-      deliveryFee: currentDeliveryFee,
-      total: group.total + currentDeliveryFee,
+      deliveryFee: 0,
+      total: group.total,
       deliveryMethod: deliveryInfo.method,
       deliveryAddress: `${deliveryInfo.address}, ${deliveryInfo.city}, ${deliveryInfo.region}`,
       buyerPhone: deliveryInfo.phone,
       buyerName: `${form.firstName} ${form.lastName}`.trim(),
       paystackReference: paystackRef,
       subaccountCode: group.sellerSubaccountCode,
+      deliveryStatus: deliveryInfo.method === "pickup" ? "ready_for_pickup" : "pending",
+      orderNotes: orderNotes,
     });
   };
 
@@ -215,9 +201,7 @@ export default function Checkout() {
       const PaystackPop = (window as any).PaystackPop;
       if (!PaystackPop) throw new Error("Payment SDK not available");
 
-      const isVerified = group.tier === "verified" || group.tier === "official";
-      const groupDeliveryFee = delivery === "pickup" ? 0 : (isVerified ? (group.shippingCost ?? 0) : 0);
-      const chargeTotal = group.total + groupDeliveryFee;
+      const chargeTotal = group.total;
 
       let paymentCompleted = false;
       const handler = PaystackPop.setup({
@@ -232,28 +216,24 @@ export default function Checkout() {
         metadata: {
           custom_fields: [
             { display_name: "Seller", variable_name: "seller_id", value: group.sellerId },
-            { display_name: "Delivery", variable_name: "delivery_method", value: delivery },
+            { display_name: "Delivery Method", variable_name: "delivery_method", value: deliveryMethod === "pickup" ? "pickup" : "delivery" },
           ],
         },
         callback: (response: { reference: string }) => {
           paymentCompleted = true;
           toast.success(tier === "official" ? "Payment received — Official order placed!" : "Payment received");
           
-          // Don't navigate immediately - wait for order to save
           submitGroupOrder(group, response.reference)
             .then(() => {
-              // Only advance after order is confirmed saved
               const newCompleted = [...completedGroups, group.sellerId];
               setCompletedGroups(newCompleted);
               
               if (currentGroupIndex + 1 < sellerGroups.length) {
-                // Move to next seller
                 setCurrentGroupIndex((i) => i + 1);
                 setLoading(false);
               } else {
-                // All done - clear cart and navigate
                 clearCart();
-                navigate(`/order-confirmation?reference=${response.reference}`);
+                navigate(`/order-confirmation?reference=${response.reference}&method=${deliveryMethod}`);
               }
             })
             .catch((err) => {
@@ -293,7 +273,7 @@ export default function Checkout() {
         setLoading(false);
       } else {
         clearCart();
-        navigate("/order-confirmation");
+        navigate(`/order-confirmation?method=${deliveryMethod}`);
       }
     } catch (err: any) {
       toast.error(err.message ?? "Order failed. Please try again.");
@@ -306,7 +286,12 @@ export default function Checkout() {
       toast.error("Please fill in your name, phone, and region.");
       return;
     }
+    if (!deliveryMethod) {
+      toast.error("Please select a delivery method (Pickup or Delivery).");
+      return;
+    }
     if (!currentGroup) return;
+    
     if (requiresPayment) {
       handlePaystackPayment(currentGroup);
     } else {
@@ -393,6 +378,28 @@ export default function Checkout() {
               ))}
             </div>
 
+            {/* Delivery Options - NEW */}
+            <div className="rounded-2xl border border-border p-6">
+              <CheckoutDeliveryOptions
+                onDeliveryMethodChange={setDeliveryMethod}
+                selectedMethod={deliveryMethod}
+              />
+            </div>
+
+            {/* Order Notes - NEW */}
+            <div className="rounded-2xl border border-border p-6">
+              <h3 className="font-display text-sm font-semibold mb-3">Order Notes (Optional)</h3>
+              <textarea
+                value={orderNotes}
+                onChange={(e) => setOrderNotes(e.target.value)}
+                placeholder="Special instructions, delivery preferences, etc."
+                rows={2}
+                className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm
+                  placeholder:text-muted-foreground focus:outline-none focus:border-primary 
+                  focus:ring-1 focus:ring-primary/20 transition-all resize-none"
+              />
+            </div>
+
             {/* Contact details */}
             <div className="rounded-2xl border border-border p-6 space-y-4">
               <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Your Details</p>
@@ -467,56 +474,6 @@ export default function Checkout() {
               </div>
             </div>
 
-            {/* Delivery options */}
-            <div className="rounded-2xl border border-border p-6">
-              <div className="flex items-center justify-between mb-4">
-                <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Delivery Method</p>
-                {sellerCity && (
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <MapPin className="w-3 h-3 text-primary" />
-                    Ships from {sellerCity}{sellerRegion ? `, ${sellerRegion}` : ""} · {sellerHandlingTime}
-                  </span>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                {/* Standard delivery — uses seller-defined shipping cost for verified sellers */}
-                <button onClick={() => setDelivery("standard")}
-                  className={`w-full flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-200
-                    ${delivery === "standard" ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}>
-                  <div className="flex items-center gap-3">
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors
-                      ${delivery === "standard" ? "border-primary" : "border-muted-foreground/40"}`}>
-                      {delivery === "standard" && <div className="w-2 h-2 rounded-full bg-primary" />}
-                    </div>
-                    <div>
-                      <p className={`text-sm font-display font-semibold ${delivery === "standard" ? "text-foreground" : "text-muted-foreground"}`}>Standard Delivery</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{sellerHandlingTime || "3–7 business days"}</p>
-                    </div>
-                  </div>
-                  <p className={`text-sm font-display font-bold ${delivery === "standard" ? "text-primary" : "text-muted-foreground"}`}>
-                    {sellerShippingCost === 0 ? "Free" : `GHS ${sellerShippingCost}`}
-                  </p>
-                </button>
-
-                <button onClick={() => setDelivery("pickup")}
-                  className={`w-full flex items-center justify-between p-4 rounded-xl border text-left transition-all duration-200
-                    ${delivery === "pickup" ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}>
-                  <div className="flex items-center gap-3">
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors
-                      ${delivery === "pickup" ? "border-primary" : "border-muted-foreground/40"}`}>
-                      {delivery === "pickup" && <div className="w-2 h-2 rounded-full bg-primary" />}
-                    </div>
-                    <div>
-                      <p className={`text-sm font-display font-semibold ${delivery === "pickup" ? "text-foreground" : "text-muted-foreground"}`}>Pickup at Hub</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">Arrange pickup with seller directly</p>
-                    </div>
-                  </div>
-                  <p className={`text-sm font-display font-bold text-green-500`}>Free</p>
-                </button>
-              </div>
-            </div>
-
             {/* Payment method info */}
             <div className={`rounded-2xl border p-4 flex items-start gap-3 ${
               requiresPayment ? "border-primary/20 bg-primary/5" : "border-amber-500/20 bg-amber-500/5"
@@ -531,7 +488,7 @@ export default function Checkout() {
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {requiresPayment
-                    ? "Pay securely with card or MoMo. Funds held until your order is delivered."
+                    ? "Pay securely with card or MoMo. Delivery fee will be arranged after order."
                     : "This seller is unverified. Pay with cash or MoMo when your order arrives."
                   }
                 </p>
@@ -546,29 +503,26 @@ export default function Checkout() {
                   <span className="text-muted-foreground">Subtotal</span>
                   <span className="font-medium">GHS {currentGroup?.total ?? 0}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Delivery</span>
-                  <span className="font-medium">
-                    {delivery === "pickup"
-                      ? <span className="text-green-500 font-semibold">Free</span>
-                      : <span className="font-semibold text-foreground">{currentDeliveryFee === 0 ? "Free" : `GHS ${currentDeliveryFee}`}</span>
-                    }
-                  </span>
-                </div>
-                {form.region && sellerRegion && delivery !== "pickup" && (
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>{form.region === sellerRegion ? "Same region" : "Inter-region"}</span>
-                    <span>{form.region}{form.region !== sellerRegion ? ` → ${sellerRegion}` : ""}</span>
+                {deliveryMethod === "pickup" && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Pickup</span>
+                    <span className="font-medium text-green-500">Free</span>
+                  </div>
+                )}
+                {deliveryMethod === "delivery" && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Delivery Fee</span>
+                    <span className="font-medium text-amber-600">To be confirmed</span>
                   </div>
                 )}
                 <div className="flex justify-between border-t border-border pt-2.5 mt-2">
-                  <span className="font-display font-bold">Total</span>
+                  <span className="font-display font-bold">Total to pay now</span>
                   <div className="text-right">
                     <span className="font-display font-bold text-lg">
-                      GHS {(currentGroup?.total ?? 0) + currentDeliveryFee}
+                      GHS {currentGroup?.total ?? 0}
                     </span>
-                    {delivery !== "pickup" && (
-                      <p className="text-[10px] text-muted-foreground">incl. GHS {currentDeliveryFee} delivery</p>
+                    {deliveryMethod === "delivery" && (
+                      <p className="text-[10px] text-muted-foreground">+ delivery fee after order</p>
                     )}
                   </div>
                 </div>
@@ -578,7 +532,7 @@ export default function Checkout() {
             {/* Submit button */}
             <Button
               onClick={handleSubmit}
-              disabled={loading}
+              disabled={loading || !deliveryMethod}
               className="w-full h-14 rounded-2xl font-display font-bold text-base gap-2"
             >
               {loading ? (
@@ -587,7 +541,7 @@ export default function Checkout() {
               ) : requiresPayment ? (
                 <>
                   <ShieldCheck className="w-5 h-5" />
-                  Pay GHS {(currentGroup?.total ?? 0) + currentDeliveryFee}
+                  Pay GHS {currentGroup?.total ?? 0}
                 </>
               ) : (
                 <>
@@ -600,7 +554,15 @@ export default function Checkout() {
             {requiresPayment && (
               <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
                 <Lock className="w-3 h-3" />
-                <span>Secured by Paystack · GHS {(currentGroup?.total ?? 0) + currentDeliveryFee} will be charged</span>
+                <span>Secured by Paystack · GHS {currentGroup?.total ?? 0} will be charged</span>
+              </div>
+            )}
+
+            {deliveryMethod === "delivery" && requiresPayment && (
+              <div className="p-3 bg-blue-500/10 rounded-lg text-center">
+                <p className="text-xs text-blue-600">
+                  📦 After payment, we'll contact you to confirm delivery details and fee
+                </p>
               </div>
             )}
 

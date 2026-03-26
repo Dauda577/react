@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { CheckCircle, MapPin, Phone, Package, ArrowRight, ShoppingBag, AlertTriangle } from "lucide-react";
+import { CheckCircle, MapPin, Phone, Package, ArrowRight, ShoppingBag, AlertTriangle, Truck, Store, MessageCircle } from "lucide-react";
 import { useOrders } from "@/context/OrderContext";
 import { TrackingDisplay } from "@/components/TrackingDisplay";
 import Navbar from "@/components/Navbar";
@@ -10,7 +10,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
-const statusSteps = ["Order Placed", "Confirmed", "Shipped", "Delivered"];
+const statusSteps = ["Order Placed", "Confirmed", "Driver Assigned", "Delivered"];
 
 const OrderConfirmation = () => {
   const { latestOrder, refreshOrders } = useOrders();
@@ -22,6 +22,7 @@ const OrderConfirmation = () => {
 
   const reference = searchParams.get('reference');
   const trxRef = searchParams.get('trxref');
+  const deliveryMethod = searchParams.get('method');
 
   // If we have a reference but no order, try to fetch it
   useEffect(() => {
@@ -71,6 +72,7 @@ const OrderConfirmation = () => {
               region: order.buyer_region
             },
             delivery: order.delivery_method,
+            deliveryStatus: order.delivery_status,
             total: order.total_amount,
             deliveryFee: order.delivery_fee,
             subtotal: order.subtotal,
@@ -80,7 +82,8 @@ const OrderConfirmation = () => {
             sellerConfirmed: order.seller_confirmed,
             buyerConfirmed: order.buyer_confirmed,
             trackingNumber: order.tracking_number,
-            trackingUrl: order.tracking_url
+            trackingUrl: order.tracking_url,
+            orderNotes: order.order_notes
           });
         } else {
           // No order found with this reference
@@ -174,11 +177,33 @@ const OrderConfirmation = () => {
     );
   }
 
-  const { id, items, buyer, delivery, total, deliveryFee, subtotal, placedAt, paystackReference } = order;
+  const { id, items, buyer, delivery, deliveryStatus, total, deliveryFee, subtotal, placedAt, paystackReference, orderNotes } = order;
   const isPaid = !!paystackReference;
   const placedDate = new Date(placedAt).toLocaleDateString("en-GH", {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
+
+  const getDeliveryStatusText = (status: string) => {
+    switch (status) {
+      case "pending": return "Awaiting Contact";
+      case "contacted": return "Customer Contacted";
+      case "driver_assigned": return "Driver Assigned";
+      case "delivered": return "Delivered";
+      default: return "Order Placed";
+    }
+  };
+
+  const getDeliveryStatusStep = (status: string) => {
+    switch (status) {
+      case "pending": return 0;
+      case "contacted": return 1;
+      case "driver_assigned": return 2;
+      case "delivered": return 3;
+      default: return 0;
+    }
+  };
+
+  const currentStep = getDeliveryStatusStep(deliveryStatus || "pending");
 
   return (
     <div className="min-h-screen bg-background">
@@ -209,8 +234,8 @@ const OrderConfirmation = () => {
           </h1>
           <p className="text-muted-foreground text-sm max-w-xs mx-auto">
             {isPaid
-              ? "Payment received! Your order is confirmed and the seller will dispatch soon."
-              : "Your order has been placed. The seller will be notified to arrange delivery."}
+              ? "Payment received! Your order is confirmed."
+              : "Your order has been placed. The seller will be notified."}
           </p>
           <p className="text-xs text-muted-foreground mt-3 font-mono">
             {(() => {
@@ -225,7 +250,7 @@ const OrderConfirmation = () => {
           )}
         </motion.div>
 
-        {/* Order status tracker */}
+        {/* Delivery Status Tracker */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -233,36 +258,41 @@ const OrderConfirmation = () => {
           className="rounded-2xl border border-border p-6 mb-5"
         >
           <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-6">
-            Order Status
+            Delivery Status
           </p>
           <div className="flex items-center justify-between relative">
             <div className="absolute top-4 left-0 right-0 h-px bg-border" />
             <motion.div
               initial={{ width: 0 }}
-              animate={{ width: "8%" }}
+              animate={{ width: `${(currentStep / 3) * 100}%` }}
               transition={{ delay: 0.6, duration: 0.6 }}
               className="absolute top-4 left-0 h-px bg-primary"
             />
             {statusSteps.map((step, i) => (
               <div key={step} className="flex flex-col items-center gap-2 relative z-10">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-colors
-                  ${i === 0
+                  ${i <= currentStep
                     ? "bg-primary border-primary text-primary-foreground"
                     : "bg-background border-border text-muted-foreground"
                   }`}>
-                  {i === 0
+                  {i <= currentStep
                     ? <CheckCircle className="w-4 h-4" />
                     : <span className="text-xs font-bold">{i + 1}</span>
                   }
                 </div>
-                <span className={`text-[11px] font-medium text-center max-w-[60px] leading-tight
-                  ${i === 0 ? "text-primary" : "text-muted-foreground"}`}>
+                <span className={`text-[11px] font-medium text-center max-w-[70px] leading-tight
+                  ${i <= currentStep ? "text-primary" : "text-muted-foreground"}`}>
                   {step}
                 </span>
               </div>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground mt-6 text-center">Placed on {placedDate}</p>
+          <p className="text-xs text-muted-foreground mt-6 text-center">
+            {deliveryStatus === "pending" && "We'll contact you soon to arrange delivery"}
+            {deliveryStatus === "contacted" && "We've contacted you about delivery details"}
+            {deliveryStatus === "driver_assigned" && "Driver assigned - delivery in progress"}
+            {deliveryStatus === "delivered" && "Order delivered successfully"}
+          </p>
         </motion.div>
 
         <div className="grid sm:grid-cols-2 gap-5 mb-5">
@@ -274,22 +304,49 @@ const OrderConfirmation = () => {
             className="rounded-2xl border border-border p-5"
           >
             <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-4">
-              Delivery To
+              Delivery Details
             </p>
-            <p className="font-display font-semibold text-sm">{buyer.firstName} {buyer.lastName}</p>
+            <div className="flex items-start gap-2 mb-3">
+              {delivery === "pickup" ? (
+                <Store className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+              ) : (
+                <Truck className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+              )}
+              <div>
+                <p className="font-semibold text-sm">
+                  {delivery === "pickup" ? "Store Pickup" : "Delivery"}
+                </p>
+                {delivery === "pickup" ? (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Pick up from our store at East Legon, Accra
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    We'll contact you to confirm location and delivery fee
+                  </p>
+                )}
+              </div>
+            </div>
+            <p className="font-display font-semibold text-sm mt-3">{buyer.firstName} {buyer.lastName}</p>
             <div className="mt-2 space-y-1.5">
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <MapPin className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-                {buyer.address}, {buyer.city}, {buyer.region}
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Phone className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-                {buyer.phone}
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Package className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-                {delivery === "express" ? "Express Delivery" : delivery === "pickup" ? "Hub Pickup" : "Standard Delivery"}
-              </div>
+              {delivery !== "pickup" && (
+                <>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <MapPin className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                    {buyer.address}, {buyer.city}, {buyer.region}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Phone className="w-3.5 h-3.5 text-primary flex-shrink-0" />
+                    {buyer.phone}
+                  </div>
+                </>
+              )}
+              {orderNotes && (
+                <div className="flex items-start gap-2 text-xs text-muted-foreground mt-2 pt-2 border-t border-border">
+                  <MessageCircle className="w-3.5 h-3.5 text-primary flex-shrink-0 mt-0.5" />
+                  <span>Notes: {orderNotes}</span>
+                </div>
+              )}
             </div>
           </motion.div>
 
@@ -310,23 +367,52 @@ const OrderConfirmation = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Delivery</span>
-                <span className="font-medium">{deliveryFee === 0 ? "Free" : `GHS ${deliveryFee}`}</span>
+                <span className="font-medium">
+                  {delivery === "pickup" 
+                    ? "Free" 
+                    : deliveryFee 
+                      ? `GHS ${deliveryFee}`
+                      : "To be confirmed"}
+                </span>
               </div>
               <div className="flex justify-between border-t border-border pt-2 mt-2">
-                <span className="font-display font-bold">Total</span>
+                <span className="font-display font-bold">Total Paid</span>
                 <span className="font-display font-bold">GHS {total}</span>
               </div>
             </div>
             <div className="mt-4 px-3 py-2.5 rounded-xl bg-primary/5 border border-primary/10">
               <p className="text-xs text-muted-foreground">
                 {isPaid
-                  ? <><span className="mr-1">✅</span> Paid via Paystack · <span className="font-semibold text-foreground">Payout to seller within 24hrs</span></>
+                  ? <><span className="mr-1">✅</span> Paid via Paystack</>
                   : <><span className="mr-1">💳</span> Pay with <span className="font-semibold text-foreground">Cash or MoMo</span> on delivery</>
                 }
               </p>
             </div>
           </motion.div>
         </div>
+
+        {/* Delivery Fee Info - Only for delivery orders without fee yet */}
+        {delivery === "delivery" && !deliveryFee && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.42 }}
+            className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-5 mb-5"
+          >
+            <div className="flex items-start gap-3">
+              <MessageCircle className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-display font-semibold text-sm text-blue-700 dark:text-blue-400">
+                  Delivery Fee Pending
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  We'll contact you within 24 hours to confirm your delivery location and calculate the exact delivery fee. 
+                  You'll pay this fee directly to the driver when your order arrives.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* TRACKING NUMBER - SHOWN IF SELLER HAS ADDED IT */}
         {order.trackingNumber && (
@@ -342,28 +428,6 @@ const OrderConfirmation = () => {
               status={order.status}
               sellerConfirmed={order.sellerConfirmed}
             />
-          </motion.div>
-        )}
-
-        {/* WAITING FOR TRACKING - SHOWN WHILE SELLER PREPARING SHIPMENT */}
-        {!order.trackingNumber && order.sellerConfirmed && (
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.42 }}
-            className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5 mb-5"
-          >
-            <div className="flex items-start gap-3">
-              <Package className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-display font-semibold text-sm text-amber-700 dark:text-amber-400">
-                  Preparing Your Shipment
-                </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Your seller is getting your order ready. A tracking number will be provided within 24 hours. Check back here or visit your Orders page.
-                </p>
-              </div>
-            </div>
           </motion.div>
         )}
 
