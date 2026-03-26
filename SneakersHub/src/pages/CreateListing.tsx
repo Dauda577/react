@@ -39,8 +39,6 @@ const CreateListing = () => {
     description: editing?.description ?? "",
     city: editing?.city ?? "",
     region: editing?.region ?? "",
-    shipping_cost: (editing as any)?.shippingCost?.toString() ?? "0",
-    handling_time: (editing as any)?.handlingTime ?? "Ships in 1-3 days",
   });
 
   // Pre-fill city/region and check verified status from profile
@@ -97,7 +95,7 @@ const CreateListing = () => {
   };
 
   const handleSubmit = async () => {
-    const { name, brand, price, category, description, city, region, shipping_cost, handling_time } = form;
+    const { name, brand, price, category, description, city, region } = form;
     if (!name || !brand || !price || !category || !description || !region) {
       toast.error(!region ? "Please select your region" : "Please fill in all fields");
       return;
@@ -116,13 +114,11 @@ console.log("imageFiles at submit:", imageFiles.length, imageFiles[0]?.name);
       if (editing) {
         await updateListing(editing.id, {
           name, brand, price: Number(price), category, description, sizes: selectedSizes, city: city || null, region: region || null,
-          shippingCost: Number(shipping_cost) || 0, handlingTime: handling_time || "Ships in 1-3 days",
         }, imageFiles[0] ?? undefined, imageFiles.slice(1));
         toast.success("Listing updated!");
       } else {
         await addListing({
           name, brand, price: Number(price), category, description, sizes: selectedSizes, image: null, city: city || null, region: region || null,
-          shippingCost: Number(shipping_cost) || 0, handlingTime: handling_time || "Ships in 1-3 days",
         }, imageFiles[0] ?? undefined, imageFiles.slice(1));
         toast.success("Listing published!");
       }
@@ -296,44 +292,6 @@ console.log("imageFiles at submit:", imageFiles.length, imageFiles[0]?.name);
                   transition-all font-[inherit] resize-none" />
             </div>
           </motion.div>
-
-
-          {/* Shipping — verified/official sellers only */}
-          {isVerifiedSeller && <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}
-            className="rounded-2xl border border-border p-6">
-            <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-4">
-              <Tag className="inline w-3.5 h-3.5 mr-1.5" /> Shipping
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
-                  Shipping Cost (GHS)
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-display font-semibold">₵</span>
-                  <input name="shipping_cost" value={form.shipping_cost} onChange={handleChange}
-                    placeholder="0" type="number" min="0"
-                    className="w-full pl-8 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
-                      placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all" />
-                </div>
-                <p className="text-[11px] text-muted-foreground mt-1">Set 0 for free shipping</p>
-              </div>
-              <div>
-                <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
-                  Handling Time
-                </label>
-                <select name="handling_time" value={form.handling_time} onChange={handleChange}
-                  className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
-                    focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all appearance-none">
-                  <option>Ships in 1-2 days</option>
-                  <option>Ships in 1-3 days</option>
-                  <option>Ships in 3-5 days</option>
-                  <option>Ships in 5-7 days</option>
-                  <option>Ships in 1-2 weeks</option>
-                </select>
-              </div>
-            </div>
-          </motion.div>}
 
           {/* Sizes */}
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
