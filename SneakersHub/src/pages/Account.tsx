@@ -609,8 +609,8 @@ const Account = () => {
     bio: isGuest
       ? "Browsing as guest."
       : role === "seller"
-        ? "Trusted seller based in Accra. Quality sneakers, fair prices."
-        : "Sneaker enthusiast based in Accra.",
+        ? "Trusted seller based in Kumasi. Quality sneakers, fair prices."
+        : "Sneaker enthusiast based in Kumasi.",
   });
 
   // ── First-listing banner ───────────────────────────────────────────────────

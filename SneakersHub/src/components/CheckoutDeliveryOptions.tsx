@@ -47,7 +47,7 @@ export const CheckoutDeliveryOptions = ({
               </p>
               <div className="mt-3 space-y-1">
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <MapPin className="w-3 h-3" /> East Legon, Accra
+                  <MapPin className="w-3 h-3" /> KNUST, Kumasi
                 </p>
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <Clock className="w-3 h-3" /> Mon-Sat, 9am - 6pm
