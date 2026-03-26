@@ -39,7 +39,6 @@ export type Order = {
   seen: boolean;
   sellerId: string;
   buyerId: string;
-  // Escrow fields
   releaseAt: string | null;
   payoutStatus: "pending" | "released" | "auto_released" | "transfer_failed";
   disputeReason: string | null;
@@ -186,10 +185,24 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
           );
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        // FIX: Log channel status so silent failures are visible in the console
+        if (status === "SUBSCRIBED") {
+          console.log("[OrderContext] Realtime channel subscribed ✓");
+        }
+        if (status === "CHANNEL_ERROR") {
+          console.error("[OrderContext] Realtime channel error — attempting re-fetch");
+          // Re-fetch as fallback when the channel fails to connect
+          fetchOrders();
+        }
+        if (status === "TIMED_OUT") {
+          console.warn("[OrderContext] Realtime channel timed out — attempting re-fetch");
+          fetchOrders();
+        }
+      });
 
     return () => { supabase.removeChannel(channel); };
-  }, [user?.id]);
+  }, [user?.id, fetchOrders]); // ✅ fetchOrders in deps so fallback re-fetch uses fresh function
 
   const placeOrder = async (order: {
     sellerId: string;
@@ -228,7 +241,6 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       return [order.buyer?.address ?? "", order.buyer?.city ?? "", order.buyer?.region ?? ""];
     })();
 
-    // Check if order already exists with this reference
     if (order.paystackReference) {
       const { data: existingOrder } = await supabase
         .from("orders")
@@ -262,7 +274,6 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       }
     }
 
-    // Create order with all delivery fields
     const { data: orderRow, error } = await supabase.from("orders").insert({
       buyer_id: user.id,
       seller_id: order.sellerId,
@@ -313,7 +324,6 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       return [newOrder, ...prev];
     });
 
-    // Send SMS notification
     await triggerSMS({
       type: "order.created",
       record: {
@@ -325,7 +335,6 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       }
     });
 
-    // Send push notification to seller
     try {
       const { data: subscriptions } = await supabase
         .from("push_subscriptions")
@@ -395,7 +404,6 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
 
     await supabase.from("orders").update(updates).eq("id", orderId);
 
-    // Send SMS to customer about delivery update
     await triggerSMS({
       type: "order.delivery_update",
       record: {
@@ -438,7 +446,6 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       payout_status: isOfficial ? "released" : "pending",
     }).eq("id", orderId);
 
-    // Record payout history
     const { data: sellerProfile2 } = await supabase
       .from("profiles").select("commission_rate").eq("id", order.sellerId).single();
     const commRate = sellerProfile2?.commission_rate ?? 5;

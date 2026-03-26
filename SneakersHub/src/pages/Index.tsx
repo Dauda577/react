@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, Search, Zap, X, ShieldCheck, Truck, Wallet } from "lucide-react";
+import { ArrowRight, Search, Zap, X, ShieldCheck, Truck, Wallet, Star, MessageCircle } from "lucide-react";
 import SneakerCard from "@/components/SneakerCard";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { usePublicListings } from "@/context/PublicListingsContext";
 import { useMobile } from "@/hooks/useMobile";
 import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/lib/supabase";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -108,12 +109,40 @@ const Index = () => {
   const { listings, loading } = usePublicListings();
   const [query, setQuery] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const trustScrollRef = useRef<HTMLDivElement>(null);
   const isMobile = useMobile();
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  // Fetch top reviews
+  useEffect(() => {
+    const fetchTopReviews = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("reviews")
+          .select(`
+            *,
+            profiles:user_id (name, avatar)
+          `)
+          .eq("is_approved", true)
+          .order("rating", { ascending: false })
+          .limit(4);
+
+        if (error) throw error;
+        setReviews(data || []);
+      } catch (error) {
+        console.error("Error fetching reviews:", error);
+      } finally {
+        setReviewsLoading(false);
+      }
+    };
+
+    fetchTopReviews();
+  }, []);
 
   const searchResults = query.trim().length > 0
     ? listings
@@ -413,6 +442,68 @@ const Index = () => {
               ))}
             </div>
           )}
+        </section>
+      )}
+
+      {/* ── CUSTOMER REVIEWS ── */}
+      {!reviewsLoading && reviews.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14 border-t border-border">
+          <div className="text-center mb-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-primary mb-1 flex items-center justify-center gap-1.5">
+              <MessageCircle className="w-3 h-3 fill-current" /> Testimonials
+            </p>
+            <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">What Our Customers Say</h2>
+            <p className="text-muted-foreground text-sm mt-2 max-w-md mx-auto">
+              Real reviews from real sneaker lovers across Ghana
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {reviews.map((review, index) => (
+              <motion.div
+                key={review.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="bg-card border border-border rounded-2xl p-5 hover:shadow-lg transition-shadow"
+              >
+                <div className="flex items-center gap-1 mb-3">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`w-4 h-4 ${i < review.rating ? "text-amber-400 fill-amber-400" : "text-muted-foreground/30"}`}
+                    />
+                  ))}
+                </div>
+                <p className="text-sm text-foreground leading-relaxed line-clamp-3">
+                  "{review.comment}"
+                </p>
+                <div className="mt-4 pt-3 border-t border-border flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <span className="text-xs font-bold text-primary">
+                      {review.profiles?.name?.[0]?.toUpperCase() || "C"}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-foreground truncate">
+                      {review.profiles?.name || "Customer"}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Verified Purchase
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="text-center mt-8">
+            <Link to="/reviews">
+              <Button variant="outline" className="rounded-full px-6 text-sm">
+                Read All Reviews <ArrowRight className="ml-1.5 w-3.5 h-3.5" />
+              </Button>
+            </Link>
+          </div>
         </section>
       )}
 

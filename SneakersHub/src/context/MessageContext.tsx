@@ -32,7 +32,6 @@ interface MessageContextType {
   fetchMessages: (conversationId: string) => Promise<void>;
   markConversationSeen: (conversationId: string) => Promise<void>;
   getOrCreateConversationId: (userA: string, userB: string, listingId?: string) => string;
-  // Kept in API so existing components don't break — no-ops now
   typingUsers: [];
   startTyping: () => void;
   stopTyping: () => void;
@@ -134,12 +133,20 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
     });
   }, [user?.id, buildConversations]);
 
-  // Single realtime channel — no presence, no typing overhead
+  // ── FIX 1: fetchConversations runs immediately (no delay)
+  // ── FIX 2: fetchConversations is in the dependency array so the
+  //           channel closure always has a fresh reference
   useEffect(() => {
     if (!user?.id) return;
 
-    // Delay fetch so it doesn't compete with page mount on mobile
-    const t = setTimeout(() => fetchConversations(), 2000);
+    // Fetch immediately — no setTimeout delay that caused a race condition
+    fetchConversations();
+
+    // Clean up any previous channel before creating a new one
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+      channelRef.current = null;
+    }
 
     channelRef.current = supabase
       .channel(`messages:${user.id}`)
@@ -174,13 +181,20 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
           });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        // FIX 3: Log subscription status so you can debug in prod if needed
+        if (status === "CHANNEL_ERROR") {
+          console.error("[MessageContext] Realtime channel error — will retry on next mount");
+        }
+      });
 
     return () => {
-      clearTimeout(t);
-      if (channelRef.current) supabase.removeChannel(channelRef.current);
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
     };
-  }, [user?.id]);
+  }, [user?.id, fetchConversations]); // ✅ fetchConversations in deps fixes stale closure
 
   const sendMessage = useCallback(async (
     receiverId: string,
@@ -262,7 +276,6 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
     <MessageContext.Provider value={{
       conversations, messages, totalUnread,
       sendMessage, fetchMessages, markConversationSeen, getOrCreateConversationId,
-      // Stubs — kept so existing components don't break
       typingUsers: [],
       startTyping: () => {},
       stopTyping: () => {},

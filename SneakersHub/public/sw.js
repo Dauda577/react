@@ -1,94 +1,129 @@
-// SneakersHub Service Worker
-// Bump this version string whenever you deploy — forces cache refresh on all browsers
-const CACHE_NAME = "sneakershub-v4";
+// sw.js — Service Worker
+// ✅ FIX: Supabase URLs (API + WebSockets) are never intercepted by the SW.
+//         Without this, the PWA serves cached/stale responses for Supabase
+//         requests and WebSocket upgrades silently fail.
 
-// ── Install: activate immediately ────────────────────────────────────────
-self.addEventListener("install", () => self.skipWaiting());
+const CACHE_NAME = "sneakershub-v1";
 
-// ── Activate: clear ALL old caches, take control immediately ─────────────
-self.addEventListener("activate", (event) => {
+const PRECACHE_URLS = [
+  "/",
+  "/index.html",
+  "/manifest.json",
+];
+
+// ── Install ────────────────────────────────────────────────────────────────
+self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.keys()
-      .then((keys) => Promise.all(
-        keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
-      ))
-      .then(() => self.clients.claim())
-      .then(() => {
-        // Tell all open tabs to reload so they get the new SW immediately
-        return self.clients.matchAll({ type: "window" }).then((clients) => {
-          clients.forEach((client) => client.postMessage({ type: "SW_ACTIVATED" }));
-        });
-      })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
   );
+  self.skipWaiting();
 });
 
-// ── Fetch: network first, never cache HTML ────────────────────────────────
-self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET") return;
-  if (!event.request.url.startsWith("http")) return;
+// ── Activate ───────────────────────────────────────────────────────────────
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+    )
+  );
+  self.clients.claim();
+});
 
-  // NEVER cache HTML/navigation requests — always fetch fresh from network.
-  // This is the root cause of Safari blank pages: stale HTML referencing
-  // old JS chunk hashes that no longer exist on the server.
+// ── Fetch ──────────────────────────────────────────────────────────────────
+self.addEventListener("fetch", (event) => {
+  const url = new URL(event.request.url);
+
+  // ✅ CRITICAL: Never intercept Supabase requests.
+  //    This covers both REST API calls and WebSocket upgrades (realtime).
+  //    Without this bypass, realtime subscriptions silently fail in PWA mode.
   if (
-    event.request.mode === "navigate" ||
-    event.request.headers.get("accept")?.includes("text/html")
+    url.hostname.includes("supabase.co") ||
+    url.hostname.includes("supabase.in") ||
+    // Also bypass any Supabase edge function calls or custom domains you use
+    event.request.url.includes(self.__SUPABASE_URL__ ?? "")
   ) {
+    return; // Let the browser handle it natively — no caching
+  }
+
+  // ✅ Bypass non-GET requests (POST, PATCH, DELETE etc.)
+  if (event.request.method !== "GET") return;
+
+  // ✅ Bypass browser-extension requests
+  if (!url.protocol.startsWith("http")) return;
+
+  // Network-first for navigation requests (HTML pages)
+  if (event.request.mode === "navigate") {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match("/index.html"))
+      fetch(event.request).catch(() =>
+        caches.match("/index.html")
+      )
     );
     return;
   }
 
-  // JS/CSS chunks — network first, fall back to cache
+  // Cache-first for static assets (JS, CSS, images, fonts)
   event.respondWith(
-    fetch(event.request)
-      .then((res) => {
-        if (res.ok) {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+    caches.match(event.request).then((cached) => {
+      if (cached) return cached;
+      return fetch(event.request).then((response) => {
+        // Only cache valid same-origin responses
+        if (
+          !response ||
+          response.status !== 200 ||
+          response.type !== "basic"
+        ) {
+          return response;
         }
-        return res;
-      })
-      .catch(() => caches.match(event.request))
-  );
-});
-
-// ── Push: receive server push ─────────────────────────────────────────────
-self.addEventListener("push", (event) => {
-  if (!event.data) return;
-  let data;
-  try { data = event.data.json(); }
-  catch { data = { title: "SneakersHub", body: event.data.text() }; }
-
-  event.waitUntil(
-    self.registration.showNotification(data.title ?? "SneakersHub", {
-      body: data.body ?? "",
-      icon: "/icons/icon-192.png",
-      badge: "/icons/icon-192.png",
-      vibrate: [100, 50, 100],
-      data: { url: data.url || "/account" },
-      tag: data.tag || "sneakershub",
-      renotify: true,
+        const toCache = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, toCache));
+        return response;
+      });
     })
   );
 });
 
-// ── Notification click ────────────────────────────────────────────────────
+// ── Push Notifications ─────────────────────────────────────────────────────
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
+
+  let data = {};
+  try {
+    data = event.data.json();
+  } catch {
+    data = { title: "SneakersHub", body: event.data.text() };
+  }
+
+  const title = data.title ?? "SneakersHub";
+  const options = {
+    body: data.body ?? "",
+    icon: data.icon ?? "/icons/icon-192x192.png",
+    badge: data.badge ?? "/icons/icon-72x72.png",
+    data: data.data ?? {},
+    vibrate: [200, 100, 200],
+    requireInteraction: false,
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// ── Notification Click ─────────────────────────────────────────────────────
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const targetUrl = event.notification.data?.url || "/account";
-  const fullUrl = self.location.origin + targetUrl;
+
+  const url = event.notification.data?.url ?? "/";
 
   event.waitUntil(
-    clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
-      for (const client of list) {
-        if ("focus" in client) {
-          client.navigate(fullUrl);
-          return client.focus();
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      // Focus existing window if open
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && "focus" in client) {
+          client.focus();
+          client.navigate(url);
+          return;
         }
       }
-      if (clients.openWindow) return clients.openWindow(fullUrl);
+      // Otherwise open a new window
+      if (clients.openWindow) return clients.openWindow(url);
     })
   );
 });
