@@ -151,7 +151,7 @@ export const OrderDeliveryManager = ({ order, onStatusUpdate }: OrderDeliveryMan
           <div className="p-3 bg-green-500/10 rounded-lg">
             <p className="text-sm text-green-600">Order ready for pickup</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Customer can pick up from store at East Legon, Accra
+              Customer can pick up from store at KNUST, Kumasi
             </p>
           </div>
 
