@@ -39,6 +39,14 @@ const TRUST_ITEMS = [
   { icon: Truck,       label: "Nationwide",        sub: "Delivery across Ghana" },
 ];
 
+// Compact sell info pills — replaces the large sell banner
+const SELL_PILLS = [
+  { emoji: "🆓", label: "Free to list" },
+  { emoji: "⚡", label: "Fast MoMo payouts" },
+  { emoji: "🔒", label: "Verified buyers" },
+  { emoji: "🇬🇭", label: "Built for Ghana" },
+];
+
 // ─── Search Dropdown ─────────────────────────────────────────────────────────
 
 const SearchDropdown = ({
@@ -189,17 +197,12 @@ const Index = () => {
 
     const scroll = () => {
       pos += speed;
-      if (pos >= el.scrollWidth) {
-        pos = 0;
-        el.scrollLeft = 0;
-      } else {
-        el.scrollLeft = pos;
-      }
+      if (pos >= el.scrollWidth) { pos = 0; el.scrollLeft = 0; }
+      else { el.scrollLeft = pos; }
       animFrame = requestAnimationFrame(scroll);
     };
 
     animFrame = requestAnimationFrame(scroll);
-
     const pause = () => cancelAnimationFrame(animFrame);
     const resume = () => { animFrame = requestAnimationFrame(scroll); };
     el.addEventListener("touchstart", pause, { passive: true });
@@ -259,7 +262,6 @@ const Index = () => {
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           className="flex flex-col gap-4 py-4 lg:py-12"
         >
-          {/* Eyebrow */}
           <div className="inline-flex items-center gap-2 w-fit">
             <span className="inline-block w-2 h-2 rounded-full bg-primary animate-pulse" />
             <span className="text-xs font-semibold tracking-[0.3em] uppercase text-muted-foreground">
@@ -267,14 +269,12 @@ const Index = () => {
             </span>
           </div>
 
-          {/* Headline */}
           <h1 className="font-display text-[clamp(2.8rem,7vw,5.2rem)] font-bold leading-[0.95] tracking-[-0.03em] text-foreground">
             Find Your<br />
             <span className="italic font-light text-muted-foreground">next</span>{" "}
             Pair.
           </h1>
 
-          {/* Sub-headline */}
           <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
             Buy and sell authentic sneakers in Ghana. Verified sellers, secure payments, MoMo payouts.
           </p>
@@ -446,27 +446,84 @@ const Index = () => {
         </section>
       )}
 
-      {/* ── CUSTOMER REVIEWS ── */}
+      {/* ── NEW ARRIVALS ── */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14 border-t border-border">
+        <div className="flex items-end justify-between mb-4 sm:mb-8">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground mb-1">Just Dropped</p>
+            <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">New Arrivals</h2>
+          </div>
+          <Link to="/shop" className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center gap-1">
+            See all <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        {loading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="rounded-2xl bg-muted h-52 sm:h-64 animate-pulse" />
+            ))}
+          </div>
+        ) : newArrivals.length === 0 ? (
+          <div className="text-center py-12 border border-dashed border-border rounded-3xl">
+            <p className="text-4xl mb-3">👟</p>
+            <p className="text-xl font-display font-bold mb-2">Nothing here yet</p>
+            <p className="text-sm text-muted-foreground mb-5">Be the first to list your sneakers.</p>
+            <Link to={sellHref}>
+              <Button className="btn-primary rounded-full h-11 px-7 text-sm">List a Pair</Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6">
+            {newArrivals.map((l, i) => (
+              <SneakerCard key={l.id} sneaker={toCardShape(l)} index={i} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* ── REVIEWS + SELL CTA ── */}
+      {/* Reviews take the full section; sell info lives as compact floating pills */}
       {!reviewsLoading && reviews.length > 0 && (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14 border-t border-border">
-          <div className="text-center mb-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-primary mb-1 flex items-center justify-center gap-1.5">
-              <MessageCircle className="w-3 h-3 fill-current" /> Testimonials
-            </p>
-            <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">What Our Customers Say</h2>
-            <p className="text-muted-foreground text-sm mt-2 max-w-md mx-auto">
-              Real reviews from real sneaker lovers across Ghana
-            </p>
+
+          {/* Header: title left, sell pills + CTA right (desktop) */}
+          <div className="flex items-end justify-between mb-6 sm:mb-8 gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] text-primary mb-1 flex items-center gap-1.5">
+                <MessageCircle className="w-3 h-3 fill-current" /> Testimonials
+              </p>
+              <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">What Customers Say</h2>
+            </div>
+
+            {/* Desktop sell pills + CTA */}
+            <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+              {SELL_PILLS.map((p) => (
+                <div
+                  key={p.label}
+                  className="flex items-center gap-1.5 bg-muted/60 border border-border rounded-full px-3 py-1.5 whitespace-nowrap"
+                >
+                  <span className="text-sm leading-none">{p.emoji}</span>
+                  <span className="text-xs font-medium text-muted-foreground">{p.label}</span>
+                </div>
+              ))}
+              <Link to={sellHref} className="ml-1">
+                <Button className="btn-primary rounded-full h-9 px-5 text-xs font-semibold">
+                  Start Selling <ArrowRight className="ml-1 w-3 h-3" />
+                </Button>
+              </Link>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Reviews list — horizontal scroll on mobile, 4-col grid on desktop */}
+          <div className="flex gap-4 overflow-x-auto scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-6">
             {reviews.map((review, index) => (
               <motion.div
                 key={review.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="bg-card border border-border rounded-2xl p-5 hover:shadow-lg transition-shadow"
+                transition={{ delay: index * 0.08 }}
+                className="bg-card border border-border rounded-2xl p-5 hover:shadow-lg transition-shadow flex-shrink-0 w-[72vw] sm:w-auto"
               >
                 {/* Stars */}
                 <div className="flex items-center gap-1 mb-3">
@@ -504,82 +561,29 @@ const Index = () => {
               </motion.div>
             ))}
           </div>
-        </section>
-      )}
 
-      {/* ── NEW ARRIVALS ── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14 border-t border-border">
-        <div className="flex items-end justify-between mb-4 sm:mb-8">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground mb-1">Just Dropped</p>
-            <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">New Arrivals</h2>
-          </div>
-          <Link to="/shop" className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center gap-1">
-            See all <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="rounded-2xl bg-muted h-52 sm:h-64 animate-pulse" />
-            ))}
-          </div>
-        ) : newArrivals.length === 0 ? (
-          <div className="text-center py-12 border border-dashed border-border rounded-3xl">
-            <p className="text-4xl mb-3">👟</p>
-            <p className="text-xl font-display font-bold mb-2">Nothing here yet</p>
-            <p className="text-sm text-muted-foreground mb-5">Be the first to list your sneakers.</p>
-            <Link to={sellHref}>
-              <Button className="btn-primary rounded-full h-11 px-7 text-sm">List a Pair</Button>
+          {/* Mobile sell pills + CTA — shown below reviews */}
+          <div className="flex md:hidden items-center justify-between mt-6 pt-5 border-t border-border gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              {SELL_PILLS.map((p) => (
+                <div
+                  key={p.label}
+                  className="flex items-center gap-1 bg-muted/60 border border-border rounded-full px-2.5 py-1"
+                >
+                  <span className="text-sm leading-none">{p.emoji}</span>
+                  <span className="text-[11px] font-medium text-muted-foreground">{p.label}</span>
+                </div>
+              ))}
+            </div>
+            <Link to={sellHref} className="flex-shrink-0">
+              <Button className="btn-primary rounded-full h-9 px-5 text-xs font-semibold">
+                Sell <ArrowRight className="ml-1 w-3 h-3" />
+              </Button>
             </Link>
           </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6">
-            {newArrivals.map((l, i) => (
-              <SneakerCard key={l.id} sneaker={toCardShape(l)} index={i} />
-            ))}
-          </div>
-        )}
-      </section>
 
-      {/* ── SELL BANNER ── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14">
-        <div className="relative rounded-3xl bg-foreground px-6 py-10 sm:py-16 md:px-16 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 overflow-hidden">
-          <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-primary/10 pointer-events-none" />
-          <div className="absolute -bottom-10 -left-10 w-40 h-40 rounded-full bg-primary/5 pointer-events-none" />
-
-          <div className="relative z-10">
-            <p className="text-xs font-semibold tracking-[0.3em] uppercase text-primary mb-2">For sellers</p>
-            <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold text-background tracking-tight leading-tight">
-              Got pairs<br />to move?
-            </h2>
-            <p className="text-background/50 text-sm mt-2 max-w-xs leading-relaxed">
-              List in minutes. Reach buyers across Ghana. Get paid to MoMo — no cash, no stress.
-            </p>
-            <div className="flex gap-6 mt-4">
-              <div>
-                <p className="text-background text-lg font-bold leading-none">Free</p>
-                <p className="text-background/40 text-xs mt-0.5">To list</p>
-              </div>
-              <div>
-                <p className="text-background text-lg font-bold leading-none">Fast</p>
-                <p className="text-background/40 text-xs mt-0.5">MoMo payouts</p>
-              </div>
-              <div>
-                <p className="text-background text-lg font-bold leading-none">Safe</p>
-                <p className="text-background/40 text-xs mt-0.5">Verified buyers</p>
-              </div>
-            </div>
-          </div>
-
-          <Link to={sellHref} className="relative z-10 flex-shrink-0">
-            <Button className="bg-primary text-primary-foreground hover:opacity-90 rounded-full h-12 px-8 text-sm font-semibold transition-opacity shadow-lg">
-              Start Selling <ArrowRight className="ml-2 w-4 h-4" />
-            </Button>
-          </Link>
-        </div>
-      </section>
+        </section>
+      )}
 
       <Footer />
     </div>
