@@ -27,6 +27,7 @@ export type Order = {
   };
   delivery: DeliveryMethod;
   deliveryStatus: DeliveryStatus;
+  deliveryLocation?: string;
   deliveryInfo: { label: string; estimatedCost: string; days: string };
   subtotal: number;
   deliveryFee: number;
@@ -88,6 +89,7 @@ const rowToOrder = (row: OrderRow, items: OrderItemRow[]): Order => ({
   },
   delivery: (row.delivery_method as DeliveryMethod) ?? "delivery",
   deliveryStatus: (row.delivery_status as DeliveryStatus) ?? "pending",
+  deliveryLocation: (row as any).delivery_location ?? null,
   deliveryInfo: {
     label: row.delivery_label ?? "",
     estimatedCost: row.delivery_estimated_cost ?? "",
@@ -260,6 +262,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       }
     }
 
+    // Create order with all delivery fields
     const { data: orderRow, error } = await supabase.from("orders").insert({
       buyer_id: user.id,
       seller_id: order.sellerId,
@@ -280,9 +283,15 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       payout_status: "pending",
       paystack_reference: order.paystackReference ?? null,
       order_notes: order.orderNotes ?? null,
+      status: "pending",
+      seller_confirmed: false,
+      buyer_confirmed: false,
     }).select().single();
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error("Order insertion error:", error);
+      throw new Error(error.message);
+    }
 
     const itemsToInsert = order.items.map((item) => ({
       order_id: orderRow.id,
@@ -312,6 +321,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
         items: order.items,
         buyer_phone: buyerPhone,
         delivery_method: deliveryMethod,
+        delivery_status: deliveryStatus,
       }
     });
 
@@ -345,7 +355,9 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
               badge: "/badge-72.png",
               data: {
                 orderId: orderRow.id,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                deliveryMethod: deliveryMethod,
+                deliveryStatus: deliveryStatus,
               }
             })
           }).catch(err => console.warn("Push send failed:", err));
