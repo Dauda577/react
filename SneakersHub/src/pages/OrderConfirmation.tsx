@@ -318,7 +318,7 @@ const OrderConfirmation = () => {
                 </p>
                 {delivery === "pickup" ? (
                   <p className="text-xs text-muted-foreground mt-1">
-                    Pick up from our store at East Legon, Accra
+                    Pick up from our store at KNUST, KUMASI
                   </p>
                 ) : (
                   <p className="text-xs text-muted-foreground mt-1">
