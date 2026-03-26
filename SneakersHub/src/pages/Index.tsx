@@ -103,13 +103,23 @@ const SearchDropdown = ({
   );
 };
 
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+type Review = {
+  id: string;
+  stars: number;
+  comment: string | null;
+  buyer_name: string;
+  created_at: string;
+};
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 const Index = () => {
   const { listings, loading } = usePublicListings();
   const [query, setQuery] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(true);
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -118,22 +128,18 @@ const Index = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Fetch top reviews
+  // ── Fetch top 4 reviews ──
   useEffect(() => {
     const fetchTopReviews = async () => {
       try {
         const { data, error } = await supabase
           .from("reviews")
-          .select(`
-            *,
-            profiles:user_id (name, avatar)
-          `)
-          .eq("is_approved", true)
-          .order("rating", { ascending: false })
+          .select("id, stars, comment, buyer_name, created_at")
+          .order("stars", { ascending: false })
           .limit(4);
 
         if (error) throw error;
-        setReviews(data || []);
+        setReviews((data as Review[]) ?? []);
       } catch (error) {
         console.error("Error fetching reviews:", error);
       } finally {
@@ -179,11 +185,10 @@ const Index = () => {
 
     let animFrame: number;
     let pos = 0;
-    const speed = 0.5; // px per frame
+    const speed = 0.5;
 
     const scroll = () => {
       pos += speed;
-      // Reset to start once we've scrolled through all items
       if (pos >= el.scrollWidth) {
         pos = 0;
         el.scrollLeft = 0;
@@ -195,7 +200,6 @@ const Index = () => {
 
     animFrame = requestAnimationFrame(scroll);
 
-    // Pause on touch so user can still manually browse
     const pause = () => cancelAnimationFrame(animFrame);
     const resume = () => { animFrame = requestAnimationFrame(scroll); };
     el.addEventListener("touchstart", pause, { passive: true });
@@ -270,7 +274,7 @@ const Index = () => {
             Pair.
           </h1>
 
-          {/* Sub-headline — adds context */}
+          {/* Sub-headline */}
           <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
             Buy and sell authentic sneakers in Ghana. Verified sellers, secure payments, MoMo payouts.
           </p>
@@ -333,7 +337,7 @@ const Index = () => {
             </Link>
           </div>
 
-          {/* Trust pills row — auto-scrolls on mobile, wraps on desktop */}
+          {/* Trust pills */}
           <div
             ref={trustScrollRef}
             className="flex lg:flex-wrap gap-3 pt-1 overflow-x-auto lg:overflow-x-visible scrollbar-none -mx-4 px-4 lg:mx-0 lg:px-0"
@@ -360,7 +364,6 @@ const Index = () => {
             className="relative flex items-center justify-center"
           >
             <div className="relative w-full aspect-square max-w-lg">
-              {/* Soft glow backdrop */}
               <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/20 via-primary/5 to-transparent blur-3xl" />
               <div className="absolute inset-8 rounded-full bg-primary/8" />
               <img
@@ -369,7 +372,6 @@ const Index = () => {
                 className="relative z-10 w-full h-full object-contain drop-shadow-2xl"
                 onError={(e) => { e.currentTarget.src = FALLBACK_IMG; }}
               />
-              {/* Floating card — only if we have a featured item */}
               {featured[0] && (
                 <motion.div
                   initial={{ opacity: 0, y: 8 }}
@@ -384,7 +386,6 @@ const Index = () => {
                   <p className="text-xs text-muted-foreground mt-0.5">GHS {featured[0].price.toLocaleString()}</p>
                 </motion.div>
               )}
-              {/* Second floating badge — total listings */}
               {listings.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: 8 }}
@@ -467,42 +468,41 @@ const Index = () => {
                 transition={{ delay: index * 0.1 }}
                 className="bg-card border border-border rounded-2xl p-5 hover:shadow-lg transition-shadow"
               >
+                {/* Stars */}
                 <div className="flex items-center gap-1 mb-3">
                   {[...Array(5)].map((_, i) => (
                     <Star
                       key={i}
-                      className={`w-4 h-4 ${i < review.rating ? "text-amber-400 fill-amber-400" : "text-muted-foreground/30"}`}
+                      className={`w-4 h-4 ${
+                        i < review.stars
+                          ? "text-amber-400 fill-amber-400"
+                          : "text-muted-foreground/30"
+                      }`}
                     />
                   ))}
                 </div>
+
+                {/* Comment */}
                 <p className="text-sm text-foreground leading-relaxed line-clamp-3">
                   "{review.comment}"
                 </p>
+
+                {/* Reviewer */}
                 <div className="mt-4 pt-3 border-t border-border flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                     <span className="text-xs font-bold text-primary">
-                      {review.profiles?.name?.[0]?.toUpperCase() || "C"}
+                      {review.buyer_name?.[0]?.toUpperCase() ?? "C"}
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-foreground truncate">
-                      {review.profiles?.name || "Customer"}
+                      {review.buyer_name || "Customer"}
                     </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      Verified Purchase
-                    </p>
+                    <p className="text-[10px] text-muted-foreground">Verified Purchase</p>
                   </div>
                 </div>
               </motion.div>
             ))}
-          </div>
-
-          <div className="text-center mt-8">
-            <Link to="/reviews">
-              <Button variant="outline" className="rounded-full px-6 text-sm">
-                Read All Reviews <ArrowRight className="ml-1.5 w-3.5 h-3.5" />
-              </Button>
-            </Link>
           </div>
         </section>
       )}
@@ -546,7 +546,6 @@ const Index = () => {
       {/* ── SELL BANNER ── */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14">
         <div className="relative rounded-3xl bg-foreground px-6 py-10 sm:py-16 md:px-16 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 overflow-hidden">
-          {/* Decorative circle */}
           <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-primary/10 pointer-events-none" />
           <div className="absolute -bottom-10 -left-10 w-40 h-40 rounded-full bg-primary/5 pointer-events-none" />
 
@@ -558,7 +557,6 @@ const Index = () => {
             <p className="text-background/50 text-sm mt-2 max-w-xs leading-relaxed">
               List in minutes. Reach buyers across Ghana. Get paid to MoMo — no cash, no stress.
             </p>
-            {/* Mini stats inside banner */}
             <div className="flex gap-6 mt-4">
               <div>
                 <p className="text-background text-lg font-bold leading-none">Free</p>
