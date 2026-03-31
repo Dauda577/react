@@ -96,7 +96,7 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
                   <Store className="w-4 h-4 text-primary" />
                 </div>
                 <div>
-                  <p className="font-display font-bold text-sm">Become a Seller</p>
+                  <p className="font-display font-bold text-sm">Start Selling</p>
                   {step < 4 && <p className="text-[11px] text-muted-foreground">Step {step + 1} of 4</p>}
                 </div>
               </div>
@@ -105,7 +105,7 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
               </button>
             </div>
 
-            {/* Progress */}
+            {/* Progress bar */}
             {step < 4 && (
               <div className="h-1 bg-muted">
                 <motion.div
@@ -120,6 +120,7 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
             <div className="flex-1 overflow-y-auto px-6 py-6">
               <AnimatePresence mode="wait">
 
+                {/* Step 0 — Store info */}
                 {step === 0 && (
                   <motion.div key="s0" initial={{ opacity:0,x:20 }} animate={{ opacity:1,x:0 }} exit={{ opacity:0,x:-20 }} className="space-y-5">
                     <div>
@@ -129,22 +130,29 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
                     <div className="space-y-4">
                       <div>
                         <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Store Name *</label>
-                        <input value={form.store_name} onChange={e => set("store_name", e.target.value)}
-                          placeholder="e.g. Kicks Palace GH"
-                          className="w-full mt-1.5 px-4 py-3 rounded-xl border border-border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all" />
+                        <input
+                          value={form.store_name}
+                          onChange={e => set("store_name", e.target.value)}
+                          placeholder="e.g. Style House GH"
+                          className="w-full mt-1.5 px-4 py-3 rounded-xl border border-border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                        />
                       </div>
                       <div>
                         <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Store Description *</label>
-                        <textarea value={form.store_description} onChange={e => set("store_description", e.target.value)}
-                          placeholder="What do you sell? Your specialty, experience, brands you stock..."
+                        <textarea
+                          value={form.store_description}
+                          onChange={e => set("store_description", e.target.value)}
+                          placeholder="What do you sell? e.g. sneakers, watches, streetwear — your specialty, brands you stock, years of experience..."
                           rows={4}
-                          className="w-full mt-1.5 px-4 py-3 rounded-xl border border-border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all resize-none" />
+                          className="w-full mt-1.5 px-4 py-3 rounded-xl border border-border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all resize-none"
+                        />
                         <p className="text-[11px] text-muted-foreground mt-1">{form.store_description.length} chars · min 10</p>
                       </div>
                     </div>
                   </motion.div>
                 )}
 
+                {/* Step 1 — Payment */}
                 {step === 1 && (
                   <motion.div key="s1" initial={{ opacity:0,x:20 }} animate={{ opacity:1,x:0 }} exit={{ opacity:0,x:-20 }} className="space-y-5">
                     <div>
@@ -156,41 +164,57 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
                         <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">MoMo Number *</label>
                         <div className="flex mt-1.5">
                           <span className="flex items-center px-3 rounded-l-xl border border-r-0 border-border bg-muted text-sm text-muted-foreground">+233</span>
-                          <input value={form.momo_number} onChange={e => set("momo_number", e.target.value.replace(/\D/g,""))}
-                            placeholder="024 000 0000" maxLength={10}
-                            className="flex-1 px-4 py-3 rounded-r-xl border border-border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all" />
+                          <input
+                            value={form.momo_number}
+                            onChange={e => set("momo_number", e.target.value.replace(/\D/g,""))}
+                            placeholder="024 000 0000"
+                            maxLength={10}
+                            className="flex-1 px-4 py-3 rounded-r-xl border border-border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                          />
                         </div>
                       </div>
                       <div>
                         <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Account Name *</label>
-                        <input value={form.momo_name} onChange={e => set("momo_name", e.target.value)}
+                        <input
+                          value={form.momo_name}
+                          onChange={e => set("momo_name", e.target.value)}
                           placeholder="Name registered on MoMo"
-                          className="w-full mt-1.5 px-4 py-3 rounded-xl border border-border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all" />
+                          className="w-full mt-1.5 px-4 py-3 rounded-xl border border-border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                        />
                       </div>
                     </div>
                     <div className="rounded-xl bg-blue-500/10 border border-blue-500/20 p-3">
-                      <p className="text-xs text-blue-600">💡 After admin approval, you'll pay a one-time <strong>GHS 50</strong> verification fee. Your sales proceeds go to this MoMo number.</p>
+                      <p className="text-xs text-blue-600">
+                        💡 After admin approval, you'll pay a one-time <strong>GHS 50</strong> verification fee. Your sales proceeds go to this MoMo number.
+                      </p>
                     </div>
                   </motion.div>
                 )}
 
+                {/* Step 2 — Location */}
                 {step === 2 && (
                   <motion.div key="s2" initial={{ opacity:0,x:20 }} animate={{ opacity:1,x:0 }} exit={{ opacity:0,x:-20 }} className="space-y-5">
                     <div>
                       <h2 className="font-display font-bold text-xl">Your Location</h2>
-                      <p className="text-sm text-muted-foreground mt-1">Helps buyers find local sellers.</p>
+                      <p className="text-sm text-muted-foreground mt-1">Helps buyers find sellers near them.</p>
                     </div>
                     <div className="space-y-4">
                       <div>
                         <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">City / Town *</label>
-                        <input value={form.city} onChange={e => set("city", e.target.value)}
+                        <input
+                          value={form.city}
+                          onChange={e => set("city", e.target.value)}
                           placeholder="e.g. Kumasi"
-                          className="w-full mt-1.5 px-4 py-3 rounded-xl border border-border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all" />
+                          className="w-full mt-1.5 px-4 py-3 rounded-xl border border-border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                        />
                       </div>
                       <div>
                         <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Region *</label>
-                        <select value={form.region} onChange={e => set("region", e.target.value)}
-                          className="w-full mt-1.5 px-4 py-3 rounded-xl border border-border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all">
+                        <select
+                          value={form.region}
+                          onChange={e => set("region", e.target.value)}
+                          className="w-full mt-1.5 px-4 py-3 rounded-xl border border-border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                        >
                           <option value="">Select region...</option>
                           {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
                         </select>
@@ -199,6 +223,7 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
                   </motion.div>
                 )}
 
+                {/* Step 3 — Social + summary */}
                 {step === 3 && (
                   <motion.div key="s3" initial={{ opacity:0,x:20 }} animate={{ opacity:1,x:0 }} exit={{ opacity:0,x:-20 }} className="space-y-5">
                     <div>
@@ -212,44 +237,64 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
                         </label>
                         <div className="flex mt-1.5">
                           <span className="flex items-center px-3 rounded-l-xl border border-r-0 border-border bg-muted text-sm text-muted-foreground">@</span>
-                          <input value={form.instagram} onChange={e => set("instagram", e.target.value)}
+                          <input
+                            value={form.instagram}
+                            onChange={e => set("instagram", e.target.value)}
                             placeholder="yourhandle"
-                            className="flex-1 px-4 py-3 rounded-r-xl border border-border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all" />
+                            className="flex-1 px-4 py-3 rounded-r-xl border border-border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                          />
                         </div>
                       </div>
                       <div>
                         <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">WhatsApp</label>
                         <div className="flex mt-1.5">
                           <span className="flex items-center px-3 rounded-l-xl border border-r-0 border-border bg-muted text-sm text-muted-foreground">+233</span>
-                          <input value={form.whatsapp} onChange={e => set("whatsapp", e.target.value.replace(/\D/g,""))}
-                            placeholder="024 000 0000" maxLength={10}
-                            className="flex-1 px-4 py-3 rounded-r-xl border border-border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all" />
+                          <input
+                            value={form.whatsapp}
+                            onChange={e => set("whatsapp", e.target.value.replace(/\D/g,""))}
+                            placeholder="024 000 0000"
+                            maxLength={10}
+                            className="flex-1 px-4 py-3 rounded-r-xl border border-border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                          />
                         </div>
                       </div>
                       <div>
                         <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">X (Twitter)</label>
                         <div className="flex mt-1.5">
                           <span className="flex items-center px-3 rounded-l-xl border border-r-0 border-border bg-muted text-sm text-muted-foreground">@</span>
-                          <input value={form.twitter} onChange={e => set("twitter", e.target.value)}
+                          <input
+                            value={form.twitter}
+                            onChange={e => set("twitter", e.target.value)}
                             placeholder="yourhandle"
-                            className="flex-1 px-4 py-3 rounded-r-xl border border-border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all" />
+                            className="flex-1 px-4 py-3 rounded-r-xl border border-border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                          />
                         </div>
                       </div>
                     </div>
+
                     {/* Summary */}
                     <div className="rounded-2xl border border-border bg-muted/20 p-4 space-y-1.5">
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Summary</p>
                       <p className="text-sm font-bold font-display">{form.store_name}</p>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Phone className="w-3 h-3" /> +233{form.momo_number} · {form.momo_name}</p>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1.5"><MapPin className="w-3 h-3" /> {form.city}, {form.region}</p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <Phone className="w-3 h-3" /> +233{form.momo_number} · {form.momo_name}
+                      </p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <MapPin className="w-3 h-3" /> {form.city}, {form.region}
+                      </p>
                     </div>
                   </motion.div>
                 )}
 
+                {/* Step 4 — Success */}
                 {step === 4 && (
-                  <motion.div key="s4" initial={{ opacity:0,scale:0.95 }} animate={{ opacity:1,scale:1 }} className="flex flex-col items-center text-center py-10 space-y-5">
-                    <motion.div initial={{ scale:0 }} animate={{ scale:1 }} transition={{ type:"spring", delay:0.15 }}
-                      className="w-20 h-20 rounded-full bg-green-500/10 flex items-center justify-center">
+                  <motion.div key="s4" initial={{ opacity:0,scale:0.95 }} animate={{ opacity:1,scale:1 }}
+                    className="flex flex-col items-center text-center py-10 space-y-5">
+                    <motion.div
+                      initial={{ scale:0 }} animate={{ scale:1 }}
+                      transition={{ type:"spring", delay:0.15 }}
+                      className="w-20 h-20 rounded-full bg-green-500/10 flex items-center justify-center"
+                    >
                       <CheckCircle className="w-10 h-10 text-green-500" />
                     </motion.div>
                     <div>
@@ -276,7 +321,9 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
             {step < 4 && (
               <div className="px-6 py-4 border-t border-border flex gap-3">
                 {step > 0 && (
-                  <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setStep(s => s - 1)}>Back</Button>
+                  <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setStep(s => s - 1)}>
+                    Back
+                  </Button>
                 )}
                 {step < 3 ? (
                   <Button className="flex-1 rounded-xl" disabled={!canNext()} onClick={() => setStep(s => s + 1)}>
@@ -284,7 +331,10 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
                   </Button>
                 ) : (
                   <Button className="flex-1 rounded-xl" disabled={submitting} onClick={handleSubmit}>
-                    {submitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Submitting...</> : "Submit Application"}
+                    {submitting
+                      ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Submitting...</>
+                      : "Submit Application"
+                    }
                   </Button>
                 )}
               </div>
