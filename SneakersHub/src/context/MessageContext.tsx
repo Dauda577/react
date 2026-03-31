@@ -32,6 +32,7 @@ interface MessageContextType {
   fetchMessages: (conversationId: string) => Promise<void>;
   markConversationSeen: (conversationId: string) => Promise<void>;
   getOrCreateConversationId: (userA: string, userB: string, listingId?: string) => string;
+  deleteConversation: (conversationId: string) => Promise<void>;
   typingUsers: [];
   startTyping: () => void;
   stopTyping: () => void;
@@ -133,16 +134,11 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
     });
   }, [user?.id, buildConversations]);
 
-  // ── FIX 1: fetchConversations runs immediately (no delay)
-  // ── FIX 2: fetchConversations is in the dependency array so the
-  //           channel closure always has a fresh reference
   useEffect(() => {
     if (!user?.id) return;
 
-    // Fetch immediately — no setTimeout delay that caused a race condition
     fetchConversations();
 
-    // Clean up any previous channel before creating a new one
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current);
       channelRef.current = null;
@@ -158,10 +154,11 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
           setMessages((prev) => {
             const existing = prev[msg.conversation_id] ?? [];
             if (existing.some((m) => m.id === msg.id)) return prev;
-            // Replace optimistic message if content matches
+
             const withoutOptimistic = existing.filter(
               (m) => !(m.id.startsWith("optimistic-") && m.content === msg.content && m.sender_id === msg.sender_id)
             );
+
             const updated = { ...prev, [msg.conversation_id]: [...withoutOptimistic, msg] };
             buildConversations(updated);
             return updated;
@@ -172,17 +169,22 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
         (payload: any) => {
           const msg = payload.new as Message;
           if (msg.sender_id !== user.id && msg.receiver_id !== user.id) return;
+
           setMessages((prev) => {
             const conv = prev[msg.conversation_id];
             if (!conv) return prev;
-            const updated = { ...prev, [msg.conversation_id]: conv.map((m) => m.id === msg.id ? msg : m) };
+
+            const updated = {
+              ...prev,
+              [msg.conversation_id]: conv.map((m) => m.id === msg.id ? msg : m)
+            };
+
             buildConversations(updated);
             return updated;
           });
         }
       )
       .subscribe((status) => {
-        // FIX 3: Log subscription status so you can debug in prod if needed
         if (status === "CHANNEL_ERROR") {
           console.error("[MessageContext] Realtime channel error — will retry on next mount");
         }
@@ -194,7 +196,7 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
         channelRef.current = null;
       }
     };
-  }, [user?.id, fetchConversations]); // ✅ fetchConversations in deps fixes stale closure
+  }, [user?.id, fetchConversations]);
 
   const sendMessage = useCallback(async (
     receiverId: string,
@@ -257,6 +259,7 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
 
   const markConversationSeen = useCallback(async (conversationId: string) => {
     if (!user?.id) return;
+
     setMessages((prev) => {
       const conv = (prev[conversationId] ?? []).map((m) =>
         m.receiver_id === user.id ? { ...m, seen: true } : m
@@ -265,6 +268,7 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
       buildConversations(updated);
       return updated;
     });
+
     await supabase.from("messages")
       .update({ seen: true })
       .eq("conversation_id", conversationId)
@@ -272,10 +276,38 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
       .eq("seen", false);
   }, [user?.id, buildConversations]);
 
+  // ✅ DELETE FUNCTION ADDED (no other logic touched)
+  const deleteConversation = useCallback(async (conversationId: string) => {
+    if (!user?.id) return;
+
+    setMessages((prev) => {
+      const updated = { ...prev };
+      delete updated[conversationId];
+      buildConversations(updated);
+      return updated;
+    });
+
+    try {
+      await supabase
+        .from("messages")
+        .delete()
+        .eq("conversation_id", conversationId);
+    } catch (err) {
+      console.error("Delete failed:", err);
+      fetchConversations();
+    }
+  }, [user?.id, buildConversations, fetchConversations]);
+
   return (
     <MessageContext.Provider value={{
-      conversations, messages, totalUnread,
-      sendMessage, fetchMessages, markConversationSeen, getOrCreateConversationId,
+      conversations,
+      messages,
+      totalUnread,
+      sendMessage,
+      fetchMessages,
+      markConversationSeen,
+      getOrCreateConversationId,
+      deleteConversation, // ✅ exposed
       typingUsers: [],
       startTyping: () => {},
       stopTyping: () => {},
