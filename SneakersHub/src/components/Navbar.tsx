@@ -7,6 +7,17 @@ import { useAuth } from "@/context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import BecomeSellerDrawer from "@/components/Becomesellerdrawer";
+import { PRODUCT_CATEGORIES } from "@/data/sneakers";
+
+// Quick-access category shortcuts shown in the mobile menu
+// One representative per group keeps it scannable
+const QUICK_CATEGORIES = [
+  { label: "Sneakers",     emoji: "👟" },
+  { label: "Watches",      emoji: "⌚" },
+  { label: "Tops",         emoji: "👕" },
+  { label: "Bags",         emoji: "👜" },
+  { label: "Accessories",  emoji: "🕶️" },
+];
 
 const Navbar = () => {
   const { totalItems } = useCart();
@@ -16,20 +27,19 @@ const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sellerDrawerOpen, setSellerDrawerOpen] = useState(false);
 
-  const showOrderBadge = user?.role === "seller" && unseenCount > 0;
+  const showOrderBadge  = user?.role === "seller" && unseenCount > 0;
   const showMessageBadge = !!user && totalUnread > 0;
-  const totalBellCount = (showOrderBadge ? unseenCount : 0) + (showMessageBadge ? totalUnread : 0);
-  const showBell = totalBellCount > 0;
+  const totalBellCount  = (showOrderBadge ? unseenCount : 0) + (showMessageBadge ? totalUnread : 0);
+  const showBell        = totalBellCount > 0;
 
-  // Show "Become a Seller" only if logged in, not already a seller, and no application pending/approved
   const showBecomeSeller = !!user && !user.isSeller && user.sellerAppStatus === "none";
 
   const links = [
-    { to: "/", label: "Home" },
-    { to: "/shop", label: "Shop" },
-    { to: "/featured", label: "Featured" },
-    { to: "/account", label: "Account" },
-    { to: "/about", label: "About" },
+    { to: "/",        label: "Home"     },
+    { to: "/shop",    label: "Shop"     },
+    { to: "/featured",label: "Featured" },
+    { to: "/account", label: "Account"  },
+    { to: "/about",   label: "About"    },
   ];
 
   return (
@@ -42,15 +52,22 @@ const Navbar = () => {
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="section-padding flex items-center justify-between h-16 max-w-7xl mx-auto">
+
+          {/* Brand */}
           <Link to="/" className="font-display text-xl font-bold tracking-tighter">
             Sneakers<span className="text-gradient">Hub</span>
           </Link>
 
+          {/* Desktop nav links */}
           <div className="hidden md:flex items-center gap-8">
             {links.map((link) => (
               <Link key={link.to} to={link.to}
                 className={`text-sm font-medium tracking-wide uppercase relative flex items-center gap-1
-                  ${link.to === "/featured" ? "text-amber-500 hover:text-amber-400 transition-colors" : "nav-link"}`}>
+                  ${link.to === "/featured"
+                    ? "text-amber-500 hover:text-amber-400 transition-colors"
+                    : "nav-link"
+                  }`}
+              >
                 {link.to === "/featured" && <Zap className="w-3 h-3 fill-current" />}
                 {link.label}
                 {link.to === "/account" && showBell && (
@@ -65,7 +82,9 @@ const Navbar = () => {
             ))}
           </div>
 
+          {/* Right-side actions */}
           <div className="flex items-center gap-3">
+
             {/* Bell */}
             {showBell && (
               <Link to="/account" className="relative group">
@@ -79,27 +98,33 @@ const Navbar = () => {
               </Link>
             )}
 
-            {/* Mode switcher — for dual-role users */}
+            {/* Buy / Sell mode switcher */}
             {user?.isSeller && user?.isBuyer && (
               <div className="flex items-center gap-0.5 bg-muted/50 rounded-full p-0.5 border border-border">
                 <button
                   onClick={() => switchMode("buyer")}
                   className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${
-                    activeMode === "buyer" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                  }`}>
+                    activeMode === "buyer"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
                   <ShoppingCart className="w-3 h-3" /> Buy
                 </button>
                 <button
                   onClick={() => switchMode("seller")}
                   className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${
-                    activeMode === "seller" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                  }`}>
+                    activeMode === "seller"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
                   <Store className="w-3 h-3" /> Sell
                 </button>
               </div>
             )}
 
-            {/* Become a Seller CTA */}
+            {/* Become a Seller CTA — desktop */}
             {showBecomeSeller && (
               <motion.button
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -107,11 +132,11 @@ const Navbar = () => {
                 onClick={() => setSellerDrawerOpen(true)}
                 className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-primary/40 bg-primary/5 text-primary text-xs font-semibold hover:bg-primary/10 transition-all"
               >
-                <Store className="w-3 h-3" /> Sell on SneakersHub
+                <Store className="w-3 h-3" /> Start Selling
               </motion.button>
             )}
 
-            {/* ✅ FIXED: Cart icon with disabled state for seller mode */}
+            {/* Cart */}
             {activeMode === "buyer" ? (
               <Link to="/cart" className="relative group">
                 <ShoppingBag className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
@@ -125,13 +150,13 @@ const Navbar = () => {
             ) : (
               <div className="relative group cursor-not-allowed">
                 <ShoppingBag className="w-5 h-5 text-muted-foreground opacity-50" />
-                {/* Tooltip */}
                 <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block w-40 p-1.5 bg-gray-900 text-white text-[10px] rounded shadow-lg whitespace-nowrap">
                   Switch to Buyer mode to shop
                 </div>
               </div>
             )}
 
+            {/* Mobile menu toggle */}
             <button className="md:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
               {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -148,11 +173,14 @@ const Navbar = () => {
               className="md:hidden overflow-hidden border-t border-border"
             >
               <div className="section-padding py-4 flex flex-col gap-4">
+
+                {/* Nav links */}
                 {links.map((link) => (
                   <Link key={link.to} to={link.to}
                     onClick={() => setMobileOpen(false)}
                     className={`text-sm font-medium tracking-wide uppercase flex items-center gap-2
-                      ${link.to === "/featured" ? "text-amber-500" : "nav-link"}`}>
+                      ${link.to === "/featured" ? "text-amber-500" : "nav-link"}`}
+                  >
                     {link.to === "/featured" && <Zap className="w-3.5 h-3.5 fill-current" />}
                     {link.label}
                     {link.to === "/account" && showBell && (
@@ -162,15 +190,36 @@ const Navbar = () => {
                     )}
                   </Link>
                 ))}
-                {/* Mobile Become a Seller */}
+
+                {/* Category shortcuts */}
+                <div className="border-t border-border pt-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-muted-foreground mb-2.5">
+                    Browse by category
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {QUICK_CATEGORIES.map((c) => (
+                      <Link
+                        key={c.label}
+                        to={`/shop?category=${c.label}`}
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-xs font-medium text-muted-foreground hover:border-primary hover:text-primary transition-all"
+                      >
+                        <span>{c.emoji}</span> {c.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Become a Seller — mobile */}
                 {showBecomeSeller && (
                   <button
                     onClick={() => { setMobileOpen(false); setSellerDrawerOpen(true); }}
                     className="flex items-center gap-2 text-sm font-semibold text-primary"
                   >
-                    <Store className="w-4 h-4" /> Sell on SneakersHub
+                    <Store className="w-4 h-4" /> Start Selling
                   </button>
                 )}
+
               </div>
             </motion.div>
           )}

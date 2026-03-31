@@ -25,7 +25,7 @@ export const sneakers: Sneaker[] = [
     brand: "STRIDE",
     price: 1050,
     image: sneaker1,
-    category: "Running",
+    category: "Sneakers",
     isNew: true,
     isFeatured: true,
     sizes: [39, 40, 41, 42, 43, 44],
@@ -37,7 +37,7 @@ export const sneakers: Sneaker[] = [
     brand: "AERO",
     price: 920,
     image: sneaker2,
-    category: "Running",
+    category: "Sneakers",
     isNew: true,
     sizes: [39, 40, 41, 42, 43],
     description: "Ultra-lightweight construction meets cloud-like comfort. Perfect for long-distance runs.",
@@ -48,7 +48,7 @@ export const sneakers: Sneaker[] = [
     brand: "LEGACY",
     price: 750,
     image: sneaker3,
-    category: "Lifestyle",
+    category: "Sneakers",
     isFeatured: true,
     sizes: [38, 39, 40, 41, 42, 43, 44],
     description: "Timeless design refined for modern comfort. Premium leather upper with cushioned insole.",
@@ -59,7 +59,7 @@ export const sneakers: Sneaker[] = [
     brand: "NOMAD",
     price: 1180,
     image: sneaker4,
-    category: "Outdoor",
+    category: "Sneakers",
     isNew: true,
     sizes: [40, 41, 42, 43, 44],
     description: "Built for the trail with reinforced toe cap and all-terrain grip. Adventure-ready.",
@@ -70,7 +70,7 @@ export const sneakers: Sneaker[] = [
     brand: "STRIDE",
     price: 1260,
     image: sneaker5,
-    category: "Basketball",
+    category: "Sneakers",
     isFeatured: true,
     sizes: [40, 41, 42, 43, 44, 45],
     description: "Dominate the court with explosive cushioning and ankle-locking support.",
@@ -81,10 +81,48 @@ export const sneakers: Sneaker[] = [
     brand: "LEGACY",
     price: 670,
     image: sneaker6,
-    category: "Lifestyle",
+    category: "Sneakers",
     sizes: [38, 39, 40, 41, 42, 43],
     description: "Clean lines and understated style. A wardrobe essential built to last.",
   },
 ];
 
-export const categories = ["All", "Running", "Lifestyle", "Basketball", "Outdoor"];
+// ─── Master category list ──────────────────────────────────────────────────
+
+export type ProductCategory =
+  | "Sneakers"
+  | "Watches"
+  | "Tops"
+  | "Bottoms"
+  | "Outerwear"
+  | "Activewear"
+  | "Bags"
+  | "Jewellery"
+  | "Accessories"
+  | "Other";
+
+export const PRODUCT_CATEGORIES: {
+  label: ProductCategory;
+  emoji: string;
+  group: string;
+}[] = [
+  { label: "Sneakers",    emoji: "👟",  group: "Footwear"    },
+  { label: "Watches",     emoji: "⌚",  group: "Watches"     },
+  { label: "Tops",        emoji: "👕",  group: "Clothes"     },
+  { label: "Bottoms",     emoji: "👖",  group: "Clothes"     },
+  { label: "Outerwear",   emoji: "🧥",  group: "Clothes"     },
+  { label: "Activewear",  emoji: "🩱",  group: "Clothes"     },
+  { label: "Bags",        emoji: "👜",  group: "Bags"        },
+  { label: "Jewellery",   emoji: "💍",  group: "Accessories" },
+  { label: "Accessories", emoji: "🕶️", group: "Accessories" },
+  { label: "Other",       emoji: "📦",  group: "Other"       },
+];
+
+export const CATEGORY_LABELS: string[] = PRODUCT_CATEGORIES.map((c) => c.label);
+
+export const CATEGORY_EMOJI: Record<string, string> = Object.fromEntries(
+  PRODUCT_CATEGORIES.map((c) => [c.label, c.emoji])
+);
+
+// Legacy export — keeps any file that still imports `categories` working
+export const categories = ["All", ...CATEGORY_LABELS];

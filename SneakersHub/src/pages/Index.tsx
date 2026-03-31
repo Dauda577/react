@@ -10,6 +10,7 @@ import { usePublicListings } from "@/context/PublicListingsContext";
 import { useMobile } from "@/hooks/useMobile";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
+import { PRODUCT_CATEGORIES } from "@/data/sneakers";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -24,27 +25,27 @@ const Animate = ({
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
-const CATEGORIES = [
-  { label: "Running",    emoji: "🏃" },
-  { label: "Lifestyle",  emoji: "✨" },
-  { label: "Basketball", emoji: "🏀" },
-  { label: "Outdoor",    emoji: "🏔️" },
-  { label: "Training",   emoji: "💪" },
-  { label: "Other",      emoji: "👟" },
+// Hero category pills — one per group, derived from PRODUCT_CATEGORIES
+const HERO_CATEGORIES = [
+  { label: "Sneakers",    emoji: "👟"  },
+  { label: "Watches",     emoji: "⌚"  },
+  { label: "Tops",        emoji: "👕"  },
+  { label: "Bags",        emoji: "👜"  },
+  { label: "Jewellery",   emoji: "💍"  },
+  { label: "Accessories", emoji: "🕶️" },
 ];
 
 const TRUST_ITEMS = [
   { icon: ShieldCheck, label: "Verified Sellers", sub: "Every seller is reviewed" },
-  { icon: Wallet,      label: "MoMo Payouts",     sub: "Get paid instantly" },
-  { icon: Truck,       label: "Nationwide",        sub: "Delivery across Ghana" },
+  { icon: Wallet,      label: "MoMo Payouts",     sub: "Get paid instantly"       },
+  { icon: Truck,       label: "Nationwide",        sub: "Delivery across Ghana"   },
 ];
 
-// Compact sell info pills — replaces the large sell banner
 const SELL_PILLS = [
-  { emoji: "🆓", label: "Free to list" },
+  { emoji: "🆓", label: "Free to list"      },
   { emoji: "⚡", label: "Fast MoMo payouts" },
-  { emoji: "🔒", label: "Verified buyers" },
-  { emoji: "🇬🇭", label: "Built for Ghana" },
+  { emoji: "🔒", label: "Verified buyers"   },
+  { emoji: "🇬🇭", label: "Built for Ghana"  },
 ];
 
 // ─── Search Dropdown ─────────────────────────────────────────────────────────
@@ -70,7 +71,7 @@ const SearchDropdown = ({
       {results.length === 0 ? (
         <div className="px-4 py-6 text-center">
           <p className="text-sm font-medium text-foreground mb-0.5">No results for "{query}"</p>
-          <p className="text-xs text-muted-foreground">Try a different brand or model</p>
+          <p className="text-xs text-muted-foreground">Try a different brand or name</p>
         </div>
       ) : (
         <>
@@ -136,7 +137,6 @@ const Index = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // ── Fetch top 4 reviews ──
   useEffect(() => {
     const fetchTopReviews = async () => {
       try {
@@ -145,7 +145,6 @@ const Index = () => {
           .select("id, stars, comment, buyer_name, created_at")
           .order("stars", { ascending: false })
           .limit(4);
-
         if (error) throw error;
         setReviews((data as Review[]) ?? []);
       } catch (error) {
@@ -154,7 +153,6 @@ const Index = () => {
         setReviewsLoading(false);
       }
     };
-
     fetchTopReviews();
   }, []);
 
@@ -186,28 +184,23 @@ const Index = () => {
     setIsDropdownOpen(query.trim().length > 0);
   }, [query]);
 
-  // ── Auto-scroll trust pills on mobile ──
   useEffect(() => {
     const el = trustScrollRef.current;
     if (!el || !isMobile) return;
-
     let animFrame: number;
     let pos = 0;
     const speed = 0.5;
-
     const scroll = () => {
       pos += speed;
       if (pos >= el.scrollWidth) { pos = 0; el.scrollLeft = 0; }
       else { el.scrollLeft = pos; }
       animFrame = requestAnimationFrame(scroll);
     };
-
     animFrame = requestAnimationFrame(scroll);
     const pause = () => cancelAnimationFrame(animFrame);
     const resume = () => { animFrame = requestAnimationFrame(scroll); };
     el.addEventListener("touchstart", pause, { passive: true });
     el.addEventListener("touchend", resume, { passive: true });
-
     return () => {
       cancelAnimationFrame(animFrame);
       el.removeEventListener("touchstart", pause);
@@ -254,7 +247,6 @@ const Index = () => {
         className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-4 lg:gap-8 items-center lg:min-h-[90vh]"
         style={{ paddingTop: `calc(64px + env(safe-area-inset-top, 0px))` }}
       >
-        {/* Left */}
         <Animate
           isMobile={isMobile}
           initial={{ opacity: 0, y: 30 }}
@@ -265,18 +257,18 @@ const Index = () => {
           <div className="inline-flex items-center gap-2 w-fit">
             <span className="inline-block w-2 h-2 rounded-full bg-primary animate-pulse" />
             <span className="text-xs font-semibold tracking-[0.3em] uppercase text-muted-foreground">
-              Ghana's Sneaker Marketplace
+              Ghana's Fashion Marketplace
             </span>
           </div>
 
           <h1 className="font-display text-[clamp(2.8rem,7vw,5.2rem)] font-bold leading-[0.95] tracking-[-0.03em] text-foreground">
             Find Your<br />
             <span className="italic font-light text-muted-foreground">next</span>{" "}
-            Pair.
+            Look.
           </h1>
 
           <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
-            Buy and sell authentic sneakers in Ghana. Verified sellers, secure payments, MoMo payouts.
+            Buy and sell authentic sneakers, watches, clothes & accessories in Ghana. Verified sellers, secure payments, MoMo payouts.
           </p>
 
           {/* Search */}
@@ -311,7 +303,7 @@ const Index = () => {
 
           {/* Category pills */}
           <div className="flex flex-wrap gap-2">
-            {CATEGORIES.map((c) => (
+            {HERO_CATEGORIES.map((c) => (
               <Link
                 key={c.label}
                 to={`/shop?category=${c.label}`}
@@ -368,7 +360,7 @@ const Index = () => {
               <div className="absolute inset-8 rounded-full bg-primary/8" />
               <img
                 src={heroImage}
-                alt="Featured sneaker"
+                alt="Featured item"
                 className="relative z-10 w-full h-full object-contain drop-shadow-2xl"
                 onError={(e) => { e.currentTarget.src = FALLBACK_IMG; }}
               />
@@ -394,7 +386,7 @@ const Index = () => {
                   className="absolute bottom-10 left-4 z-20 bg-card border border-border rounded-2xl px-3 py-2 shadow-xl"
                 >
                   <p className="text-[10px] text-muted-foreground">Available now</p>
-                  <p className="text-sm font-bold text-foreground">{listings.length} Pairs</p>
+                  <p className="text-sm font-bold text-foreground">{listings.length} Items</p>
                 </motion.div>
               )}
             </div>
@@ -429,18 +421,13 @@ const Index = () => {
               See all <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
-
           {loading ? (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="rounded-2xl bg-muted h-52 sm:h-64 animate-pulse" />
-              ))}
+              {[...Array(3)].map((_, i) => <div key={i} className="rounded-2xl bg-muted h-52 sm:h-64 animate-pulse" />)}
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6">
-              {featured.map((l, i) => (
-                <SneakerCard key={l.id} sneaker={toCardShape(l, true)} index={i} />
-              ))}
+              {featured.map((l, i) => <SneakerCard key={l.id} sneaker={toCardShape(l, true)} index={i} />)}
             </div>
           )}
         </section>
@@ -457,37 +444,29 @@ const Index = () => {
             See all <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
-
         {loading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="rounded-2xl bg-muted h-52 sm:h-64 animate-pulse" />
-            ))}
+            {[...Array(6)].map((_, i) => <div key={i} className="rounded-2xl bg-muted h-52 sm:h-64 animate-pulse" />)}
           </div>
         ) : newArrivals.length === 0 ? (
           <div className="text-center py-12 border border-dashed border-border rounded-3xl">
-            <p className="text-4xl mb-3">👟</p>
+            <p className="text-4xl mb-3">🛍️</p>
             <p className="text-xl font-display font-bold mb-2">Nothing here yet</p>
-            <p className="text-sm text-muted-foreground mb-5">Be the first to list your sneakers.</p>
+            <p className="text-sm text-muted-foreground mb-5">Be the first to list your items.</p>
             <Link to={sellHref}>
-              <Button className="btn-primary rounded-full h-11 px-7 text-sm">List a Pair</Button>
+              <Button className="btn-primary rounded-full h-11 px-7 text-sm">List an Item</Button>
             </Link>
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6">
-            {newArrivals.map((l, i) => (
-              <SneakerCard key={l.id} sneaker={toCardShape(l)} index={i} />
-            ))}
+            {newArrivals.map((l, i) => <SneakerCard key={l.id} sneaker={toCardShape(l)} index={i} />)}
           </div>
         )}
       </section>
 
       {/* ── REVIEWS + SELL CTA ── */}
-      {/* Reviews take the full section; sell info lives as compact floating pills */}
       {!reviewsLoading && reviews.length > 0 && (
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-14 border-t border-border">
-
-          {/* Header: title left, sell pills + CTA right (desktop) */}
           <div className="flex items-end justify-between mb-6 sm:mb-8 gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.25em] text-primary mb-1 flex items-center gap-1.5">
@@ -495,14 +474,9 @@ const Index = () => {
               </p>
               <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight">What Customers Say</h2>
             </div>
-
-            {/* Desktop sell pills + CTA */}
             <div className="hidden md:flex items-center gap-2 flex-shrink-0">
               {SELL_PILLS.map((p) => (
-                <div
-                  key={p.label}
-                  className="flex items-center gap-1.5 bg-muted/60 border border-border rounded-full px-3 py-1.5 whitespace-nowrap"
-                >
+                <div key={p.label} className="flex items-center gap-1.5 bg-muted/60 border border-border rounded-full px-3 py-1.5 whitespace-nowrap">
                   <span className="text-sm leading-none">{p.emoji}</span>
                   <span className="text-xs font-medium text-muted-foreground">{p.label}</span>
                 </div>
@@ -515,7 +489,6 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Reviews list — horizontal scroll on mobile, 4-col grid on desktop */}
           <div className="flex gap-4 overflow-x-auto scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-6">
             {reviews.map((review, index) => (
               <motion.div
@@ -525,36 +498,18 @@ const Index = () => {
                 transition={{ delay: index * 0.08 }}
                 className="bg-card border border-border rounded-2xl p-5 hover:shadow-lg transition-shadow flex-shrink-0 w-[72vw] sm:w-auto"
               >
-                {/* Stars */}
                 <div className="flex items-center gap-1 mb-3">
                   {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`w-4 h-4 ${
-                        i < review.stars
-                          ? "text-amber-400 fill-amber-400"
-                          : "text-muted-foreground/30"
-                      }`}
-                    />
+                    <Star key={i} className={`w-4 h-4 ${i < review.stars ? "text-amber-400 fill-amber-400" : "text-muted-foreground/30"}`} />
                   ))}
                 </div>
-
-                {/* Comment */}
-                <p className="text-sm text-foreground leading-relaxed line-clamp-3">
-                  "{review.comment}"
-                </p>
-
-                {/* Reviewer */}
+                <p className="text-sm text-foreground leading-relaxed line-clamp-3">"{review.comment}"</p>
                 <div className="mt-4 pt-3 border-t border-border flex items-center gap-2">
                   <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <span className="text-xs font-bold text-primary">
-                      {review.buyer_name?.[0]?.toUpperCase() ?? "C"}
-                    </span>
+                    <span className="text-xs font-bold text-primary">{review.buyer_name?.[0]?.toUpperCase() ?? "C"}</span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-foreground truncate">
-                      {review.buyer_name || "Customer"}
-                    </p>
+                    <p className="text-xs font-semibold text-foreground truncate">{review.buyer_name || "Customer"}</p>
                     <p className="text-[10px] text-muted-foreground">Verified Purchase</p>
                   </div>
                 </div>
@@ -562,14 +517,10 @@ const Index = () => {
             ))}
           </div>
 
-          {/* Mobile sell pills + CTA — shown below reviews */}
           <div className="flex md:hidden items-center justify-between mt-6 pt-5 border-t border-border gap-3">
             <div className="flex items-center gap-2 flex-wrap">
               {SELL_PILLS.map((p) => (
-                <div
-                  key={p.label}
-                  className="flex items-center gap-1 bg-muted/60 border border-border rounded-full px-2.5 py-1"
-                >
+                <div key={p.label} className="flex items-center gap-1 bg-muted/60 border border-border rounded-full px-2.5 py-1">
                   <span className="text-sm leading-none">{p.emoji}</span>
                   <span className="text-[11px] font-medium text-muted-foreground">{p.label}</span>
                 </div>
@@ -581,7 +532,6 @@ const Index = () => {
               </Button>
             </Link>
           </div>
-
         </section>
       )}
 

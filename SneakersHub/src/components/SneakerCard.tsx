@@ -1,10 +1,11 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { Heart, Zap, CheckCircle, Sparkles, BadgeCheck } from "lucide-react";
+import { Heart, Zap, Sparkles, BadgeCheck } from "lucide-react";
 import { useSaved } from "@/context/SavedContext";
 import { cardImage } from "@/lib/imageutils";
 import { toast } from "sonner";
+import { CATEGORY_EMOJI } from "@/data/sneakers";
 
 interface SneakerCardSneaker {
   id: string;
@@ -29,6 +30,9 @@ interface SneakerCardProps {
 const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
   const { toggleSaved, isSaved } = useSaved();
   const saved = isSaved(sneaker.id);
+
+  // Show a relevant emoji when there's no image, based on category
+  const fallbackEmoji = CATEGORY_EMOJI[sneaker.category] ?? "📦";
 
   const handleSave = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -91,7 +95,7 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
                   (e.target as HTMLImageElement).style.display = "none";
                 }}
               />
-            : <span className="text-6xl">👟</span>
+            : <span className="text-6xl">{fallbackEmoji}</span>
           }
 
           <div className="absolute top-3 left-3 flex gap-2 flex-wrap">

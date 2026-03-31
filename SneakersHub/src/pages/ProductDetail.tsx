@@ -17,6 +17,9 @@ import SneakerCard from "@/components/SneakerCard";
 import ChatModal from "@/components/ChatModal";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { CATEGORY_EMOJI } from "@/data/sneakers";
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 type SellerTier = "official" | "verified" | "standard";
 
@@ -25,6 +28,29 @@ const getSellerTier = (isOfficial: boolean, isVerified: boolean): SellerTier => 
   if (isVerified) return "verified";
   return "standard";
 };
+
+// Whether this category uses EU numeric shoe sizes
+const isSneakerCategory = (cat: string) => cat === "Sneakers";
+
+// Whether this category uses clothing letter sizes
+const isClothingCategory = (cat: string) =>
+  ["Tops", "Bottoms", "Outerwear", "Activewear"].includes(cat);
+
+// Size section label
+const getSizeLabel = (cat: string) => {
+  if (isSneakerCategory(cat)) return "Size (EU)";
+  if (isClothingCategory(cat)) return "Size";
+  return null; // watches, bags, jewellery etc. — no size selector
+};
+
+// Fallback emoji when there's no image
+const getFallbackEmoji = (cat: string) => CATEGORY_EMOJI[cat] ?? "🛍️";
+
+// Share message copy
+const getShareText = (listing: any) =>
+  `Check out this ${listing.name} on SneakersHub — GHS ${listing.price.toLocaleString()}`;
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
 const SellerBadge = ({ tier }: { tier: SellerTier }) => {
   if (tier === "official") return (
@@ -97,7 +123,7 @@ const StandardSellerWarning = ({ sellerName, sellerPhone }: { sellerName: string
           {[
             { icon: "💬", text: "Message the seller first to confirm availability" },
             { icon: "📍", text: "Arrange to meet in a safe, public location" },
-            { icon: "👟", text: "Inspect the item before handing over payment" },
+            { icon: "🔍", text: "Inspect the item before handing over payment" },
             { icon: "🤝", text: "Only pay cash on delivery — never upfront" },
           ].map(({ icon, text }) => (
             <div key={text} className="flex items-center gap-2">
@@ -158,7 +184,7 @@ const ShareButton = ({ listing }: { listing: any }) => {
   const ref = useRef<HTMLDivElement>(null);
 
   const url = `${window.location.origin}/product/${listing.id}`;
-  const text = `Check out these ${listing.name} on SneakersHub — GHS ${listing.price.toLocaleString()}`;
+  const text = getShareText(listing);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -223,8 +249,7 @@ const ShareButton = ({ listing }: { listing: any }) => {
             </p>
             <button onClick={shareWhatsApp}
               className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-sm font-medium">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ background: "#25D366" }}>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "#25D366" }}>
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="white">
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
                 </svg>
@@ -254,41 +279,34 @@ const ShareButton = ({ listing }: { listing: any }) => {
   );
 };
 
-// ── WhatsApp Order Button (OFFICIAL PRODUCTS ONLY) ──────────────────
+// ── WhatsApp Order Button (OFFICIAL PRODUCTS ONLY) ────────────────────────────
 const WhatsAppOrderButton = ({
-  listing,
-  selectedSize,
-  tier,
+  listing, selectedSize, tier,
 }: {
   listing: any;
-  selectedSize: number | null;
+  selectedSize: string | number | null;
   tier: SellerTier;
 }) => {
-  // Only show for official products
   if (tier !== "official") return null;
 
-  // SneakersHub official WhatsApp number
-  const OFFICIAL_WA = "233256221777"; 
+  const OFFICIAL_WA = "233256221777";
 
   const handleClick = () => {
     if (!selectedSize) {
       toast.error("Please select a size before ordering");
       return;
     }
-
     const productUrl = `${window.location.origin}/product/${listing.id}`;
+    const sizeLabel = isSneakerCategory(listing.category) ? `EU ${selectedSize}` : `Size ${selectedSize}`;
     const message =
-      `Hi! I'd like to order this official SneakersHub product 👟\n\n` +
+      `Hi! I'd like to order this official SneakersHub product\n\n` +
       `*${listing.name}*\n` +
       `Brand: ${listing.brand}\n` +
-      `Size: EU ${selectedSize}\n` +
+      `${sizeLabel}\n` +
       `Price: GHS ${listing.price.toLocaleString()}\n\n` +
       `Listing: ${productUrl}`;
 
-    window.open(
-      `https://wa.me/${OFFICIAL_WA}?text=${encodeURIComponent(message)}`,
-      "_blank"
-    );
+    window.open(`https://wa.me/${OFFICIAL_WA}?text=${encodeURIComponent(message)}`, "_blank");
   };
 
   return (
@@ -305,6 +323,8 @@ const WhatsAppOrderButton = ({
   );
 };
 
+// ─── Main component ───────────────────────────────────────────────────────────
+
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -313,7 +333,8 @@ const ProductDetail = () => {
   const { addItem } = useCart();
   const { user, isGuest, loading: authLoading, activeMode } = useAuth();
 
-  const [selectedSize, setSelectedSize] = useState<number | null>(null);
+  // Selected size is string | number depending on category
+  const [selectedSize, setSelectedSize] = useState<string | number | null>(null);
   const [added, setAdded] = useState(false);
   const [showGuestModal, setShowGuestModal] = useState(false);
   const [showChat, setShowChat] = useState(false);
@@ -341,22 +362,24 @@ const ProductDetail = () => {
     if (!user || isGuest) { setShowGuestModal(true); return; }
 
     if (listing?.sellerId === user.id) {
-      toast.error("You cannot buy your own item", {
-        description: "This is your own listing",
-        duration: 4000,
-      });
+      toast.error("You cannot buy your own item", { description: "This is your own listing", duration: 4000 });
       return;
     }
 
     if (activeMode === "seller") {
       toast.error("Please switch to Buyer mode to add items to cart", {
-        description: "Use the Buy/Sell toggle in the navbar",
-        duration: 4000,
+        description: "Use the Buy/Sell toggle in the navbar", duration: 4000,
       });
       return;
     }
 
-    if (!selectedSize) { toast.error("Please select a size"); return; }
+    // Require size only for categories that have sizes
+    const sizeLabel = getSizeLabel(listing?.category ?? "");
+    if (sizeLabel && !selectedSize) {
+      toast.error("Please select a size");
+      return;
+    }
+
     if (!listing) return;
 
     addItem({
@@ -374,7 +397,8 @@ const ProductDetail = () => {
       sellerRegion: listing.region ?? listing.sellerRegion ?? null,
       shippingCost: listing.shippingCost ?? 0,
       handlingTime: listing.handlingTime ?? "Ships in 1-3 days",
-    }, selectedSize);
+    }, selectedSize as number);
+
     setAdded(true);
     toast.success("Added to cart!");
     setTimeout(() => setAdded(false), 2000);
@@ -413,6 +437,13 @@ const ProductDetail = () => {
 
   const isSeller = user?.role === "seller";
   const sellerBlocked = isSeller && tier !== "official";
+  const sizeLabel = getSizeLabel(listing.category);
+  const fallbackEmoji = getFallbackEmoji(listing.category);
+
+  // Sizes from DB are stored as text[] after migration; parse to number for sneakers
+  const parsedSizes = isSneakerCategory(listing.category)
+    ? listing.sizes.map(Number)
+    : listing.sizes; // string[] for clothing, empty for no-size categories
 
   return (
     <div className="min-h-screen bg-background">
@@ -449,7 +480,7 @@ const ProductDetail = () => {
             style={{ borderColor: tier === "official" ? "rgba(109,40,217,0.3)" : tier === "verified" ? "rgba(34,197,94,0.2)" : undefined }}>
             {activeImage
               ? <img src={detailImage(activeImage)} alt={listing.name} className="w-full h-full object-cover" />
-              : <span className="text-8xl">👟</span>
+              : <span className="text-8xl">{fallbackEmoji}</span>
             }
             {tier === "official" && (
               <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
@@ -497,25 +528,35 @@ const ProductDetail = () => {
 
             <p className="text-muted-foreground text-sm leading-relaxed">{listing.description}</p>
 
-            {/* Sizes */}
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                Size (EU) {selectedSize && <span className="text-primary ml-2">— Selected: {selectedSize}</span>}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {listing.sizes.map((size) => (
-                  <button key={size} onClick={() => setSelectedSize(size)}
-                    className={`w-11 h-11 rounded-xl border text-sm font-semibold transition-all
-                      ${selectedSize === size ? "border-primary bg-primary text-primary-foreground" : "border-border hover:border-primary/50 text-foreground"}`}>
-                    {size}
-                  </button>
-                ))}
+            {/* Size selector — only shown for categories that have sizes */}
+            {sizeLabel && parsedSizes.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+                  {sizeLabel}
+                  {selectedSize && (
+                    <span className="text-primary ml-2">— Selected: {selectedSize}</span>
+                  )}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {parsedSizes.map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => setSelectedSize(size)}
+                      className={`min-w-[44px] h-11 px-3 rounded-xl border text-sm font-semibold transition-all
+                        ${selectedSize === size
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border hover:border-primary/50 text-foreground"
+                        }`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             <PaymentBadge tier={tier} />
 
-            {/* Standard seller warning */}
             {tier === "standard" && user && !isGuest && !isSeller && (
               <StandardSellerWarning
                 sellerName={listing.sellerName}
@@ -532,14 +573,13 @@ const ProductDetail = () => {
                 <div>
                   <p className="text-sm font-display font-semibold text-foreground mb-1">Seller accounts can't purchase</p>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Buying and selling are kept separate for security. To purchase sneakers you'll need a buyer account.{" "}
+                    Buying and selling are kept separate for security. To purchase items you'll need a buyer account.{" "}
                     <Link to="/auth" className="text-primary font-semibold hover:opacity-70 transition-opacity">Create one here →</Link>
                   </p>
                 </div>
               </motion.div>
             ) : (
               <div className="flex flex-col gap-3">
-                {/* Primary: Add to Cart */}
                 <Button onClick={handleAddToCart} disabled={authLoading}
                   className={`w-full h-12 rounded-full font-display text-sm transition-all ${added ? "bg-green-500 hover:bg-green-500" : "btn-primary"}`}>
                   {authLoading
@@ -550,16 +590,10 @@ const ProductDetail = () => {
                   }
                 </Button>
 
-                {/* Secondary: Order via WhatsApp — OFFICIAL PRODUCTS ONLY */}
-                <WhatsAppOrderButton
-                  listing={listing}
-                  selectedSize={selectedSize}
-                  tier={tier}
-                />
+                <WhatsAppOrderButton listing={listing} selectedSize={selectedSize} tier={tier} />
               </div>
             )}
 
-            {/* Message Seller */}
             {user && !isGuest && !isSeller && (
               <button onClick={() => setShowChat(true)}
                 className="w-full h-12 rounded-full border border-border text-sm font-semibold
@@ -655,7 +689,7 @@ const ProductDetail = () => {
           </motion.div>
         </div>
 
-        {/* Related */}
+        {/* Related listings */}
         {related.length > 0 && (
           <div className="mt-20">
             <div className="flex items-center justify-between mb-6 gap-4">
@@ -673,8 +707,7 @@ const ProductDetail = () => {
                     id: l.id, name: l.name, brand: l.brand, price: l.price,
                     image: l.image ?? "", category: l.category, sizes: l.sizes,
                     description: l.description, isBoosted: l.boosted,
-                    sellerVerified: l.sellerVerified,
-                    sellerIsOfficial: l.sellerIsOfficial,
+                    sellerVerified: l.sellerVerified, sellerIsOfficial: l.sellerIsOfficial,
                   }} index={i} />
                 </div>
               ))}
@@ -687,8 +720,7 @@ const ProductDetail = () => {
                   id: l.id, name: l.name, brand: l.brand, price: l.price,
                   image: l.image ?? "", category: l.category, sizes: l.sizes,
                   description: l.description, isBoosted: l.boosted,
-                  sellerVerified: l.sellerVerified,
-                  sellerIsOfficial: l.sellerIsOfficial,
+                  sellerVerified: l.sellerVerified, sellerIsOfficial: l.sellerIsOfficial,
                 }} index={i} />
               ))}
             </div>
