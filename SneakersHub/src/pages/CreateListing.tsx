@@ -23,7 +23,6 @@ const ghanaRegions = [
   "Oti", "Bono", "Bono East", "Ahafo", "Western North",
 ];
 
-// EU shoe sizes — only shown when category is Sneakers
 const sneakerSizes = [36, 37, 38, 39, 40, 41, 42, 43, 44, 45];
 
 const brands = [
@@ -32,10 +31,8 @@ const brands = [
   "AERO", "LEGACY", "NOMAD", "Other",
 ];
 
-// Category labels derived from single source of truth
 const categoryLabels = PRODUCT_CATEGORIES.map((c) => c.label);
 
-// Per-category copy helpers
 const getItemLabel = (category: string) => {
   if (category === "Sneakers") return "Sneaker";
   if (category === "Watches")  return "Watch";
@@ -46,14 +43,14 @@ const getItemLabel = (category: string) => {
 };
 
 const getNamePlaceholder = (category: string) => {
-  if (category === "Sneakers")  return "e.g. Air Jordan 1 Retro High OG";
-  if (category === "Watches")   return "e.g. Casio G-Shock GA-2100";
-  if (category === "Tops")      return "e.g. Oversized Graphic Tee";
-  if (category === "Bottoms")   return "e.g. Slim Fit Cargo Pants";
-  if (category === "Outerwear") return "e.g. Puffer Jacket";
-  if (category === "Activewear")return "e.g. Compression Shorts";
-  if (category === "Bags")      return "e.g. Canvas Tote Bag";
-  if (category === "Jewellery") return "e.g. Gold Chain Necklace";
+  if (category === "Sneakers")   return "e.g. Air Jordan 1 Retro High OG";
+  if (category === "Watches")    return "e.g. Casio G-Shock GA-2100";
+  if (category === "Tops")       return "e.g. Oversized Graphic Tee";
+  if (category === "Bottoms")    return "e.g. Slim Fit Cargo Pants";
+  if (category === "Outerwear")  return "e.g. Puffer Jacket";
+  if (category === "Activewear") return "e.g. Compression Shorts";
+  if (category === "Bags")       return "e.g. Canvas Tote Bag";
+  if (category === "Jewellery")  return "e.g. Gold Chain Necklace";
   if (category === "Accessories")return "e.g. Leather Belt";
   return "e.g. Item name";
 };
@@ -70,15 +67,83 @@ const getDescriptionPlaceholder = (category: string) => {
   return "Describe condition, any flaws, what's included...";
 };
 
-// Clothing/general sizes — shown for non-sneaker categories
 const clothingSizes = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "3XL"];
 
-// Whether the selected category uses EU shoe sizes or clothing sizes
 const usesSneakerSizes  = (cat: string) => cat === "Sneakers";
 const usesClothingSizes = (cat: string) =>
   ["Tops", "Bottoms", "Outerwear", "Activewear"].includes(cat);
 const noSizes = (cat: string) =>
   ["Watches", "Bags", "Jewellery", "Accessories", "Other"].includes(cat);
+
+// ─── Image compression ────────────────────────────────────────────────────────
+// Resizes to max 800×800px and converts to WebP at 80% quality.
+// Returns a new File so the rest of the upload flow is unchanged.
+// Falls back to the original file if the browser doesn't support canvas/WebP.
+
+async function compressImage(file: File): Promise<File> {
+  const MAX_PX = 800;
+  const QUALITY = 0.8;
+
+  return new Promise((resolve) => {
+    const img = document.createElement("img");
+    const objectUrl = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+
+      // Work out scaled dimensions — keep aspect ratio, cap at MAX_PX
+      let { width, height } = img;
+      if (width > MAX_PX || height > MAX_PX) {
+        if (width >= height) {
+          height = Math.round((height / width) * MAX_PX);
+          width = MAX_PX;
+        } else {
+          width = Math.round((width / height) * MAX_PX);
+          height = MAX_PX;
+        }
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+
+      if (!ctx) {
+        // Canvas not available — use original
+        resolve(file);
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            // toBlob failed — use original
+            resolve(file);
+            return;
+          }
+          // Rename to .webp so Supabase stores it correctly
+          const compressed = new File(
+            [blob],
+            file.name.replace(/\.[^.]+$/, ".webp"),
+            { type: "image/webp" }
+          );
+          resolve(compressed);
+        },
+        "image/webp",
+        QUALITY
+      );
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(file); // fallback to original on error
+    };
+
+    img.src = objectUrl;
+  });
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -123,9 +188,7 @@ const CreateListing = () => {
 
   const [isVerifiedSeller, setIsVerifiedSeller] = useState(false);
 
-  // Numeric sizes (sneakers) stored as number[]
   const [selectedSizes, setSelectedSizes] = useState<number[]>(editing?.sizes ?? []);
-  // Clothing sizes stored as string[]
   const [selectedClothingSizes, setSelectedClothingSizes] = useState<string[]>([]);
 
   const [images, setImages] = useState<string[]>(editing?.image ? [editing.image] : []);
@@ -152,24 +215,33 @@ const CreateListing = () => {
     );
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // ── CHANGED: compress each file before generating preview + storing for upload
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     if (!files.length) return;
+
     const remaining = MAX_IMAGES - images.length;
     const toAdd = files.slice(0, remaining);
-    const file = toAdd[0];
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Image must be under 5MB");
+
+    // Size check on the original before compression
+    if (toAdd[0].size > 10 * 1024 * 1024) {
+      toast.error("Image must be under 10MB");
       return;
     }
-    toAdd.forEach((f) => {
+
+    // Compress every selected file in parallel
+    const compressed = await Promise.all(toAdd.map(compressImage));
+
+    compressed.forEach((f) => {
       const r = new FileReader();
       r.onload = () =>
         setImages((prev) => [...prev, r.result as string].slice(0, MAX_IMAGES));
       r.readAsDataURL(f);
     });
-    setImageFiles((prev) => [...prev, ...toAdd].slice(0, MAX_IMAGES));
+
+    setImageFiles((prev) => [...prev, ...compressed].slice(0, MAX_IMAGES));
   };
+  // ── END CHANGED ─────────────────────────────────────────────────────────────
 
   const handleSubmit = async () => {
     const { name, brand, price, category, description, city, region } = form;
@@ -179,7 +251,6 @@ const CreateListing = () => {
       return;
     }
 
-    // Size validation — only required for categories that have sizes
     if (usesSneakerSizes(category) && selectedSizes.length === 0) {
       toast.error("Select at least one size");
       return;
@@ -194,13 +265,11 @@ const CreateListing = () => {
       return;
     }
 
-    // Merge sizes: sneaker sizes are numbers, clothing sizes serialised as strings
-    // After
-const sizesToSave = usesSneakerSizes(category)
-  ? selectedSizes.map(String)        // ["39", "40", "41"]
-  : usesClothingSizes(category)
-    ? selectedClothingSizes          // ["S", "M", "L"]
-    : [];
+    const sizesToSave = usesSneakerSizes(category)
+      ? selectedSizes.map(String)
+      : usesClothingSizes(category)
+        ? selectedClothingSizes
+        : [];
 
     console.log("imageFiles at submit:", imageFiles.length, imageFiles[0]?.name);
     setLoading(true);
@@ -229,10 +298,10 @@ const sizesToSave = usesSneakerSizes(category)
     }
   };
 
-  const itemLabel     = getItemLabel(form.category);
-  const showSneakerSizes  = usesSneakerSizes(form.category);
-  const showClothingSizes = usesClothingSizes(form.category);
-  const showSizes         = showSneakerSizes || showClothingSizes;
+  const itemLabel          = getItemLabel(form.category);
+  const showSneakerSizes   = usesSneakerSizes(form.category);
+  const showClothingSizes  = usesClothingSizes(form.category);
+  const showSizes          = showSneakerSizes || showClothingSizes;
 
   return (
     <PayoutDetailsGuard>
@@ -318,7 +387,7 @@ const sizesToSave = usesSneakerSizes(category)
                 <FileText className="inline w-3.5 h-3.5 mr-1.5" /> Details
               </p>
 
-              {/* Category — pick first so labels update reactively */}
+              {/* Category */}
               <div>
                 <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
                   Category
@@ -448,7 +517,7 @@ const sizesToSave = usesSneakerSizes(category)
               </div>
             </motion.div>
 
-            {/* Sizes — conditionally rendered */}
+            {/* Sizes */}
             {showSizes && (
               <motion.div
                 initial={{ opacity: 0, y: 16 }}
@@ -468,7 +537,6 @@ const sizesToSave = usesSneakerSizes(category)
                   )}
                 </div>
 
-                {/* Sneaker EU sizes */}
                 {showSneakerSizes && (
                   <div className="flex flex-wrap gap-2">
                     {sneakerSizes.map((size) => (
@@ -487,7 +555,6 @@ const sizesToSave = usesSneakerSizes(category)
                   </div>
                 )}
 
-                {/* Clothing sizes */}
                 {showClothingSizes && (
                   <div className="flex flex-wrap gap-2">
                     {clothingSizes.map((size) => (
