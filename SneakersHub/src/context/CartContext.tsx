@@ -26,7 +26,6 @@ export type CartItem = {
   quantity: number;
 };
 
-// Group cart items by seller for multi-seller checkout
 export type SellerGroup = {
   sellerId: string;
   sellerName: string;
@@ -79,6 +78,7 @@ type CartContextType = {
 };
 
 const CartContext = createContext<CartContextType | null>(null);
+
 const storageKey = (userId?: string) =>
   userId ? `sneakershub-cart-${userId}` : "sneakershub-cart-guest";
 
@@ -87,39 +87,47 @@ const loadFromStorage = (userId?: string): CartItem[] => {
     const saved = localStorage.getItem(storageKey(userId));
     if (!saved) return [];
     const parsed: CartItem[] = JSON.parse(saved);
-    // Sanitize old items that may be missing new fields
     return parsed.map((i) => ({
       ...i,
       listing: {
         ...i.listing,
-        shippingCost: i.listing.shippingCost ?? 0,
-        handlingTime: i.listing.handlingTime ?? "Ships in 1-3 days",
+        shippingCost: i.listing?.shippingCost ?? 0,
+        handlingTime: i.listing?.handlingTime ?? "Ships in 1-3 days",
       },
     }));
   } catch { return []; }
 };
 
-// Normalise size to a string for DB storage — keeps the conflict key consistent
 const sizeKey = (size: string | number): string => String(size);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const { user, activeMode } = useAuth();
-  // For logged-in users, start with empty array and load from DB
-  // For guests, load from localStorage
-  const [items, setItems] = useState<CartItem[]>(() => user ? [] : loadFromStorage());
-  const [synced, setSynced] = useState(false);
+
+  // Always start empty — we populate from the correct source in the effect below
+  const [items, setItems] = useState<CartItem[]>([]);
+
+  // readyToSave: only persist to localStorage AFTER we've loaded from the
+  // authoritative source (DB for logged-in buyers, localStorage for guests).
+  // This prevents the persist effect from blanking out items before the async
+  // DB fetch completes.
+  const [readyToSave, setReadyToSave] = useState(false);
 
   const activeModeRef = useRef(activeMode);
   useEffect(() => { activeModeRef.current = activeMode; }, [activeMode]);
 
-  // ── Fetch cart from Supabase when user logs in ──────────────────────────
+  // ── Fetch cart from Supabase ──────────────────────────────────────────────
   const fetchCart = useCallback(async (userId: string) => {
     const { data, error } = await supabase
       .from("carts")
       .select("sneaker_id, sneaker_data, size, quantity")
       .eq("user_id", userId);
 
-    if (error || !data) return;
+    if (error || !data) {
+      // DB unavailable — fall back to localStorage so the cart isn't lost
+      setItems(loadFromStorage(userId));
+      setReadyToSave(true);
+      return;
+    }
 
     // Check which listing IDs are still active
     const listingIds = data.map((r) => r.sneaker_id).filter(Boolean);
@@ -128,7 +136,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       : { data: [] };
     const activeIds = new Set((activeListings ?? []).map((l: any) => l.id));
 
-    // Remove stale cart rows for deleted/sold listings
+    // Remove stale rows
     const staleIds = listingIds.filter((id) => !activeIds.has(id));
     if (staleIds.length > 0) {
       await supabase.from("carts").delete().eq("user_id", userId).in("sneaker_id", staleIds);
@@ -142,14 +150,13 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           shippingCost: (row.sneaker_data as any).shippingCost ?? 0,
           handlingTime: (row.sneaker_data as any).handlingTime ?? "Ships in 1-3 days",
         },
-        // size stored as text in DB — keep as string, numeric strings become numbers for sneakers
+        // Numeric strings (EU sizes) become numbers; letter sizes stay strings
         size: isNaN(Number(row.size)) ? row.size : Number(row.size),
         quantity: row.quantity,
       }));
 
-    // For logged-in users, use only remote items
-    // For guests, merge remote items with localStorage (in case they just logged in)
-    const guestItems = user ? [] : loadFromStorage();
+    // Merge any guest items added before login
+    const guestItems = loadFromStorage(); // no userId = guest key
     const merged = [...remoteItems];
 
     for (const local of guestItems) {
@@ -159,54 +166,58 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       );
       if (!exists) {
         merged.push(local);
-        // Only sync to DB if user is logged in
-        if (user?.id) {
-          await supabase.from("carts").upsert({
-            user_id: userId,
-            sneaker_id: local.listing.id,
-            sneaker_data: local.listing,
-            size: sizeKey(local.size),
-            quantity: local.quantity,
-          }, { onConflict: "user_id,sneaker_id,size" });
-        }
+        await supabase.from("carts").upsert({
+          user_id: userId,
+          sneaker_id: local.listing.id,
+          sneaker_data: local.listing,
+          size: sizeKey(local.size),
+          quantity: local.quantity,
+        }, { onConflict: "user_id,sneaker_id,size" }).catch(() => {});
       }
     }
 
+    // Clear guest key now that we've merged
     localStorage.removeItem(storageKey());
+
     setItems(merged);
     localStorage.setItem(storageKey(userId), JSON.stringify(merged));
-    setSynced(true);
+    setReadyToSave(true);
   }, []);
 
+  // ── Auth / mode change ────────────────────────────────────────────────────
   useEffect(() => {
+    // Reset gate so a stale persist can't fire during transition
+    setReadyToSave(false);
+
     if (user?.id && activeMode === "buyer") {
-      // User logged in as buyer - load from database
       fetchCart(user.id);
     } else if (!user) {
-      // User is guest - load from localStorage
+      // Guest — load from localStorage immediately
       setItems(loadFromStorage());
-      setSynced(true);
+      setReadyToSave(true);
     } else {
-      // User in seller mode or logged out - clear cart
+      // Seller mode — clear cart from memory (don't touch DB)
       setItems([]);
-      setSynced(true);
+      setReadyToSave(true);
     }
   }, [user?.id, activeMode, fetchCart]);
 
-  // ── Persist to localStorage on every change ─────────────────────────────
+  // ── Persist to localStorage only when ready ───────────────────────────────
   useEffect(() => {
-    if (!synced) return;
-    try { localStorage.setItem(storageKey(user?.id), JSON.stringify(items)); } catch {}
-  }, [items, synced]);
+    if (!readyToSave) return;
+    try {
+      localStorage.setItem(storageKey(user?.id), JSON.stringify(items));
+    } catch {}
+  }, [items, readyToSave, user?.id]);
 
-  // ── Sync helpers ─────────────────────────────────────────────────────────
+  // ── Remote sync helpers ───────────────────────────────────────────────────
   const upsertRemote = async (listing: CartItem["listing"], size: string | number, quantity: number) => {
     if (!user?.id) return;
     await supabase.from("carts").upsert({
       user_id: user.id,
       sneaker_id: listing.id,
       sneaker_data: listing,
-      size: sizeKey(size),   // always store as string
+      size: sizeKey(size),
       quantity,
     }, { onConflict: "user_id,sneaker_id,size" });
   };
@@ -225,7 +236,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     await supabase.from("carts").delete().eq("user_id", user.id);
   };
 
-  // ── Actions ──────────────────────────────────────────────────────────────
+  // ── Actions ───────────────────────────────────────────────────────────────
   const addItem = (listing: CartItem["listing"], size: string | number) => {
     if (activeModeRef.current === "seller") {
       toast.error("Please switch to Buyer mode to add items to cart", {
@@ -243,7 +254,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       const newQuantity = existing ? existing.quantity + 1 : 1;
 
       upsertRemote(listing, size, newQuantity).catch((err) =>
-        console.warn("Failed to sync cart:", err)
+        console.warn("Failed to sync cart to DB:", err)
       );
 
       if (existing) {
