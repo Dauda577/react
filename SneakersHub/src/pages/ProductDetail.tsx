@@ -694,9 +694,9 @@ const ProductDetail = () => {
           <div className="mt-20">
             <div className="flex items-center justify-between mb-6 gap-4">
               <h2 className="font-display text-2xl font-bold tracking-tight">More in {listing.category}</h2>
-              <Link to="/shop" className="text-sm text-primary font-semibold hover:opacity-70 transition-opacity flex-shrink-0">
-                View all →
-              </Link>
+              <Link to={`/shop?category=${encodeURIComponent(listing.category)}`} className="text-sm text-primary font-semibold hover:opacity-70 transition-opacity flex-shrink-0">
+  View all →
+</Link>
             </div>
 
             {/* Mobile: horizontal scroll */}
