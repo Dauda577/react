@@ -79,12 +79,12 @@ export default function Checkout() {
 
   // Group cart items by seller
   const sellerGroups = groupBySeller(items);
-  const totalPrice = items.reduce((sum, i) => sum + i.sneaker.price * i.quantity, 0);
+  const totalPrice = items.reduce((sum, i) => sum + i.listing.price * i.quantity, 0);
 
   const [freshShipping, setFreshShipping] = useState<Record<string, { shippingCost: number; handlingTime: string }>>({});
 
   useEffect(() => {
-    const ids = items.map((i) => i.sneaker.id);
+    const ids = items.map((i) => i.listing.id);
     if (ids.length === 0) return;
     supabase
       .from("listings")
@@ -112,12 +112,11 @@ export default function Checkout() {
   const sellerRegion = currentGroup?.sellerRegion ?? null;
   const sellerCity = currentGroup?.sellerCity ?? null;
   const isVerifiedSeller = tier === "verified" || tier === "official";
-  const firstItemId = currentGroup?.items[0]?.sneaker.id ?? "";
+  const firstItemId = currentGroup?.items[0]?.listing.id ?? "";
   const freshData = freshShipping[firstItemId];
   const sellerShippingCost = isVerifiedSeller ? (freshData?.shippingCost ?? currentGroup?.shippingCost ?? 0) : 0;
   const sellerHandlingTime = isVerifiedSeller ? (freshData?.handlingTime ?? currentGroup?.handlingTime ?? "Ships in 1-3 days") : "";
 
-  // Delivery fee is now handled after order - no upfront fee
   const currentDeliveryFee = 0;
 
   useEffect(() => {
@@ -172,13 +171,13 @@ export default function Checkout() {
     await placeOrder({
       sellerId: group.sellerId,
       items: group.items.map((i) => ({
-        sneakerId: i.sneaker.id,
-        name: i.sneaker.name,
-        brand: i.sneaker.brand,
-        size: i.sneaker.size,
-        price: i.sneaker.price,
+        sneakerId: i.listing.id,
+        name: i.listing.name,
+        brand: i.listing.brand,
+        size: typeof i.size === "number" ? i.size : undefined,
+        price: i.listing.price,
         quantity: i.quantity,
-        imageUrl: i.sneaker.image,
+        imageUrl: i.listing.image,
       })),
       subtotal: group.total,
       deliveryFee: 0,
@@ -222,12 +221,12 @@ export default function Checkout() {
         callback: (response: { reference: string }) => {
           paymentCompleted = true;
           toast.success(tier === "official" ? "Payment received — Official order placed!" : "Payment received");
-          
+
           submitGroupOrder(group, response.reference)
             .then(() => {
               const newCompleted = [...completedGroups, group.sellerId];
               setCompletedGroups(newCompleted);
-              
+
               if (currentGroupIndex + 1 < sellerGroups.length) {
                 setCurrentGroupIndex((i) => i + 1);
                 setLoading(false);
@@ -267,7 +266,7 @@ export default function Checkout() {
       await submitGroupOrder(group);
       const newCompleted = [...completedGroups, group.sellerId];
       setCompletedGroups(newCompleted);
-      
+
       if (currentGroupIndex + 1 < sellerGroups.length) {
         setCurrentGroupIndex((i) => i + 1);
         setLoading(false);
@@ -291,7 +290,7 @@ export default function Checkout() {
       return;
     }
     if (!currentGroup) return;
-    
+
     if (requiresPayment) {
       handlePaystackPayment(currentGroup);
     } else {
@@ -311,7 +310,8 @@ export default function Checkout() {
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
 
-      <main className="flex-1 max-w-lg mx-auto w-full px-4 py-8 pb-24 pt-24" style={{ paddingTop: `calc(96px + env(safe-area-inset-top, 0px))` }}>
+      <main className="flex-1 max-w-lg mx-auto w-full px-4 py-8 pb-24 pt-24"
+        style={{ paddingTop: `calc(96px + env(safe-area-inset-top, 0px))` }}>
 
         {/* Header */}
         <div className="flex items-center gap-3 mb-8">
@@ -357,7 +357,11 @@ export default function Checkout() {
                 <p className="text-sm font-semibold truncate">{currentGroup?.sellerName ?? "Seller"}</p>
                 <p className={`text-xs flex items-center gap-1 ${tierInfo.color}`}>
                   {tierInfo.icon} {tierInfo.label}
-                  {sellerCity && <span className="text-muted-foreground ml-1">· {sellerCity}{sellerRegion ? `, ${sellerRegion}` : ""}</span>}
+                  {sellerCity && (
+                    <span className="text-muted-foreground ml-1">
+                      · {sellerCity}{sellerRegion ? `, ${sellerRegion}` : ""}
+                    </span>
+                  )}
                 </p>
               </div>
               <span className="text-sm font-bold">GHS {currentGroup?.total ?? 0}</span>
@@ -371,14 +375,16 @@ export default function Checkout() {
                     className="w-14 h-14 rounded-xl object-cover bg-muted flex-shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate">{item.listing.name}</p>
-                    <p className="text-xs text-muted-foreground">Size {item.size} · Qty {item.quantity}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.size !== "one-size" ? `Size ${item.size} · ` : ""}Qty {item.quantity}
+                    </p>
                   </div>
                   <span className="text-sm font-bold">GHS {item.listing.price * item.quantity}</span>
                 </div>
               ))}
             </div>
 
-            {/* Delivery Options - NEW */}
+            {/* Delivery Options */}
             <div className="rounded-2xl border border-border p-6">
               <CheckoutDeliveryOptions
                 onDeliveryMethodChange={setDeliveryMethod}
@@ -386,7 +392,7 @@ export default function Checkout() {
               />
             </div>
 
-            {/* Order Notes - NEW */}
+            {/* Order Notes */}
             <div className="rounded-2xl border border-border p-6">
               <h3 className="font-display text-sm font-semibold mb-3">Order Notes (Optional)</h3>
               <textarea
@@ -395,7 +401,7 @@ export default function Checkout() {
                 placeholder="Special instructions, delivery preferences, etc."
                 rows={2}
                 className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm
-                  placeholder:text-muted-foreground focus:outline-none focus:border-primary 
+                  placeholder:text-muted-foreground focus:outline-none focus:border-primary
                   focus:ring-1 focus:ring-primary/20 transition-all resize-none"
               />
             </div>
@@ -406,7 +412,7 @@ export default function Checkout() {
               <div className="grid grid-cols-2 gap-3">
                 {[
                   { key: "firstName", label: "First Name", icon: <User className="w-4 h-4" />, placeholder: "Kwame" },
-                  { key: "lastName", label: "Last Name", icon: <User className="w-4 h-4" />, placeholder: "Mensah" },
+                  { key: "lastName",  label: "Last Name",  icon: <User className="w-4 h-4" />, placeholder: "Mensah" },
                 ].map(({ key, label, icon, placeholder }) => (
                   <div key={key} className="space-y-1.5">
                     <label className="text-xs text-muted-foreground font-medium">{label}</label>
@@ -416,12 +422,15 @@ export default function Checkout() {
                         value={form[key as keyof typeof form]}
                         onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
                         placeholder={placeholder}
-                        className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
+                        className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
+                          placeholder:text-muted-foreground focus:outline-none focus:border-primary
+                          focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
                       />
                     </div>
                   </div>
                 ))}
               </div>
+
               <div className="space-y-1.5">
                 <label className="text-xs text-muted-foreground font-medium">Phone Number</label>
                 <div className="relative">
@@ -431,10 +440,13 @@ export default function Checkout() {
                     onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
                     placeholder="0244 000 000"
                     type="tel"
-                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
+                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
+                      placeholder:text-muted-foreground focus:outline-none focus:border-primary
+                      focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
                   />
                 </div>
               </div>
+
               <div className="space-y-1.5">
                 <label className="text-xs text-muted-foreground font-medium">Delivery Address</label>
                 <div className="relative">
@@ -443,10 +455,13 @@ export default function Checkout() {
                     value={form.address}
                     onChange={e => setForm(p => ({ ...p, address: e.target.value }))}
                     placeholder="Street / Area / Landmark"
-                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
+                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
+                      placeholder:text-muted-foreground focus:outline-none focus:border-primary
+                      focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
                   />
                 </div>
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-xs text-muted-foreground font-medium">City</label>
@@ -454,16 +469,22 @@ export default function Checkout() {
                     value={form.city}
                     onChange={e => setForm(p => ({ ...p, city: e.target.value }))}
                     placeholder="Kumasi"
-                    className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
+                    className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
+                      placeholder:text-muted-foreground focus:outline-none focus:border-primary
+                      focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs text-muted-foreground font-medium">Region <span className="text-primary">*</span></label>
+                  <label className="text-xs text-muted-foreground font-medium">
+                    Region <span className="text-primary">*</span>
+                  </label>
                   <div className="relative">
                     <select
                       value={form.region}
                       onChange={e => setForm(p => ({ ...p, region: e.target.value }))}
-                      className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit] appearance-none pr-8"
+                      className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
+                        focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20
+                        transition-all font-[inherit] appearance-none pr-8"
                     >
                       <option value="">Select</option>
                       {regions.map(r => <option key={r} value={r}>{r}</option>)}
@@ -497,7 +518,9 @@ export default function Checkout() {
 
             {/* Order summary */}
             <div className="rounded-2xl border border-border p-6">
-              <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-4">Order Summary</p>
+              <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-4">
+                Order Summary
+              </p>
               <div className="border-t border-border pt-4 space-y-2.5">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
@@ -539,15 +562,9 @@ export default function Checkout() {
                 <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                   className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full" />
               ) : requiresPayment ? (
-                <>
-                  <ShieldCheck className="w-5 h-5" />
-                  Pay GHS {currentGroup?.total ?? 0}
-                </>
+                <><ShieldCheck className="w-5 h-5" /> Pay GHS {currentGroup?.total ?? 0}</>
               ) : (
-                <>
-                  <ArrowRight className="w-5 h-5" />
-                  Place Order — Pay on Delivery
-                </>
+                <><ArrowRight className="w-5 h-5" /> Place Order — Pay on Delivery</>
               )}
             </Button>
 
