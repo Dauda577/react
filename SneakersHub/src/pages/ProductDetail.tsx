@@ -397,7 +397,7 @@ const ProductDetail = () => {
       sellerRegion: listing.region ?? listing.sellerRegion ?? null,
       shippingCost: listing.shippingCost ?? 0,
       handlingTime: listing.handlingTime ?? "Ships in 1-3 days",
-    }, selectedSize as string | number | null ?? "one-size");
+    }, selectedSize ?? "one-size");
 
     setAdded(true);
     toast.success("Added to cart!");
