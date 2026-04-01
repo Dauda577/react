@@ -427,7 +427,7 @@ const ProductDetail = () => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Navbar />
         <div className="text-center pt-28" style={{ paddingTop: `calc(112px + env(safe-area-inset-top, 0px))` }}>
-          <p className="font-display text-2xl font-bold mb-2">Listing not found</p>
+          <p className="font-display text-2xl font-bold mb-2">Product not found</p>
           <p className="text-muted-foreground mb-6">This listing may have been removed or sold.</p>
           <Button className="btn-primary rounded-full" onClick={() => navigate("/shop")}>Back to Shop</Button>
         </div>
