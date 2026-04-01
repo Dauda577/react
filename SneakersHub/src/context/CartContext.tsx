@@ -104,7 +104,9 @@ const sizeKey = (size: string | number): string => String(size);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const { user, activeMode } = useAuth();
-  const [items, setItems] = useState<CartItem[]>(() => loadFromStorage());
+  // For logged-in users, start with empty array and load from DB
+  // For guests, load from localStorage
+  const [items, setItems] = useState<CartItem[]>(() => user ? [] : loadFromStorage());
   const [synced, setSynced] = useState(false);
 
   const activeModeRef = useRef(activeMode);
@@ -145,8 +147,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         quantity: row.quantity,
       }));
 
-    // Merge guest cart items (added before login) into remote
-    const guestItems = loadFromStorage();
+    // For logged-in users, use only remote items
+    // For guests, merge remote items with localStorage (in case they just logged in)
+    const guestItems = user ? [] : loadFromStorage();
     const merged = [...remoteItems];
 
     for (const local of guestItems) {
@@ -156,13 +159,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       );
       if (!exists) {
         merged.push(local);
-        await supabase.from("carts").upsert({
-          user_id: userId,
-          sneaker_id: local.listing.id,
-          sneaker_data: local.listing,
-          size: sizeKey(local.size),
-          quantity: local.quantity,
-        }, { onConflict: "user_id,sneaker_id,size" });
+        // Only sync to DB if user is logged in
+        if (user?.id) {
+          await supabase.from("carts").upsert({
+            user_id: userId,
+            sneaker_id: local.listing.id,
+            sneaker_data: local.listing,
+            size: sizeKey(local.size),
+            quantity: local.quantity,
+          }, { onConflict: "user_id,sneaker_id,size" });
+        }
       }
     }
 
@@ -174,8 +180,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     if (user?.id && activeMode === "buyer") {
+      // User logged in as buyer - load from database
       fetchCart(user.id);
+    } else if (!user) {
+      // User is guest - load from localStorage
+      setItems(loadFromStorage());
+      setSynced(true);
     } else {
+      // User in seller mode or logged out - clear cart
       setItems([]);
       setSynced(true);
     }

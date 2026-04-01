@@ -366,14 +366,14 @@ export default function Checkout() {
             {/* Order items */}
             <div className="rounded-2xl border border-border divide-y divide-border overflow-hidden">
               {currentGroup?.items.map((item) => (
-                <div key={`${item.sneaker.id}-${item.sneaker.size}`} className="flex items-center gap-3 p-4">
-                  <img src={thumbImage(item.sneaker.image)} alt={item.sneaker.name}
+                <div key={`${item.listing.id}-${item.size}`} className="flex items-center gap-3 p-4">
+                  <img src={thumbImage(item.listing.image)} alt={item.listing.name}
                     className="w-14 h-14 rounded-xl object-cover bg-muted flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate">{item.sneaker.name}</p>
-                    <p className="text-xs text-muted-foreground">Size {item.sneaker.size} · Qty {item.quantity}</p>
+                    <p className="text-sm font-semibold truncate">{item.listing.name}</p>
+                    <p className="text-xs text-muted-foreground">Size {item.size} · Qty {item.quantity}</p>
                   </div>
-                  <span className="text-sm font-bold">GHS {item.sneaker.price * item.quantity}</span>
+                  <span className="text-sm font-bold">GHS {item.listing.price * item.quantity}</span>
                 </div>
               ))}
             </div>
