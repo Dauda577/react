@@ -137,16 +137,24 @@ const Navbar = () => {
             )}
 
             {/* Cart */}
-            {activeMode === "buyer" ? (
-              <Link to="/cart" className="relative group">
-                <ShoppingBag className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-                {totalItems > 0 && (
-                  <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }}
-                    className="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold">
-                    {totalItems}
-                  </motion.span>
-                )}
-              </Link>
+{activeMode === "buyer" ? (
+  <Link 
+    to="/cart" 
+    className="relative group"
+    aria-label={`Shopping cart${totalItems > 0 ? `, ${totalItems} item${totalItems !== 1 ? 's' : ''}` : ''}`}
+  >
+    <ShoppingBag className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+    {totalItems > 0 && (
+      <motion.span 
+        initial={{ scale: 0 }} 
+        animate={{ scale: 1 }}
+        className="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold"
+        aria-hidden="true"
+      >
+        {totalItems}
+      </motion.span>
+    )}
+  </Link>
             ) : (
               <div className="relative group cursor-not-allowed">
                 <ShoppingBag className="w-5 h-5 text-muted-foreground opacity-50" />
@@ -157,9 +165,13 @@ const Navbar = () => {
             )}
 
             {/* Mobile menu toggle */}
-            <button className="md:hidden" onClick={() => setMobileOpen(!mobileOpen)}>
-              {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
+<button 
+  className="md:hidden" 
+  onClick={() => setMobileOpen(!mobileOpen)}
+  aria-label={mobileOpen ? "Close menu" : "Open menu"}
+>
+  {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+</button>
           </div>
         </div>
 

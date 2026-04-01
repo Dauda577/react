@@ -40,12 +40,30 @@ export default defineConfig({
             },
           },
           {
-            // Google Fonts
-            urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,
+            // Google Fonts CSS
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "google-fonts-css",
+              expiration: { maxEntries: 5, maxAgeSeconds: 60 * 60 * 24 * 30 }, // 30 days
+            },
+          },
+          {
+            // Google Fonts WOFF2 files
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
             handler: "CacheFirst",
             options: {
-              cacheName: "font-cache",
-              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheName: "google-fonts-woff2",
+              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 }, // 1 year
+            },
+          },
+          {
+            // Static assets (JS/CSS) — cache first with versioning
+            urlPattern: /^https:\/\/sneakershub\.site\/assets\/.*\.(js|css)$/i,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "static-assets",
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 * 30 }, // 30 days
             },
           },
         ],
@@ -80,19 +98,59 @@ export default defineConfig({
     alias: { "@": path.resolve(__dirname, "./src") },
   },
   build: {
+    // Enable source maps for debugging (optional, disable in prod if not needed)
+    sourcemap: false,
+    
+    // Target modern browsers for smaller bundles
+    target: "es2020",
+    
+    // Chunk size warning limit
+    chunkSizeWarningLimit: 1000,
+    
     rollupOptions: {
       output: {
         manualChunks: {
           "vendor-react":    ["react", "react-dom", "react-router-dom"],
           "vendor-motion":   ["framer-motion"],
           "vendor-supabase": ["@supabase/supabase-js"],
+          "vendor-ui":       ["@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu"], // if you use Radix
         },
+        // Optimize chunk naming for better caching
+        chunkFileNames: "assets/[name]-[hash].js",
+        entryFileNames: "assets/[name]-[hash].js",
+        assetFileNames: "assets/[name]-[hash].[ext]",
       },
     },
+    
+    // CSS optimization
+    cssCodeSplit: true,
+    cssMinify: true,
+    
     // Drop console logs in production
     minify: "terser",
     terserOptions: {
-      compress: { drop_console: true, drop_debugger: true },
+      compress: { 
+        drop_console: true, 
+        drop_debugger: true,
+        pure_funcs: ["console.log", "console.info", "console.debug", "console.trace"], // Remove specific console methods
+      },
     },
+    
+    // Improve build performance
+    reportCompressedSize: false,
+  },
+  
+  // Development server optimizations
+  server: {
+    open: false, // Don't auto-open browser
+    hmr: {
+      overlay: true, // Show errors in browser
+    },
+  },
+  
+  // Optimize dependencies pre-bundling
+  optimizeDeps: {
+    include: ["react", "react-dom", "react-router-dom", "framer-motion", "@supabase/supabase-js"],
+    exclude: [], // Add any problematic dependencies here
   },
 });

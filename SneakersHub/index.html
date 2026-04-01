@@ -28,19 +28,33 @@
     <meta name="twitter:description" content="Ghana's #1 sneaker marketplace. Find your next pair today." />
     <meta name="twitter:image" content="https://sneakershub.site/og-image.png" />
 
+    <!-- ========== PERFORMANCE OPTIMIZATIONS ========== -->
+    
+    <!-- Preconnect to critical third-party origins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://liqpxjhnfyuyrtqumumu.supabase.co">
+    
+    <!-- Load CSS asynchronously with fallback -->
+    <link rel="stylesheet" href="/assets/index-C663EKnX.css" media="print" onload="this.media='all'">
+    <noscript>
+      <link rel="stylesheet" href="/assets/index-C663EKnX.css">
+    </noscript>
+
+    <!-- Load fonts with display swap -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
     <!-- Prevent black screen flash on Safari — set background before React loads -->
     <script>
       (function() {
         try {
           var theme = localStorage.getItem('theme');
-          // If no theme in localStorage, default to light
           if (!theme) {
             theme = 'light';
           }
           document.documentElement.classList.toggle('dark', theme === 'dark');
           document.documentElement.style.backgroundColor = theme === 'dark' ? '#09090b' : '#ffffff';
         } catch(e) {
-          // Fallback to light on error
           document.documentElement.classList.remove('dark');
           document.documentElement.style.backgroundColor = '#ffffff';
         }
@@ -48,7 +62,7 @@
     </script>
 
     <style>
-      html { background-color: #ffffff; } /* Default to white */
+      html { background-color: #ffffff; }
       html.dark { background-color: #09090b; }
       body { 
         min-height: 100vh;
@@ -61,7 +75,6 @@
       }
       * { -webkit-tap-highlight-color: transparent; }
       
-      /* Loader Styles */
       #initial-loader {
         position: fixed;
         top: 0;
@@ -123,7 +136,6 @@
         100% { transform: rotate(360deg); }
       }
       
-      /* Hide loader once React mounts */
       .loader-hidden {
         opacity: 0;
         pointer-events: none;
@@ -142,7 +154,6 @@
     <script type="module" src="/src/main.tsx"></script>
     
     <script>
-      // Hide loader when React mounts
       window.addEventListener('load', function() {
         const loader = document.getElementById('initial-loader');
         if (loader) {
