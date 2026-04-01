@@ -42,6 +42,7 @@ export type SellerGroup = {
 export function groupBySeller(items: CartItem[]): SellerGroup[] {
   const map = new Map<string, SellerGroup>();
   for (const item of items) {
+    if (!item.listing) continue; // safety check
     const {
       sellerId, sellerName, sellerVerified, sellerIsOfficial,
       sellerSubaccountCode, sellerCity, sellerRegion, shippingCost, handlingTime,
@@ -84,14 +85,16 @@ const loadFromStorage = (userId?: string): CartItem[] => {
     const saved = localStorage.getItem(storageKey(userId));
     if (!saved) return [];
     const parsed: CartItem[] = JSON.parse(saved);
-    return parsed.map((i) => ({
-      ...i,
-      listing: {
-        ...i.listing,
-        shippingCost: i.listing.shippingCost ?? 0,
-        handlingTime: i.listing.handlingTime ?? "Ships in 1-3 days",
-      },
-    }));
+    return parsed
+      .filter((i) => i.listing && i.listing.id) // safety check
+      .map((i) => ({
+        ...i,
+        listing: {
+          ...i.listing,
+          shippingCost: i.listing.shippingCost ?? 0,
+          handlingTime: i.listing.handlingTime ?? "Ships in 1-3 days",
+        },
+      }));
   } catch { return []; }
 };
 
@@ -124,7 +127,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const remoteItems: CartItem[] = data
-      .filter((row) => activeIds.has(row.sneaker_id))
+      .filter((row) => activeIds.has(row.sneaker_id) && row.sneaker_data) // safety
       .map((row) => ({
         listing: {
           ...(row.sneaker_data as CartItem["listing"]),
@@ -135,7 +138,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         quantity: row.quantity,
       }));
 
-    const guestItems = loadFromStorage();
+    const guestItems = loadFromStorage().filter((i) => i.listing && i.listing.id);
     const merged = [...remoteItems];
 
     for (const local of guestItems) {
@@ -220,9 +223,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           )
         : [...prev, { listing, size, quantity: 1 }];
 
-      try {
-        localStorage.setItem(storageKey(user?.id), JSON.stringify(updatedItems));
-      } catch {}
+      try { localStorage.setItem(storageKey(user?.id), JSON.stringify(updatedItems)); } catch {}
 
       upsertRemote(listing, size, newQuantity).catch((err) =>
         console.warn("Failed to sync cart:", err)
@@ -236,7 +237,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     deleteRemote(id, size);
     setItems((prev) => {
       const updatedItems = prev.filter(
-        (i) => !(i.listing.id === id && sizeKey(i.size) === sizeKey(size))
+        (i) => !(i.listing?.id === id && sizeKey(i.size) === sizeKey(size))
       );
       try { localStorage.setItem(storageKey(user?.id), JSON.stringify(updatedItems)); } catch {}
       return updatedItems;
@@ -249,7 +250,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     try { localStorage.removeItem(storageKey(user?.id)); } catch {}
   };
 
-  const totalPrice = items.reduce((sum, i) => sum + i.listing.price * i.quantity, 0);
+  const totalPrice = items.reduce((sum, i) => sum + (i.listing?.price ?? 0) * i.quantity, 0);
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
 
   return (
