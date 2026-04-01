@@ -17,7 +17,7 @@ import SneakerCard from "@/components/SneakerCard";
 import ChatModal from "@/components/ChatModal";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { CATEGORY_EMOJI } from "@/data/sneakers";
+import { CATEGORY_SVGS } from "@/data/sneakers";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -43,8 +43,8 @@ const getSizeLabel = (cat: string) => {
   return null; // watches, bags, jewellery etc. — no size selector
 };
 
-// Fallback emoji when there's no image
-const getFallbackEmoji = (cat: string) => CATEGORY_EMOJI[cat] ?? "🛍️";
+// Fallback SVG when there's no image
+const getFallbackSvg = (cat: string) => CATEGORY_SVGS[cat] ?? "/categoryicons/other.svg";
 
 // Share message copy
 const getShareText = (listing: any) =>
@@ -438,7 +438,7 @@ const ProductDetail = () => {
   const isSeller = user?.role === "seller";
   const sellerBlocked = isSeller && tier !== "official";
   const sizeLabel = getSizeLabel(listing.category);
-  const fallbackEmoji = getFallbackEmoji(listing.category);
+  const fallbackSvg = getFallbackSvg(listing.category);
 
   // Sizes from DB are stored as text[] after migration; parse to number for sneakers
   const parsedSizes = isSneakerCategory(listing.category)
@@ -480,7 +480,7 @@ const ProductDetail = () => {
             style={{ borderColor: tier === "official" ? "rgba(109,40,217,0.3)" : tier === "verified" ? "rgba(34,197,94,0.2)" : undefined }}>
             {activeImage
               ? <img src={detailImage(activeImage)} alt={listing.name} className="w-full h-full object-cover" />
-              : <span className="text-8xl">{fallbackEmoji}</span>
+              : <img src={fallbackSvg} alt={listing.category} className="w-20 h-20 text-muted-foreground" />
             }
             {tier === "official" && (
               <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"

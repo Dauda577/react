@@ -27,12 +27,12 @@ const Animate = ({
 
 // Hero category pills — one per group, derived from PRODUCT_CATEGORIES
 const HERO_CATEGORIES = [
-  { label: "Sneakers",    emoji: "👟"  },
-  { label: "Watches",     emoji: "⌚"  },
-  { label: "Tops",        emoji: "👕"  },
-  { label: "Bags",        emoji: "👜"  },
-  { label: "Jewellery",   emoji: "💍"  },
-  { label: "Accessories", emoji: "🕶️" },
+  { label: "Sneakers",    svg: "/categoryicons/sneakers.svg"    },
+  { label: "Watches",     svg: "/categoryicons/watches.svg"     },
+  { label: "Tops",        svg: "/categoryicons/tops.svg"        },
+  { label: "Bags",        svg: "/categoryicons/bags.svg"        },
+  { label: "Jewellery",   svg: "/categoryicons/jewellery.svg"   },
+  { label: "Accessories", svg: "/categoryicons/accessories.svg" },
 ];
 
 const TRUST_ITEMS = [
@@ -309,7 +309,7 @@ const Index = () => {
                 to={`/shop?category=${c.label}`}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-xs font-medium text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/5 transition-all"
               >
-                <span>{c.emoji}</span> {c.label}
+                <img src={c.svg} alt={c.label} className="w-4 h-4" /> {c.label}
               </Link>
             ))}
           </div>

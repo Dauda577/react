@@ -4,7 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
 export type CartItem = {
-  sneaker: {
+  listing: {
     id: string;
     name: string;
     brand: string;
@@ -48,7 +48,7 @@ export function groupBySeller(items: CartItem[]): SellerGroup[] {
     const {
       sellerId, sellerName, sellerVerified, sellerIsOfficial,
       sellerSubaccountCode, sellerCity, sellerRegion, shippingCost, handlingTime,
-    } = item.sneaker;
+    } = item.listing;
     const tier = sellerIsOfficial ? "official" : sellerVerified ? "verified" : "standard";
     if (!map.has(sellerId)) {
       map.set(sellerId, {
@@ -64,14 +64,14 @@ export function groupBySeller(items: CartItem[]): SellerGroup[] {
     }
     const group = map.get(sellerId)!;
     group.items.push(item);
-    group.total += item.sneaker.price * item.quantity;
+    group.total += item.listing.price * item.quantity;
   }
   return Array.from(map.values());
 }
 
 type CartContextType = {
   items: CartItem[];
-  addItem: (sneaker: CartItem["sneaker"], size: string | number) => void;
+  addItem: (listing: CartItem["listing"], size: string | number) => void;
   removeItem: (id: string, size: string | number) => void;
   clearCart: () => void;
   totalPrice: number;
@@ -90,10 +90,10 @@ const loadFromStorage = (userId?: string): CartItem[] => {
     // Sanitize old items that may be missing new fields
     return parsed.map((i) => ({
       ...i,
-      sneaker: {
-        ...i.sneaker,
-        shippingCost: i.sneaker.shippingCost ?? 0,
-        handlingTime: i.sneaker.handlingTime ?? "Ships in 1-3 days",
+      listing: {
+        ...i.listing,
+        shippingCost: i.listing.shippingCost ?? 0,
+        handlingTime: i.listing.handlingTime ?? "Ships in 1-3 days",
       },
     }));
   } catch { return []; }
@@ -135,8 +135,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const remoteItems: CartItem[] = data
       .filter((row) => activeIds.has(row.sneaker_id))
       .map((row) => ({
-        sneaker: {
-          ...(row.sneaker_data as CartItem["sneaker"]),
+        listing: {
+          ...(row.sneaker_data as CartItem["listing"]),
           shippingCost: (row.sneaker_data as any).shippingCost ?? 0,
           handlingTime: (row.sneaker_data as any).handlingTime ?? "Ships in 1-3 days",
         },
@@ -150,16 +150,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     const merged = [...remoteItems];
 
     for (const local of guestItems) {
-      if (!activeIds.has(local.sneaker.id)) continue;
+      if (!activeIds.has(local.listing.id)) continue;
       const exists = merged.find(
-        (r) => r.sneaker.id === local.sneaker.id && sizeKey(r.size) === sizeKey(local.size)
+        (r) => r.listing.id === local.listing.id && sizeKey(r.size) === sizeKey(local.size)
       );
       if (!exists) {
         merged.push(local);
         await supabase.from("carts").upsert({
           user_id: userId,
-          sneaker_id: local.sneaker.id,
-          sneaker_data: local.sneaker,
+          sneaker_id: local.listing.id,
+          sneaker_data: local.listing,
           size: sizeKey(local.size),
           quantity: local.quantity,
         }, { onConflict: "user_id,sneaker_id,size" });
@@ -188,23 +188,23 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   }, [items, synced]);
 
   // ── Sync helpers ─────────────────────────────────────────────────────────
-  const upsertRemote = async (sneaker: CartItem["sneaker"], size: string | number, quantity: number) => {
+  const upsertRemote = async (listing: CartItem["listing"], size: string | number, quantity: number) => {
     if (!user?.id) return;
     await supabase.from("carts").upsert({
       user_id: user.id,
-      sneaker_id: sneaker.id,
-      sneaker_data: sneaker,
+      sneaker_id: listing.id,
+      sneaker_data: listing,
       size: sizeKey(size),   // always store as string
       quantity,
     }, { onConflict: "user_id,sneaker_id,size" });
   };
 
-  const deleteRemote = async (sneakerId: string, size: string | number) => {
+  const deleteRemote = async (listingId: string, size: string | number) => {
     if (!user?.id) return;
     await supabase.from("carts")
       .delete()
       .eq("user_id", user.id)
-      .eq("sneaker_id", sneakerId)
+      .eq("sneaker_id", listingId)
       .eq("size", sizeKey(size));
   };
 
@@ -214,7 +214,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // ── Actions ──────────────────────────────────────────────────────────────
-  const addItem = (sneaker: CartItem["sneaker"], size: string | number) => {
+  const addItem = (listing: CartItem["listing"], size: string | number) => {
     if (activeModeRef.current === "seller") {
       toast.error("Please switch to Buyer mode to add items to cart", {
         description: "Use the Buy/Sell toggle in the navbar",
@@ -226,29 +226,29 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     setItems((prev) => {
       const existing = prev.find(
-        (i) => i.sneaker.id === sneaker.id && sizeKey(i.size) === sizeKey(size)
+        (i) => i.listing.id === listing.id && sizeKey(i.size) === sizeKey(size)
       );
       const newQuantity = existing ? existing.quantity + 1 : 1;
 
-      upsertRemote(sneaker, size, newQuantity).catch((err) =>
+      upsertRemote(listing, size, newQuantity).catch((err) =>
         console.warn("Failed to sync cart:", err)
       );
 
       if (existing) {
         return prev.map((i) =>
-          i.sneaker.id === sneaker.id && sizeKey(i.size) === sizeKey(size)
+          i.listing.id === listing.id && sizeKey(i.size) === sizeKey(size)
             ? { ...i, quantity: newQuantity }
             : i
         );
       }
-      return [...prev, { sneaker, size, quantity: 1 }];
+      return [...prev, { listing, size, quantity: 1 }];
     });
   };
 
   const removeItem = (id: string, size: string | number) => {
     deleteRemote(id, size);
     setItems((prev) =>
-      prev.filter((i) => !(i.sneaker.id === id && sizeKey(i.size) === sizeKey(size)))
+      prev.filter((i) => !(i.listing.id === id && sizeKey(i.size) === sizeKey(size)))
     );
   };
 
@@ -258,7 +258,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     try { localStorage.removeItem(storageKey(user?.id)); } catch {}
   };
 
-  const totalPrice = items.reduce((sum, i) => sum + i.sneaker.price * i.quantity, 0);
+  const totalPrice = items.reduce((sum, i) => sum + i.listing.price * i.quantity, 0);
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
 
   return (

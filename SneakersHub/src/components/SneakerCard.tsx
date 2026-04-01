@@ -5,7 +5,7 @@ import { Heart, Zap, Sparkles, BadgeCheck } from "lucide-react";
 import { useSaved } from "@/context/SavedContext";
 import { cardImage } from "@/lib/imageutils";
 import { toast } from "sonner";
-import { CATEGORY_EMOJI } from "@/data/sneakers";
+import { CATEGORY_SVGS } from "@/data/sneakers";
 
 interface SneakerCardSneaker {
   id: string;
@@ -31,8 +31,8 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
   const { toggleSaved, isSaved } = useSaved();
   const saved = isSaved(sneaker.id);
 
-  // Show a relevant emoji when there's no image, based on category
-  const fallbackEmoji = CATEGORY_EMOJI[sneaker.category] ?? "📦";
+  // Show a relevant SVG when there's no image, based on category
+  const fallbackSvg = CATEGORY_SVGS[sneaker.category] ?? "/categoryicons/other.svg";
 
   const handleSave = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -95,7 +95,7 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
                   (e.target as HTMLImageElement).style.display = "none";
                 }}
               />
-            : <span className="text-6xl">{fallbackEmoji}</span>
+            : <img src={fallbackSvg} alt={sneaker.category} className="w-16 h-16 text-muted-foreground" />
           }
 
           <div className="absolute top-3 left-3 flex gap-2 flex-wrap">

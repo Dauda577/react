@@ -104,24 +104,29 @@ export type ProductCategory =
 export const PRODUCT_CATEGORIES: {
   label: ProductCategory;
   emoji: string;
+  svg: string;
   group: string;
 }[] = [
-  { label: "Sneakers",    emoji: "👟",  group: "Footwear"    },
-  { label: "Watches",     emoji: "⌚",  group: "Watches"     },
-  { label: "Tops",        emoji: "👕",  group: "Clothes"     },
-  { label: "Bottoms",     emoji: "👖",  group: "Clothes"     },
-  { label: "Outerwear",   emoji: "🧥",  group: "Clothes"     },
-  { label: "Activewear",  emoji: "🩱",  group: "Clothes"     },
-  { label: "Bags",        emoji: "👜",  group: "Bags"        },
-  { label: "Jewellery",   emoji: "💍",  group: "Accessories" },
-  { label: "Accessories", emoji: "🕶️", group: "Accessories" },
-  { label: "Other",       emoji: "📦",  group: "Other"       },
+  { label: "Sneakers",    emoji: "👟",  svg: "/categoryicons/sneakers.svg",    group: "Footwear"    },
+  { label: "Watches",     emoji: "⌚",  svg: "/categoryicons/watches.svg",     group: "Watches"     },
+  { label: "Tops",        emoji: "👕",  svg: "/categoryicons/tops.svg",        group: "Clothes"     },
+  { label: "Bottoms",     emoji: "👖",  svg: "/categoryicons/bottoms.svg",     group: "Clothes"     },
+  { label: "Outerwear",   emoji: "🧥",  svg: "/categoryicons/outerwear.svg",   group: "Clothes"     },
+  { label: "Activewear",  emoji: "🩱",  svg: "/categoryicons/activewear.svg",  group: "Clothes"     },
+  { label: "Bags",        emoji: "👜",  svg: "/categoryicons/bags.svg",        group: "Bags"        },
+  { label: "Jewellery",   emoji: "💍",  svg: "/categoryicons/jewellery.svg",   group: "Accessories" },
+  { label: "Accessories", emoji: "🕶️", svg: "/categoryicons/accessories.svg", group: "Accessories" },
+  { label: "Other",       emoji: "📦",  svg: "/categoryicons/other.svg",       group: "Other"       },
 ];
 
 export const CATEGORY_LABELS: string[] = PRODUCT_CATEGORIES.map((c) => c.label);
 
 export const CATEGORY_EMOJI: Record<string, string> = Object.fromEntries(
   PRODUCT_CATEGORIES.map((c) => [c.label, c.emoji])
+);
+
+export const CATEGORY_SVGS: Record<string, string> = Object.fromEntries(
+  PRODUCT_CATEGORIES.map((c) => [c.label, c.svg])
 );
 
 // Legacy export — keeps any file that still imports `categories` working

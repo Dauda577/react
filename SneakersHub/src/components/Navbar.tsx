@@ -12,11 +12,11 @@ import { PRODUCT_CATEGORIES } from "@/data/sneakers";
 // Quick-access category shortcuts shown in the mobile menu
 // One representative per group keeps it scannable
 const QUICK_CATEGORIES = [
-  { label: "Sneakers",     emoji: "👟" },
-  { label: "Watches",      emoji: "⌚" },
-  { label: "Tops",         emoji: "👕" },
-  { label: "Bags",         emoji: "👜" },
-  { label: "Accessories",  emoji: "🕶️" },
+  { label: "Sneakers",     svg: "/categoryicons/sneakers.svg"    },
+  { label: "Watches",      svg: "/categoryicons/watches.svg"     },
+  { label: "Tops",         svg: "/categoryicons/tops.svg"        },
+  { label: "Bags",         svg: "/categoryicons/bags.svg"        },
+  { label: "Accessories",  svg: "/categoryicons/accessories.svg" },
 ];
 
 const Navbar = () => {
@@ -204,7 +204,7 @@ const Navbar = () => {
                         onClick={() => setMobileOpen(false)}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-xs font-medium text-muted-foreground hover:border-primary hover:text-primary transition-all"
                       >
-                        <span>{c.emoji}</span> {c.label}
+                        <img src={c.svg} alt={c.label} className="w-4 h-4" /> {c.label}
                       </Link>
                     ))}
                   </div>

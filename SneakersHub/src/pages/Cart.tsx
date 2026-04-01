@@ -42,7 +42,7 @@ const Cart = () => {
   // ✅ FIX: Check for own items before checkout
   const handleCheckout = () => {
     // Check if any item in cart belongs to the user
-    const hasOwnItem = items.some(item => item.sneaker.sellerId === user?.id);
+    const hasOwnItem = items.some(item => item.listing.sellerId === user?.id);
     
     if (hasOwnItem) {
       toast.error("You cannot purchase your own items", {
@@ -89,25 +89,25 @@ const Cart = () => {
             <AnimatePresence>
               {items.map((item) => (
                 <motion.div
-                  key={`${item.sneaker.id}-${item.size}`}
+                  key={`${item.listing.id}-${item.size}`}
                   layout
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20, height: 0 }}
                   className="flex items-center gap-4 p-4 rounded-xl bg-card border border-border"
                 >
-                  <Link to={`/product/${item.sneaker.id}`} className="w-20 h-20 bg-secondary rounded-lg flex-shrink-0 flex items-center justify-center p-2">
-                    <img src={thumbImage(item.sneaker.image)} alt={item.sneaker.name} className="w-full h-full object-contain" />
+                  <Link to={`/product/${item.listing.id}`} className="w-20 h-20 bg-secondary rounded-lg flex-shrink-0 flex items-center justify-center p-2">
+                    <img src={thumbImage(item.listing.image)} alt={item.listing.name} className="w-full h-full object-contain" />
                   </Link>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs text-muted-foreground uppercase tracking-widest">{item.sneaker.brand}</p>
-                    <p className="font-display font-semibold truncate">{item.sneaker.name}</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-widest">{item.listing.brand}</p>
+                    <p className="font-display font-semibold truncate">{item.listing.name}</p>
                     <p className="text-sm text-muted-foreground">Size {item.size} · Qty {item.quantity}</p>
                   </div>
                   <div className="flex items-center gap-4">
-                    <p className="font-display font-bold">GHS {item.sneaker.price * item.quantity}</p>
+                    <p className="font-display font-bold">GHS {item.listing.price * item.quantity}</p>
                     <button
-                      onClick={() => removeItem(item.sneaker.id, item.size)}
+                      onClick={() => removeItem(item.listing.id, item.size)}
                       className="text-muted-foreground hover:text-destructive transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />

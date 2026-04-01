@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useListings, boostDaysLeft, isBoostActive, type Listing } from "@/context/ListingContext";
-import { CATEGORY_EMOJI } from "@/data/sneakers";
+import { CATEGORY_SVGS } from "@/data/sneakers";
 import { itemVariant, fadeUp } from "../Account/accountHelpers";
 import { toast } from "sonner";
 
@@ -188,7 +188,7 @@ const AccountListings = memo(({
       <div className="space-y-3">
         <AnimatePresence>
           {listings.map((listing, i) => {
-            const fallbackEmoji = CATEGORY_EMOJI[listing.category] ?? "📦";
+            const fallbackSvg = CATEGORY_SVGS[listing.category] ?? "/categoryicons/other.svg";
             return (
               <motion.div key={listing.id} {...itemVariant(i)}
                 className={`rounded-2xl border p-4 transition-colors group
@@ -197,7 +197,7 @@ const AccountListings = memo(({
                   <div className="w-16 h-16 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0 overflow-hidden">
                     {listing.image
                       ? <img src={listing.image} alt={listing.name} className="w-full h-full object-contain p-1" />
-                      : <span className="text-2xl">{fallbackEmoji}</span>
+                      : <img src={fallbackSvg} alt={listing.category} className="w-6 h-6 text-muted-foreground" />
                     }
                   </div>
                   <div className="flex-1 min-w-0">

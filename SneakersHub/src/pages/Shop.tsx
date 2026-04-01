@@ -7,17 +7,17 @@ import Footer from "@/components/Footer";
 import SneakerCard from "@/components/SneakerCard";
 import { usePublicListings } from "@/context/PublicListingsContext";
 import { Button } from "@/components/ui/button";
-import { PRODUCT_CATEGORIES, CATEGORY_EMOJI } from "@/data/sneakers";
+import { PRODUCT_CATEGORIES, CATEGORY_EMOJI, CATEGORY_SVGS } from "@/data/sneakers";
 
 // ─── Config ────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 30;
 
-const GROUPED_PILLS: { label: string; emoji: string; groupStart?: string }[] = [
-  { label: "All", emoji: "🛍️" },
+const GROUPED_PILLS: { label: string; svg: string; groupStart?: string }[] = [
+  { label: "All", svg: "/categoryicons/all.svg" },
   ...PRODUCT_CATEGORIES.map((c, i, arr) => ({
     label: c.label,
-    emoji: c.emoji,
+    svg: c.svg,
     groupStart: i === 0 || c.group !== arr[i - 1].group ? c.group : undefined,
   })),
 ];
@@ -89,7 +89,7 @@ const Shop = () => {
   const visible = filtered.slice(0, visibleCount);
   const hasMore = visibleCount < filtered.length;
 
-  const emptyEmoji = CATEGORY_EMOJI[category] ?? "🛍️";
+  const emptySvg = CATEGORY_SVGS[category] ?? "/categoryicons/all.svg";
 
   // Pill row scroll helpers
   const scrollPills = (dir: "left" | "right") => {
@@ -153,7 +153,7 @@ const Shop = () => {
                         : "border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"
                       }`}
                   >
-                    <span className="text-base leading-none">{pill.emoji}</span>
+                    <img src={pill.svg} alt={pill.label} className="w-4 h-4" />
                     {pill.label}
                   </button>
                 </div>
@@ -217,7 +217,7 @@ const Shop = () => {
             <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
               {search
                 ? <Package className="w-7 h-7 text-primary" />
-                : <span className="text-3xl">{emptyEmoji}</span>
+                : <img src={emptySvg} alt={category} className="w-7 h-7 text-primary" />
               }
             </div>
             <p className="font-display font-bold text-lg mb-1">No listings found</p>
