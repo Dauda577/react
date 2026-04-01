@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useRef, ReactNode } fro
 import { supabase } from "@/lib/supabase";
 
 export type PublicListing = {
+  [x: string]: string | number | Date;
   id: string;
   sellerId: string;
   sellerName: string;
