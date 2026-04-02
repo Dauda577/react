@@ -32,19 +32,47 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 const CACHE_KEY = "sneakershub-user";
+const COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days
+
+const getCookie = (name: string): string | null => {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(new RegExp(`(^|; )${name}=([^;]*)`));
+  return match ? decodeURIComponent(match[2]) : null;
+};
+
+const setCookie = (name: string, value: string, maxAge = COOKIE_MAX_AGE) => {
+  if (typeof document === "undefined") return;
+  const expires = `max-age=${maxAge}; path=/; samesite=strict`; 
+  document.cookie = `${name}=${encodeURIComponent(value)}; ${expires}`;
+};
+
+const deleteCookie = (name: string) => {
+  if (typeof document === "undefined") return;
+  document.cookie = `${name}=; max-age=0; path=/; samesite=strict`;
+};
 
 const getCachedUser = (): User | null => {
   try {
+    const cookieValue = getCookie(CACHE_KEY);
+    if (cookieValue) {
+      return JSON.parse(cookieValue) as User;
+    }
     const cached = localStorage.getItem(CACHE_KEY);
-    return cached ? JSON.parse(cached) : null;
+    return cached ? JSON.parse(cached) as User : null;
   } catch { return null; }
 };
 
 const setCachedUser = (u: User | null) => {
   try {
-    if (u) localStorage.setItem(CACHE_KEY, JSON.stringify(u));
-    else localStorage.removeItem(CACHE_KEY);
-  } catch {}
+    if (u) {
+      const serialized = JSON.stringify(u);
+      localStorage.setItem(CACHE_KEY, serialized);
+      setCookie(CACHE_KEY, serialized, COOKIE_MAX_AGE);
+    } else {
+      localStorage.removeItem(CACHE_KEY);
+      deleteCookie(CACHE_KEY);
+    }
+  } catch {};
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -419,6 +447,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsGuest(false);
     setNeedsRole(false);
     setPendingSession(null);
+    deleteCookie(CACHE_KEY);
   };
 
   return (
