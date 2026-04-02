@@ -1,4 +1,4 @@
-import React, { memo } from "react";
+import React, { memo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
@@ -43,6 +43,7 @@ const AccountProfile = memo(({
 }: Props) => {
   const navigate = useNavigate();
   const { getSellerStats } = useRatings();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const initials = user?.name
     ? user.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
@@ -62,7 +63,7 @@ const AccountProfile = memo(({
           Sign In / Sign Up <ArrowRight className="ml-1.5 w-3.5 h-3.5" />
         </Button>
       </div>
-      <button onClick={onLogout} className="text-sm text-red-500 flex items-center gap-1.5 hover:opacity-70 transition-opacity">
+      <button onClick={() => setShowLogoutConfirm(true)} className="text-sm text-red-500 flex items-center gap-1.5 hover:opacity-70 transition-opacity">
         <LogOut className="w-3.5 h-3.5" /> Exit guest mode
       </button>
     </div>
@@ -147,7 +148,7 @@ const AccountProfile = memo(({
               <Pencil className="mr-1.5 w-3.5 h-3.5" /> Edit Profile
             </Button>
         }
-        <button onClick={onLogout} className="text-sm text-red-500 flex items-center gap-1.5 hover:opacity-70 transition-opacity">
+        <button onClick={() => setShowLogoutConfirm(true)} className="text-sm text-red-500 flex items-center gap-1.5 hover:opacity-70 transition-opacity">
           <LogOut className="w-3.5 h-3.5" /> Sign out
         </button>
       </div>
@@ -260,6 +261,48 @@ const AccountProfile = memo(({
           )}
         </div>
       )}
+
+      <AnimatePresence>
+        {showLogoutConfirm && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowLogoutConfirm(false)}
+          >
+            <motion.div
+              className="w-full max-w-md rounded-2xl bg-background border border-border p-5 shadow-2xl"
+              initial={{ opacity: 0, y: 12, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.98 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-lg font-semibold mb-2">Confirm Sign Out</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Are you sure you want to sign out? You will need to log in again to access your account.
+              </p>
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className="rounded-xl border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted/10 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    setShowLogoutConfirm(false);
+                    onLogout();
+                  }}
+                  className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 transition"
+                >
+                  Sign out
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 });
