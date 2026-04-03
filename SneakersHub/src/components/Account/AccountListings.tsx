@@ -1,9 +1,9 @@
-import React, { memo, lazy, Suspense } from "react";
+import React, { memo, lazy, Suspense, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
   Store, Plus, Eye, Tag, Pencil, Trash2, Zap, Sparkles,
-  AlertTriangle, Wallet, X, Camera, Type, DollarSign, Ruler,
+  AlertTriangle, Wallet, X, Camera, Type, DollarSign, Ruler, Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useListings, boostDaysLeft, isBoostActive, type Listing } from "@/context/ListingContext";
@@ -114,6 +114,15 @@ const AccountListings = memo(({
 }: Props) => {
   const navigate = useNavigate();
   const { deleteListing } = useListings();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredListings = listings.filter((listing) => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return true;
+    return [listing.name, listing.brand, listing.category, listing.status]
+      .filter(Boolean)
+      .some((value) => value.toLowerCase().includes(q));
+  });
 
   const dismissBanner = () => {
     setShowFirstListingBanner(false);
@@ -157,8 +166,8 @@ const AccountListings = memo(({
       <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
         <div>
           <p className="text-sm text-muted-foreground">
-            <span className="text-foreground font-semibold">{listings.filter(l => l.status === "active").length}</span> active{" · "}
-            <span className="text-muted-foreground">{listings.filter(l => l.status === "sold").length} sold</span>
+            <span className="text-foreground font-semibold">{filteredListings.filter(l => l.status === "active").length}</span> active{" · "}
+            <span className="text-muted-foreground">{filteredListings.filter(l => l.status === "sold").length} sold</span>
           </p>
           {!isVerified && !isOfficial && (
             <p className="text-xs text-muted-foreground mt-1">
@@ -178,6 +187,18 @@ const AccountListings = memo(({
         )}
       </div>
 
+      {listings.length > 0 && (
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-border bg-background mb-5">
+          <Search className="w-3.5 h-3.5 text-muted-foreground" />
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search your listings..."
+            className="bg-transparent text-sm flex-1 outline-none placeholder:text-muted-foreground font-[inherit]"
+          />
+        </div>
+      )}
+
       {listings.length === 0 && !showFirstListingBanner && <FirstListingEmptyState onStart={startListing} />}
       {listings.length === 0 && showFirstListingBanner && (
         <div className="text-center py-10 text-muted-foreground text-sm">
@@ -185,9 +206,13 @@ const AccountListings = memo(({
         </div>
       )}
 
+      {listings.length > 0 && filteredListings.length === 0 && (
+        <div className="text-center py-16 text-sm text-muted-foreground">No listings match your search.</div>
+      )}
+
       <div className="space-y-3">
         <AnimatePresence>
-          {listings.map((listing, i) => {
+          {filteredListings.map((listing, i) => {
             const fallbackSvg = CATEGORY_SVGS[listing.category] ?? "/categoryicons/other.svg";
             return (
               <motion.div key={listing.id} {...itemVariant(i)}
