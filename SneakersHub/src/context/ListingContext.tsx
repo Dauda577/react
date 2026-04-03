@@ -49,7 +49,13 @@ const rowToListing = (r: ListingRow): Listing => ({
   brand: r.brand,
   price: r.price,
   category: r.category,
-  sizes: r.sizes,
+  sizes: Array.isArray(r.sizes)
+    ? (r.category === "Sneakers"
+      ? (r.sizes as (string | number)[])
+          .map((s) => Number(s))
+          .filter((n) => !Number.isNaN(n))
+      : (r.sizes as (string | number)[]).map((s) => String(s)))
+    : [],
   description: r.description ?? "",
   image: r.image_url,
   status: r.status,

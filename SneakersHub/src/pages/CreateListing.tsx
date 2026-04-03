@@ -188,8 +188,18 @@ const CreateListing = () => {
 
   const [isVerifiedSeller, setIsVerifiedSeller] = useState(false);
 
-  const [selectedSizes, setSelectedSizes] = useState<number[]>(editing?.sizes ?? []);
-  const [selectedClothingSizes, setSelectedClothingSizes] = useState<string[]>([]);
+  const initialSelectedSizes = editing?.sizes && usesSneakerSizes(editing.category)
+    ? (editing.sizes as (string | number)[])
+        .map((s) => Number(s))
+        .filter((s) => !Number.isNaN(s))
+    : [];
+
+  const initialSelectedClothingSizes = editing?.sizes && usesClothingSizes(editing.category)
+    ? (editing.sizes as (string | number)[]).map((s) => String(s))
+    : [];
+
+  const [selectedSizes, setSelectedSizes] = useState<number[]>(initialSelectedSizes);
+  const [selectedClothingSizes, setSelectedClothingSizes] = useState<string[]>(initialSelectedClothingSizes);
 
   const [images, setImages] = useState<string[]>(editing?.image ? [editing.image] : []);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
@@ -265,10 +275,13 @@ const CreateListing = () => {
       return;
     }
 
+    const uniqueSneakerSizes = Array.from(new Set(selectedSizes.map(Number))).sort((a, b) => a - b);
+    const uniqueClothingSizes = Array.from(new Set(selectedClothingSizes.map(String)));
+
     const sizesToSave = usesSneakerSizes(category)
-      ? selectedSizes.map(String)
+      ? uniqueSneakerSizes.map(String)
       : usesClothingSizes(category)
-        ? selectedClothingSizes
+        ? uniqueClothingSizes
         : [];
 
     console.log("imageFiles at submit:", imageFiles.length, imageFiles[0]?.name);
