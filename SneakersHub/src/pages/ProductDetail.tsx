@@ -18,6 +18,7 @@ import ChatModal from "@/components/ChatModal";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { CATEGORY_SVGS } from "@/data/sneakers";
+import { supabase } from "@/lib/supabase";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -29,24 +30,19 @@ const getSellerTier = (isOfficial: boolean, isVerified: boolean): SellerTier => 
   return "standard";
 };
 
-// Whether this category uses EU numeric shoe sizes
 const isSneakerCategory = (cat: string) => cat === "Sneakers";
 
-// Whether this category uses clothing letter sizes
 const isClothingCategory = (cat: string) =>
   ["Tops", "Bottoms", "Outerwear", "Activewear"].includes(cat);
 
-// Size section label
 const getSizeLabel = (cat: string) => {
   if (isSneakerCategory(cat)) return "Size (EU)";
   if (isClothingCategory(cat)) return "Size";
-  return null; // watches, bags, jewellery etc. — no size selector
+  return null;
 };
 
-// Fallback SVG when there's no image
 const getFallbackSvg = (cat: string) => CATEGORY_SVGS[cat] ?? "/categoryicons/other.svg";
 
-// Share message copy
 const getShareText = (listing: any) =>
   `Check out this ${listing.name} on SneakersHub — GHS ${listing.price.toLocaleString()}`;
 
@@ -333,11 +329,13 @@ const ProductDetail = () => {
   const { addItem } = useCart();
   const { user, isGuest, loading: authLoading, activeMode } = useAuth();
 
-  // Selected size is string | number depending on category
   const [selectedSize, setSelectedSize] = useState<string | number | null>(null);
   const [added, setAdded] = useState(false);
   const [showGuestModal, setShowGuestModal] = useState(false);
   const [showChat, setShowChat] = useState(false);
+
+  // ── Seller avatar fetched from profiles table ──────────────────────────────
+  const [sellerAvatarUrl, setSellerAvatarUrl] = useState<string | null>(null);
 
   const listing = listings.find((l) => l.id === id);
   const related = listings.filter((l) => l.id !== id && l.category === listing?.category).slice(0, 8);
@@ -349,6 +347,19 @@ const ProductDetail = () => {
 
   useEffect(() => {
     if (listing?.sellerId) fetchReviews(listing.sellerId);
+  }, [listing?.sellerId]);
+
+  // Fetch the seller's avatar_url from the profiles table
+  useEffect(() => {
+    if (!listing?.sellerId) return;
+    supabase
+      .from("profiles")
+      .select("avatar_url")
+      .eq("id", listing.sellerId)
+      .single()
+      .then(({ data }) => {
+        if (data?.avatar_url) setSellerAvatarUrl(data.avatar_url);
+      });
   }, [listing?.sellerId]);
 
   const { average, count } = listing ? getSellerStats(listing.sellerId) : { average: 0, count: 0 };
@@ -373,7 +384,6 @@ const ProductDetail = () => {
       return;
     }
 
-    // Require size only for categories that have sizes
     const sizeLabel = getSizeLabel(listing?.category ?? "");
     if (sizeLabel && !selectedSize) {
       toast.error("Please select a size");
@@ -440,10 +450,12 @@ const ProductDetail = () => {
   const sizeLabel = getSizeLabel(listing.category);
   const fallbackSvg = getFallbackSvg(listing.category);
 
-  // Sizes from DB are stored as text[] after migration; parse to number for sneakers
   const parsedSizes = isSneakerCategory(listing.category)
     ? listing.sizes.map(Number)
-    : listing.sizes; // string[] for clothing, empty for no-size categories
+    : listing.sizes;
+
+  // Seller avatar initials fallback
+  const sellerInitial = listing.sellerName?.[0]?.toUpperCase() ?? "S";
 
   return (
     <div className="min-h-screen bg-background">
@@ -528,7 +540,7 @@ const ProductDetail = () => {
 
             <p className="text-muted-foreground text-sm leading-relaxed">{listing.description}</p>
 
-            {/* Size selector — only shown for categories that have sizes */}
+            {/* Size selector */}
             {sizeLabel && parsedSizes.length > 0 && (
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
@@ -602,7 +614,7 @@ const ProductDetail = () => {
               </button>
             )}
 
-            {/* Seller card */}
+            {/* ── Seller card ── */}
             <div className="rounded-2xl border border-border p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sold by</p>
@@ -613,16 +625,25 @@ const ProductDetail = () => {
               </div>
 
               <div className="flex items-center gap-3">
-                <div className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 ${
+                {/* Avatar — real photo, falls back to initials */}
+                <div className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden ${
                   tier === "official"
                     ? "bg-gradient-to-br from-violet-900 to-indigo-900 border border-violet-500/30"
                     : "bg-primary/10"
                 }`}>
-                  {tier === "official"
-                    ? <Sparkles className="w-5 h-5" style={{ color: "#a78bfa" }} />
-                    : <span className="font-display text-sm font-bold text-primary">{listing.sellerName[0].toUpperCase()}</span>
-                  }
+                  {tier === "official" ? (
+                    <Sparkles className="w-5 h-5" style={{ color: "#a78bfa" }} />
+                  ) : sellerAvatarUrl ? (
+                    <img
+                      src={sellerAvatarUrl}
+                      alt={listing.sellerName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="font-display text-sm font-bold text-primary">{sellerInitial}</span>
+                  )}
                 </div>
+
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-semibold text-sm">{listing.sellerName}</p>
@@ -695,8 +716,8 @@ const ProductDetail = () => {
             <div className="flex items-center justify-between mb-6 gap-4">
               <h2 className="font-display text-2xl font-bold tracking-tight">More in {listing.category}</h2>
               <Link to={`/shop?category=${encodeURIComponent(listing.category)}`} className="text-sm text-primary font-semibold hover:opacity-70 transition-opacity flex-shrink-0">
-  View all →
-</Link>
+                View all →
+              </Link>
             </div>
 
             {/* Mobile: horizontal scroll */}
