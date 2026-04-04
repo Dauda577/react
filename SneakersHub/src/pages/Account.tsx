@@ -244,28 +244,24 @@ const Account = () => {
   const handleDeleteAccount = useCallback(async () => {
   if (!user?.id) return;
   try {
+    const { data: { session } } = await supabase.auth.getSession();
+    
     const { data, error } = await supabase.functions.invoke("delete-account", {
       body: { user_id: user.id },
+      headers: {
+        Authorization: `Bearer ${session?.access_token}`,
+      },
     });
 
-    // supabase.functions.invoke puts HTTP errors in `error`
-    if (error) {
-      console.error("[delete-account] Edge function error:", error);
+    if (error || !data?.success) {
       toast.error("Failed to delete account. Please contact support.");
-      return; // do NOT sign out — account still exists
-    }
-
-    if (!data?.success) {
-      toast.error("Deletion incomplete. Please contact support.");
       return;
     }
 
-    // Only sign out + redirect after confirmed deletion
     await supabase.auth.signOut();
     toast.success("Account deleted.");
     navigate("/");
   } catch (err: any) {
-    console.error("[delete-account] Unexpected error:", err);
     toast.error(err.message ?? "Failed to delete account");
   }
 }, [user?.id, navigate]);
