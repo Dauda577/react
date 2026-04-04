@@ -609,6 +609,72 @@ const AccountSettings = memo(({
         </div>
       </div>
 
+      {/* Payout details — verified sellers only, not official */}
+      {canSell && !isOfficial && (
+        <div className="rounded-2xl border border-border overflow-hidden">
+          <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border bg-muted/20">
+            <Wallet className="w-4 h-4 text-primary" />
+            <p className="font-display font-semibold text-sm">Payout Details</p>
+          </div>
+          <div className="p-5 space-y-4">
+            {isVerified && hasMissingPayoutDetails && (
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
+                <p className="text-xs font-semibold text-amber-600">Required — add these to receive your payouts.</p>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              {isVerified && subaccountCode
+                ? <>95% of every sale goes directly to your MoMo/bank via Paystack split. <span className="font-semibold text-foreground">SneakersHub keeps 5%</span> automatically.</>
+                : <>Add your payout details below. <span className="font-semibold text-foreground">SneakersHub takes 5% commission</span> per sale.</>
+              }
+              {!isVerified && <span className="block mt-1 text-[11px]">Only applies when you become a verified seller.</span>}
+            </p>
+
+            <div>
+              <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-2">Payout Method</label>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  { value: "momo_mtn",       label: "MTN MoMo"     },
+                  { value: "momo_telecel",    label: "Telecel Cash" },
+                  { value: "momo_airteltigo", label: "AirtelTigo"  },
+                ] as const).map(({ value, label }) => (
+                  <button key={value} onClick={() => setPayoutForm(p => ({ ...p, method: value, bankCode: "" }))}
+                    className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition-all text-xs font-semibold
+                      ${payoutForm.method === value ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground hover:border-primary/40"}`}>
+                    <CreditCard className={`w-4 h-4 ${payoutForm.method === value ? "text-primary" : ""}`} />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">MoMo Number</label>
+              <input
+                value={payoutForm.number}
+                onChange={e => setPayoutForm(p => ({ ...p, number: e.target.value }))}
+                placeholder="0244 000 000"
+                className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
+              />
+            </div>
+            <div>
+              <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Account Name</label>
+              <input
+                value={payoutForm.name}
+                onChange={e => setPayoutForm(p => ({ ...p, name: e.target.value }))}
+                placeholder="Name on account"
+                className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
+              />
+            </div>
+
+            <Button className="btn-primary rounded-full h-9 px-5 text-sm w-full" onClick={handleSavePayoutIntent}>
+              {payoutSaved ? <><CheckCircle className="w-3.5 h-3.5 mr-1.5" /> Saved!</> : "Save Payout Details"}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Privacy & Security */}
       <div className="rounded-2xl border border-border overflow-hidden">
         <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border bg-muted/20">
@@ -696,72 +762,6 @@ const AccountSettings = memo(({
           </div>
         </div>
       </div>
-
-      {/* Payout details — verified sellers only, not official */}
-      {canSell && !isOfficial && (
-        <div className="rounded-2xl border border-border overflow-hidden">
-          <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border bg-muted/20">
-            <Wallet className="w-4 h-4 text-primary" />
-            <p className="font-display font-semibold text-sm">Payout Details</p>
-          </div>
-          <div className="p-5 space-y-4">
-            {isVerified && hasMissingPayoutDetails && (
-              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
-                <p className="text-xs font-semibold text-amber-600">Required — add these to receive your payouts.</p>
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              {isVerified && subaccountCode
-                ? <>95% of every sale goes directly to your MoMo/bank via Paystack split. <span className="font-semibold text-foreground">SneakersHub keeps 5%</span> automatically.</>
-                : <>Add your payout details below. <span className="font-semibold text-foreground">SneakersHub takes 5% commission</span> per sale.</>
-              }
-              {!isVerified && <span className="block mt-1 text-[11px]">Only applies when you become a verified seller.</span>}
-            </p>
-
-            <div>
-              <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-2">Payout Method</label>
-              <div className="grid grid-cols-3 gap-2">
-                {([
-                  { value: "momo_mtn",       label: "MTN MoMo"     },
-                  { value: "momo_telecel",    label: "Telecel Cash" },
-                  { value: "momo_airteltigo", label: "AirtelTigo"  },
-                ] as const).map(({ value, label }) => (
-                  <button key={value} onClick={() => setPayoutForm(p => ({ ...p, method: value, bankCode: "" }))}
-                    className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition-all text-xs font-semibold
-                      ${payoutForm.method === value ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground hover:border-primary/40"}`}>
-                    <CreditCard className={`w-4 h-4 ${payoutForm.method === value ? "text-primary" : ""}`} />
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">MoMo Number</label>
-              <input
-                value={payoutForm.number}
-                onChange={e => setPayoutForm(p => ({ ...p, number: e.target.value }))}
-                placeholder="0244 000 000"
-                className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
-              />
-            </div>
-            <div>
-              <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Account Name</label>
-              <input
-                value={payoutForm.name}
-                onChange={e => setPayoutForm(p => ({ ...p, name: e.target.value }))}
-                placeholder="Name on account"
-                className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
-              />
-            </div>
-
-            <Button className="btn-primary rounded-full h-9 px-5 text-sm w-full" onClick={handleSavePayoutIntent}>
-              {payoutSaved ? <><CheckCircle className="w-3.5 h-3.5 mr-1.5" /> Saved!</> : "Save Payout Details"}
-            </Button>
-          </div>
-        </div>
-      )}
 
       <p className="text-center text-xs text-muted-foreground pb-4">SneakersHub v1.0 · Made in Ghana</p>
     </div>
