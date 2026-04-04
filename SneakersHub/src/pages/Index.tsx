@@ -227,7 +227,7 @@ const Index = () => {
 
   const featured    = listings.filter(isActiveBoost).slice(0, 6);
   // Show all recent listings in New Arrivals regardless of boost status
-  const newArrivals = listings.slice(0, 6);
+  const newArrivals = listings.filter((l) => !l.sellerIsOfficial).slice(0, 6);
   const heroImage   = listings.find((l) => l.image)?.image ?? FALLBACK_IMG;
 
   const toCardShape = (l: typeof listings[0], isBoosted = false) => ({
