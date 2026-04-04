@@ -377,13 +377,6 @@ const ProductDetail = () => {
       return;
     }
 
-    if (activeMode === "seller") {
-      toast.error("Please switch to Buyer mode to add items to cart", {
-        description: "Use the Buy/Sell toggle in the navbar", duration: 4000,
-      });
-      return;
-    }
-
     const sizeLabel = getSizeLabel(listing?.category ?? "");
     if (sizeLabel && !selectedSize) {
       toast.error("Please select a size");
@@ -446,7 +439,8 @@ const ProductDetail = () => {
   }
 
   const isSeller = user?.role === "seller";
-  const sellerBlocked = isSeller && tier !== "official";
+  const isOwnListing = !!user && listing?.sellerId === user.id;
+  const sellerBlocked = isOwnListing;
   const sizeLabel = getSizeLabel(listing.category);
   const fallbackSvg = getFallbackSvg(listing.category);
 
@@ -606,7 +600,7 @@ const ProductDetail = () => {
               </div>
             )}
 
-            {user && !isGuest && !isSeller && (
+            {user && !isGuest && !isOwnListing && (
               <button onClick={() => setShowChat(true)}
                 className="w-full h-12 rounded-full border border-border text-sm font-semibold
                   hover:bg-primary/5 hover:border-primary/40 transition-all flex items-center justify-center gap-2 text-foreground">
