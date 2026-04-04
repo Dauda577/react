@@ -334,40 +334,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       commission_rate: 5,
       verified: false,
       is_official: false,
-      // Save Google avatar so it shows on product pages immediately
       avatar_url: avatarUrl ?? null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
 
-    console.log("📝 Inserting profile:", profileData);
+    console.log("📝 Upserting profile:", profileData);
 
-    const { error } = await supabase.from("profiles").insert(profileData);
+    const { error } = await supabase.from("profiles").upsert(profileData, {
+      onConflict: "id",
+      ignoreDuplicates: false,
+    });
 
     if (error) {
-      console.error("❌ Profile insert error:", error);
-
-      if (error.code === "23505") {
-        console.log("🔄 Profile exists, trying update...");
-        const { error: updateError } = await supabase
-          .from("profiles")
-          .update({
-            phone,
-            role,
-            is_seller: role === "seller",
-            avatar_url: avatarUrl ?? null,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", id);
-
-        if (updateError) throw new Error(updateError.message);
-        console.log("✅ Profile updated successfully");
-      } else {
-        throw new Error(error.message);
-      }
-    } else {
-      console.log("✅ Profile created successfully");
+      console.error("❌ Profile upsert error:", error);
+      throw new Error(error.message);
     }
+
+    console.log("✅ Profile upserted successfully");
 
     setUser({
       id, name, email, role,
