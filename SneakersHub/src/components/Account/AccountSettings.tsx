@@ -47,7 +47,7 @@ const NotificationSettings = ({
       <div>
         <p className="text-sm font-semibold">Enable Notifications on Safari</p>
         <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-          Tap <span className="font-semibold text-blue-500">Share</span> ⎋ then{" "}
+          Tap <span className="font-semibold text-blue-500">Share</span> then{" "}
           <span className="font-semibold">"Add to Home Screen"</span> — then reopen from your home screen.
         </p>
       </div>
@@ -67,7 +67,7 @@ const NotificationSettings = ({
       <button
         onClick={async () => {
           const granted = await requestPermission();
-          if (granted) toast.success("🔔 Notifications enabled!");
+          if (granted) toast.success("Notifications enabled!");
           else toast("Enable in your browser settings.");
         }}
         className="px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold flex-shrink-0 hover:opacity-90 transition-opacity"
@@ -90,7 +90,7 @@ const NotificationSettings = ({
   if (pushPermission === "granted") return (
     <div className="px-5 py-3 flex items-center gap-2 bg-green-500/5 border-b border-border">
       <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-      <p className="text-xs text-green-600 font-medium">Push notifications are active ✓</p>
+      <p className="text-xs text-green-600 font-medium">Push notifications are active</p>
     </div>
   );
   return null;
@@ -98,13 +98,7 @@ const NotificationSettings = ({
 
 // ── Payout change confirmation modal ─────────────────────────────────────────
 const PayoutConfirmModal = ({
-  open,
-  oldNumber,
-  oldName,
-  newNumber,
-  newName,
-  onConfirm,
-  onCancel,
+  open, oldNumber, oldName, newNumber, newName, onConfirm, onCancel,
 }: {
   open: boolean;
   oldNumber: string;
@@ -116,18 +110,21 @@ const PayoutConfirmModal = ({
 }) => (
   <AnimatePresence>
     {open && (
-      <>
+      // Backdrop fills the whole viewport and centres its child with flexbox
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm"
+        onClick={onCancel}
+      >
+        {/* Modal card — stopPropagation keeps clicks inside from closing */}
         <motion.div
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
-          onClick={onCancel}
-        />
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 16 }}
+          initial={{ opacity: 0, scale: 0.95, y: 12 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 16 }}
+          exit={{ opacity: 0, scale: 0.95, y: 12 }}
           transition={{ type: "spring", damping: 28, stiffness: 320 }}
-          className="fixed inset-x-4 bottom-6 sm:inset-auto sm:left-1/2 sm:-translate-x-1/2 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 z-50 w-full sm:max-w-sm bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-5"
+          className="w-full max-w-sm bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-5"
           onClick={e => e.stopPropagation()}
         >
           <div className="flex items-center gap-3">
@@ -144,7 +141,9 @@ const PayoutConfirmModal = ({
             <div className="rounded-xl border border-border bg-muted/30 p-3 space-y-1">
               <p className="text-muted-foreground font-semibold uppercase tracking-wider text-[10px]">Current</p>
               <p className="font-medium text-foreground">{oldName || "—"}</p>
-              <p className="text-muted-foreground">{oldNumber ? `+233${oldNumber.replace(/^0/, "").replace(/^233/, "")}` : "—"}</p>
+              <p className="text-muted-foreground">
+                {oldNumber ? `+233${oldNumber.replace(/^0/, "").replace(/^233/, "")}` : "—"}
+              </p>
             </div>
             <div className="flex justify-center">
               <ChevronRight className="w-4 h-4 text-muted-foreground rotate-90" />
@@ -152,7 +151,9 @@ const PayoutConfirmModal = ({
             <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-1">
               <p className="text-amber-600 font-semibold uppercase tracking-wider text-[10px]">New</p>
               <p className="font-medium text-foreground">{newName || "—"}</p>
-              <p className="text-muted-foreground">{newNumber ? `+233${newNumber.replace(/^0/, "").replace(/^233/, "")}` : "—"}</p>
+              <p className="text-muted-foreground">
+                {newNumber ? `+233${newNumber.replace(/^0/, "").replace(/^233/, "")}` : "—"}
+              </p>
             </div>
           </div>
 
@@ -175,7 +176,7 @@ const PayoutConfirmModal = ({
             </button>
           </div>
         </motion.div>
-      </>
+      </motion.div>
     )}
   </AnimatePresence>
 );
@@ -273,7 +274,7 @@ const SellerApplicationStatus = ({ userId, userEmail, onActivated }: {
                 await supabase.from("seller_applications").update({ status: "paid" }).eq("user_id", userId);
                 await supabase.from("profiles").update({ role: "seller", is_seller: true, verified: true }).eq("id", userId);
                 setStatus("paid");
-                toast.success("🎉 You're now a verified seller! Refresh to access your seller dashboard.", { duration: 8000 });
+                toast.success("You're now a verified seller! Refresh to access your seller dashboard.", { duration: 8000 });
                 onActivated?.();
                 setTimeout(() => window.location.reload(), 2000);
               } else throw new Error(result.error ?? "Verification failed");
@@ -338,22 +339,22 @@ const SellerApplicationStatus = ({ userId, userEmail, onActivated }: {
                 <CheckCircle className="w-4 h-4 text-green-500" />
               </div>
               <div>
-                <p className="font-semibold text-sm">Application Approved! 🎉</p>
+                <p className="font-semibold text-sm">Application Approved!</p>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
                   Pay the GHS 50 one-time verification fee to activate your seller account.
                 </p>
               </div>
             </div>
             <div className="rounded-xl bg-green-500/5 border border-green-500/20 p-3 text-xs text-green-700 space-y-1">
-              <p>✓ Sales go directly to: <strong>+233{appData?.momo_number} ({appData?.momo_name})</strong></p>
-              <p>✓ One-time fee, no monthly charges</p>
-              <p>✓ Verified badge on all your listings</p>
+              <p>Sales go directly to: <strong>+233{appData?.momo_number} ({appData?.momo_name})</strong></p>
+              <p>One-time fee, no monthly charges</p>
+              <p>Verified badge on all your listings</p>
             </div>
             <button onClick={handlePay} disabled={paying}
               className="w-full py-3 rounded-xl bg-green-500 text-white font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2">
               {paying
                 ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Processing...</>
-                : <><ShieldCheck className="w-4 h-4" /> Pay GHS 50 & Activate Account</>
+                : <><ShieldCheck className="w-4 h-4" /> Pay GHS 50 &amp; Activate Account</>
               }
             </button>
           </div>
@@ -381,8 +382,8 @@ const SellerApplicationStatus = ({ userId, userEmail, onActivated }: {
               <CheckCircle className="w-4 h-4 text-green-500" />
             </div>
             <div>
-              <p className="font-semibold text-sm">Setting up your account…</p>
-              <p className="text-xs text-muted-foreground mt-1">Payment received. Refreshing your dashboard…</p>
+              <p className="font-semibold text-sm">Setting up your account...</p>
+              <p className="text-xs text-muted-foreground mt-1">Payment received. Refreshing your dashboard...</p>
             </div>
           </div>
         )}
@@ -415,19 +416,18 @@ const AccountSettings = memo(({
   const [notifOrders,     setNotifOrders]     = useState(() => localStorage.getItem("notif_orders") !== "false");
   const [notifMessages,   setNotifMessages]   = useState(() => localStorage.getItem("notif_messages") !== "false");
   const [notifPromotions, setNotifPromotions] = useState(() => localStorage.getItem("notif_promotions") === "true");
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showDeleteConfirm,   setShowDeleteConfirm]   = useState(false);
+  const [showChangePassword,  setShowChangePassword]  = useState(false);
   const [newPassword,     setNewPassword]     = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // Payout state — savedPayout holds what's in DB, payoutForm holds edits
-  const [savedPayout,  setSavedPayout]  = useState({ method: "", number: "", name: "" });
-  const [payoutForm,   setPayoutForm]   = useState({ method: "", number: "", name: "", bankCode: "" });
-  const [payoutLoaded, setPayoutLoaded] = useState(false);
-  const [payoutSaved,  setPayoutSaved]  = useState(false);
+  // Payout state — savedPayout holds what's in DB, payoutForm holds live edits
+  const [savedPayout,       setSavedPayout]       = useState({ method: "", number: "", name: "" });
+  const [payoutForm,        setPayoutForm]        = useState({ method: "", number: "", name: "", bankCode: "" });
+  const [payoutSaved,       setPayoutSaved]       = useState(false);
   const [showPayoutConfirm, setShowPayoutConfirm] = useState(false);
 
-  // Load saved payout details and pre-fill form
+  // Load saved payout details and pre-fill form so fields are never blank
   React.useEffect(() => {
     if (!user?.id) return;
     supabase.from("profiles")
@@ -439,7 +439,6 @@ const AccountSettings = memo(({
           setSavedPayout(loaded);
           setPayoutForm({ ...loaded, bankCode: "" });
         }
-        setPayoutLoaded(true);
       });
   }, [user?.id]);
 
@@ -459,7 +458,7 @@ const AccountSettings = memo(({
     } catch (err: any) { toast.error(err.message ?? "Failed to update password"); }
   };
 
-  // Called after user clicks Save — shows modal only when there are real existing payout details to compare
+  // Shows confirmation modal only when there are real existing saved payout details to compare against
   const handleSavePayoutIntent = () => {
     if (!payoutForm.method || !payoutForm.number || !payoutForm.name) {
       toast.error("Please fill in all payout details"); return;
@@ -471,7 +470,7 @@ const AccountSettings = memo(({
     executeSavePayout();
   };
 
-  // The actual save — called directly (no subaccount) or after modal confirmation
+  // The actual DB + Paystack save — called directly or after modal confirmation
   const executeSavePayout = async () => {
     setShowPayoutConfirm(false);
     try {
@@ -509,7 +508,7 @@ const AccountSettings = memo(({
         toast.success("Payout details saved!");
       }
 
-      // Update saved snapshot so future edits compare correctly
+      // Update saved snapshot so future modal comparisons are always accurate
       setSavedPayout({ method: payoutForm.method, number: payoutForm.number, name: payoutForm.name });
       setPayoutSaved(true);
       setTimeout(() => setPayoutSaved(false), 3000);
@@ -518,7 +517,7 @@ const AccountSettings = memo(({
 
   return (
     <div className="space-y-6 max-w-lg">
-      {/* Payout change confirmation modal */}
+      {/* Payout change confirmation modal — rendered at top level so it overlays everything */}
       <PayoutConfirmModal
         open={showPayoutConfirm}
         oldNumber={savedPayout.number}
@@ -614,7 +613,7 @@ const AccountSettings = memo(({
       <div className="rounded-2xl border border-border overflow-hidden">
         <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border bg-muted/20">
           <Shield className="w-4 h-4 text-primary" />
-          <p className="font-display font-semibold text-sm">Privacy & Security</p>
+          <p className="font-display font-semibold text-sm">Privacy &amp; Security</p>
         </div>
         <div className="divide-y divide-border">
           {/* Change password */}
@@ -673,7 +672,7 @@ const AccountSettings = memo(({
                       "Your messages and conversations",
                     ].map(item => (
                       <div key={item} className="flex items-start gap-2">
-                        <span className="text-red-400 text-xs mt-0.5 flex-shrink-0">✕</span>
+                        <span className="text-red-400 text-xs mt-0.5 flex-shrink-0">x</span>
                         <p className="text-xs text-muted-foreground">{item}</p>
                       </div>
                     ))}
@@ -724,7 +723,7 @@ const AccountSettings = memo(({
               <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-2">Payout Method</label>
               <div className="grid grid-cols-3 gap-2">
                 {([
-                  { value: "momo_mtn",       label: "MTN MoMo"    },
+                  { value: "momo_mtn",       label: "MTN MoMo"     },
                   { value: "momo_telecel",    label: "Telecel Cash" },
                   { value: "momo_airteltigo", label: "AirtelTigo"  },
                 ] as const).map(({ value, label }) => (
@@ -764,7 +763,7 @@ const AccountSettings = memo(({
         </div>
       )}
 
-      <p className="text-center text-xs text-muted-foreground pb-4">SneakersHub v1.0 · Made in Ghana 🇬🇭</p>
+      <p className="text-center text-xs text-muted-foreground pb-4">SneakersHub v1.0 · Made in Ghana</p>
     </div>
   );
 });
