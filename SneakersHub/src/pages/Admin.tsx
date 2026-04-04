@@ -33,6 +33,8 @@ type AdminOrder = {
   seller_is_official?: boolean;
   paystack_reference?: string | null;
   dispute_reason?: string | null;
+  transfer_attempts?: number | null;
+  transfer_failure_reason?: string | null;
 };
 
 const COMMISSION_RATE = 0.05;
@@ -46,11 +48,11 @@ const formatGHS = (n: number) =>
   `GHS ${n.toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const payoutColors: Record<string, string> = {
-  pending:      "bg-amber-500/10 text-amber-600 border-amber-500/20",
-  released:     "bg-green-500/10 text-green-600 border-green-500/20",
-  auto_released:"bg-blue-500/10 text-blue-600 border-blue-500/20",
-  disputed:     "bg-red-500/10 text-red-600 border-red-500/20",
-  refunded:     "bg-purple-500/10 text-purple-600 border-purple-500/20",
+  pending:       "bg-amber-500/10 text-amber-600 border-amber-500/20",
+  released:      "bg-green-500/10 text-green-600 border-green-500/20",
+  auto_released: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+  disputed:      "bg-red-500/10 text-red-600 border-red-500/20",
+  refunded:      "bg-purple-500/10 text-purple-600 border-purple-500/20",
 };
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
@@ -85,11 +87,6 @@ const SectionHeader = ({ title, icon: Icon, count }: { title: string; icon: any;
 );
 
 // ── Main ──────────────────────────────────────────────────────────────────────
-function formatOrderId(id: string) {
-  const num = parseInt(id.replace(/-/g, "").slice(0, 10), 16) % 1000000000;
-  return `#${num.toString().padStart(9, "0")}`;
-}
-
 const Admin = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -124,7 +121,6 @@ const Admin = () => {
       const isPaid = !!refundOrder.paystack_reference;
 
       if (isPaid) {
-        // Call Paystack refund API via edge function
         const { error } = await supabase.functions.invoke("refund-order", {
           body: {
             order_id: refundOrder.id,
@@ -137,7 +133,6 @@ const Admin = () => {
         if (error) throw error;
         toast.success("Refund issued — buyer will receive funds within 5–10 business days");
       } else {
-        // Pay on delivery — just mark as disputed
         const { error } = await supabase
           .from("orders")
           .update({ payout_status: "disputed", dispute_reason: refundReason })
@@ -160,27 +155,16 @@ const Admin = () => {
   const [accessDenied, setAccessDenied] = useState(false);
 
   useEffect(() => {
-    // Wait for auth to finish loading
     if (authLoading) return;
-
-    // No user at all
-    if (!user?.id) {
-      navigate("/");
-      return;
-    }
-
-    // Check is_official directly
+    if (!user?.id) { navigate("/"); return; }
     supabase
       .from("profiles")
       .select("is_official")
       .eq("id", user.id)
       .single()
       .then(({ data, error }) => {
-        if (error || !data?.is_official) {
-          setAccessDenied(true);
-        } else {
-          setAuthChecked(true);
-        }
+        if (error || !data?.is_official) setAccessDenied(true);
+        else setAuthChecked(true);
       });
   }, [user?.id, authLoading]);
 
@@ -201,10 +185,10 @@ const Admin = () => {
     if (apps) setApplications(apps);
   }, []);
 
-  const pendingApplications = applications.filter(a => a.status === "pending");
+  const pendingApplications  = applications.filter(a => a.status === "pending");
   const approvedApplications = applications.filter(a => a.status === "approved");
-  const pendingSellers = sellers.filter(s => !s.verified && !s.is_official);
-  const verifiedSellers = sellers.filter(s => s.verified || s.is_official);
+  const pendingSellers       = sellers.filter(s => !s.verified && !s.is_official);
+  const verifiedSellers      = sellers.filter(s => s.verified || s.is_official);
 
   const handleAppAction = async (appId: string, userId: string, action: "approve" | "reject") => {
     setAppActionLoading(l => ({ ...l, [appId]: true }));
@@ -212,14 +196,12 @@ const Admin = () => {
     try {
       const app = applications.find(a => a.id === appId);
 
-      // 1. Update application status
       const { error: appError } = await supabase
         .from("seller_applications")
         .update({ status: newStatus, reviewed_at: new Date().toISOString() })
         .eq("id", appId);
       if (appError) throw new Error(`Application update failed: ${appError.message}`);
 
-      // 2. If approving, flip profile to seller role
       if (action === "approve") {
         const { error: profileError } = await supabase
           .from("profiles")
@@ -228,7 +210,6 @@ const Admin = () => {
         if (profileError) throw new Error(`Profile update failed: ${profileError.message}`);
       }
 
-      // 3. Send SMS notification with direct link to settings
       const { data: { session } } = await supabase.auth.getSession();
       const smsUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-sms`;
       fetch(smsUrl, {
@@ -242,14 +223,13 @@ const Admin = () => {
           type: action === "approve" ? "application.approved" : "application.rejected",
           record: {
             ...app,
-            message: action === "approve" 
-              ? `🎉 Congratulations! Your seller application has been approved. Pay the GHS 50 verification fee to start selling. Tap here: https://sneakershub.site/account?tab=settings`
-              : `Your seller application was not approved. You can re-apply anytime. Tap here: https://sneakershub.site/account`
+            message: action === "approve"
+              ? `Congratulations! Your seller application has been approved. Pay the GHS 50 verification fee to start selling. Tap here: https://sneakershub.site/account?tab=settings`
+              : `Your seller application was not approved. You can re-apply anytime. Tap here: https://sneakershub.site/account`,
           },
         }),
       }).catch(console.error);
 
-      // 4. Send push notification
       const pushUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-push`;
       fetch(pushUrl, {
         method: "POST",
@@ -260,7 +240,7 @@ const Admin = () => {
         },
         body: JSON.stringify({
           user_id: userId,
-          title: action === "approve" ? "🎉 Application Approved!" : "Application Update",
+          title: action === "approve" ? "Application Approved!" : "Application Update",
           body: action === "approve"
             ? `Your store "${app?.store_name}" is approved! Pay the GHS 50 fee to activate your seller account.`
             : `Your application for "${app?.store_name}" was not approved. You can re-apply.`,
@@ -268,10 +248,9 @@ const Admin = () => {
         }),
       }).catch(console.error);
 
-      // 5. Update local state immediately
       setApplications(prev => prev.map(a => a.id === appId ? { ...a, status: newStatus } : a));
       toast.success(action === "approve"
-        ? "✅ Approved — SMS & notification sent to seller"
+        ? "Approved — SMS & notification sent to seller"
         : "Application rejected"
       );
       fetchSellers();
@@ -299,7 +278,6 @@ const Admin = () => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      // Use edge function so admin can read all orders via service_role (bypasses RLS)
       const { data: session } = await supabase.auth.getSession();
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-data`,
@@ -315,11 +293,13 @@ const Admin = () => {
 
       setOrders((rawOrders ?? []).map((o: any) => ({
         ...o,
-        seller_name: o.seller?.name ?? "[Deleted Account]",
-        seller_phone: o.seller?.phone ?? null,
-        seller_is_official: o.seller?.is_official ?? false,
-        paystack_reference: o.paystack_reference ?? null,
-        dispute_reason: o.dispute_reason ?? null,
+        seller_name:           o.seller?.name ?? "[Deleted Account]",
+        seller_phone:          o.seller?.phone ?? null,
+        seller_is_official:    o.seller?.is_official ?? false,
+        paystack_reference:    o.paystack_reference ?? null,
+        dispute_reason:        o.dispute_reason ?? null,
+        transfer_attempts:     o.transfer_attempts ?? null,
+        transfer_failure_reason: o.transfer_failure_reason ?? null,
       })));
     } catch (err) {
       toast.error("Failed to load admin data");
@@ -330,18 +310,11 @@ const Admin = () => {
 
   useEffect(() => { if (authChecked) fetchData(); }, [authChecked]);
 
-  // Realtime — auto-refresh admin dashboard when any order changes
   useEffect(() => {
     if (!authChecked) return;
     const channel = supabase
       .channel("admin:orders:realtime")
-      .on("postgres_changes", {
-        event: "*",
-        schema: "public",
-        table: "orders",
-      }, () => {
-        fetchData(); // refetch all data on any order insert/update
-      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => fetchData())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [authChecked, fetchData]);
@@ -368,7 +341,6 @@ const Admin = () => {
     </div>
   );
 
-  // ── Resolve dispute ────────────────────────────────────────────────────────
   // ── Computed stats ─────────────────────────────────────────────────────────
   const nonOfficialOrders = orders.filter(o => !o.seller_is_official);
   const pendingOrders     = nonOfficialOrders.filter(o => o.payout_status === "pending");
@@ -376,10 +348,10 @@ const Admin = () => {
   const releasedOrders    = nonOfficialOrders.filter(o => o.payout_status === "released" || o.payout_status === "auto_released");
   const officialOrders    = orders.filter(o => o.seller_is_official);
 
-  const now         = new Date();
-  const weekAgo     = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-  const monthStart  = new Date(now.getFullYear(), now.getMonth(), 1);
-  const todayStart  = new Date(now); todayStart.setHours(0,0,0,0);
+  const now        = new Date();
+  const weekAgo    = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
 
   const commission = {
     total:      releasedOrders.reduce((s, o) => s + o.total * COMMISSION_RATE, 0),
@@ -387,7 +359,6 @@ const Admin = () => {
     this_week:  releasedOrders.filter(o => new Date(o.placed_at) >= weekAgo).reduce((s, o) => s + o.total * COMMISSION_RATE, 0),
     today:      releasedOrders.filter(o => new Date(o.placed_at) >= todayStart).reduce((s, o) => s + o.total * COMMISSION_RATE, 0),
   };
-
 
   // ── Filtered orders ────────────────────────────────────────────────────────
   const filteredOrders = orders.filter(o => {
@@ -404,11 +375,11 @@ const Admin = () => {
   const payoutHistory = releasedOrders;
 
   const tabs = [
-    { id: "overview",  label: "Overview",   icon: BarChart2 },
-    { id: "sellers",   label: "Sellers",    icon: ShieldAlert, badge: pendingApplications.length },
-    { id: "failed",    label: "Failed",     icon: AlertTriangle, badge: failedOrders.length },
-    { id: "orders",    label: "All Orders", icon: Package },
-    { id: "payouts",   label: "Payouts",    icon: Wallet },
+    { id: "overview", label: "Overview",   icon: BarChart2 },
+    { id: "sellers",  label: "Sellers",    icon: ShieldAlert, badge: pendingApplications.length },
+    { id: "failed",   label: "Failed",     icon: AlertTriangle, badge: failedOrders.length },
+    { id: "orders",   label: "All Orders", icon: Package },
+    { id: "payouts",  label: "Payouts",    icon: Wallet },
   ] as const;
 
   return (
@@ -462,15 +433,15 @@ const Admin = () => {
                 <div>
                   <SectionHeader title="Platform Activity" icon={Package} />
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <StatCard label="Pending Transfers" value={formatGHS(pendingOrders.reduce((s,o) => s+o.total, 0))}
+                    <StatCard label="Pending Transfers" value={formatGHS(pendingOrders.reduce((s, o) => s + o.total, 0))}
                       sub={`${pendingOrders.length} in progress`} icon={Clock} accent="bg-amber-500/10 text-amber-600" />
                     {failedOrders.length > 0 && (
-                      <StatCard label="Failed Transfers" value={formatGHS(failedOrders.reduce((s,o) => s+o.total, 0))}
+                      <StatCard label="Failed Transfers" value={formatGHS(failedOrders.reduce((s, o) => s + o.total, 0))}
                         sub={`${failedOrders.length} need attention`} icon={AlertTriangle} accent="bg-orange-500/10 text-orange-600" />
                     )}
-                    <StatCard label="Total Released" value={formatGHS(releasedOrders.reduce((s,o) => s+o.total, 0))}
+                    <StatCard label="Total Released" value={formatGHS(releasedOrders.reduce((s, o) => s + o.total, 0))}
                       sub={`${releasedOrders.length} orders`} icon={CheckCircle} accent="bg-green-500/10 text-green-600" />
-                    <StatCard label="Official Sales (yours)" value={formatGHS(officialOrders.reduce((s,o) => s+o.total, 0))}
+                    <StatCard label="Official Sales (yours)" value={formatGHS(officialOrders.reduce((s, o) => s + o.total, 0))}
                       sub="direct sales" icon={ShieldAlert} accent="bg-purple-500/10 text-purple-600" />
                   </div>
                 </div>
@@ -478,21 +449,19 @@ const Admin = () => {
                 <div>
                   <SectionHeader title="Commission Earnings (5%)" icon={TrendingUp} />
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <StatCard label="All Time"    value={formatGHS(commission.total)}      icon={DollarSign}   accent="bg-primary/10 text-primary" />
-                    <StatCard label="This Month"  value={formatGHS(commission.this_month)} icon={BarChart2}    accent="bg-purple-500/10 text-purple-600" />
-                    <StatCard label="This Week"   value={formatGHS(commission.this_week)}  icon={TrendingUp}   accent="bg-blue-500/10 text-blue-600" />
-                    <StatCard label="Today"       value={formatGHS(commission.today)}      icon={ArrowUpRight} accent="bg-green-500/10 text-green-600" />
+                    <StatCard label="All Time"   value={formatGHS(commission.total)}      icon={DollarSign}   accent="bg-primary/10 text-primary" />
+                    <StatCard label="This Month" value={formatGHS(commission.this_month)} icon={BarChart2}    accent="bg-purple-500/10 text-purple-600" />
+                    <StatCard label="This Week"  value={formatGHS(commission.this_week)}  icon={TrendingUp}   accent="bg-blue-500/10 text-blue-600" />
+                    <StatCard label="Today"      value={formatGHS(commission.today)}      icon={ArrowUpRight} accent="bg-green-500/10 text-green-600" />
                   </div>
                 </div>
-
               </div>
             )}
 
-            {/* ── Failed Transfers tab ── */}
-
+            {/* ── Sellers ── */}
             {activeTab === "sellers" && (
               <div className="space-y-8">
-                {/* Pending sellers */}
+                {/* Pending applications */}
                 <div>
                   <SectionHeader title="Pending Applications" icon={Clock} count={pendingApplications.length} />
                   {pendingApplications.length === 0 ? (
@@ -506,7 +475,6 @@ const Admin = () => {
                       {pendingApplications.map((app) => (
                         <motion.div key={app.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                           className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 space-y-3">
-                          {/* Header */}
                           <div className="flex items-start justify-between gap-3">
                             <div>
                               <p className="font-display font-bold">{app.store_name}</p>
@@ -516,9 +484,7 @@ const Admin = () => {
                               Pending Review
                             </span>
                           </div>
-                          {/* Description */}
                           <p className="text-sm text-muted-foreground leading-relaxed border-t border-amber-500/10 pt-3">{app.store_description}</p>
-                          {/* Details grid */}
                           <div className="grid grid-cols-2 gap-2 text-xs">
                             <div className="flex items-center gap-1.5 text-muted-foreground">
                               <Phone className="w-3 h-3" /> {app.phone}
@@ -544,20 +510,17 @@ const Admin = () => {
                           <p className="text-[11px] text-muted-foreground">
                             Submitted {new Date(app.submitted_at).toLocaleDateString("en-GH", { day: "numeric", month: "short", year: "numeric" })}
                           </p>
-                          {/* Actions */}
                           <div className="flex gap-2 pt-1">
                             <button
                               onClick={() => handleAppAction(app.id, app.user_id, "approve")}
                               disabled={appActionLoading[app.id]}
-                              className="flex-1 py-2 rounded-xl bg-green-500 text-white text-xs font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
-                            >
+                              className="flex-1 py-2 rounded-xl bg-green-500 text-white text-xs font-bold hover:opacity-90 transition-opacity disabled:opacity-50">
                               {appActionLoading[app.id] ? "…" : "✓ Approve"}
                             </button>
                             <button
                               onClick={() => handleAppAction(app.id, app.user_id, "reject")}
                               disabled={appActionLoading[app.id]}
-                              className="flex-1 py-2 rounded-xl bg-red-500/10 text-red-600 border border-red-500/20 text-xs font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
-                            >
+                              className="flex-1 py-2 rounded-xl bg-red-500/10 text-red-600 border border-red-500/20 text-xs font-bold hover:opacity-90 transition-opacity disabled:opacity-50">
                               ✕ Reject
                             </button>
                           </div>
@@ -609,7 +572,7 @@ const Admin = () => {
                                   className="px-2.5 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold disabled:opacity-50">
                                   {savingCommission[seller.id] ? "..." : "Save"}
                                 </button>
-                                <button onClick={() => setEditingCommission(p => { const n={...p}; delete n[seller.id]; return n; })}
+                                <button onClick={() => setEditingCommission(p => { const n = { ...p }; delete n[seller.id]; return n; })}
                                   className="p-1.5 rounded-lg hover:bg-muted transition-colors">
                                   <X className="w-3.5 h-3.5" />
                                 </button>
@@ -631,6 +594,7 @@ const Admin = () => {
               </div>
             )}
 
+            {/* ── Failed Transfers ── */}
             {activeTab === "failed" && (
               <div className="space-y-4">
                 {failedOrders.length === 0 ? (
@@ -652,48 +616,42 @@ const Admin = () => {
                         </p>
                       </div>
                     </div>
-                    {failedOrders.map((order) => {
-                      const orderId = (() => {
-                        const num = parseInt(order.id.replace(/-/g, "").slice(0, 10), 16) % 1000000000;
-                        return `#${num.toString().padStart(9, "0")}`;
-                      })();
-                      return (
-                        <div key={order.id} className="rounded-2xl border border-orange-500/20 bg-orange-500/5 p-5 space-y-3">
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <p className="font-display font-bold text-sm">{order.seller_name}</p>
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                {orderId} · GHS {order.total} · {order.transfer_attempts ?? 1} attempt{(order.transfer_attempts ?? 1) > 1 ? "s" : ""}
+                    {failedOrders.map((order) => (
+                      <div key={order.id} className="rounded-2xl border border-orange-500/20 bg-orange-500/5 p-5 space-y-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-display font-bold text-sm">{order.seller_name}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {formatId(order.id)} · GHS {order.total} · {order.transfer_attempts ?? 1} attempt{(order.transfer_attempts ?? 1) > 1 ? "s" : ""}
+                            </p>
+                            {order.transfer_failure_reason && (
+                              <p className="text-xs text-orange-600 mt-1 font-medium">
+                                {order.transfer_failure_reason}
                               </p>
-                              {order.transfer_failure_reason && (
-                                <p className="text-xs text-orange-600 mt-1 font-medium">
-                                  ↳ {order.transfer_failure_reason}
-                                </p>
-                              )}
-                            </div>
-                            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-orange-500/10 text-orange-600 border border-orange-500/20 flex-shrink-0">Failed</span>
+                            )}
                           </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <button
-                              onClick={async () => {
-                                toast("Retrying transfer...");
-                                try {
-                                  await supabase.functions.invoke("retry-failed-transfers");
-                                  toast.success("Retry triggered — refreshing in 3s");
-                                  setTimeout(() => fetchData(), 3000);
-                                } catch { toast.error("Retry failed — try Paystack dashboard"); }
-                              }}
-                              className="py-2.5 rounded-xl border border-orange-500/30 text-xs font-semibold text-orange-600 hover:bg-orange-500/10 transition-colors">
-                              Retry Transfer
-                            </button>
-                            <a href="https://dashboard.paystack.com/#/transfers" target="_blank" rel="noreferrer"
-                              className="py-2.5 rounded-xl border border-border text-xs font-semibold text-muted-foreground hover:bg-muted/40 transition-colors text-center flex items-center justify-center">
-                              Open Paystack →
-                            </a>
-                          </div>
+                          <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-orange-500/10 text-orange-600 border border-orange-500/20 flex-shrink-0">Failed</span>
                         </div>
-                      );
-                    })}
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={async () => {
+                              toast("Retrying transfer...");
+                              try {
+                                await supabase.functions.invoke("retry-failed-transfers");
+                                toast.success("Retry triggered — refreshing in 3s");
+                                setTimeout(() => fetchData(), 3000);
+                              } catch { toast.error("Retry failed — try Paystack dashboard"); }
+                            }}
+                            className="py-2.5 rounded-xl border border-orange-500/30 text-xs font-semibold text-orange-600 hover:bg-orange-500/10 transition-colors">
+                            Retry Transfer
+                          </button>
+                          <a href="https://dashboard.paystack.com/#/transfers" target="_blank" rel="noreferrer"
+                            className="py-2.5 rounded-xl border border-border text-xs font-semibold text-muted-foreground hover:bg-muted/40 transition-colors text-center flex items-center justify-center">
+                            Open Paystack
+                          </a>
+                        </div>
+                      </div>
+                    ))}
                   </>
                 )}
               </div>
@@ -731,6 +689,8 @@ const Admin = () => {
                   {filteredOrders.map((order, i) => (
                     <motion.div key={order.id} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.025 }} className="rounded-2xl border border-border overflow-hidden">
+
+                      {/* Summary row — always visible */}
                       <button onClick={() => setExpandedOrder(expandedOrder === order.id ? null : order.id)}
                         className="w-full flex items-center gap-4 px-5 py-4 hover:bg-muted/20 transition-colors text-left">
                         <div className="flex-1 min-w-0">
@@ -746,7 +706,8 @@ const Admin = () => {
                             )}
                           </div>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            {order.buyer_first_name} {order.buyer_last_name} → <span className={order.seller_name === "[Deleted Account]" ? "text-red-400 line-through" : ""}>{order.seller_name}</span> ·{" "}
+                            {order.buyer_first_name} {order.buyer_last_name} →{" "}
+                            <span className={order.seller_name === "[Deleted Account]" ? "text-red-400 line-through" : ""}>{order.seller_name}</span> ·{" "}
                             {new Date(order.placed_at).toLocaleDateString("en-GH", { day: "numeric", month: "short", year: "numeric" })}
                           </p>
                         </div>
@@ -763,11 +724,17 @@ const Admin = () => {
                         </div>
                       </button>
 
+                      {/* Expanded detail panel */}
                       <AnimatePresence>
                         {expandedOrder === order.id && (
-                          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }}
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
                             className="overflow-hidden border-t border-border">
+
+                            {/* 4-column detail grid */}
                             <div className="px-5 py-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
                               <div>
                                 <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Buyer</p>
@@ -780,7 +747,7 @@ const Admin = () => {
                                 <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Seller</p>
                                 {order.seller_name === "[Deleted Account]" ? (
                                   <p className="text-sm font-medium text-red-400 flex items-center gap-1.5">
-                                    <span>⚠️</span> Account deleted
+                                    <span>Account deleted</span>
                                   </p>
                                 ) : (
                                   <>
@@ -796,11 +763,15 @@ const Admin = () => {
                               <div>
                                 <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Confirmations</p>
                                 <p className="text-xs flex items-center gap-1.5 mt-0.5">
-                                  {order.seller_confirmed ? <CheckCircle className="w-3 h-3 text-green-500" /> : <Clock className="w-3 h-3 text-muted-foreground" />}
+                                  {order.seller_confirmed
+                                    ? <CheckCircle className="w-3 h-3 text-green-500" />
+                                    : <Clock className="w-3 h-3 text-muted-foreground" />}
                                   Seller {order.seller_confirmed ? "confirmed" : "pending"}
                                 </p>
                                 <p className="text-xs flex items-center gap-1.5 mt-0.5">
-                                  {order.buyer_confirmed ? <CheckCircle className="w-3 h-3 text-green-500" /> : <Clock className="w-3 h-3 text-muted-foreground" />}
+                                  {order.buyer_confirmed
+                                    ? <CheckCircle className="w-3 h-3 text-green-500" />
+                                    : <Clock className="w-3 h-3 text-muted-foreground" />}
                                   Buyer {order.buyer_confirmed ? "confirmed" : "pending"}
                                 </p>
                               </div>
@@ -814,9 +785,9 @@ const Admin = () => {
                               </div>
                             </div>
 
-                            {/* Refund / Dispute action */}
+                            {/* Refund / dispute action — full-width row below the grid */}
                             {!["refunded", "disputed"].includes(order.payout_status) && (
-                              <div className="col-span-full pt-2 border-t border-border mt-2">
+                              <div className="px-5 pb-4 pt-1 border-t border-border">
                                 <button
                                   onClick={() => { setRefundOrder(order); setRefundReason(""); }}
                                   className="text-xs text-red-500 hover:text-red-400 flex items-center gap-1.5 transition-colors font-medium">
@@ -825,8 +796,10 @@ const Admin = () => {
                                 </button>
                               </div>
                             )}
+
+                            {/* Dispute reason — shown if already disputed */}
                             {order.dispute_reason && (
-                              <div className="col-span-full pt-2 border-t border-border mt-2">
+                              <div className="px-5 pb-4 pt-1 border-t border-border">
                                 <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Dispute Reason</p>
                                 <p className="text-xs text-red-500">{order.dispute_reason}</p>
                               </div>
@@ -879,14 +852,14 @@ const Admin = () => {
                         <p className="font-display font-semibold text-sm hidden sm:block">{formatGHS(order.total)}</p>
                         <div>
                           <p className="font-display font-bold text-sm text-green-600">{formatGHS(order.total * (1 - COMMISSION_RATE))}</p>
-                          <p className="text-[11px] text-muted-foreground">−{formatGHS(order.total * COMMISSION_RATE)} fee</p>
+                          <p className="text-[11px] text-muted-foreground">{formatGHS(order.total * COMMISSION_RATE)} fee</p>
                         </div>
                       </motion.div>
                     ))}
                     <div className="grid grid-cols-2 sm:grid-cols-4 items-center px-5 py-4 border-t-2 border-border bg-muted/20">
                       <p className="font-display font-bold text-sm col-span-2">Total Commission Earned</p>
                       <p className="font-display font-bold text-sm hidden sm:block">
-                        {formatGHS(payoutHistory.reduce((s,o) => s+o.total, 0))}
+                        {formatGHS(payoutHistory.reduce((s, o) => s + o.total, 0))}
                       </p>
                       <p className="font-display font-bold text-sm text-primary">{formatGHS(commission.total)}</p>
                     </div>
@@ -902,11 +875,13 @@ const Admin = () => {
       {/* ── Refund / Dispute Modal ── */}
       <AnimatePresence>
         {refundOrder && (
-          <motion.div key="refund-backdrop"
+          <motion.div
+            key="refund-backdrop"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
             onClick={() => !refundLoading && setRefundOrder(null)}>
-            <motion.div key="refund-modal"
+            <motion.div
+              key="refund-modal"
               initial={{ opacity: 0, scale: 0.92, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.92 }}
@@ -938,7 +913,8 @@ const Admin = () => {
               ) : (
                 <div className="mb-4 px-4 py-3 rounded-xl bg-muted/40 border border-border">
                   <p className="text-xs text-muted-foreground">
-                    Pay-on-delivery order — no Paystack payment to reverse. Order will be marked as <span className="font-semibold text-foreground">disputed</span> for your records.
+                    Pay-on-delivery order — no Paystack payment to reverse. Order will be marked as{" "}
+                    <span className="font-semibold text-foreground">disputed</span> for your records.
                   </p>
                 </div>
               )}
@@ -948,7 +924,9 @@ const Admin = () => {
                   Reason <span className="text-red-400">*</span>
                 </label>
                 <div className="relative">
-                  <select value={refundReason} onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setRefundReason(e.target.value)}
+                  <select
+                    value={refundReason}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setRefundReason(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
                       focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit] appearance-none cursor-pointer">
                     <option value="">Select a reason</option>
@@ -967,7 +945,7 @@ const Admin = () => {
                   className="flex-1 h-11 rounded-full bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
                   {refundLoading ? (
                     <><motion.div animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
-                      className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />Processing...</>
+                      className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" /> Processing...</>
                   ) : (
                     refundOrder.paystack_reference ? "Confirm Refund" : "Mark Disputed"
                   )}

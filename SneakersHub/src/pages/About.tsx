@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { CheckCircle, ShieldCheck, Zap, Star, ArrowRight, CreditCard } from "lucide-react";
+import { CheckCircle, ShieldCheck, Zap, Star, ArrowRight, CreditCard, Clock } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { supabase } from "@/lib/supabase";
@@ -141,7 +141,7 @@ const About = () => {
               Become a <span className="text-gradient">Verified Seller</span>
             </h2>
             <p className="text-muted-foreground text-base max-w-xl mx-auto">
-              Pay a one-time GHS 50 fee to get verified. Unlock Paystack split payments — buyers pay you directly at checkout, no waiting for transfers.
+              Submit a quick application and pay a one-time GHS 50 fee once approved. Unlock Paystack split payments — buyers pay you directly at checkout, no waiting for transfers.
             </p>
           </div>
 
@@ -157,7 +157,7 @@ const About = () => {
               {
                 icon: Star,
                 title: "Verified Badge",
-                desc: "A ✅ badge appears on all your listings and your seller profile, building instant trust with buyers.",
+                desc: "A verified badge appears on all your listings and your seller profile, building instant trust with buyers.",
                 color: "text-amber-500 bg-amber-500/10",
               },
               {
@@ -169,7 +169,7 @@ const About = () => {
               {
                 icon: CreditCard,
                 title: "One-Time GHS 50 Fee",
-                desc: "Pay once via card or Mobile Money. Your Paystack subaccount is created automatically — no waiting.",
+                desc: "Pay once via card or Mobile Money after approval. Your Paystack subaccount is created automatically.",
                 color: "text-blue-500 bg-blue-500/10",
               },
             ].map(({ icon: Icon, title, desc, color }, i) => (
@@ -197,15 +197,32 @@ const About = () => {
             <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-5">How it works</p>
             <div className="space-y-4">
               {[
-                { step: "1", text: "Save your MoMo or bank details in your Account settings" },
-                { step: "2", text: "Tap 'Get Verified' and pay GHS 50 via card or Mobile Money" },
-                { step: "3", text: "Your Paystack subaccount is created instantly — badge goes live immediately" },
+                {
+                  step: "1",
+                  icon: CheckCircle,
+                  text: "Go to Account → Settings and tap 'Apply to Sell'. Fill in your store name, MoMo number, and location.",
+                },
+                {
+                  step: "2",
+                  icon: Clock,
+                  text: "Our team reviews your application — usually within 1–2 business days. You'll be notified once approved.",
+                },
+                {
+                  step: "3",
+                  icon: CreditCard,
+                  text: "Once approved, pay the GHS 50 one-time fee via card or Mobile Money to activate your verified seller account.",
+                },
+                {
+                  step: "4",
+                  icon: ShieldCheck,
+                  text: "Your Paystack subaccount goes live instantly — start listing and receive payments directly at checkout.",
+                },
               ].map(({ step, text }) => (
-                <div key={step} className="flex items-center gap-4">
-                  <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
+                <div key={step} className="flex items-start gap-4">
+                  <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
                     <span className="text-xs font-bold text-primary">{step}</span>
                   </div>
-                  <p className="text-sm text-muted-foreground">{text}</p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{text}</p>
                 </div>
               ))}
             </div>
@@ -214,15 +231,15 @@ const About = () => {
           {/* CTA */}
           <div className="text-center">
             <Link
-              to="/account"
+              to="/account?tab=settings"
               className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-green-500 hover:bg-green-600
                 text-white font-display font-semibold text-sm transition-all shadow-lg shadow-green-500/20 hover:shadow-green-500/30"
             >
               <ShieldCheck className="w-4 h-4" />
-              Get Verified Now
+              Apply to Sell
               <ArrowRight className="w-4 h-4" />
             </Link>
-            <p className="text-xs text-muted-foreground mt-3">GHS 50 one-time fee · Instant setup · No waiting</p>
+            <p className="text-xs text-muted-foreground mt-3">Free to apply · GHS 50 one-time fee on approval · No monthly charges</p>
           </div>
         </motion.div>
       </div>

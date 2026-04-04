@@ -53,6 +53,20 @@ serve(async (req) => {
     console.log("[create-subaccount] subaccount params:", { settlement_bank, account_number, percentage_charge, splitPercentage: percentage_charge ?? 95 });
     if (sellerErr || !seller) throw new Error(`Seller not found: ${sellerErr?.message ?? "no row"}`);
 
+    // ── Fetch payout details from the approved seller application ─────────────
+    // This ensures the profile's payout fields are always populated after verification,
+    // so the Settings page pre-fills correctly without the user having to re-enter them.
+    const { data: application } = await supabase
+      .from("seller_applications")
+      .select("momo_number, momo_name")
+      .eq("user_id", seller_id)
+      .in("status", ["approved", "paid"])
+      .order("submitted_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    console.log("[create-subaccount] application payout data:", application);
+
     // ── Create Paystack subaccount ────────────────────────────────────────────
     const splitPercentage = Number(percentage_charge ?? 5); // platform's cut — seller gets (100 - splitPercentage)%
 
@@ -96,11 +110,20 @@ serve(async (req) => {
 
     const subaccountCode = subData.data.subaccount_code;
 
-    // ── Save subaccount code to profile & mark verified ───────────────────────
+    // ── Derive payout_method from settlement_bank ─────────────────────────────
+    const payoutMethod = settlement_bank === "VOD" ? "momo_telecel"
+      : settlement_bank === "ATL" ? "momo_airteltigo"
+      : "momo_mtn";
+
+    // ── Save subaccount code to profile, mark verified, and sync payout details ─
     const { error: updateErr } = await supabase.from("profiles").update({
-      subaccount_code: subaccountCode,
-      verified: true,
+      subaccount_code:      subaccountCode,
+      verified:             true,
       verification_fee_paid: true,
+      // Sync payout details from the application so Settings pre-fills correctly
+      payout_method: payoutMethod,
+      payout_number: application?.momo_number ?? normalizedNumber,
+      payout_name:   application?.momo_name   ?? seller.name,
     }).eq("id", seller_id);
 
     if (updateErr) throw new Error(`Profile update failed: ${updateErr.message}`);

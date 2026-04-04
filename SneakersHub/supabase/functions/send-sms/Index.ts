@@ -1,7 +1,12 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const ARKESEL_API_KEY = Deno.env.get("ARKESEL_API_KEY");
-const ARKESEL_SENDER_ID = Deno.env.get("ARKESEL_SENDER_ID") || "SneakersHub";
+const ARKESEL_API_KEY    = Deno.env.get("ARKESEL_API_KEY");
+const ARKESEL_SENDER_ID  = Deno.env.get("ARKESEL_SENDER_ID") || "SneakersHub";
+const SUPABASE_URL        = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
 serve(async (req) => {
   try {
@@ -64,18 +69,33 @@ serve(async (req) => {
         phoneNumber = record.seller_phone;
         message = `❌ Payout failed for order #${record.order_id?.slice(-8)}. Please check your MoMo details in Settings at sneakershub.site/account?tab=settings`;
         break;
-        
-      // ✅ NEW: Seller application approval
+
+      // Seller application approval/rejection —
+      // phone may not be on the application row, so we look it up from profiles
+      // using user_id, falling back to whatever the caller passed.
       case "application.approved":
-        phoneNumber = record.phone || record.seller_phone;
-        message = record.message || `🎉 Congratulations! Your seller application has been approved! Pay the GHS 50 verification fee to start selling. Tap here: https://sneakershub.site/account?tab=settings`;
+      case "application.rejected": {
+        // Try caller-supplied phone first
+        phoneNumber = record.phone || record.seller_phone || "";
+
+        // If missing, look up from profiles using user_id
+        if (!phoneNumber && record.user_id) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("phone")
+            .eq("id", record.user_id)
+            .single();
+          phoneNumber = profile?.phone ?? "";
+          console.log(`📞 Looked up phone for user ${record.user_id}:`, phoneNumber);
+        }
+
+        message = record.message || (
+          type === "application.approved"
+            ? `🎉 Congratulations! Your seller application has been approved! Pay the GHS 50 verification fee to start selling. Tap here: https://sneakershub.site/account?tab=settings`
+            : `Your seller application was not approved. You can re-apply anytime. Tap here: https://sneakershub.site/account`
+        );
         break;
-        
-      // ✅ NEW: Seller application rejection
-      case "application.rejected":
-        phoneNumber = record.phone || record.seller_phone;
-        message = record.message || `Your seller application was not approved. You can re-apply anytime. Tap here: https://sneakershub.site/account`;
-        break;
+      }
         
       case "admin.alert":
         phoneNumber = record.seller_phone || record.admin_phone;
@@ -147,7 +167,7 @@ serve(async (req) => {
         JSON.stringify({ 
           error: "Invalid response from SMS provider", 
           status: response.status,
-          response: text.substring(0, 200) 
+          response: text.substring(0, 200),
         }),
         { status: 500, headers: { "Content-Type": "application/json" } }
       );
