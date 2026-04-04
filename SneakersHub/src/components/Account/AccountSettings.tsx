@@ -96,6 +96,90 @@ const NotificationSettings = ({
   return null;
 };
 
+// ── Payout change confirmation modal ─────────────────────────────────────────
+const PayoutConfirmModal = ({
+  open,
+  oldNumber,
+  oldName,
+  newNumber,
+  newName,
+  onConfirm,
+  onCancel,
+}: {
+  open: boolean;
+  oldNumber: string;
+  oldName: string;
+  newNumber: string;
+  newName: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) => (
+  <AnimatePresence>
+    {open && (
+      <>
+        <motion.div
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+          onClick={onCancel}
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 16 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 16 }}
+          transition={{ type: "spring", damping: 28, stiffness: 320 }}
+          className="fixed inset-x-4 bottom-6 sm:inset-auto sm:left-1/2 sm:-translate-x-1/2 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 z-50 w-full sm:max-w-sm bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-5"
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+            </div>
+            <div>
+              <p className="font-display font-bold text-base">Update Payout Account?</p>
+              <p className="text-xs text-muted-foreground mt-0.5">This will change where your sales are sent</p>
+            </div>
+          </div>
+
+          <div className="space-y-2 text-xs">
+            <div className="rounded-xl border border-border bg-muted/30 p-3 space-y-1">
+              <p className="text-muted-foreground font-semibold uppercase tracking-wider text-[10px]">Current</p>
+              <p className="font-medium text-foreground">{oldName || "—"}</p>
+              <p className="text-muted-foreground">{oldNumber ? `+233${oldNumber.replace(/^0/, "").replace(/^233/, "")}` : "—"}</p>
+            </div>
+            <div className="flex justify-center">
+              <ChevronRight className="w-4 h-4 text-muted-foreground rotate-90" />
+            </div>
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-1">
+              <p className="text-amber-600 font-semibold uppercase tracking-wider text-[10px]">New</p>
+              <p className="font-medium text-foreground">{newName || "—"}</p>
+              <p className="text-muted-foreground">{newNumber ? `+233${newNumber.replace(/^0/, "").replace(/^233/, "")}` : "—"}</p>
+            </div>
+          </div>
+
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Future payouts will go to the new account. This will also update your Paystack subaccount immediately.
+          </p>
+
+          <div className="flex gap-2">
+            <button
+              onClick={onCancel}
+              className="flex-1 py-2.5 rounded-xl border border-border text-sm font-semibold hover:bg-muted/40 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              className="flex-1 py-2.5 rounded-xl bg-amber-500 text-white text-sm font-bold hover:bg-amber-600 transition-colors"
+            >
+              Yes, Update
+            </button>
+          </div>
+        </motion.div>
+      </>
+    )}
+  </AnimatePresence>
+);
+
 // ── Seller application status card ────────────────────────────────────────────
 const SellerApplicationStatus = ({ userId, userEmail, onActivated }: {
   userId?: string;
@@ -335,11 +419,15 @@ const AccountSettings = memo(({
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [newPassword,     setNewPassword]     = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [payoutForm, setPayoutForm]   = useState({ method: "", number: "", name: "", bankCode: "" });
-  const [payoutSaved, setPayoutSaved] = useState(false);
-  const [payoutChangeWarning, setPayoutChangeWarning] = useState(false);
 
-  // Load saved payout details
+  // Payout state — savedPayout holds what's in DB, payoutForm holds edits
+  const [savedPayout,  setSavedPayout]  = useState({ method: "", number: "", name: "" });
+  const [payoutForm,   setPayoutForm]   = useState({ method: "", number: "", name: "", bankCode: "" });
+  const [payoutLoaded, setPayoutLoaded] = useState(false);
+  const [payoutSaved,  setPayoutSaved]  = useState(false);
+  const [showPayoutConfirm, setShowPayoutConfirm] = useState(false);
+
+  // Load saved payout details and pre-fill form
   React.useEffect(() => {
     if (!user?.id) return;
     supabase.from("profiles")
@@ -347,8 +435,11 @@ const AccountSettings = memo(({
       .eq("id", user.id).single()
       .then(({ data }) => {
         if (data?.payout_method) {
-          setPayoutForm({ method: data.payout_method, number: data.payout_number ?? "", name: data.payout_name ?? "", bankCode: "" });
+          const loaded = { method: data.payout_method, number: data.payout_number ?? "", name: data.payout_name ?? "" };
+          setSavedPayout(loaded);
+          setPayoutForm({ ...loaded, bankCode: "" });
         }
+        setPayoutLoaded(true);
       });
   }, [user?.id]);
 
@@ -368,13 +459,21 @@ const AccountSettings = memo(({
     } catch (err: any) { toast.error(err.message ?? "Failed to update password"); }
   };
 
-  const handleSavePayout = async () => {
+  // Called after user clicks Save — shows modal if verified seller with existing subaccount
+  const handleSavePayoutIntent = () => {
     if (!payoutForm.method || !payoutForm.number || !payoutForm.name) {
       toast.error("Please fill in all payout details"); return;
     }
-    if (isVerified && subaccountCode && !payoutChangeWarning) {
-      setPayoutChangeWarning(true); return;
+    if (isVerified && subaccountCode) {
+      setShowPayoutConfirm(true);
+      return;
     }
+    executeSavePayout();
+  };
+
+  // The actual save — called directly (no subaccount) or after modal confirmation
+  const executeSavePayout = async () => {
+    setShowPayoutConfirm(false);
     try {
       const { error } = await supabase.from("profiles").update({
         payout_method: payoutForm.method, payout_number: payoutForm.number,
@@ -409,14 +508,27 @@ const AccountSettings = memo(({
       } else {
         toast.success("Payout details saved!");
       }
+
+      // Update saved snapshot so future edits compare correctly
+      setSavedPayout({ method: payoutForm.method, number: payoutForm.number, name: payoutForm.name });
       setPayoutSaved(true);
-      setPayoutChangeWarning(false);
       setTimeout(() => setPayoutSaved(false), 3000);
     } catch (err: any) { toast.error(err.message ?? "Failed to save payout details"); }
   };
 
   return (
     <div className="space-y-6 max-w-lg">
+      {/* Payout change confirmation modal */}
+      <PayoutConfirmModal
+        open={showPayoutConfirm}
+        oldNumber={savedPayout.number}
+        oldName={savedPayout.name}
+        newNumber={payoutForm.number}
+        newName={payoutForm.name}
+        onConfirm={executeSavePayout}
+        onCancel={() => setShowPayoutConfirm(false)}
+      />
+
       {/* Become a seller card — non-sellers only */}
       {!canSell && (
         <SellerApplicationStatus
@@ -628,34 +740,24 @@ const AccountSettings = memo(({
 
             <div>
               <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">MoMo Number</label>
-              <input value={payoutForm.number} onChange={e => setPayoutForm(p => ({ ...p, number: e.target.value }))}
+              <input
+                value={payoutForm.number}
+                onChange={e => setPayoutForm(p => ({ ...p, number: e.target.value }))}
                 placeholder="0244 000 000"
-                className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]" />
+                className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
+              />
             </div>
             <div>
               <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Account Name</label>
-              <input value={payoutForm.name} onChange={e => setPayoutForm(p => ({ ...p, name: e.target.value }))}
+              <input
+                value={payoutForm.name}
+                onChange={e => setPayoutForm(p => ({ ...p, name: e.target.value }))}
                 placeholder="Name on account"
-                className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]" />
+                className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
+              />
             </div>
 
-            {/* Payout change warning */}
-            {isVerified && subaccountCode && payoutChangeWarning && (
-              <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/5 text-xs space-y-3">
-                <p className="font-semibold text-amber-700 dark:text-amber-400">⚠️ Update Paystack Payout Account?</p>
-                <p className="text-muted-foreground leading-relaxed">
-                  This will update your Paystack subaccount. Future payments will go to the new account.
-                </p>
-                <div className="flex gap-2">
-                  <button onClick={() => setPayoutChangeWarning(false)}
-                    className="flex-1 py-2 rounded-xl border border-border text-xs font-semibold hover:bg-muted transition-colors">Cancel</button>
-                  <button onClick={handleSavePayout}
-                    className="flex-1 py-2 rounded-xl bg-amber-500 text-white text-xs font-semibold hover:bg-amber-600 transition-colors">Yes, Update</button>
-                </div>
-              </div>
-            )}
-
-            <Button className="btn-primary rounded-full h-9 px-5 text-sm w-full" onClick={handleSavePayout}>
+            <Button className="btn-primary rounded-full h-9 px-5 text-sm w-full" onClick={handleSavePayoutIntent}>
               {payoutSaved ? <><CheckCircle className="w-3.5 h-3.5 mr-1.5" /> Saved!</> : "Save Payout Details"}
             </Button>
           </div>
