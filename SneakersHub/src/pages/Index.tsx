@@ -25,7 +25,6 @@ const Animate = ({
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
-// Hero category pills — one per group, derived from PRODUCT_CATEGORIES
 const HERO_CATEGORIES = [
   { label: "Sneakers",    svg: "/categoryicons/sneakers.svg"    },
   { label: "Watches",     svg: "/categoryicons/watches.svg"     },
@@ -227,7 +226,8 @@ const Index = () => {
   };
 
   const featured    = listings.filter(isActiveBoost).slice(0, 6);
-  const newArrivals = listings.filter((l) => !isActiveBoost(l)).slice(0, 6);
+  // Show all recent listings in New Arrivals regardless of boost status
+  const newArrivals = listings.slice(0, 6);
   const heroImage   = listings.find((l) => l.image)?.image ?? FALLBACK_IMG;
 
   const toCardShape = (l: typeof listings[0], isBoosted = false) => ({
@@ -459,7 +459,13 @@ const Index = () => {
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6">
-            {newArrivals.map((l, i) => <SneakerCard key={l.id} sneaker={toCardShape(l)} index={i} />)}
+            {newArrivals.map((l, i) => (
+              <SneakerCard
+                key={l.id}
+                sneaker={toCardShape(l, isActiveBoost(l))}
+                index={i}
+              />
+            ))}
           </div>
         )}
       </section>
