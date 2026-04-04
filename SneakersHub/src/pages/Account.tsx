@@ -242,12 +242,33 @@ const Account = () => {
   }, [user?.email, payoutForm.number]);
 
   const handleDeleteAccount = useCallback(async () => {
-    try {
-      const { error } = await supabase.functions.invoke("delete-account", { body: { user_id: user?.id } });
-      if (error) { await supabase.auth.signOut(); toast.success("Signed out. Contact support to complete deletion."); navigate("/"); return; }
-      await supabase.auth.signOut(); toast.success("Account deleted."); navigate("/");
-    } catch (err: any) { toast.error(err.message ?? "Failed to delete account"); }
-  }, [user?.id, navigate]);
+  if (!user?.id) return;
+  try {
+    const { data, error } = await supabase.functions.invoke("delete-account", {
+      body: { user_id: user.id },
+    });
+
+    // supabase.functions.invoke puts HTTP errors in `error`
+    if (error) {
+      console.error("[delete-account] Edge function error:", error);
+      toast.error("Failed to delete account. Please contact support.");
+      return; // do NOT sign out — account still exists
+    }
+
+    if (!data?.success) {
+      toast.error("Deletion incomplete. Please contact support.");
+      return;
+    }
+
+    // Only sign out + redirect after confirmed deletion
+    await supabase.auth.signOut();
+    toast.success("Account deleted.");
+    navigate("/");
+  } catch (err: any) {
+    console.error("[delete-account] Unexpected error:", err);
+    toast.error(err.message ?? "Failed to delete account");
+  }
+}, [user?.id, navigate]);
 
   const showBell = (canSell && unseenCount > 0) || (!!user && totalUnread > 0);
   const totalBellCount = (canSell ? unseenCount : 0) + (user ? totalUnread : 0);
