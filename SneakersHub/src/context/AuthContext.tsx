@@ -255,16 +255,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  // After — user set immediately before navigate fires
-const login = async (email: string, password: string) => {
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) throw new Error(error.message);
-  if (data.session?.user) {
-    const profile = await fetchProfile(data.session.user.id, data.session.user.email ?? "");
-    if (profile) setUser(profile);
-  }
-  setIsGuest(false);
-};
+  const login = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw new Error(error.message);
+    setIsGuest(false);
+  };
 
   // ── FIXED SIGNUP FUNCTION with all required fields ─────────────────────
   const signup = async (name: string, email: string, password: string, role: "buyer" | "seller", phone: string) => {
