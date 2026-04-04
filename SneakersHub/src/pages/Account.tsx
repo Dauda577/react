@@ -133,7 +133,7 @@ const Account = () => {
       supabase.from("profiles")
         .select("name, phone, city, region, verified, is_official, subaccount_code, payout_method, payout_number, payout_name, listing_count, role")
         .eq("id", user.id).single()
-        .then(({ data }) => {
+        .then(async ({ data }) => {
           if (!data) return;
           setProfileForm(p => ({ ...p, name: data.name ?? p.name, phone: data.phone ?? "", city: data.city ?? "", region: data.region ?? "" }));
           setIsVerified(data.verified ?? false);
@@ -141,7 +141,19 @@ const Account = () => {
           setIsOfficial(data.is_official ?? false);
           if (data.payout_method) setPayoutForm({ method: data.payout_method, number: data.payout_number ?? "", name: data.payout_name ?? "", bankCode: "" });
           if (data.role === "seller") setTotalListingsCreated(data.listing_count ?? 0);
-          if (data.verified && (!data.payout_method || !data.payout_number)) setHasMissingPayoutDetails(true);
+
+          if (data.verified && (!data.payout_method || !data.payout_number)) {
+            // Before flagging missing payout, check if they submitted via BecomeSellerDrawer
+            const { data: application } = await supabase
+              .from("seller_applications")
+              .select("momo_number")
+              .eq("user_id", user.id)
+              .in("status", ["pending", "approved"])
+              .maybeSingle();
+
+            // Only flag as missing if no application with MoMo details exists
+            if (!application?.momo_number) setHasMissingPayoutDetails(true);
+          }
         });
     }, 300);
     return () => clearTimeout(t);
