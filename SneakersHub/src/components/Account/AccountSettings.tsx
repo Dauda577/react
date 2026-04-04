@@ -459,12 +459,12 @@ const AccountSettings = memo(({
     } catch (err: any) { toast.error(err.message ?? "Failed to update password"); }
   };
 
-  // Called after user clicks Save — shows modal if verified seller with existing subaccount
+  // Called after user clicks Save — shows modal only when there are real existing payout details to compare
   const handleSavePayoutIntent = () => {
     if (!payoutForm.method || !payoutForm.number || !payoutForm.name) {
       toast.error("Please fill in all payout details"); return;
     }
-    if (isVerified && subaccountCode) {
+    if (isVerified && subaccountCode && savedPayout.number) {
       setShowPayoutConfirm(true);
       return;
     }
