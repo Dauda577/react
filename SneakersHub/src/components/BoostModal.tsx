@@ -58,31 +58,26 @@ const BoostModal = ({ listing, onClose }: Props) => {
     const ref = `boost_${listing.id.slice(0, 8)}_${Date.now()}`;
 
     const onPaymentSuccess = function(response: { reference: string }) {
-      // Verify payment with Paystack before boosting
       const paystackRef = response.reference;
-      fetch(`https://api.paystack.co/transaction/verify/${paystackRef}`, {
-        headers: { Authorization: `Bearer ${import.meta.env.VITE_PAYSTACK_PUBLIC_KEY}` },
-      })
-        .then(r => r.json())
-        .then(data => {
-          if (data.data?.status === "success" && data.data?.amount >= 500) {
-            // Payment confirmed — now boost
-            return boostListing(listing.id);
-          } else {
-            throw new Error("Payment not confirmed by Paystack");
-          }
-        })
+
+      // Don't verify from frontend (requires secret key — not safe).
+      // Paystack only fires this callback on genuine payment success.
+      boostListing(listing.id)
         .then(() => {
           setStep("success");
           toast.success("Listing boosted!");
         })
         .catch(() => {
-          toast.error(`Payment done (ref: ${paystackRef}) but boost failed. Contact support.`);
+          toast.error(
+            `Payment done (ref: ${paystackRef}) but boost failed. Contact support.`
+          );
         })
         .finally(() => {
           setLoading(false);
         });
     };
+
+    let paymentAttempted = false;
 
     const onPaymentClose = function() {
       setLoading(false);
@@ -95,8 +90,6 @@ const BoostModal = ({ listing, onClose }: Props) => {
         { duration: 6000 }
       );
     };
-
-    let paymentAttempted = false;
 
     const handler = PaystackPop.setup({
       key: PAYSTACK_PUBLIC_KEY,

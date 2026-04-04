@@ -209,8 +209,27 @@ const AccountProfile = memo(({
         </motion.div>
       )}
 
-      {/* Reviews section — seller only */}
-      {role === "seller" && !isOfficial && (
+      {/* Official seller confirmation */}
+      {role === "seller" && isOfficial && (
+        <motion.div {...fadeUp}
+          className="flex items-center gap-3 p-4 rounded-2xl border"
+          style={{ borderColor: "#6d28d9", background: "linear-gradient(135deg, rgba(59,7,100,0.08), rgba(30,27,75,0.08))" }}
+        >
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: "rgba(109,40,217,0.15)" }}>
+            <Sparkles className="w-4 h-4" style={{ color: "#a78bfa" }} />
+          </div>
+          <div>
+            <p className="font-display font-semibold text-sm" style={{ color: "#a78bfa" }}>Official Seller ✨</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Your store is recognised as an official brand on SneakersHub.
+            </p>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Reviews section — all sellers (verified and official) */}
+      {role === "seller" && (
         <div className="mt-8 pt-6 border-t border-border">
           <div className="flex items-center justify-between mb-4">
             <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Buyer Reviews</p>
