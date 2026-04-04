@@ -82,7 +82,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isGuest, setIsGuest] = useState(false);
   const [needsRole, setNeedsRole] = useState(false);
 
-  // avatarUrl added so Google photo is available when creating the profile in assignRole
   const [pendingSession, setPendingSession] = useState<{
     id: string; email: string; name: string; avatarUrl?: string;
   } | null>(null);
@@ -102,22 +101,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const fetchProfile = async (id: string, email: string): Promise<User | null> => {
-  try {
-    const [{ data, error }, { data: app }] = await Promise.all([
-      supabase.from("profiles").select("id, name, role, is_seller").eq("id", id).maybeSingle(),
-      supabase.from("seller_applications").select("status").eq("user_id", id).order("submitted_at", { ascending: false }).limit(1).maybeSingle(),
-    ]);
-    if (error || !data) return null;
-    const profile = data as any;
-    if (!profile.role) return null;
-    const isSeller = profile.role === "seller" || profile.is_seller === true;
-    const isBuyer = profile.role === "buyer" || profile.is_seller === true;
-    const sellerAppStatus: User["sellerAppStatus"] = isSeller ? "none" : ((app?.status ?? "none") as User["sellerAppStatus"]);
-    return { id: profile.id, name: profile.name, email, role: profile.role, isBuyer, isSeller, sellerAppStatus };
-  } catch {
-    return null;
-  }
-};
+    try {
+      const [{ data, error }, { data: app }] = await Promise.all([
+        supabase.from("profiles").select("id, name, role, is_seller").eq("id", id).maybeSingle(),
+        supabase.from("seller_applications").select("status").eq("user_id", id).order("submitted_at", { ascending: false }).limit(1).maybeSingle(),
+      ]);
+      if (error || !data) return null;
+      const profile = data as any;
+      if (!profile.role) return null;
+      const isSeller = profile.role === "seller" || profile.is_seller === true;
+      const isBuyer = profile.role === "buyer" || profile.is_seller === true;
+      const sellerAppStatus: User["sellerAppStatus"] = isSeller ? "none" : ((app?.status ?? "none") as User["sellerAppStatus"]);
+      return { id: profile.id, name: profile.name, email, role: profile.role, isBuyer, isSeller, sellerAppStatus };
+    } catch {
+      return null;
+    }
+  };
 
   const handleSession = async (session: Session | null) => {
     try {
@@ -161,7 +160,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             session.user.email?.split("@")[0] ??
             "User";
 
-          // Capture Google avatar URL from metadata
           const avatarUrl =
             session.user.user_metadata?.avatar_url ??
             session.user.user_metadata?.picture ??
@@ -222,7 +220,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { data: { session: currentSession } } = await supabase.auth.getSession();
       if (!currentSession?.user) return;
       const { data: profile } = await supabase
-        .from("profiles").select("id").eq("id", currentSession.user.id).single();
+        .from("profiles").select("id").eq("id", currentSession.user.id).maybeSingle();
       if (!profile) {
         await supabase.auth.signOut();
         setUser(null);
@@ -240,7 +238,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  // FIX: fetch and set profile immediately so navigate() works after login
   const login = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw new Error(error.message);
@@ -270,7 +267,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const { error: profileError } = await supabase
         .from("profiles")
-        .insert({
+        .upsert({
           id: data.user.id,
           name,
           email,
@@ -282,6 +279,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           verified: false,
           is_official: false,
           created_at: new Date().toISOString(),
+        }, {
+          onConflict: "id",
+          ignoreDuplicates: false,
         });
 
       if (profileError) throw new Error(profileError.message);
