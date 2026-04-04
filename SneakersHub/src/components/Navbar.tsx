@@ -23,7 +23,7 @@ const Navbar = () => {
   const { totalItems } = useCart();
   const { unseenCount } = useOrders();
   const { totalUnread } = useMessages();
-  const { user, role, activeMode, switchMode } = useAuth();
+  const { user, activeMode, switchMode } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sellerDrawerOpen, setSellerDrawerOpen] = useState(false);
 

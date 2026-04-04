@@ -119,12 +119,22 @@ const Account = () => {
 
   // ── Load avatar ────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!user?.id) return;
-    supabase.auth.getUser().then(({ data }) => {
-      const photo = data?.user?.user_metadata?.avatar_url ?? data?.user?.user_metadata?.picture ?? null;
-      setAvatarUrl(photo);
-    });
-  }, [user?.id]);
+  if (!user?.id) return;
+  supabase.auth.getUser().then(async ({ data }) => {
+    const metaPhoto =
+      data?.user?.user_metadata?.avatar_url ??
+      data?.user?.user_metadata?.picture ??
+      null;
+    if (metaPhoto) { setAvatarUrl(metaPhoto); return; }
+    // Fallback: profiles table (covers cases where metadata is missing)
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("avatar_url")
+      .eq("id", user.id)
+      .single();
+    if (profile?.avatar_url) setAvatarUrl(profile.avatar_url);
+  });
+}, [user?.id]);
 
   // ── Load profile from DB ───────────────────────────────────────────────────
   useEffect(() => {

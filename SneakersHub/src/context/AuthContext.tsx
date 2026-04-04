@@ -7,9 +7,9 @@ type User = {
   name: string;
   email: string;
   role: "buyer" | "seller";
-  isBuyer: boolean;  // can shop
-  isSeller: boolean; // can list
-  sellerAppStatus: "none" | "pending" | "approved" | "rejected"; // seller application state
+  isBuyer: boolean;
+  isSeller: boolean;
+  sellerAppStatus: "none" | "pending" | "approved" | "rejected";
 };
 
 type AuthContextType = {
@@ -32,7 +32,7 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 const CACHE_KEY = "sneakershub-user";
-const COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days
+const COOKIE_MAX_AGE = 30 * 24 * 60 * 60;
 
 const getCookie = (name: string): string | null => {
   if (typeof document === "undefined") return null;
@@ -42,7 +42,7 @@ const getCookie = (name: string): string | null => {
 
 const setCookie = (name: string, value: string, maxAge = COOKIE_MAX_AGE) => {
   if (typeof document === "undefined") return;
-  const expires = `max-age=${maxAge}; path=/; samesite=strict`; 
+  const expires = `max-age=${maxAge}; path=/; samesite=strict`;
   document.cookie = `${name}=${encodeURIComponent(value)}; ${expires}`;
 };
 
@@ -54,9 +54,7 @@ const deleteCookie = (name: string) => {
 const getCachedUser = (): User | null => {
   try {
     const cookieValue = getCookie(CACHE_KEY);
-    if (cookieValue) {
-      return JSON.parse(cookieValue) as User;
-    }
+    if (cookieValue) return JSON.parse(cookieValue) as User;
     const cached = localStorage.getItem(CACHE_KEY);
     return cached ? JSON.parse(cached) as User : null;
   } catch { return null; }
@@ -72,20 +70,22 @@ const setCachedUser = (u: User | null) => {
       localStorage.removeItem(CACHE_KEY);
       deleteCookie(CACHE_KEY);
     }
-  } catch {};
+  } catch {}
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const cachedUser = getCachedUser();
 
-  // If we have a cached user, start with loading: false — show app immediately
-  // If no cache, show spinner until session resolves
   const [user, setUserState] = useState<User | null>(cachedUser);
   const [activeMode, setActiveMode] = useState<"buyer" | "seller">(cachedUser?.role ?? "buyer");
   const [loading, setLoading] = useState(!cachedUser);
   const [isGuest, setIsGuest] = useState(false);
   const [needsRole, setNeedsRole] = useState(false);
-  const [pendingSession, setPendingSession] = useState<{ id: string; email: string; name: string } | null>(null);
+
+  // avatarUrl added so Google photo is available when creating the profile in assignRole
+  const [pendingSession, setPendingSession] = useState<{
+    id: string; email: string; name: string; avatarUrl?: string;
+  } | null>(null);
 
   const loadingDone = useRef(false);
 
@@ -128,18 +128,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // If we already have this user cached, skip the profile fetch
-      // Profile will still be fetched but loading won't block on it
       const cached = getCachedUser();
       if (cached && cached.id === session.user.id) {
         setUserState(cached);
         doneLoading();
-        // Verify in background — update silently if profile changed
         fetchProfile(session.user.id, session.user.email ?? "").then((fresh) => {
           if (fresh) {
             setUser(fresh);
           } else {
-            // Profile deleted (e.g. account deleted on another device) — force sign out
             supabase.auth.signOut().then(() => {
               setUser(null);
               localStorage.removeItem(CACHE_KEY);
@@ -153,41 +149,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const profile = await fetchProfile(session.user.id, session.user.email ?? "");
 
       if (!profile) {
-        // Check if this is a brand new OAuth user (has provider identity but no profile yet)
-        // vs a deleted account (profile row removed). New OAuth users have identities array.
         const isNewOAuth = (session.user.identities?.length ?? 0) > 0 &&
           session.user.app_metadata?.provider !== "email";
         const accountAge = Date.now() - new Date(session.user.created_at).getTime();
-        const isVeryNew = accountAge < 300_000; // created less than 5 min ago
+        const isVeryNew = accountAge < 300_000;
 
         if (isNewOAuth || isVeryNew) {
-          console.log("🆕 New OAuth user detected:", {
-            id: session.user.id,
-            email: session.user.email,
-            metadata: session.user.user_metadata,
-            identities: session.user.identities,
-            created_at: session.user.created_at
-          });
-          
-          // Genuine new user — let them pick a role
           const name =
             session.user.user_metadata?.full_name ??
             session.user.user_metadata?.name ??
             session.user.email?.split("@")[0] ??
             "User";
-          
-          console.log("📝 Setting pending session with name:", name);
-          
-          setPendingSession({ 
-            id: session.user.id, 
-            email: session.user.email ?? "", 
-            name: name 
+
+          // Capture Google avatar URL from metadata
+          const avatarUrl =
+            session.user.user_metadata?.avatar_url ??
+            session.user.user_metadata?.picture ??
+            undefined;
+
+          setPendingSession({
+            id: session.user.id,
+            email: session.user.email ?? "",
+            name,
+            avatarUrl,
           });
-          
           setNeedsRole(true);
           setUser(null);
         } else {
-          // Profile missing for an existing session = account was deleted elsewhere
           supabase.auth.signOut().then(() => {
             setUser(null);
             setNeedsRole(false);
@@ -207,13 +195,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
-    // Fallback timeout — only needed for brand new users with no cache
     const timeout = setTimeout(() => {
       if (!loadingDone.current) {
         console.warn("[Auth] Safety timeout - forcing loading to false");
         doneLoading();
       }
-    }, 3000); // Reduced from 5s to 3s
+    }, 3000);
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       await handleSession(session);
@@ -231,14 +218,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     );
 
-    // Periodically re-validate session — catches account deletions on other devices
     const interval = setInterval(async () => {
       const { data: { session: currentSession } } = await supabase.auth.getSession();
-      if (!currentSession?.user) return; // not logged in, nothing to check
+      if (!currentSession?.user) return;
       const { data: profile } = await supabase
         .from("profiles").select("id").eq("id", currentSession.user.id).single();
       if (!profile) {
-        // Profile gone — sign out this device
         await supabase.auth.signOut();
         setUser(null);
         setNeedsRole(false);
@@ -246,7 +231,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.removeItem(CACHE_KEY);
         sessionStorage.clear();
       }
-    }, 60_000); // check every 60 seconds
+    }, 60_000);
 
     return () => {
       clearTimeout(timeout);
@@ -255,86 +240,65 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
+  // FIX: fetch and set profile immediately so navigate() works after login
   const login = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw new Error(error.message);
+    if (data.session?.user) {
+      const profile = await fetchProfile(data.session.user.id, data.session.user.email ?? "");
+      if (profile) setUser(profile);
+    }
     setIsGuest(false);
   };
 
-  // ── FIXED SIGNUP FUNCTION with all required fields ─────────────────────
   const signup = async (name: string, email: string, password: string, role: "buyer" | "seller", phone: string) => {
     try {
       console.log("Starting signup with:", { name, email, role, phone });
-      
-      // First, create the auth user
+
       const { data, error } = await supabase.auth.signUp({
-        email, 
+        email,
         password,
-        options: { 
-          data: { 
-            name, 
-            role,
-            phone
-          } 
-        },
+        options: { data: { name, role, phone } },
       });
-      
-      if (error) {
-        console.error("Auth signup error:", error);
-        throw new Error(error.message);
-      }
-      
-      if (!data.user) {
-        console.error("No user returned from signup");
-        throw new Error("Signup failed - no user created");
-      }
-      
+
+      if (error) throw new Error(error.message);
+      if (!data.user) throw new Error("Signup failed - no user created");
+
       console.log("Auth user created successfully:", data.user.id);
-      
-      // Small delay to ensure auth user is fully created
+
       await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Create profile with ALL required fields based on your schema
+
       const { error: profileError } = await supabase
         .from("profiles")
         .insert({
           id: data.user.id,
-          name: name,
-          email: email,
+          name,
+          email,
           phone: phone || null,
-          role: role,
+          role,
           is_seller: role === "seller",
           listing_count: 0,
           commission_rate: 5,
           verified: false,
           is_official: false,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
         });
-      
-      if (profileError) {
-        console.error("Profile creation error:", profileError);
-        throw new Error(profileError.message);
-      }
-      
+
+      if (profileError) throw new Error(profileError.message);
+
       console.log("Profile created successfully");
-      
-      const newUser: User = { 
-        id: data.user.id, 
-        name, 
-        email, 
-        role, 
-        isBuyer: true, 
-        isSeller: role === "seller", 
-        sellerAppStatus: "none" 
+
+      const newUser: User = {
+        id: data.user.id, name, email, role,
+        isBuyer: true, isSeller: role === "seller", sellerAppStatus: "none",
       };
-      
+
       setUser(newUser);
       setNeedsRole(false);
       setPendingSession(null);
       setIsGuest(false);
-      
+
       console.log("Signup complete, user set");
-      
     } catch (err: any) {
       console.error("Signup error caught in catch:", err);
       throw err;
@@ -349,60 +313,54 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (error) throw new Error(error.message);
   };
 
-  // ── FIXED ASSIGN ROLE FUNCTION with all required fields ───────────────────
   const assignRole = async (role: "buyer" | "seller", phone: string) => {
     if (!pendingSession) {
       console.error("❌ No pending session found!");
       return;
     }
-    
-    const { id, email, name } = pendingSession;
-    
+
+    const { id, email, name, avatarUrl } = pendingSession;
+
     console.log("📝 Assigning role with:", { id, email, name, role, phone });
-    
+
     const profileData = {
-      id: id,
-      name: name,
-      email: email,
+      id,
+      name,
+      email,
       phone: phone || null,
-      role: role,
+      role,
       is_seller: role === "seller",
       listing_count: 0,
       commission_rate: 5,
       verified: false,
       is_official: false,
+      // Save Google avatar so it shows on product pages immediately
+      avatar_url: avatarUrl ?? null,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     };
-    
+
     console.log("📝 Inserting profile:", profileData);
-    
-    const { error } = await supabase
-      .from("profiles")
-      .insert(profileData);
-      
+
+    const { error } = await supabase.from("profiles").insert(profileData);
+
     if (error) {
       console.error("❌ Profile insert error:", error);
-      console.error("Error code:", error.code);
-      console.error("Error message:", error.message);
-      console.error("Error details:", error.details);
-      
-      if (error.code === '23505') {
+
+      if (error.code === "23505") {
         console.log("🔄 Profile exists, trying update...");
         const { error: updateError } = await supabase
           .from("profiles")
           .update({
-            phone: phone,
-            role: role,
+            phone,
+            role,
             is_seller: role === "seller",
-            updated_at: new Date().toISOString()
+            avatar_url: avatarUrl ?? null,
+            updated_at: new Date().toISOString(),
           })
-          .eq('id', id);
-          
-        if (updateError) {
-          console.error("❌ Update error:", updateError);
-          throw new Error(updateError.message);
-        }
+          .eq("id", id);
+
+        if (updateError) throw new Error(updateError.message);
         console.log("✅ Profile updated successfully");
       } else {
         throw new Error(error.message);
@@ -410,15 +368,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } else {
       console.log("✅ Profile created successfully");
     }
-    
-    setUser({ 
-      id, 
-      name, 
-      email, 
-      role, 
-      isBuyer: true, 
-      isSeller: role === "seller", 
-      sellerAppStatus: "none" 
+
+    setUser({
+      id, name, email, role,
+      isBuyer: true, isSeller: role === "seller", sellerAppStatus: "none",
     });
     setNeedsRole(false);
     setPendingSession(null);

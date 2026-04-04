@@ -577,11 +577,12 @@ const ProductDetail = () => {
                   <ShoppingBag className="w-4 h-4 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="text-sm font-display font-semibold text-foreground mb-1">Seller accounts can't purchase</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Buying and selling are kept separate for security. To purchase items you'll need a buyer account.{" "}
-                    <Link to="/auth" className="text-primary font-semibold hover:opacity-70 transition-opacity">Create one here →</Link>
-                  </p>
+                  <p className="text-sm font-display font-semibold text-foreground mb-1">This is your listing</p>
+<p className="text-xs text-muted-foreground leading-relaxed">
+  You can't purchase your own item. Head to your{" "}
+  <Link to="/account?tab=listings" className="text-primary font-semibold hover:opacity-70 transition-opacity">listings page</Link>
+  {" "}to manage it.
+</p>
                 </div>
               </motion.div>
             ) : (
