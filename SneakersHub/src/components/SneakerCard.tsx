@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Heart, Zap, Sparkles, BadgeCheck } from "lucide-react";
@@ -54,13 +53,7 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 40 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-50px" }}
-      transition={{ duration: 0.5, delay: index * 0.1 }}
-      className="relative"
-    >
+    <div className="relative">
       {/* Heart button */}
       <button
         onClick={handleSave}
@@ -72,14 +65,7 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
           }`}
         aria-label={saved ? "Remove from saved" : "Save item"}
       >
-        <motion.div
-          key={saved ? "saved" : "unsaved"}
-          initial={{ scale: 0.7 }}
-          animate={{ scale: 1 }}
-          transition={{ type: "spring", stiffness: 400, damping: 15 }}
-        >
-          <Heart className="w-4 h-4" fill={saved ? "currentColor" : "none"} />
-        </motion.div>
+        <Heart className="w-4 h-4" fill={saved ? "currentColor" : "none"} />
       </button>
 
       <Link to={`/product/${sneaker.id}`} className="sneaker-card block group">
@@ -142,7 +128,7 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
           </div>
         </div>
       </Link>
-    </motion.div>
+    </div>
   );
 };
 
