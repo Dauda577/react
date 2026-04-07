@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, Package, ChevronLeft, ChevronRight } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -39,17 +40,21 @@ const Shop = () => {
   const [sort, setSort] = useState("newest");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
+  // Scroll ref for the pill row
   const pillsRef = useRef<HTMLDivElement>(null);
 
+  // Category driven by URL
   const category = searchParams.get("category") ?? "All";
   const setCategory = (cat: string) => {
     const next = new URLSearchParams(searchParams);
     if (cat === "All") next.delete("category");
     else next.set("category", cat);
     setSearchParams(next, { replace: true });
+    // Reset pagination whenever category changes
     setVisibleCount(PAGE_SIZE);
   };
 
+  // Reset pagination on search/sort change too
   const handleSearch = (val: string) => {
     setSearch(val);
     setVisibleCount(PAGE_SIZE);
@@ -80,11 +85,13 @@ const Shop = () => {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
+  // Slice to current page
   const visible = filtered.slice(0, visibleCount);
   const hasMore = visibleCount < filtered.length;
 
   const emptySvg = CATEGORY_SVGS[category] ?? "/categoryicons/all.svg";
 
+  // Pill row scroll helpers
   const scrollPills = (dir: "left" | "right") => {
     pillsRef.current?.scrollBy({ left: dir === "right" ? 200 : -200, behavior: "smooth" });
   };
@@ -98,7 +105,7 @@ const Shop = () => {
         style={{ paddingTop: `calc(88px + env(safe-area-inset-top, 0px))` }}
       >
         {/* Header */}
-        <div className="mb-6">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
           <p className="text-primary font-display text-xs font-semibold uppercase tracking-[0.3em] mb-2">Browse</p>
           <h1 className="font-display text-4xl md:text-5xl font-bold tracking-tight">
             {categoryHeading(category)}
@@ -109,10 +116,12 @@ const Shop = () => {
               : `${filtered.length} ${filtered.length === 1 ? "listing" : "listings"} available`
             }
           </p>
-        </div>
+        </motion.div>
 
         {/* ── Category pills ── */}
+        {/* Wrapper positions the chevron buttons and contains the scroll area */}
         <div className="relative mb-5 group">
+          {/* Left chevron — only on desktop */}
           <button
             onClick={() => scrollPills("left")}
             className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 z-10
@@ -124,6 +133,7 @@ const Shop = () => {
             <ChevronLeft className="w-4 h-4" />
           </button>
 
+          {/* Scrollable pill row — scrollbar hidden on all sizes */}
           <div
             ref={pillsRef}
             className="flex gap-2 overflow-x-auto pb-3 no-scrollbar items-center scroll-smooth"
@@ -151,6 +161,7 @@ const Shop = () => {
             })}
           </div>
 
+          {/* Right chevron — only on desktop */}
           <button
             onClick={() => scrollPills("right")}
             className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-10
@@ -228,25 +239,38 @@ const Shop = () => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
-              {visible.map((l, i) => (
-                <div key={l.id}>
-                  <SneakerCard
-                    sneaker={{
-                      id: l.id, name: l.name, brand: l.brand, price: l.price,
-                      image: l.image ?? "", category: l.category, sizes: l.sizes,
-                      description: l.description, isBoosted: l.boosted,
-                      sellerVerified: l.sellerVerified, sellerIsOfficial: l.sellerIsOfficial,
-                    }}
-                    index={i}
-                  />
-                </div>
-              ))}
-            </div>
+            <motion.div layout className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
+              <AnimatePresence>
+                {visible.map((l, i) => (
+                  <motion.div
+                    key={l.id}
+                    layout
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ delay: Math.min(i, 8) * 0.04 }}
+                  >
+                    <SneakerCard
+                      sneaker={{
+                        id: l.id, name: l.name, brand: l.brand, price: l.price,
+                        image: l.image ?? "", category: l.category, sizes: l.sizes,
+                        description: l.description, isBoosted: l.boosted,
+                        sellerVerified: l.sellerVerified, sellerIsOfficial: l.sellerIsOfficial,
+                      }}
+                      index={i}
+                    />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </motion.div>
 
             {/* Load more */}
             {hasMore && (
-              <div className="flex flex-col items-center gap-2 mt-10">
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col items-center gap-2 mt-10"
+              >
                 <p className="text-xs text-muted-foreground">
                   Showing {visible.length} of {filtered.length} listings
                 </p>
@@ -257,7 +281,7 @@ const Shop = () => {
                 >
                   Load more
                 </Button>
-              </div>
+              </motion.div>
             )}
 
             {/* All loaded indicator */}
