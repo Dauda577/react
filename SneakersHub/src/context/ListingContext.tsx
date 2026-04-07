@@ -23,6 +23,7 @@ export type Listing = {
   shippingCost: number;
   handlingTime: string;
   images: string[];
+  discountPercent: number | null;
 };
 
 type ListingContextType = {
@@ -68,6 +69,7 @@ const rowToListing = (r: ListingRow): Listing => ({
   shippingCost: (r as any).shipping_cost ?? 0,
   handlingTime: (r as any).handling_time ?? "Ships in 1-3 days",
   images: (r as any).images ?? [],
+  discountPercent: (r as any).discount_percent ?? null,
 });
 
 export const isBoostActive = (listing: Listing): boolean => {
@@ -150,7 +152,7 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     const { data, error } = await supabase
       .from("listings")
-      .select("id, seller_id, name, brand, price, category, sizes, description, image_url, images, status, boosted, boost_expires_at, views, created_at, city, region, shipping_cost, handling_time")
+      .select("id, seller_id, name, brand, price, category, sizes, description, image_url, images, status, boosted, boost_expires_at, views, created_at, city, region, shipping_cost, handling_time, discount_percent")
       .eq("seller_id", user.id)
       .order("created_at", { ascending: false });
     if (!error && data) setListings((data as ListingRow[]).map(rowToListing));
@@ -203,7 +205,7 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
 
   const boostedListings = listings.filter((l) => l.status === "active" && isBoostActive(l));
 
-  // ✅ FIXED: addListing with unique image paths
+  // ✅ FIXED: addListing with unique image paths and discountPercent
   const addListing = async (
     listing: Omit<Listing, "id" | "sellerId" | "views" | "createdAt" | "status" | "boosted" | "boostExpiresAt">,
     imageFile?: File,
@@ -262,6 +264,7 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
       region: listing.region ?? sellerProfile?.region ?? null,
       shipping_cost: (listing as any).shippingCost ?? 0,
       handling_time: (listing as any).handlingTime ?? "Ships in 1-3 days",
+      discount_percent: (listing as any).discountPercent ?? null,
     }).select().single();
 
     if (error) throw new Error(error.message);
@@ -299,7 +302,7 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // ✅ FIXED: updateListing with proper image handling (no overwrites)
+  // ✅ FIXED: updateListing with proper image handling and discountPercent
   const updateListing = async (id: string, updates: Partial<Listing>, imageFile?: File, extraImages?: File[]) => {
     const dbUpdates: any = {};
     if (updates.city !== undefined) dbUpdates.city = updates.city;
@@ -315,6 +318,7 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
     if ((updates as any).handlingTime !== undefined) dbUpdates.handling_time = (updates as any).handlingTime;
     if (updates.boosted !== undefined) dbUpdates.boosted = updates.boosted;
     if (updates.boostExpiresAt !== undefined) dbUpdates.boost_expires_at = updates.boostExpiresAt;
+    if (updates.discountPercent !== undefined) dbUpdates.discount_percent = updates.discountPercent;
 
     // ✅ FIXED: Handle image uploads with unique paths
     if (imageFile || (extraImages && extraImages.length > 0)) {

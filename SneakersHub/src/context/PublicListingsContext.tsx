@@ -29,6 +29,7 @@ export type PublicListing = {
   boostExpiresAt: string | null;
   views: number;
   createdAt: string;
+  discountPercent: number | null;
 };
 
 type PublicListingsContextType = {
@@ -36,7 +37,8 @@ type PublicListingsContextType = {
   loading: boolean;
   fetchListings: () => Promise<void>;
   incrementViews: (id: string) => Promise<void>;
-  refreshListing: (id: string) => Promise<void>; // 👈 Added this
+  refreshListing: (id: string) => Promise<void>;
+  discountPercent: number | null;
 };
 
 const PublicListingsContext = createContext<PublicListingsContextType | null>(null);
@@ -66,7 +68,7 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
       .select(`
         id, seller_id, name, brand, price, category, sizes,
         description, image_url, images, boosted, boost_expires_at,
-        views, created_at, city, region, shipping_cost, handling_time,
+        views, created_at, city, region, shipping_cost, discount_percent, handling_time,
         profiles (
           name, phone, city, verified, is_official, subaccount_code, created_at
         )
@@ -107,6 +109,7 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
           boostExpiresAt: row.boost_expires_at,
           views: row.views,
           createdAt: row.created_at,
+          discountPercent: row.discount_percent ?? null,
         };
       });
 
@@ -143,14 +146,14 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
     isFetching.current = false;
   };
 
-  // 👈 NEW: Function to refresh a single listing
+  // Function to refresh a single listing
   const refreshListing = async (id: string) => {
     const { data, error } = await supabase
       .from("listings")
       .select(`
         id, seller_id, name, brand, price, category, sizes,
         description, image_url, images, boosted, boost_expires_at,
-        views, created_at, city, region, shipping_cost, handling_time,
+        views, created_at, city, region, shipping_cost, discount_percent, handling_time,
         profiles (
           name, phone, city, verified, is_official, subaccount_code, created_at
         )
@@ -189,6 +192,7 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
         boostExpiresAt: data.boost_expires_at,
         views: data.views,
         createdAt: data.created_at,
+        discountPercent: data.discount_percent ?? null,
       };
 
       setListings((prev) => {
@@ -209,7 +213,6 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
     if (!listingsCache) fetchListings();
   }, []);
 
-  // ✅ FIXED: Enhanced Realtime with FULL data refresh for ALL events
   useEffect(() => {
     const channel = supabase
       .channel("listings-realtime")
@@ -223,7 +226,7 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
             .select(`
               id, seller_id, name, brand, price, category, sizes,
               description, image_url, images, boosted, boost_expires_at,
-              views, created_at, city, region, shipping_cost, handling_time,
+              views, created_at, city, region, shipping_cost, discount_percent, handling_time,
               profiles (
                 name, phone, city, verified, is_official, subaccount_code, created_at
               )
@@ -262,6 +265,7 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
               boostExpiresAt: data.boost_expires_at,
               views: data.views,
               createdAt: data.created_at,
+              discountPercent: data.discount_percent ?? null,
             };
 
             setListings((prev) => {
@@ -275,13 +279,13 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
       .on("postgres_changes", 
         { event: "UPDATE", schema: "public", table: "listings" },
         async (payload) => {
-          // ✅ FIX: Fetch the complete updated listing with all fields including images
+          // Fetch the complete updated listing with all fields including images
           const { data, error } = await supabase
             .from("listings")
             .select(`
               id, seller_id, name, brand, price, category, sizes,
               description, image_url, images, boosted, boost_expires_at,
-              views, created_at, city, region, shipping_cost, handling_time,
+              views, created_at, city, region, shipping_cost, discount_percent, handling_time,
               profiles (
                 name, phone, city, verified, is_official, subaccount_code, created_at
               )
@@ -320,6 +324,7 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
               boostExpiresAt: data.boost_expires_at,
               views: data.views,
               createdAt: data.created_at,
+              discountPercent: data.discount_percent ?? null,
             };
 
             setListings((prev) => {

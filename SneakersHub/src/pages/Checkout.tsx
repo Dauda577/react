@@ -5,7 +5,7 @@ import {
   ArrowLeft, MapPin, Phone, User, CheckCircle,
   ShoppingBag, ChevronDown, ArrowRight, ShieldAlert, X,
   ShieldCheck, CreditCard, Lock, Sparkles, BadgeCheck, Package,
-  Store, Truck, MessageCircle, Clock,
+  Store, Truck, MessageCircle, Clock, Ticket, Percent,
 } from "lucide-react";
 import { thumbImage } from "@/lib/imageutils";
 import { useCart, groupBySeller, SellerGroup } from "@/context/CartContext";
@@ -77,6 +77,11 @@ export default function Checkout() {
   });
   const [orderNotes, setOrderNotes] = useState("");
 
+  // Promo code state
+  const [promoCode, setPromoCode] = useState("");
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [appliedPromo, setAppliedPromo] = useState<{ code: string; discountPercent: number } | null>(null);
+
   // Group cart items by seller
   const sellerGroups = groupBySeller(items);
   const totalPrice = items.reduce((sum, i) => sum + i.listing.price * i.quantity, 0);
@@ -118,6 +123,46 @@ export default function Checkout() {
   const sellerHandlingTime = isVerifiedSeller ? (freshData?.handlingTime ?? currentGroup?.handlingTime ?? "Ships in 1-3 days") : "";
 
   const currentDeliveryFee = 0;
+
+  // Compute discounted total
+  const groupTotal = currentGroup?.total ?? 0;
+  const promoDiscount = appliedPromo ? Math.round(groupTotal * appliedPromo.discountPercent / 100) : 0;
+  const finalTotal = groupTotal - promoDiscount;
+
+  const handleApplyPromo = async () => {
+    if (!promoCode.trim()) return;
+    setPromoLoading(true);
+    const { data, error } = await supabase
+      .from("promo_codes")
+      .select("code, discount_percent, expires_at, max_uses, uses_count")
+      .eq("code", promoCode.trim().toUpperCase())
+      .single();
+
+    if (error || !data) {
+      toast.error("Invalid promo code");
+      setPromoLoading(false);
+      return;
+    }
+    if (data.expires_at && new Date(data.expires_at) < new Date()) {
+      toast.error("This promo code has expired");
+      setPromoLoading(false);
+      return;
+    }
+    if (data.max_uses && data.uses_count >= data.max_uses) {
+      toast.error("This promo code has reached its usage limit");
+      setPromoLoading(false);
+      return;
+    }
+    setAppliedPromo({ code: data.code, discountPercent: data.discount_percent });
+    toast.success(`Promo applied — ${data.discount_percent}% off!`);
+    setPromoLoading(false);
+  };
+
+  const handleRemovePromo = () => {
+    setAppliedPromo(null);
+    setPromoCode("");
+    toast.info("Promo code removed");
+  };
 
   useEffect(() => {
     if (requiresPayment) ensurePaystackScript();
@@ -168,6 +213,12 @@ export default function Checkout() {
 
   const submitGroupOrder = async (group: SellerGroup, paystackRef?: string) => {
     const deliveryInfo = buildDeliveryInfo();
+    
+    // Increment promo code usage if applied
+    if (appliedPromo) {
+      await supabase.rpc("increment_promo_uses", { promo_code: appliedPromo.code });
+    }
+    
     await placeOrder({
       sellerId: group.sellerId,
       items: group.items.map((i) => ({
@@ -181,7 +232,9 @@ export default function Checkout() {
       })),
       subtotal: group.total,
       deliveryFee: 0,
-      total: group.total,
+      total: finalTotal,
+      discountAmount: promoDiscount,
+      promoCode: appliedPromo?.code,
       deliveryMethod: deliveryInfo.method,
       deliveryAddress: `${deliveryInfo.address}, ${deliveryInfo.city}, ${deliveryInfo.region}`,
       buyerPhone: deliveryInfo.phone,
@@ -200,7 +253,8 @@ export default function Checkout() {
       const PaystackPop = (window as any).PaystackPop;
       if (!PaystackPop) throw new Error("Payment SDK not available");
 
-      const chargeTotal = group.total;
+      // Use finalTotal for payment amount
+      const chargeTotal = finalTotal;
 
       let paymentCompleted = false;
       const handler = PaystackPop.setup({
@@ -216,6 +270,8 @@ export default function Checkout() {
           custom_fields: [
             { display_name: "Seller", variable_name: "seller_id", value: group.sellerId },
             { display_name: "Delivery Method", variable_name: "delivery_method", value: deliveryMethod === "pickup" ? "pickup" : "delivery" },
+            { display_name: "Promo Code", variable_name: "promo_code", value: appliedPromo?.code ?? "" },
+            { display_name: "Discount Amount", variable_name: "discount_amount", value: promoDiscount.toString() },
           ],
         },
         callback: (response: { reference: string }) => {
@@ -364,7 +420,7 @@ export default function Checkout() {
                   )}
                 </p>
               </div>
-              <span className="text-sm font-bold">GHS {currentGroup?.total ?? 0}</span>
+              <span className="text-sm font-bold">GHS {groupTotal}</span>
             </div>
 
             {/* Order items */}
@@ -384,15 +440,62 @@ export default function Checkout() {
               ))}
             </div>
 
+            {/* Promo Code Section */}
+            <div className="rounded-2xl border border-border p-6">
+              <h3 className="font-display text-sm font-semibold mb-3 flex items-center gap-2">
+                <Ticket className="w-4 h-4" /> Promo Code
+              </h3>
+              {appliedPromo ? (
+                <div className="flex items-center justify-between p-3 rounded-xl bg-green-500/10 border border-green-500/30">
+                  <div>
+                    <p className="text-sm font-semibold text-green-600">{appliedPromo.code}</p>
+                    <p className="text-xs text-green-600/70">{appliedPromo.discountPercent}% discount applied</p>
+                  </div>
+                  <button
+                    onClick={handleRemovePromo}
+                    className="p-1.5 rounded-lg hover:bg-green-500/20 transition-colors"
+                  >
+                    <X className="w-4 h-4 text-green-600" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Percent className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                      placeholder="Enter promo code"
+                      className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-border bg-background text-sm
+                        placeholder:text-muted-foreground focus:outline-none focus:border-primary
+                        focus:ring-1 focus:ring-primary/20 transition-all"
+                    />
+                  </div>
+                  <Button
+                    onClick={handleApplyPromo}
+                    disabled={promoLoading || !promoCode.trim()}
+                    variant="outline"
+                    className="rounded-xl"
+                  >
+                    {promoLoading ? (
+                      <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      "Apply"
+                    )}
+                  </Button>
+                </div>
+              )}
+            </div>
+
             {/* Delivery Options */}
             <div className="rounded-2xl border border-border p-6">
               <CheckoutDeliveryOptions
-  onDeliveryMethodChange={setDeliveryMethod}
-  selectedMethod={deliveryMethod}
-  sellerCity={sellerCity}
-  sellerRegion={sellerRegion}
-  sellerName={currentGroup?.sellerName}
-/>
+                onDeliveryMethodChange={setDeliveryMethod}
+                selectedMethod={deliveryMethod}
+                sellerCity={sellerCity}
+                sellerRegion={sellerRegion}
+                sellerName={currentGroup?.sellerName}
+              />
             </div>
 
             {/* Order Notes */}
@@ -527,8 +630,14 @@ export default function Checkout() {
               <div className="border-t border-border pt-4 space-y-2.5">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span className="font-medium">GHS {currentGroup?.total ?? 0}</span>
+                  <span className="font-medium">GHS {groupTotal}</span>
                 </div>
+                {appliedPromo && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Discount ({appliedPromo.discountPercent}% off)</span>
+                    <span>- GHS {promoDiscount}</span>
+                  </div>
+                )}
                 {deliveryMethod === "pickup" && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Pickup</span>
@@ -545,7 +654,7 @@ export default function Checkout() {
                   <span className="font-display font-bold">Total to pay now</span>
                   <div className="text-right">
                     <span className="font-display font-bold text-lg">
-                      GHS {currentGroup?.total ?? 0}
+                      GHS {finalTotal}
                     </span>
                     {deliveryMethod === "delivery" && (
                       <p className="text-[10px] text-muted-foreground">+ delivery fee after order</p>
@@ -565,7 +674,7 @@ export default function Checkout() {
                 <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                   className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full" />
               ) : requiresPayment ? (
-                <><ShieldCheck className="w-5 h-5" /> Pay GHS {currentGroup?.total ?? 0}</>
+                <><ShieldCheck className="w-5 h-5" /> Pay GHS {finalTotal}</>
               ) : (
                 <><ArrowRight className="w-5 h-5" /> Place Order — Pay on Delivery</>
               )}
@@ -574,7 +683,7 @@ export default function Checkout() {
             {requiresPayment && (
               <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
                 <Lock className="w-3 h-3" />
-                <span>Secured by Paystack · GHS {currentGroup?.total ?? 0} will be charged</span>
+                <span>Secured by Paystack · GHS {finalTotal} will be charged</span>
               </div>
             )}
 

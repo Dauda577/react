@@ -156,12 +156,12 @@
 
   /* ── Responsive section padding ── */
   .section-padding {
-    @apply px-4 sm:px-6 md:px-12 lg:px-20;
-  }
+  @apply px-4 sm:px-6 md:px-12 lg:px-20;
+}
 
   .sneaker-card {
-    @apply bg-card rounded-lg overflow-hidden border border-border transition-all duration-500 ease-out cursor-pointer;
-  }
+  @apply block w-full bg-card rounded-lg overflow-hidden border border-border transition-all duration-500 ease-out cursor-pointer;
+}
 
   .sneaker-card:hover {
     @apply border-primary/40;

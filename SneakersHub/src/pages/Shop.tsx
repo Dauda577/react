@@ -101,7 +101,7 @@ const Shop = () => {
       <Navbar />
 
       <div
-        className="section-padding max-w-7xl mx-auto pb-20"
+         className="section-padding max-w-7xl mx-auto pb-20"
         style={{ paddingTop: `calc(88px + env(safe-area-inset-top, 0px))` }}
       >
         {/* Header */}
@@ -243,13 +243,14 @@ const Shop = () => {
               <AnimatePresence>
                 {visible.map((l, i) => (
                   <motion.div
-                    key={l.id}
-                    layout
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ delay: Math.min(i, 8) * 0.04 }}
-                  >
+  key={l.id}
+  layout
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  exit={{ opacity: 0 }}
+  transition={{ delay: Math.min(i, 8) * 0.04 }}
+  className="w-full h-full"
+>
                     <SneakerCard
                       sneaker={{
                         id: l.id, name: l.name, brand: l.brand, price: l.price,

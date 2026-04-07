@@ -6,7 +6,7 @@ import {
   ChevronDown, FileText, Image,
 } from "lucide-react";
 import { useListings, Listing } from "@/context/ListingContext";
-import { usePublicListings } from "@/context/PublicListingsContext"; // 👈 ADD THIS
+import { usePublicListings } from "@/context/PublicListingsContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -152,7 +152,7 @@ const CreateListing = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { addListing, updateListing } = useListings();
-  const { refreshListing } = usePublicListings(); // 👈 ADD THIS
+  const { refreshListing } = usePublicListings();
 
   const editing = location.state?.listing as Listing | undefined;
 
@@ -165,6 +165,7 @@ const CreateListing = () => {
     description: editing?.description ?? "",
     city: editing?.city ?? "",
     region: editing?.region ?? "",
+    discountPercent: editing?.discountPercent?.toString() ?? "",
   });
 
   useEffect(() => {
@@ -256,7 +257,7 @@ const CreateListing = () => {
   // ── END CHANGED ─────────────────────────────────────────────────────────────
 
   const handleSubmit = async () => {
-    const { name, brand, price, category, description, city, region } = form;
+    const { name, brand, price, category, description, city, region, discountPercent } = form;
 
     if (!name || !brand || !price || !category || !description || !region) {
       toast.error(!region ? "Please select your region" : "Please fill in all fields");
@@ -292,18 +293,39 @@ const CreateListing = () => {
       if (editing) {
         await updateListing(
           editing.id,
-          { name, brand, price: Number(price), category, description, sizes: sizesToSave, city: city || null, region: region || null },
+          { 
+            name, 
+            brand, 
+            price: Number(price), 
+            category, 
+            description, 
+            sizes: sizesToSave, 
+            city: city || null, 
+            region: region || null,
+            discountPercent: discountPercent ? Number(discountPercent) : null,
+          },
           imageFiles[0] ?? undefined,
           imageFiles.slice(1)
         );
         
-        // 👈 ADD THIS: Refresh the public listing cache
+        // Refresh the public listing cache
         await refreshListing(editing.id);
         
         toast.success("Listing updated!");
       } else {
         await addListing(
-          { name, brand, price: Number(price), category, description, sizes: sizesToSave, image: null, city: city || null, region: region || null },
+          { 
+            name, 
+            brand, 
+            price: Number(price), 
+            category, 
+            description, 
+            sizes: sizesToSave, 
+            image: null, 
+            city: city || null, 
+            region: region || null,
+            discountPercent: discountPercent ? Number(discountPercent) : null,
+          },
           imageFiles[0] ?? undefined,
           imageFiles.slice(1)
         );
@@ -321,6 +343,11 @@ const CreateListing = () => {
   const showSneakerSizes   = usesSneakerSizes(form.category);
   const showClothingSizes  = usesClothingSizes(form.category);
   const showSizes          = showSneakerSizes || showClothingSizes;
+
+  // Calculate discounted price preview
+  const discountedPricePreview = form.discountPercent && Number(form.discountPercent) > 0 && form.price
+    ? Math.round(Number(form.price) * (1 - Number(form.discountPercent) / 100))
+    : null;
 
   return (
     <PayoutDetailsGuard>
@@ -481,6 +508,32 @@ const CreateListing = () => {
                       placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
                   />
                 </div>
+              </div>
+
+              {/* Discount Percent */}
+              <div>
+                <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
+                  Discount % <span className="text-muted-foreground font-normal normal-case">(optional)</span>
+                </label>
+                <div className="relative">
+                  <input
+                    name="discountPercent"
+                    value={form.discountPercent}
+                    onChange={handleChange}
+                    placeholder="e.g. 10"
+                    type="number"
+                    min="1"
+                    max="90"
+                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
+                      placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
+                  />
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-display">%</span>
+                </div>
+                {discountedPricePreview && (
+                  <p className="text-xs text-green-500 mt-1">
+                    Discounted price: GHS {discountedPricePreview.toLocaleString()}
+                  </p>
+                )}
               </div>
 
               {/* City + Region */}

@@ -19,6 +19,7 @@ interface SneakerCardSneaker {
   sellerVerified?: boolean;
   sellerIsOfficial?: boolean;
   isNew?: boolean;
+  discountPercent?: number | null;
 }
 
 interface SneakerCardProps {
@@ -29,6 +30,11 @@ interface SneakerCardProps {
 const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
   const { toggleSaved, isSaved } = useSaved();
   const saved = isSaved(sneaker.id);
+
+  // Compute discounted price
+  const discountedPrice = sneaker.discountPercent
+    ? Math.round(sneaker.price * (1 - sneaker.discountPercent / 100))
+    : null;
 
   // Show a relevant SVG when there's no image, based on category
   const fallbackSvg = CATEGORY_SVGS[sneaker.category] ?? "/categoryicons/other.svg";
@@ -48,12 +54,13 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
       sellerVerified: sneaker.sellerVerified ?? false,
       sellerIsOfficial: sneaker.sellerIsOfficial ?? false,
       isBoosted: sneaker.isBoosted ?? false,
+      discountPercent: sneaker.discountPercent ?? null,
     });
     toast.success(saved ? `Removed from saved` : `Saved!`);
   };
 
   return (
-    <div className="relative">
+    <div className="relative w-full h-full">
       {/* Heart button */}
       <button
         onClick={handleSave}
@@ -69,12 +76,12 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
       </button>
 
       <Link to={`/product/${sneaker.id}`} className="sneaker-card block group">
-        <div className="relative aspect-square bg-secondary overflow-hidden flex items-center justify-center p-8">
+        <div className="relative aspect-square bg-secondary overflow-hidden flex items-center justify-center">
           {sneaker.image
             ? <img
                 src={cardImage(sneaker.image)}
                 alt={sneaker.name}
-                className="sneaker-image w-full h-full object-contain"
+                className="sneaker-image w-full h-full object-cover"
                 loading="lazy"
                 onError={(e) => {
                   console.error("Image failed to load:", sneaker.image);
@@ -97,6 +104,13 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
               </Badge>
             ) : null}
 
+            {/* Discount badge */}
+            {sneaker.discountPercent && (
+              <Badge className="bg-red-500 text-white text-[10px] uppercase tracking-wider font-display border-0 shadow-md">
+                -{sneaker.discountPercent}% OFF
+              </Badge>
+            )}
+
             {sneaker.isNew && (
               <Badge className="bg-primary text-primary-foreground text-[10px] uppercase tracking-wider font-display">
                 New
@@ -111,7 +125,21 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
             {sneaker.name}
           </h3>
           <div className="flex items-center justify-between mt-2 gap-2">
-            <p className="text-foreground font-display font-bold text-sm sm:text-base">GHS {sneaker.price.toLocaleString()}</p>
+            {/* Price display with discount */}
+            {discountedPrice ? (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <p className="text-foreground font-display font-bold text-sm sm:text-base">
+                  GHS {discountedPrice.toLocaleString()}
+                </p>
+                <p className="text-muted-foreground font-display text-xs line-through">
+                  GHS {sneaker.price.toLocaleString()}
+                </p>
+              </div>
+            ) : (
+              <p className="text-foreground font-display font-bold text-sm sm:text-base">
+                GHS {sneaker.price.toLocaleString()}
+              </p>
+            )}
             <div className="flex items-center gap-1.5 flex-shrink-0">
               {sneaker.sellerIsOfficial && (
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full"
