@@ -101,19 +101,14 @@ const loadFromStorage = (userId?: string): CartItem[] => {
 const sizeKey = (size: string | number): string => String(size);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
-  const { user, activeMode } = useAuth();
+  const { user } = useAuth();
 
   // Always start empty — we populate from the correct source in the effect below
   const [items, setItems] = useState<CartItem[]>([]);
 
   // readyToSave: only persist to localStorage AFTER we've loaded from the
-  // authoritative source (DB for logged-in buyers, localStorage for guests).
-  // This prevents the persist effect from blanking out items before the async
-  // DB fetch completes.
+  // authoritative source (DB for logged-in users, localStorage for guests).
   const [readyToSave, setReadyToSave] = useState(false);
-
-  const activeModeRef = useRef(activeMode);
-  useEffect(() => { activeModeRef.current = activeMode; }, [activeMode]);
 
   // ── Fetch cart from Supabase ──────────────────────────────────────────────
   const fetchCart = useCallback(async (userId: string) => {
@@ -184,23 +179,18 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     setReadyToSave(true);
   }, []);
 
-  // ── Auth / mode change ────────────────────────────────────────────────────
+  // ── Auth change ───────────────────────────────────────────────────────────
   useEffect(() => {
-    // Reset gate so a stale persist can't fire during transition
     setReadyToSave(false);
 
-    if (user?.id && activeMode === "buyer") {
+    if (user?.id) {
       fetchCart(user.id);
-    } else if (!user) {
+    } else {
       // Guest — load from localStorage immediately
       setItems(loadFromStorage());
       setReadyToSave(true);
-    } else {
-      // Seller mode — clear cart from memory (don't touch DB)
-      setItems([]);
-      setReadyToSave(true);
     }
-  }, [user?.id, activeMode, fetchCart]);
+  }, [user?.id, fetchCart]);
 
   // ── Persist to localStorage only when ready ───────────────────────────────
   useEffect(() => {
@@ -238,15 +228,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   // ── Actions ───────────────────────────────────────────────────────────────
   const addItem = (listing: CartItem["listing"], size: string | number) => {
-    if (activeModeRef.current === "seller") {
-      toast.error("Please switch to Buyer mode to add items to cart", {
-        description: "Use the Buy/Sell toggle in the navbar",
-        duration: 4000,
-        action: { label: "Got it", onClick: () => {} },
-      });
-      return;
-    }
-
     setItems((prev) => {
       const existing = prev.find(
         (i) => i.listing.id === listing.id && sizeKey(i.size) === sizeKey(size)
