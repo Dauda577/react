@@ -26,7 +26,7 @@ const OrderConfirmation = () => {
 
   const reference = searchParams.get('reference');
   const trxRef = searchParams.get('trxref');
-  const deliveryMethod = searchParams.get('method');
+
 
   // Fetch order by reference if latestOrder not yet available
   useEffect(() => {
@@ -505,7 +505,9 @@ const OrderConfirmation = () => {
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-muted-foreground uppercase tracking-widest">{item.brand}</p>
                   <p className="text-sm font-medium truncate">{item.name}</p>
-                  <p className="text-xs text-muted-foreground">Size {item.size} · Qty {item.quantity}</p>
+                  <p className="text-xs text-muted-foreground">
+  {item.size ? `Size ${item.size} · ` : ""}Qty {item.quantity}
+</p>
                 </div>
                 <p className="font-display font-bold text-sm">GHS {item.price * item.quantity}</p>
               </div>

@@ -387,9 +387,12 @@ export default function Checkout() {
             {/* Delivery Options */}
             <div className="rounded-2xl border border-border p-6">
               <CheckoutDeliveryOptions
-                onDeliveryMethodChange={setDeliveryMethod}
-                selectedMethod={deliveryMethod}
-              />
+  onDeliveryMethodChange={setDeliveryMethod}
+  selectedMethod={deliveryMethod}
+  sellerCity={sellerCity}
+  sellerRegion={sellerRegion}
+  sellerName={currentGroup?.sellerName}
+/>
             </div>
 
             {/* Order Notes */}
