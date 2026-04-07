@@ -23,7 +23,7 @@ const Navbar = () => {
   const { totalItems } = useCart();
   const { unseenCount } = useOrders();
   const { totalUnread } = useMessages();
-  const { user, activeMode, switchMode } = useAuth();
+  const { user, activeMode } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sellerDrawerOpen, setSellerDrawerOpen] = useState(false);
 
@@ -98,32 +98,6 @@ const Navbar = () => {
               </Link>
             )}
 
-            {/* Buy / Sell mode switcher */}
-            {user?.isSeller && user?.isBuyer && (
-              <div className="flex items-center gap-0.5 bg-muted/50 rounded-full p-0.5 border border-border">
-                <button
-                  onClick={() => switchMode("buyer")}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${
-                    activeMode === "buyer"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <ShoppingCart className="w-3 h-3" /> Buy
-                </button>
-                <button
-                  onClick={() => switchMode("seller")}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold transition-all ${
-                    activeMode === "seller"
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <Store className="w-3 h-3" /> Sell
-                </button>
-              </div>
-            )}
-
             {/* Become a Seller CTA — desktop */}
             {showBecomeSeller && (
               <motion.button
@@ -137,41 +111,32 @@ const Navbar = () => {
             )}
 
             {/* Cart */}
-{activeMode === "buyer" ? (
-  <Link 
-    to="/cart" 
-    className="relative group"
-    aria-label={`Shopping cart${totalItems > 0 ? `, ${totalItems} item${totalItems !== 1 ? 's' : ''}` : ''}`}
-  >
-    <ShoppingBag className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
-    {totalItems > 0 && (
-      <motion.span 
-        initial={{ scale: 0 }} 
-        animate={{ scale: 1 }}
-        className="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold"
-        aria-hidden="true"
-      >
-        {totalItems}
-      </motion.span>
-    )}
-  </Link>
-            ) : (
-              <div className="relative group cursor-not-allowed">
-                <ShoppingBag className="w-5 h-5 text-muted-foreground opacity-50" />
-                <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block w-40 p-1.5 bg-gray-900 text-white text-[10px] rounded shadow-lg whitespace-nowrap">
-                  Switch to Buyer mode to shop
-                </div>
-              </div>
-            )}
+            <Link
+              to="/cart"
+              className="relative group"
+              aria-label={`Shopping cart${totalItems > 0 ? `, ${totalItems} item${totalItems !== 1 ? 's' : ''}` : ''}`}
+            >
+              <ShoppingBag className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+              {totalItems > 0 && (
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute -top-2 -right-2 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center font-bold"
+                  aria-hidden="true"
+                >
+                  {totalItems}
+                </motion.span>
+              )}
+            </Link>
 
             {/* Mobile menu toggle */}
-<button 
-  className="md:hidden" 
-  onClick={() => setMobileOpen(!mobileOpen)}
-  aria-label={mobileOpen ? "Close menu" : "Open menu"}
->
-  {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-</button>
+            <button
+              className="md:hidden"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label={mobileOpen ? "Close menu" : "Open menu"}
+            >
+              {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
           </div>
         </div>
 
