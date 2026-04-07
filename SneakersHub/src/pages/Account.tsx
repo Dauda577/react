@@ -119,22 +119,22 @@ const Account = () => {
 
   // ── Load avatar ────────────────────────────────────────────────────────────
   useEffect(() => {
-  if (!user?.id) return;
-  supabase.auth.getUser().then(async ({ data }) => {
-    const metaPhoto =
-      data?.user?.user_metadata?.avatar_url ??
-      data?.user?.user_metadata?.picture ??
-      null;
-    if (metaPhoto) { setAvatarUrl(metaPhoto); return; }
-    // Fallback: profiles table (covers cases where metadata is missing)
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("avatar_url")
-      .eq("id", user.id)
-      .single();
-    if (profile?.avatar_url) setAvatarUrl(profile.avatar_url);
-  });
-}, [user?.id]);
+    if (!user?.id) return;
+    supabase.auth.getUser().then(async ({ data }) => {
+      const metaPhoto =
+        data?.user?.user_metadata?.avatar_url ??
+        data?.user?.user_metadata?.picture ??
+        null;
+      if (metaPhoto) { setAvatarUrl(metaPhoto); return; }
+      // Fallback: profiles table (covers cases where metadata is missing)
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("avatar_url")
+        .eq("id", user.id)
+        .single();
+      if (profile?.avatar_url) setAvatarUrl(profile.avatar_url);
+    });
+  }, [user?.id]);
 
   // ── Load profile from DB ───────────────────────────────────────────────────
   useEffect(() => {
@@ -242,29 +242,29 @@ const Account = () => {
   }, [user?.email, payoutForm.number]);
 
   const handleDeleteAccount = useCallback(async () => {
-  if (!user?.id) return;
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    const { data, error } = await supabase.functions.invoke("delete-account", {
-      body: { user_id: user.id },
-      headers: {
-        Authorization: `Bearer ${session?.access_token}`,
-      },
-    });
+    if (!user?.id) return;
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
 
-    if (error || !data?.success) {
-      toast.error("Failed to delete account. Please contact support.");
-      return;
+      const { data, error } = await supabase.functions.invoke("delete-account", {
+        body: { user_id: user.id },
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+      });
+
+      if (error || !data?.success) {
+        toast.error("Failed to delete account. Please contact support.");
+        return;
+      }
+
+      await supabase.auth.signOut();
+      toast.success("Account deleted.");
+      navigate("/");
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to delete account");
     }
-
-    await supabase.auth.signOut();
-    toast.success("Account deleted.");
-    navigate("/");
-  } catch (err: any) {
-    toast.error(err.message ?? "Failed to delete account");
-  }
-}, [user?.id, navigate]);
+  }, [user?.id, navigate]);
 
   const showBell = (canSell && unseenCount > 0) || (!!user && totalUnread > 0);
   const totalBellCount = (canSell ? unseenCount : 0) + (user ? totalUnread : 0);
@@ -273,10 +273,9 @@ const Account = () => {
     ? user.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
     : isGuest ? "G" : "?";
 
-  // ── Filter orders by role so sellers only see sales, buyers only see purchases
-  const filteredOrders = canSell
-    ? orders.filter(o => o.sellerId === user?.id)
-    : orders.filter(o => o.buyerId === user?.id);
+  // ── Split orders: sellers see their sales AND their own purchases separately
+  const sellerOrders = orders.filter(o => o.sellerId === user?.id);
+  const buyerOrders  = orders.filter(o => o.buyerId === user?.id);
 
   return (
     <div className="min-h-screen bg-background">
@@ -411,7 +410,8 @@ const Account = () => {
               {activeTab === "orders" && (
                 <AccountOrders
                   isGuest={isGuest} canSell={canSell}
-                  orders={filteredOrders}
+                  sellerOrders={sellerOrders}
+                  buyerOrders={buyerOrders}
                   isVerified={isVerified} isOfficial={isOfficial}
                   trackingInputs={trackingInputs} setTrackingInputs={setTrackingInputs}
                   savingTracking={savingTracking} setSavingTracking={setSavingTracking}
