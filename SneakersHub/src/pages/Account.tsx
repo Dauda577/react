@@ -273,6 +273,11 @@ const Account = () => {
     ? user.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
     : isGuest ? "G" : "?";
 
+  // ── Filter orders by role so sellers only see sales, buyers only see purchases
+  const filteredOrders = canSell
+    ? orders.filter(o => o.sellerId === user?.id)
+    : orders.filter(o => o.buyerId === user?.id);
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -405,7 +410,8 @@ const Account = () => {
 
               {activeTab === "orders" && (
                 <AccountOrders
-                  isGuest={isGuest} canSell={canSell} orders={orders}
+                  isGuest={isGuest} canSell={canSell}
+                  orders={filteredOrders}
                   isVerified={isVerified} isOfficial={isOfficial}
                   trackingInputs={trackingInputs} setTrackingInputs={setTrackingInputs}
                   savingTracking={savingTracking} setSavingTracking={setSavingTracking}
