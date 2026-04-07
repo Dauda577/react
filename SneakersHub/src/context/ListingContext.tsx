@@ -72,24 +72,16 @@ const rowToListing = (r: ListingRow): Listing => ({
 
 export const isBoostActive = (listing: Listing): boolean => {
   if (!listing.boosted) return false;
-  // Official listings: boosted=true with no expiry — always active
   if (!listing.boostExpiresAt) return true;
   return new Date(listing.boostExpiresAt) > new Date();
 };
 
 export const boostDaysLeft = (listing: Listing): number => {
-  // No expiry = official listing, always featured
   if (!listing.boostExpiresAt) return 0;
   const diff = new Date(listing.boostExpiresAt).getTime() - Date.now();
   return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
 };
 
-/**
- * Compresses and resizes an image to WebP before uploading.
- * - Max 1200px wide (preserves aspect ratio)
- * - 85% quality WebP
- * - Typically reduces a 4MB photo to ~200-400KB with no visible quality loss
- */
 const compressImage = (file: File): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -103,7 +95,7 @@ const compressImage = (file: File): Promise<Blob> => {
         width = MAX_WIDTH;
       }
       const canvas = document.createElement("canvas");
-      canvas.width  = width;
+      canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext("2d");
       if (!ctx) { reject(new Error("Canvas not available")); return; }
@@ -111,7 +103,7 @@ const compressImage = (file: File): Promise<Blob> => {
       canvas.toBlob(
         (blob) => blob ? resolve(blob) : reject(new Error("Compression failed")),
         "image/webp",
-        0.75 // 75% quality — good balance of size vs quality
+        0.75
       );
     };
     img.onerror = () => reject(new Error("Image load failed"));
@@ -122,18 +114,18 @@ const compressImage = (file: File): Promise<Blob> => {
 const uploadImage = async (file: File, listingId: string): Promise<string | null> => {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
   try {
-    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-    const path = `${listingId}.${ext}`;
-    const { error } = await supabase.storage.from("listings").upload(path, file, {
+    // Compress first
+    const compressedBlob = await compressImage(file);
+    const path = `${listingId}.webp`;
+    const { error } = await supabase.storage.from("listings").upload(path, compressedBlob, {
       upsert: true,
-      contentType: file.type || "image/jpeg",
+      contentType: "image/webp",
     });
     if (error) {
       console.error("Image upload error:", error.message);
       return null;
     }
     const url = `${supabaseUrl}/storage/v1/object/public/listings/${path}`;
-    console.log("Image uploaded:", url);
     return url;
   } catch (err) {
     console.error("Image upload exception:", err);
@@ -211,7 +203,6 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
   ) => {
     if (!user) throw new Error("Not authenticated");
 
-    // ── Listing limit: unverified sellers max 2, verified unlimited ──
     const UNVERIFIED_MAX = 20;
     const { data: profile } = await supabase
       .from("profiles")
@@ -223,8 +214,6 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
     const sellerPhone = profile?.phone;
 
     if (!isVerified) {
-      // Use listing_count on profiles — a counter that only ever increments,
-      // never decrements on delete, so sellers can't bypass limit by deleting
       const { data: countData } = await supabase
         .from("profiles")
         .select("listing_count")
@@ -240,14 +229,12 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
       }
     }
 
-    // Fetch seller's default city/region from profile
     const { data: sellerProfile } = await supabase
       .from("profiles")
       .select("city, region")
       .eq("id", user.id)
       .single();
 
-    // Increment the permanent listing counter on the profile (never decremented)
     await supabase.rpc("increment_listing_count", { seller_id: user.id });
 
     const { data, error } = await supabase.from("listings").insert({
@@ -266,7 +253,6 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
 
     if (error) throw new Error(error.message);
 
-    // ✅ FIXED: Add seller's phone number to SMS trigger
     triggerSMS({ 
       type: "listing.created", 
       record: { 
@@ -276,10 +262,9 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
       } 
     }).catch(() => {});
 
-    // Upload images — await so image_url is saved before navigation
     if (imageFile && data) {
       const allFiles = [imageFile, ...(extraImages ?? [])];
-      const urls = await Promise.all(allFiles.map((f, i) => uploadImage(f, `${data.id}-${i}`)));
+      const urls = await Promise.all(allFiles.map((f, i) => uploadImage(f, `${data.id}-${Date.now()}-${i}`)));
       const validUrls = urls.filter(Boolean) as string[];
       const coverUrl = validUrls[0] ?? null;
       if (coverUrl) {
@@ -294,6 +279,7 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // ✅ FIXED: updateListing with proper image handling
   const updateListing = async (id: string, updates: Partial<Listing>, imageFile?: File, extraImages?: File[]) => {
     const dbUpdates: any = {};
     if (updates.city !== undefined) dbUpdates.city = updates.city;
@@ -310,13 +296,23 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
     if (updates.boosted !== undefined) dbUpdates.boosted = updates.boosted;
     if (updates.boostExpiresAt !== undefined) dbUpdates.boost_expires_at = updates.boostExpiresAt;
 
-    if (imageFile) {
-      const allFiles = [imageFile, ...(extraImages ?? [])];
-      const urls = await Promise.all(allFiles.map((f, i) => uploadImage(f, `${id}-${i}`)));
+    // ✅ FIXED: Handle image uploads properly - preserve existing images if no new ones
+    if (imageFile || (extraImages && extraImages.length > 0)) {
+      const allFiles: File[] = [];
+      if (imageFile) allFiles.push(imageFile);
+      if (extraImages && extraImages.length > 0) allFiles.push(...extraImages);
+      
+      // Upload each file with a unique name
+      const timestamp = Date.now();
+      const urls = await Promise.all(
+        allFiles.map((file, index) => uploadImage(file, `${id}-${timestamp}-${index}`))
+      );
       const validUrls = urls.filter(Boolean) as string[];
-      if (validUrls[0]) { dbUpdates.image_url = validUrls[0]; dbUpdates.images = validUrls; }
-    } else if (updates.image !== undefined) {
-      dbUpdates.image_url = updates.image;
+      
+      if (validUrls.length > 0) {
+        dbUpdates.image_url = validUrls[0];
+        dbUpdates.images = validUrls;
+      }
     }
 
     // Optimistic update
@@ -326,21 +322,18 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
 
     const { error } = await supabase.from("listings").update(dbUpdates).eq("id", id);
     if (error) {
-      // Revert on failure
       await fetchListings();
       throw new Error(error.message);
     }
   };
 
   const deleteListing = async (id: string) => {
-    // Optimistic removal
     setListings((prev) => prev.filter((l) => l.id !== id));
     const { error } = await supabase.from("listings").delete().eq("id", id);
     if (error) {
       await fetchListings();
       throw new Error(error.message);
     }
-    // Remove from all buyers' carts
     supabase.from("carts").delete().eq("sneaker_id", id).then(() => {});
   };
 
