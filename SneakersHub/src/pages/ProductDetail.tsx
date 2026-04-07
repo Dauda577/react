@@ -480,47 +480,49 @@ const ProductDetail = () => {
 
         <div className="grid md:grid-cols-2 gap-12 items-start">
 
-          {/* ── Image ── */}
-          <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }}
-            className="relative rounded-2xl overflow-hidden bg-card border aspect-square flex items-center justify-center"
-            style={{ borderColor: tier === "official" ? "rgba(109,40,217,0.3)" : tier === "verified" ? "rgba(34,197,94,0.2)" : undefined }}>
-            {activeImage
-              ? <img src={detailImage(activeImage)} alt={listing.name} className="w-full h-full object-cover" />
-              : <img src={fallbackSvg} alt={listing.category} className="w-20 h-20 text-muted-foreground" />
-            }
-            {tier === "official" && (
-              <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
-                style={{ background: "linear-gradient(135deg, #3b0764, #1e1b4b)", color: "#a78bfa", border: "1px solid rgba(109,40,217,0.5)" }}>
-                <Sparkles className="w-3 h-3" /> SneakersHub Official
-              </div>
-            )}
-            {tier === "verified" && !listing.boosted && (
-              <div className="absolute top-4 left-4 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold"
-                style={{ background: "rgba(34,197,94,0.15)", color: "#16a34a", border: "1px solid rgba(34,197,94,0.3)" }}>
-                <BadgeCheck className="w-3 h-3" /> Verified
-              </div>
-            )}
-            {listing.boosted && tier !== "official" && (
-              <div className="absolute top-4 left-4 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold"
-                style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)", color: "white" }}>
-                ⚡ Featured
-              </div>
-            )}
-          </motion.div>
+          {/* ── Image + Thumbnails (wrapped together so thumbnails sit below hero) ── */}
+          <div className="flex flex-col gap-3">
+            <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }}
+              className="relative rounded-2xl overflow-hidden bg-card border aspect-square flex items-center justify-center"
+              style={{ borderColor: tier === "official" ? "rgba(109,40,217,0.3)" : tier === "verified" ? "rgba(34,197,94,0.2)" : undefined }}>
+              {activeImage
+                ? <img src={detailImage(activeImage)} alt={listing.name} className="w-full h-full object-cover" />
+                : <img src={fallbackSvg} alt={listing.category} className="w-20 h-20 text-muted-foreground" />
+              }
+              {tier === "official" && (
+                <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
+                  style={{ background: "linear-gradient(135deg, #3b0764, #1e1b4b)", color: "#a78bfa", border: "1px solid rgba(109,40,217,0.5)" }}>
+                  <Sparkles className="w-3 h-3" /> SneakersHub Official
+                </div>
+              )}
+              {tier === "verified" && !listing.boosted && (
+                <div className="absolute top-4 left-4 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold"
+                  style={{ background: "rgba(34,197,94,0.15)", color: "#16a34a", border: "1px solid rgba(34,197,94,0.3)" }}>
+                  <BadgeCheck className="w-3 h-3" /> Verified
+                </div>
+              )}
+              {listing.boosted && tier !== "official" && (
+                <div className="absolute top-4 left-4 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold"
+                  style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)", color: "white" }}>
+                  ⚡ Featured
+                </div>
+              )}
+            </motion.div>
 
-          {/* ── Image thumbnails ── */}
-          {uniqueImages.length > 1 && (
-            <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
-              {uniqueImages.map((img, i) => (
-                <button key={i} onClick={() => setSelectedImage(img)}
-                  className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${
-                    activeImage === img ? "border-primary" : "border-border hover:border-primary/40"
-                  }`}>
-                  <img src={img} alt={`View ${i + 1}`} className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
-          )}
+            {/* ── Image thumbnails ── */}
+            {uniqueImages.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {uniqueImages.map((img, i) => (
+                  <button key={i} onClick={() => setSelectedImage(img)}
+                    className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${
+                      activeImage === img ? "border-primary" : "border-border hover:border-primary/40"
+                    }`}>
+                    <img src={img} alt={`View ${i + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* ── Info ── */}
           <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
@@ -578,11 +580,11 @@ const ProductDetail = () => {
                 </div>
                 <div>
                   <p className="text-sm font-display font-semibold text-foreground mb-1">This is your listing</p>
-<p className="text-xs text-muted-foreground leading-relaxed">
-  You can't purchase your own item. Head to your{" "}
-  <Link to="/account?tab=listings" className="text-primary font-semibold hover:opacity-70 transition-opacity">listings page</Link>
-  {" "}to manage it.
-</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    You can't purchase your own item. Head to your{" "}
+                    <Link to="/account?tab=listings" className="text-primary font-semibold hover:opacity-70 transition-opacity">listings page</Link>
+                    {" "}to manage it.
+                  </p>
                 </div>
               </motion.div>
             ) : (
