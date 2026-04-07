@@ -36,6 +36,7 @@ type PublicListingsContextType = {
   loading: boolean;
   fetchListings: () => Promise<void>;
   incrementViews: (id: string) => Promise<void>;
+  refreshListing: (id: string) => Promise<void>; // 👈 Added this
 };
 
 const PublicListingsContext = createContext<PublicListingsContextType | null>(null);
@@ -142,6 +143,64 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
     isFetching.current = false;
   };
 
+  // 👈 NEW: Function to refresh a single listing
+  const refreshListing = async (id: string) => {
+    const { data, error } = await supabase
+      .from("listings")
+      .select(`
+        id, seller_id, name, brand, price, category, sizes,
+        description, image_url, images, boosted, boost_expires_at,
+        views, created_at, city, region, shipping_cost, handling_time,
+        profiles (
+          name, phone, city, verified, is_official, subaccount_code, created_at
+        )
+      `)
+      .eq("id", id)
+      .single();
+
+    if (!error && data) {
+      const p = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
+      const refreshedListing: PublicListing = {
+        id: data.id,
+        sellerId: data.seller_id,
+        sellerName: p?.name ?? "Seller",
+        sellerPhone: p?.phone ?? null,
+        sellerCity: p?.city ?? null,
+        sellerRegion: p?.region ?? null,
+        city: data.city ?? null,
+        region: data.region ?? null,
+        sellerVerified: p?.verified ?? false,
+        sellerIsOfficial: p?.is_official ?? false,
+        sellerSubaccountCode: p?.subaccount_code ?? null,
+        sellerMemberSince: p?.created_at
+          ? new Date(p.created_at).getFullYear().toString()
+          : new Date(data.created_at).getFullYear().toString(),
+        shippingCost: data.shipping_cost ?? 0,
+        handlingTime: data.handling_time ?? "Ships in 1-3 days",
+        images: data.images ?? [],
+        name: data.name,
+        brand: data.brand,
+        price: data.price,
+        category: data.category,
+        sizes: data.sizes,
+        description: data.description ?? "",
+        image: data.image_url,
+        boosted: data.boosted,
+        boostExpiresAt: data.boost_expires_at,
+        views: data.views,
+        createdAt: data.created_at,
+      };
+
+      setListings((prev) => {
+        const updated = prev.map((l) =>
+          l.id === id ? refreshedListing : l
+        );
+        listingsCache = updated;
+        return updated;
+      });
+    }
+  };
+
   const incrementViews = async (id: string) => {
     await supabase.rpc("increment_listing_views", { listing_id: id });
   };
@@ -150,7 +209,7 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
     if (!listingsCache) fetchListings();
   }, []);
 
-  // ✅ SOLUTION 2: Enhanced Realtime with full data refresh for new listings
+  // ✅ FIXED: Enhanced Realtime with FULL data refresh for ALL events
   useEffect(() => {
     const channel = supabase
       .channel("listings-realtime")
@@ -215,28 +274,62 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
       )
       .on("postgres_changes", 
         { event: "UPDATE", schema: "public", table: "listings" },
-        (payload) => {
-          setListings((prev) => {
-            const updated = prev.map((l) =>
-              l.id === payload.new.id
-                ? { 
-                    ...l, 
-                    boosted: payload.new.boosted, 
-                    boostExpiresAt: payload.new.boost_expires_at, 
-                    views: payload.new.views, 
-                    price: payload.new.price, 
-                    name: payload.new.name,
-                    description: payload.new.description,
-                    image: payload.new.image_url,
-                    images: payload.new.images ?? [],
-                    category: payload.new.category,
-                    sizes: payload.new.sizes,
-                  }
-                : l
-            );
-            listingsCache = updated;
-            return updated;
-          });
+        async (payload) => {
+          // ✅ FIX: Fetch the complete updated listing with all fields including images
+          const { data, error } = await supabase
+            .from("listings")
+            .select(`
+              id, seller_id, name, brand, price, category, sizes,
+              description, image_url, images, boosted, boost_expires_at,
+              views, created_at, city, region, shipping_cost, handling_time,
+              profiles (
+                name, phone, city, verified, is_official, subaccount_code, created_at
+              )
+            `)
+            .eq("id", payload.new.id)
+            .single();
+          
+          if (!error && data) {
+            const p = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
+            const updatedListing: PublicListing = {
+              id: data.id,
+              sellerId: data.seller_id,
+              sellerName: p?.name ?? "Seller",
+              sellerPhone: p?.phone ?? null,
+              sellerCity: p?.city ?? null,
+              sellerRegion: p?.region ?? null,
+              city: data.city ?? null,
+              region: data.region ?? null,
+              sellerVerified: p?.verified ?? false,
+              sellerIsOfficial: p?.is_official ?? false,
+              sellerSubaccountCode: p?.subaccount_code ?? null,
+              sellerMemberSince: p?.created_at
+                ? new Date(p.created_at).getFullYear().toString()
+                : new Date(data.created_at).getFullYear().toString(),
+              shippingCost: data.shipping_cost ?? 0,
+              handlingTime: data.handling_time ?? "Ships in 1-3 days",
+              images: data.images ?? [],
+              name: data.name,
+              brand: data.brand,
+              price: data.price,
+              category: data.category,
+              sizes: data.sizes,
+              description: data.description ?? "",
+              image: data.image_url,
+              boosted: data.boosted,
+              boostExpiresAt: data.boost_expires_at,
+              views: data.views,
+              createdAt: data.created_at,
+            };
+
+            setListings((prev) => {
+              const updated = prev.map((l) =>
+                l.id === payload.new.id ? updatedListing : l
+              );
+              listingsCache = updated;
+              return updated;
+            });
+          }
         }
       )
       .on("postgres_changes", 
@@ -255,7 +348,7 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
   }, []);
 
   return (
-    <PublicListingsContext.Provider value={{ listings, loading, fetchListings, incrementViews }}>
+    <PublicListingsContext.Provider value={{ listings, loading, fetchListings, incrementViews, refreshListing }}>
       {children}
     </PublicListingsContext.Provider>
   );

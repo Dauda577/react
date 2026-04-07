@@ -6,6 +6,7 @@ import {
   ChevronDown, FileText, Image,
 } from "lucide-react";
 import { useListings, Listing } from "@/context/ListingContext";
+import { usePublicListings } from "@/context/PublicListingsContext"; // 👈 ADD THIS
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -151,6 +152,7 @@ const CreateListing = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { addListing, updateListing } = useListings();
+  const { refreshListing } = usePublicListings(); // 👈 ADD THIS
 
   const editing = location.state?.listing as Listing | undefined;
 
@@ -294,6 +296,10 @@ const CreateListing = () => {
           imageFiles[0] ?? undefined,
           imageFiles.slice(1)
         );
+        
+        // 👈 ADD THIS: Refresh the public listing cache
+        await refreshListing(editing.id);
+        
         toast.success("Listing updated!");
       } else {
         await addListing(

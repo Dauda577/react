@@ -349,6 +349,11 @@ const ProductDetail = () => {
     if (listing?.sellerId) fetchReviews(listing.sellerId);
   }, [listing?.sellerId]);
 
+  // ✅ FIX: Reset selected image when product changes
+  useEffect(() => {
+    setSelectedImage(null);
+  }, [id]);
+
   // Fetch the seller's avatar_url from the profiles table
   useEffect(() => {
     if (!listing?.sellerId) return;
