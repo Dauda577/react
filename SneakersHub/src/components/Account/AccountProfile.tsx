@@ -2,9 +2,28 @@ import React, { memo, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
-  User, MapPin, Store, Tag, Star, Pencil, CheckCircle,
-  ArrowRight, LogOut, ShieldCheck, BadgeCheck, ChevronDown, Sparkles,
-  Mail, Phone, Map, Award, TrendingUp, Users, X,
+  User,
+  MapPin,
+  Store,
+  Tag,
+  Star,
+  Pencil,
+  CheckCircle,
+  ArrowRight,
+  LogOut,
+  ShieldCheck,
+  BadgeCheck,
+  ChevronDown,
+  Sparkles,
+  Mail,
+  Phone,
+  Map,
+  Award,
+  TrendingUp,
+  Users,
+  X,
+  Wallet,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRatings } from "@/context/RatingContext";
