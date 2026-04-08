@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Bell, Shield, Lock, Trash, ChevronRight, Wallet, CreditCard,
   CheckCircle, AlertTriangle, Share, Moon, Sun, Store, Clock, X,
-  ShieldCheck,
+  ShieldCheck, Smartphone, Banknote,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -110,7 +110,6 @@ const PayoutConfirmModal = ({
 }) => (
   <AnimatePresence>
     {open && (
-      // Backdrop fills the whole viewport and centres its child with flexbox
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -118,7 +117,6 @@ const PayoutConfirmModal = ({
         className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm"
         onClick={onCancel}
       >
-        {/* Modal card — stopPropagation keeps clicks inside from closing */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 12 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -635,14 +633,14 @@ const AccountSettings = memo(({
               <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-2">Payout Method</label>
               <div className="grid grid-cols-3 gap-2">
                 {([
-                  { value: "momo_mtn",       label: "MTN MoMo"     },
-                  { value: "momo_telecel",    label: "Telecel Cash" },
-                  { value: "momo_airteltigo", label: "AirtelTigo"  },
-                ] as const).map(({ value, label }) => (
+                  { value: "momo_mtn",       label: "MTN MoMo",     icon: Smartphone },
+                  { value: "momo_telecel",    label: "Telecel Cash", icon: Smartphone },
+                  { value: "momo_airteltigo", label: "AirtelTigo",  icon: Smartphone },
+                ] as const).map(({ value, label, icon: Icon }) => (
                   <button key={value} onClick={() => setPayoutForm(p => ({ ...p, method: value, bankCode: "" }))}
                     className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition-all text-xs font-semibold
                       ${payoutForm.method === value ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground hover:border-primary/40"}`}>
-                    <CreditCard className={`w-4 h-4 ${payoutForm.method === value ? "text-primary" : ""}`} />
+                    <Icon className={`w-4 h-4 ${payoutForm.method === value ? "text-primary" : ""}`} />
                     {label}
                   </button>
                 ))}
@@ -651,21 +649,27 @@ const AccountSettings = memo(({
 
             <div>
               <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">MoMo Number</label>
-              <input
-                value={payoutForm.number}
-                onChange={e => setPayoutForm(p => ({ ...p, number: e.target.value }))}
-                placeholder="0244 000 000"
-                className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
-              />
+              <div className="relative">
+                <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
+                <input
+                  value={payoutForm.number}
+                  onChange={e => setPayoutForm(p => ({ ...p, number: e.target.value }))}
+                  placeholder="0244 000 000"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
+                />
+              </div>
             </div>
             <div>
               <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Account Name</label>
-              <input
-                value={payoutForm.name}
-                onChange={e => setPayoutForm(p => ({ ...p, name: e.target.value }))}
-                placeholder="Name on account"
-                className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
-              />
+              <div className="relative">
+                <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
+                <input
+                  value={payoutForm.name}
+                  onChange={e => setPayoutForm(p => ({ ...p, name: e.target.value }))}
+                  placeholder="Name on account"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
+                />
+              </div>
             </div>
 
             <Button className="btn-primary rounded-full h-9 px-5 text-sm w-full" onClick={handleSavePayoutIntent}>
