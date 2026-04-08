@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useRatings } from "@/context/RatingContext";
 import { fadeUp, itemVariant, IS_MOBILE } from "../Account/accountHelpers";
+import { toast } from "sonner";
 
 const ghanaRegions = [
   "Greater Accra", "Ashanti", "Western", "Central", "Eastern", "Volta",
