@@ -27,7 +27,6 @@ const AccountOrders    = lazy(() => import("../components/Account/AccountOrders"
 const AccountListings  = lazy(() => import("../components/Account/AccountListings"));
 const AccountSaved     = lazy(() => import("../components/Account/AccountSaved"));
 const AccountMessages  = lazy(() => import("../components/Account/AccountMessages"));
-const AccountAnalytics = lazy(() => import("../components/Account/AccountAnalytics"));
 const AccountSettings  = lazy(() => import("../components/Account/AccountSettings"));
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -39,10 +38,11 @@ const sellerTabs = [
   { id: "profile",   label: "Profile",   icon: User },
   { id: "orders",    label: "Orders",    icon: ShoppingBag },
   { id: "listings",  label: "Listings",  icon: LayoutGrid },
-  { id: "analytics", label: "Analytics", icon: BarChart2 },
   { id: "messages",  label: "Messages",  icon: MessageCircle },
   { id: "settings",  label: "Settings",  icon: Settings },
 ];
+
+
 const buyerTabs = [
   { id: "profile",  label: "Profile",  icon: User },
   { id: "orders",   label: "Orders",   icon: ShoppingBag },
@@ -434,8 +434,6 @@ const Account = () => {
               )}
 
               {activeTab === "saved" && <AccountSaved saved={saved} toggleSaved={toggleSaved} />}
-
-              {activeTab === "analytics" && canSell && !isGuest && <AccountAnalytics />}
 
               {activeTab === "messages" && (isGuest ? <GuestAuthBanner action="view messages" /> : <AccountMessages />)}
 

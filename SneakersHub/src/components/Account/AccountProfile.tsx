@@ -24,11 +24,14 @@ import {
   X,
   Wallet,
   AlertTriangle,
+  ShoppingBag,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRatings } from "@/context/RatingContext";
 import { fadeUp, itemVariant, IS_MOBILE } from "../Account/accountHelpers";
 import { toast } from "sonner";
+import { useOrders } from "@/context/OrderContext";
+import { useListings } from "@/context/ListingContext";
 
 const ghanaRegions = [
   "Greater Accra", "Ashanti", "Western", "Central", "Eastern", "Volta",
@@ -57,32 +60,6 @@ interface Props {
   onSetTab: (tab: string) => void;
 }
 
-// Reusable form field component
-const FormField = ({ label, name, value, placeholder, disabled, icon: Icon, type = "text" }: any) => (
-  <div>
-    <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
-      {label}
-    </label>
-    <div className="relative">
-      {Icon && (
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50">
-          <Icon className="w-4 h-4" />
-        </div>
-      )}
-      <input
-        type={type}
-        value={value}
-        onChange={e => {}}
-        disabled={disabled}
-        placeholder={placeholder}
-        className={`w-full ${Icon ? 'pl-10' : 'px-4'} pr-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
-          focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20
-          disabled:opacity-50 disabled:cursor-not-allowed transition-all font-[inherit]`}
-      />
-    </div>
-  </div>
-);
-
 // Stats Card Component
 const StatCard = ({ icon: Icon, label, value, accent }: any) => (
   <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border">
@@ -103,6 +80,8 @@ const AccountProfile = memo(({
 }: Props) => {
   const navigate = useNavigate();
   const { getSellerStats } = useRatings();
+  const { orders } = useOrders();
+  const { listings } = useListings();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
 
@@ -118,11 +97,20 @@ const AccountProfile = memo(({
 
   const handleSaveProfile = useCallback(() => {
     if (!profileForm.name?.trim()) {
-      // Could add validation here
+      toast.error("Please enter your name");
       return;
     }
     onSaveProfile();
   }, [profileForm, onSaveProfile]);
+
+  // Calculate real stats from orders and listings
+  const sellerOrdersList = orders?.filter(o => o.sellerId === user?.id) || [];
+  const totalSales = sellerOrdersList.reduce((sum, o) => sum + o.total, 0);
+  const orderCount = sellerOrdersList.length;
+
+  const sellerListings = listings?.filter(l => l.sellerId === user?.id) || [];
+  const activeListings = sellerListings.filter(l => l.status === "active").length;
+  const totalListings = sellerListings.length;
 
   if (isGuest) return (
     <div>
@@ -210,13 +198,33 @@ const AccountProfile = memo(({
         )}
       </div>
 
-      {/* Stats Row for Sellers */}
+      {/* Stats Row for Sellers - NOW WITH REAL DATA */}
       {role === "seller" && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <StatCard icon={Store} label="Total Sales" value={`GHS ${stats?.totalSales?.toLocaleString() || "0"}`} accent="bg-primary/10 text-primary" />
-          <StatCard icon={Users} label="Orders" value={stats?.orderCount?.toString() || "0"} accent="bg-blue-500/10 text-blue-500" />
-          <StatCard icon={Star} label="Rating" value={count > 0 ? `${average} (${count})` : "No reviews"} accent="bg-amber-500/10 text-amber-500" />
-          <StatCard icon={TrendingUp} label="Listings" value={stats?.listingCount?.toString() || "0"} accent="bg-green-500/10 text-green-500" />
+          <StatCard 
+            icon={TrendingUp} 
+            label="Total Sales" 
+            value={`GHS ${totalSales.toLocaleString()}`} 
+            accent="bg-green-500/10 text-green-500" 
+          />
+          <StatCard 
+            icon={ShoppingBag} 
+            label="Orders" 
+            value={orderCount.toString()} 
+            accent="bg-blue-500/10 text-blue-500" 
+          />
+          <StatCard 
+            icon={Star} 
+            label="Rating" 
+            value={count > 0 ? `${average.toFixed(1)} (${count})` : "No reviews"} 
+            accent="bg-amber-500/10 text-amber-500" 
+          />
+          <StatCard 
+            icon={Store} 
+            label="Listings" 
+            value={`${activeListings}/${totalListings}`} 
+            accent="bg-purple-500/10 text-purple-500" 
+          />
         </div>
       )}
 
@@ -513,7 +521,7 @@ const AccountProfile = memo(({
                     <Star key={n} className={`w-4 h-4 ${n <= Math.round(average) ? "text-amber-400 fill-amber-400" : "text-muted-foreground/30"}`} />
                   ))}
                 </div>
-                <span className="font-display font-bold text-lg">{average}</span>
+                <span className="font-display font-bold text-lg">{average.toFixed(1)}</span>
                 <span className="text-xs text-muted-foreground">/ 5 · {count} {count === 1 ? "review" : "reviews"}</span>
               </div>
             )}
