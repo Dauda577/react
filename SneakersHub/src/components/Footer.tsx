@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
-import { X, ChevronDown } from "lucide-react";
+import { X, ChevronDown, Mail, MapPin, Clock, Facebook, Instagram, Twitter, Heart } from "lucide-react";
 
 const WHATSAPP = "https://wa.me/233256221777";
 const PHONE = "tel:+233256221777";
+const EMAIL = "mailto:support@sneakershub.com";
 
 const faqs = [
   { q: "How do I buy a sneaker?", a: "Browse the shop, select a listing, choose your size and tap 'Buy Now'. Complete checkout with your delivery details." },
@@ -40,7 +41,7 @@ const FAQModal = ({ onClose }: { onClose: () => void }) => {
         className="w-full max-w-lg bg-background border border-border rounded-2xl overflow-hidden shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-gradient-to-r from-primary/5 to-transparent">
           <h2 className="font-display text-lg font-bold tracking-tight">Frequently Asked Questions</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-secondary transition-colors">
             <X className="w-4 h-4" />
@@ -48,13 +49,13 @@ const FAQModal = ({ onClose }: { onClose: () => void }) => {
         </div>
         <div className="overflow-y-auto max-h-[70vh] divide-y divide-border">
           {faqs.map((faq, i) => (
-            <div key={i}>
+            <div key={i} className="group">
               <button
                 onClick={() => setOpen(open === i ? null : i)}
-                className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-secondary/50 transition-colors gap-4"
+                className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-muted/30 transition-colors gap-4"
               >
-                <span className="text-sm font-medium">{faq.q}</span>
-                <ChevronDown className={`w-4 h-4 text-muted-foreground flex-shrink-0 transition-transform duration-200 ${open === i ? "rotate-180" : ""}`} />
+                <span className="text-sm font-medium group-hover:text-primary transition-colors">{faq.q}</span>
+                <ChevronDown className={`w-4 h-4 text-muted-foreground flex-shrink-0 transition-transform duration-200 ${open === i ? "rotate-180 text-primary" : ""}`} />
               </button>
               <AnimatePresence>
                 {open === i && (
@@ -65,7 +66,9 @@ const FAQModal = ({ onClose }: { onClose: () => void }) => {
                     transition={{ duration: 0.2 }}
                     className="overflow-hidden"
                   >
-                    <p className="px-6 pb-4 text-sm text-muted-foreground leading-relaxed">{faq.a}</p>
+                    <p className="px-6 pb-4 text-sm text-muted-foreground leading-relaxed border-t border-border/50 pt-4">
+                      {faq.a}
+                    </p>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -93,35 +96,51 @@ const ContactModal = ({ onClose }: { onClose: () => void }) => (
       className="w-full max-w-sm bg-background border border-border rounded-2xl overflow-hidden shadow-2xl"
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-gradient-to-r from-primary/5 to-transparent">
         <h2 className="font-display text-lg font-bold tracking-tight">Contact Us</h2>
         <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-secondary transition-colors">
           <X className="w-4 h-4" />
         </button>
       </div>
-      <div className="p-6 space-y-3">
-        <p className="text-sm text-muted-foreground mb-4">We're available Mon–Sat, 8am–8pm. Reach us via:</p>
+      <div className="p-6 space-y-4">
+        <p className="text-sm text-muted-foreground text-center">We're available Mon–Sat, 8am–8pm</p>
+        
         <a href={WHATSAPP} target="_blank" rel="noreferrer"
           className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border hover:border-green-500/40 hover:bg-green-500/5 transition-all group">
-          <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center text-green-500">
+          <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center text-green-500 group-hover:scale-110 transition-transform">
             <WhatsAppIcon />
           </div>
-          <div>
+          <div className="flex-1">
             <p className="text-sm font-semibold group-hover:text-green-600 transition-colors">WhatsApp</p>
-            <p className="text-xs text-muted-foreground">+233 25 622 1777</p>
+            <p className="text-xs text-muted-foreground">Fastest response · Usually within minutes</p>
           </div>
+          <ChevronDown className="w-4 h-4 text-muted-foreground -rotate-90 group-hover:translate-x-1 transition-transform" />
         </a>
+
         <a href={PHONE}
           className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border hover:border-primary/40 hover:bg-primary/5 transition-all group">
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 6.75z"/>
             </svg>
           </div>
-          <div>
+          <div className="flex-1">
             <p className="text-sm font-semibold group-hover:text-primary transition-colors">Phone Call</p>
             <p className="text-xs text-muted-foreground">+233 25 622 1777</p>
           </div>
+          <ChevronDown className="w-4 h-4 text-muted-foreground -rotate-90 group-hover:translate-x-1 transition-transform" />
+        </a>
+
+        <a href={EMAIL}
+          className="flex items-center gap-3 px-4 py-3 rounded-xl border border-border hover:border-blue-500/40 hover:bg-blue-500/5 transition-all group">
+          <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
+            <Mail className="w-4 h-4" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold group-hover:text-blue-600 transition-colors">Email</p>
+            <p className="text-xs text-muted-foreground">support@sneakershub.com</p>
+          </div>
+          <ChevronDown className="w-4 h-4 text-muted-foreground -rotate-90 group-hover:translate-x-1 transition-transform" />
         </a>
       </div>
     </motion.div>
@@ -131,6 +150,13 @@ const ContactModal = ({ onClose }: { onClose: () => void }) => (
 const Footer = () => {
   const [showFAQ, setShowFAQ] = useState(false);
   const [showContact, setShowContact] = useState(false);
+  const currentYear = new Date().getFullYear();
+
+  const socialLinks = [
+    { icon: Instagram, href: "https://instagram.com", label: "Instagram" },
+    { icon: Twitter, href: "https://twitter.com", label: "Twitter" },
+    { icon: Facebook, href: "https://facebook.com", label: "Facebook" },
+  ];
 
   return (
     <>
@@ -143,68 +169,163 @@ const Footer = () => {
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
         viewport={{ once: true }}
-        className="border-t border-border mt-20"
+        className="border-t border-border mt-20 bg-gradient-to-b from-background to-muted/20"
       >
-        <div className="section-padding max-w-7xl mx-auto py-12">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div>
-              <h3 className="font-display text-xl font-bold tracking-tighter mb-4">
-                Sneakers<span className="text-gradient">Hub</span>
-              </h3>
-              <p className="text-sm text-muted-foreground leading-relaxed mb-5">
-                Premium sneakers for those who demand the best. Curated collections from top brands.
-              </p>
-              <a href={WHATSAPP} target="_blank" rel="noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-green-500/30 bg-green-500/5
-                  text-sm font-medium text-green-600 hover:bg-green-500/10 hover:border-green-500/50 transition-all">
-                <WhatsAppIcon />
-                Chat on WhatsApp
-              </a>
-            </div>
-
-            <div className="md:col-span-2 grid grid-cols-2 gap-8">
-              <div>
-                <h4 className="font-display font-semibold text-sm uppercase tracking-wider mb-4">Quick Links</h4>
-                <ul className="space-y-2">
-                  <li><Link to="/shop" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Shop</Link></li>
-                  <li><Link to="/about" className="text-sm text-muted-foreground hover:text-foreground transition-colors">About Us</Link></li>
-                  <li>
-                    <button onClick={() => setShowFAQ(true)}
-                      className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                      FAQs
-                    </button>
-                  </li>
-                  <li>
-                    <button onClick={() => setShowContact(true)}
-                      className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                      Contact
-                    </button>
-                  </li>
-                </ul>
+        {/* Newsletter Section */}
+        <div className="border-b border-border">
+          <div className="section-padding max-w-7xl mx-auto py-12">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="text-center md:text-left">
+                <h3 className="font-display text-xl font-bold tracking-tight mb-2">
+                  Stay in the loop
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Get exclusive drops, restock alerts and special offers
+                </p>
               </div>
-
-              <div>
-                <h4 className="font-display font-semibold text-sm uppercase tracking-wider mb-4">Get in Touch</h4>
-                <ul className="space-y-2">
-                  <li>
-                    <a href={WHATSAPP} target="_blank" rel="noreferrer"
-                      className="text-sm text-muted-foreground hover:text-green-600 transition-colors flex items-center gap-1.5">
-                      <WhatsAppIcon /> WhatsApp
-                    </a>
-                  </li>
-                  <li>
-                    <a href={PHONE} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                      +233 25 622 1777
-                    </a>
-                  </li>
-                </ul>
+              <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                <div className="relative flex-1 min-w-[250px]">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="email"
+                    placeholder="Your email address"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
+                  />
+                </div>
+                <button className="px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 transition-all hover:scale-[1.02]">
+                  Subscribe
+                </button>
               </div>
             </div>
           </div>
+        </div>
 
-          <div className="border-t border-border mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
-            <span>© 2026 SneakersHub · Made in Ghana 🇬🇭</span>
-            <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
+        <div className="section-padding max-w-7xl mx-auto py-12">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            {/* Brand Column */}
+            <div className="md:col-span-1">
+              <Link to="/" className="inline-block mb-4">
+                <h3 className="font-display text-2xl font-bold tracking-tighter bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
+                  SneakersHub
+                </h3>
+              </Link>
+              <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+                Premium sneakers for those who demand the best. Curated collections from top brands across Africa.
+              </p>
+              <div className="flex items-center gap-3">
+                {socialLinks.map((social) => (
+                  <a
+                    key={social.label}
+                    href={social.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all hover:scale-110"
+                    aria-label={social.label}
+                  >
+                    <social.icon className="w-4 h-4" />
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            {/* Quick Links */}
+            <div>
+              <h4 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-foreground">
+                Quick Links
+              </h4>
+              <ul className="space-y-2">
+                {[
+                  { to: "/shop", label: "Shop" },
+                  { to: "/featured", label: "Featured" },
+                  { to: "/about", label: "About Us" },
+                ].map((link) => (
+                  <li key={link.to}>
+                    <Link to={link.to} className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center gap-1.5 group">
+                      <span className="w-0 group-hover:w-1.5 h-0.5 bg-primary rounded-full transition-all duration-200" />
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
+                <li>
+                  <button onClick={() => setShowFAQ(true)} className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center gap-1.5 group">
+                    <span className="w-0 group-hover:w-1.5 h-0.5 bg-primary rounded-full transition-all duration-200" />
+                    FAQs
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => setShowContact(true)} className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center gap-1.5 group">
+                    <span className="w-0 group-hover:w-1.5 h-0.5 bg-primary rounded-full transition-all duration-200" />
+                    Contact
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            {/* Contact Info */}
+            <div>
+              <h4 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-foreground">
+                Contact Info
+              </h4>
+              <ul className="space-y-3">
+                <li>
+                  <a href={WHATSAPP} target="_blank" rel="noreferrer" className="flex items-center gap-3 text-sm text-muted-foreground hover:text-green-600 transition-colors group">
+                    <div className="w-7 h-7 rounded-full bg-green-500/10 flex items-center justify-center text-green-500 group-hover:scale-110 transition-transform">
+                      <WhatsAppIcon />
+                    </div>
+                    <span>Chat on WhatsApp</span>
+                  </a>
+                </li>
+                <li>
+                  <a href={PHONE} className="flex items-center gap-3 text-sm text-muted-foreground hover:text-primary transition-colors group">
+                    <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 6.75z"/>
+                      </svg>
+                    </div>
+                    <span>+233 25 622 1777</span>
+                  </a>
+                </li>
+                <li>
+                  <a href={EMAIL} className="flex items-center gap-3 text-sm text-muted-foreground hover:text-blue-600 transition-colors group">
+                    <div className="w-7 h-7 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
+                      <Mail className="w-3.5 h-3.5" />
+                    </div>
+                    <span>support@sneakershub.com</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* Hours & Location */}
+            <div>
+              <h4 className="font-display font-semibold text-sm uppercase tracking-wider mb-4 text-foreground">
+                Info
+              </h4>
+              <ul className="space-y-3">
+                <li className="flex items-start gap-3 text-sm text-muted-foreground">
+                  <Clock className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                  <span>Mon–Sat: 8am–8pm<br />Sun: Closed</span>
+                </li>
+                <li className="flex items-start gap-3 text-sm text-muted-foreground">
+                  <MapPin className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                  <span>Accra, Ghana</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Bottom Bar */}
+          <div className="border-t border-border mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              © {currentYear} SneakersHub · Made with
+              <Heart className="w-3 h-3 text-red-500 fill-red-500" />
+              in Ghana 🇬🇭
+            </span>
+            <div className="flex items-center gap-4">
+              <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
+              <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
+              <button onClick={() => setShowFAQ(true)} className="hover:text-foreground transition-colors">FAQ</button>
+            </div>
           </div>
         </div>
       </motion.footer>
