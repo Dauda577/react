@@ -478,6 +478,8 @@ const AccountSettings = memo(({
       }).eq("id", user!.id);
       if (error) throw error;
 
+      let finalName = payoutForm.name;
+
       if (isVerified && subaccountCode) {
         try {
           const settlementBank = payoutForm.method === "momo_telecel" ? "VOD"
@@ -486,7 +488,8 @@ const AccountSettings = memo(({
           if (num.startsWith("233")) num = "0" + num.slice(3);
           if (!num.startsWith("0")) num = "0" + num;
           const { data: { session } } = await supabase.auth.getSession();
-          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-subaccount`, {
+          
+          const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-subaccount`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -498,19 +501,38 @@ const AccountSettings = memo(({
               settlement_bank: settlementBank, account_number: num,
             }),
           });
+
+          // ✅ Use resolved_name from Paystack if returned
+          const subResult = await res.json();
+          finalName = subResult.resolved_name ?? payoutForm.name;
+
           toast.success("Payout details updated — Paystack subaccount synced!");
-        } catch {
+          
+          // ✅ Update snapshot with resolved name
+          setSavedPayout({ method: payoutForm.method, number: payoutForm.number, name: finalName });
+          setPayoutForm(p => ({ ...p, name: finalName }));
+          setPayoutSaved(true);
+          setTimeout(() => setPayoutSaved(false), 3000);
+          return;
+        } catch (err) {
+          console.error("Paystack sync error:", err);
           toast.success("Payout details saved! (Paystack sync failed — contact support)");
         }
-      } else {
-        toast.success("Payout details saved!");
       }
 
-      // Update saved snapshot so future modal comparisons are always accurate
-      setSavedPayout({ method: payoutForm.method, number: payoutForm.number, name: payoutForm.name });
-      setPayoutSaved(true);
-      setTimeout(() => setPayoutSaved(false), 3000);
-    } catch (err: any) { toast.error(err.message ?? "Failed to save payout details"); }
+      // ✅ Only set snapshot here for non-verified sellers (verified path sets it above)
+      if (!(isVerified && subaccountCode)) {
+        setSavedPayout({ method: payoutForm.method, number: payoutForm.number, name: payoutForm.name });
+        setPayoutSaved(true);
+        setTimeout(() => setPayoutSaved(false), 3000);
+      }
+      
+      if (!(isVerified && subaccountCode)) {
+        toast.success("Payout details saved!");
+      }
+    } catch (err: any) { 
+      toast.error(err.message ?? "Failed to save payout details"); 
+    }
   };
 
   return (
@@ -660,18 +682,23 @@ const AccountSettings = memo(({
               </div>
             </div>
             <div>
-              <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Account Name</label>
-              <div className="relative">
-                <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
-                <input
-                  value={payoutForm.name}
-                  onChange={e => setPayoutForm(p => ({ ...p, name: e.target.value }))}
-                  placeholder="Name on account"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
-                />
-              </div>
-            </div>
-
+  <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Account Name</label>
+  <div className="relative">
+    <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
+    <input
+      value={payoutForm.name}
+      onChange={e => setPayoutForm(p => ({ ...p, name: e.target.value }))}
+      placeholder="Name on account"
+      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
+    />
+  </div>
+  {/* ✅ Show verified name from Paystack if it differs from what user typed */}
+  {savedPayout.name && savedPayout.name !== payoutForm.name && (
+    <p className="text-[11px] text-amber-600 mt-1">
+      ⚠ Paystack verified name: <strong>{savedPayout.name}</strong>
+    </p>
+  )}
+</div>
             <Button className="btn-primary rounded-full h-9 px-5 text-sm w-full" onClick={handleSavePayoutIntent}>
               {payoutSaved ? <><CheckCircle className="w-3.5 h-3.5 mr-1.5" /> Saved!</> : "Save Payout Details"}
             </Button>

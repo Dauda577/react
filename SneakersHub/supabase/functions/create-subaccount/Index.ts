@@ -11,13 +11,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-/**
- * Called after a seller pays the verification fee via Paystack.
- * Creates a Paystack subaccount for them and saves the code to their profile.
- * The subaccount splits all future payments automatically at checkout.
- *
- * Body: { seller_id, paystack_reference, settlement_bank, account_number, percentage_charge }
- */
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -50,7 +43,7 @@ serve(async (req) => {
     const { data: seller, error: sellerErr } = await supabase
       .from("profiles").select("name").eq("id", seller_id).single();
     console.log("[create-subaccount] seller fetch:", { seller, sellerErr, seller_id });
-    
+
     if (sellerErr || !seller) throw new Error(`Seller not found: ${sellerErr?.message ?? "no row"}`);
 
     // ── Fetch payout details from the approved seller application ─────────────
@@ -65,13 +58,7 @@ serve(async (req) => {
 
     console.log("[create-subaccount] application payout data:", application);
 
-    // ✅ FIXED: percentage_charge should be what the SELLER receives
-    // Default: 95% to seller, 5% to platform
-    const sellerPercentage = Number(percentage_charge ?? 95);
-    console.log("[create-subaccount] split config:", { sellerPercentage, platformPercentage: 100 - sellerPercentage });
-
-    // Paystack expects percentage_charge as the subaccount's (seller's) percentage
-    // GH MoMo numbers need to be 0XXXXXXXXX format
+    // ── Normalize MoMo number to 0XXXXXXXXX format ────────────────────────────
     const isMoMo = !["ghipss","030100","040100","050100","060100","070101","080100","090100","100100","110100","120100","130100","140100","150100","190100"].includes(settlement_bank);
     const normalizedNumber = isMoMo
       ? (() => {
@@ -84,6 +71,31 @@ serve(async (req) => {
 
     console.log("[create-subaccount] normalized:", { isMoMo, normalizedNumber, settlement_bank, account_number });
 
+    // ── Resolve account name from Paystack BEFORE creating subaccount ─────────
+    let resolvedName = seller.name; // fallback to profile name
+    try {
+      const resolveRes = await fetch(
+        `https://api.paystack.co/bank/resolve?account_number=${normalizedNumber}&bank_code=${settlement_bank}`,
+        { headers: { Authorization: `Bearer ${PAYSTACK_SECRET}` } }
+      );
+      const resolveData = await resolveRes.json();
+      console.log("[create-subaccount] name resolution:", JSON.stringify(resolveData));
+
+      if (resolveData.status && resolveData.data?.account_name) {
+        resolvedName = resolveData.data.account_name; // ✅ use exact name from network
+        console.log(`[create-subaccount] resolved name: "${resolvedName}"`);
+      } else {
+        console.warn("[create-subaccount] name resolution failed, using profile name as fallback");
+      }
+    } catch (resolveErr) {
+      console.warn("[create-subaccount] name resolution error:", resolveErr);
+      // non-fatal — continue with profile name
+    }
+
+    // ── Platform takes 5%, seller receives 95% ────────────────────────────────
+    const platformPercentage = Number(percentage_charge ?? 5);
+    console.log("[create-subaccount] split config:", { platformPercentage, sellerPercentage: 100 - platformPercentage });
+
     const subRes = await fetch("https://api.paystack.co/subaccount", {
       method: "POST",
       headers: {
@@ -91,12 +103,12 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        business_name: seller.name,
+        business_name:     resolvedName,       // ✅ exact name from MoMo/bank network
         settlement_bank,
-        account_number: normalizedNumber,
-        percentage_charge: sellerPercentage, // ✅ This is now the seller's percentage (95%)
-        description: `SneakersHub seller: ${seller.name}`,
-        metadata: { seller_id },
+        account_number:    normalizedNumber,
+        percentage_charge: platformPercentage, // ✅ 5 = platform takes 5%, seller gets 95%
+        description:       `SneakersHub seller: ${resolvedName}`,
+        metadata:          { seller_id },
       }),
     });
 
@@ -116,12 +128,12 @@ serve(async (req) => {
 
     // ── Save subaccount code to profile, mark verified, and sync payout details ─
     const { error: updateErr } = await supabase.from("profiles").update({
-      subaccount_code:      subaccountCode,
-      verified:             true,
+      subaccount_code:       subaccountCode,
+      verified:              true,
       verification_fee_paid: true,
-      payout_method: payoutMethod,
-      payout_number: application?.momo_number ?? normalizedNumber,
-      payout_name:   application?.momo_name   ?? seller.name,
+      payout_method:         payoutMethod,
+      payout_number:         application?.momo_number ?? normalizedNumber,
+      payout_name:           resolvedName, // ✅ save the network-verified name
     }).eq("id", seller_id);
 
     if (updateErr) throw new Error(`Profile update failed: ${updateErr.message}`);
@@ -129,9 +141,10 @@ serve(async (req) => {
     console.log(`[create-subaccount] ✅ Created ${subaccountCode} for seller ${seller_id}`);
 
     return new Response(JSON.stringify({
-      success: true,
+      success:         true,
       subaccount_code: subaccountCode,
-      split: { seller_percentage: sellerPercentage, platform_percentage: 100 - sellerPercentage },
+      resolved_name:   resolvedName,
+      split: { platform_percentage: platformPercentage, seller_percentage: 100 - platformPercentage },
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (err) {

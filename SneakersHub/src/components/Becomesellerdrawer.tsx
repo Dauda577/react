@@ -181,6 +181,10 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
                           placeholder="Name registered on MoMo"
                           className="w-full mt-1.5 px-4 py-3 rounded-xl border border-border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
                         />
+                        {/* ✅ Added hint note */}
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          Enter the exact name on your MoMo account — must match your network registration.
+                        </p>
                       </div>
                     </div>
                     <div className="rounded-xl bg-blue-500/10 border border-blue-500/20 p-3">
