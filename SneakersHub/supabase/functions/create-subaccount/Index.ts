@@ -50,12 +50,10 @@ serve(async (req) => {
     const { data: seller, error: sellerErr } = await supabase
       .from("profiles").select("name").eq("id", seller_id).single();
     console.log("[create-subaccount] seller fetch:", { seller, sellerErr, seller_id });
-    console.log("[create-subaccount] subaccount params:", { settlement_bank, account_number, percentage_charge, splitPercentage: percentage_charge ?? 95 });
+    
     if (sellerErr || !seller) throw new Error(`Seller not found: ${sellerErr?.message ?? "no row"}`);
 
     // ── Fetch payout details from the approved seller application ─────────────
-    // This ensures the profile's payout fields are always populated after verification,
-    // so the Settings page pre-fills correctly without the user having to re-enter them.
     const { data: application } = await supabase
       .from("seller_applications")
       .select("momo_number, momo_name")
@@ -67,19 +65,20 @@ serve(async (req) => {
 
     console.log("[create-subaccount] application payout data:", application);
 
-    // ── Create Paystack subaccount ────────────────────────────────────────────
-    const splitPercentage = Number(percentage_charge ?? 5); // platform's cut — seller gets (100 - splitPercentage)%
+    // ✅ FIXED: percentage_charge should be what the SELLER receives
+    // Default: 95% to seller, 5% to platform
+    const sellerPercentage = Number(percentage_charge ?? 95);
+    console.log("[create-subaccount] split config:", { sellerPercentage, platformPercentage: 100 - sellerPercentage });
 
-    // Paystack GH subaccount expects MoMo numbers as 0XXXXXXXXX (10 digits, leading 0)
-    // Bank account numbers are passed as-is
+    // Paystack expects percentage_charge as the subaccount's (seller's) percentage
+    // GH MoMo numbers need to be 0XXXXXXXXX format
     const isMoMo = !["ghipss","030100","040100","050100","060100","070101","080100","090100","100100","110100","120100","130100","140100","150100","190100"].includes(settlement_bank);
     const normalizedNumber = isMoMo
       ? (() => {
-          // Strip everything, then ensure it starts with 0
           let n = account_number.replace(/\s+/g, "").replace(/^\+/, "");
           if (n.startsWith("233")) n = "0" + n.slice(3);
           if (!n.startsWith("0")) n = "0" + n;
-          return n; // e.g. "0506054670"
+          return n;
         })()
       : account_number;
 
@@ -95,7 +94,7 @@ serve(async (req) => {
         business_name: seller.name,
         settlement_bank,
         account_number: normalizedNumber,
-        percentage_charge: splitPercentage, // platform keeps this %, seller gets the rest
+        percentage_charge: sellerPercentage, // ✅ This is now the seller's percentage (95%)
         description: `SneakersHub seller: ${seller.name}`,
         metadata: { seller_id },
       }),
@@ -120,7 +119,6 @@ serve(async (req) => {
       subaccount_code:      subaccountCode,
       verified:             true,
       verification_fee_paid: true,
-      // Sync payout details from the application so Settings pre-fills correctly
       payout_method: payoutMethod,
       payout_number: application?.momo_number ?? normalizedNumber,
       payout_name:   application?.momo_name   ?? seller.name,
@@ -133,6 +131,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       success: true,
       subaccount_code: subaccountCode,
+      split: { seller_percentage: sellerPercentage, platform_percentage: 100 - sellerPercentage },
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   } catch (err) {

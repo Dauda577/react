@@ -34,7 +34,7 @@ async function getFeaturedListings() {
     .eq("boosted", true)
     .or(`boost_expires_at.is.null,boost_expires_at.gt.${now}`)
     .order("boost_expires_at", { ascending: true, nullsFirst: true })
-    .limit(4);
+    .limit(6);
 
   if (error) throw new Error("Failed to fetch listings: " + error.message);
   return data ?? [];
