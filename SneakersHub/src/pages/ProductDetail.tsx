@@ -378,44 +378,52 @@ const ProductDetail = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const activeImage = selectedImage ?? uniqueImages[0] ?? null;
 
-  const handleAddToCart = () => {
-    if (authLoading) return;
-    if (!user || isGuest) { setShowGuestModal(true); return; }
+ const handleAddToCart = () => {
+  if (authLoading) return;
+  if (!user || isGuest) { setShowGuestModal(true); return; }
 
-    if (listing?.sellerId === user.id) {
-      toast.error("You cannot buy your own item", { description: "This is your own listing", duration: 4000 });
-      return;
-    }
+  if (listing?.sellerId === user.id) {
+    toast.error("You cannot buy your own item", { description: "This is your own listing", duration: 4000 });
+    return;
+  }
 
-    const sizeLabel = getSizeLabel(listing?.category ?? "");
-    if (sizeLabel && !selectedSize) {
-      toast.error("Please select a size");
-      return;
-    }
+  const sizeLabel = getSizeLabel(listing?.category ?? "");
+  if (sizeLabel && !selectedSize) {
+    toast.error("Please select a size");
+    return;
+  }
 
-    if (!listing) return;
+  if (!listing) return;
 
-    addItem({
-      id: listing.id,
-      name: listing.name,
-      brand: listing.brand,
-      price: listing.price,
-      image: listing.image ?? "",
-      sellerId: listing.sellerId,
-      sellerName: listing.sellerName,
-      sellerVerified: listing.sellerVerified ?? false,
-      sellerIsOfficial: listing.sellerIsOfficial ?? false,
-      sellerSubaccountCode: listing.sellerSubaccountCode ?? null,
-      sellerCity: listing.city ?? listing.sellerCity ?? null,
-      sellerRegion: listing.region ?? listing.sellerRegion ?? null,
-      shippingCost: listing.shippingCost ?? 0,
-      handlingTime: listing.handlingTime ?? "Ships in 1-3 days",
-    }, selectedSize ?? "one-size");
+  // Use discounted price if available, otherwise use original price
+  const finalPrice = discountedPrice ?? listing.price;
 
-    setAdded(true);
-    toast.success("Added to cart!");
-    setTimeout(() => setAdded(false), 2000);
+  // Create the listing object with the final price
+  const cartListing = {
+    id: listing.id,
+    name: listing.name,
+    brand: listing.brand,
+    price: finalPrice, 
+    image: listing.image ?? "",
+    sellerId: listing.sellerId,
+    sellerName: listing.sellerName,
+    sellerVerified: listing.sellerVerified ?? false,
+    sellerIsOfficial: listing.sellerIsOfficial ?? false,
+    sellerSubaccountCode: listing.sellerSubaccountCode ?? null,
+    sellerCity: listing.city ?? listing.sellerCity ?? null,
+    sellerRegion: listing.region ?? listing.sellerRegion ?? null,
+    shippingCost: listing.shippingCost ?? 0,
+    handlingTime: listing.handlingTime ?? "Ships in 1-3 days",
   };
+
+  addItem(cartListing, selectedSize ?? "one-size");
+
+  setAdded(true);
+  toast.success(listing.discountPercent 
+    ? `Added to cart with ${listing.discountPercent}% discount!` 
+    : "Added to cart!");
+  setTimeout(() => setAdded(false), 2000);
+};
 
   if (loading) {
     return (

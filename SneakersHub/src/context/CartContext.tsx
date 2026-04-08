@@ -8,7 +8,9 @@ export type CartItem = {
     id: string;
     name: string;
     brand: string;
-    price: number;
+    price: number; // This will be the final price (after discount)
+    originalPrice?: number; // Optional: store original price for reference
+    discountPercent?: number | null; // Optional: store discount percent
     image: string;
     sellerId: string;
     sellerName: string;
@@ -70,7 +72,7 @@ export function groupBySeller(items: CartItem[]): SellerGroup[] {
 
 type CartContextType = {
   items: CartItem[];
-  addItem: (listing: CartItem["listing"], size: string | number) => void;
+  addItem: (listing: CartItem["listing"], size: string | number, originalPrice?: number, discountPercent?: number | null) => void;
   removeItem: (id: string, size: string | number) => void;
   clearCart: () => void;
   totalPrice: number;
