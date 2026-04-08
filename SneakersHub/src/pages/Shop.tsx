@@ -243,20 +243,21 @@ const Shop = () => {
               <AnimatePresence>
                 {visible.map((l, i) => (
                   <motion.div
-  key={l.id}
-  layout
-  initial={{ opacity: 0, y: 20 }}
-  animate={{ opacity: 1, y: 0 }}
-  exit={{ opacity: 0 }}
-  transition={{ delay: Math.min(i, 8) * 0.04 }}
-  className="w-full h-full"
->
+                    key={l.id}
+                    layout
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ delay: Math.min(i, 8) * 0.04 }}
+                    className="w-full h-full"
+                  >
                     <SneakerCard
                       sneaker={{
                         id: l.id, name: l.name, brand: l.brand, price: l.price,
                         image: l.image ?? "", category: l.category, sizes: l.sizes,
                         description: l.description, isBoosted: l.boosted,
                         sellerVerified: l.sellerVerified, sellerIsOfficial: l.sellerIsOfficial,
+                        discountPercent: l.discountPercent,
                       }}
                       index={i}
                     />

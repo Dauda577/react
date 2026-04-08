@@ -231,10 +231,11 @@ const Index = () => {
   const heroImage   = listings.find((l) => l.image)?.image ?? FALLBACK_IMG;
 
   const toCardShape = (l: typeof listings[0], isBoosted = false) => ({
-    id: l.id, name: l.name, brand: l.brand, price: l.price, image: l.image ?? "",
-    category: l.category, sizes: l.sizes, description: l.description, isBoosted,
-    sellerVerified: l.sellerVerified, sellerIsOfficial: l.sellerIsOfficial,
-  });
+  id: l.id, name: l.name, brand: l.brand, price: l.price, image: l.image ?? "",
+  category: l.category, sizes: l.sizes, description: l.description, isBoosted,
+  sellerVerified: l.sellerVerified, sellerIsOfficial: l.sellerIsOfficial,
+  discountPercent: l.discountPercent,
+});
 
   const sellHref = user ? "/account?tab=settings" : "/auth";
 

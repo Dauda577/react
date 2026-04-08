@@ -39,6 +39,7 @@ const Featured = () => {
     isBoosted: true,
     sellerVerified: l.sellerVerified,
     sellerIsOfficial: l.sellerIsOfficial,
+    discountPercent: l.discountPercent,
   });
 
   return (

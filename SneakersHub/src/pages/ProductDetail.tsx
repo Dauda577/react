@@ -731,6 +731,7 @@ const ProductDetail = () => {
                     image: l.image ?? "", category: l.category, sizes: l.sizes,
                     description: l.description, isBoosted: l.boosted,
                     sellerVerified: l.sellerVerified, sellerIsOfficial: l.sellerIsOfficial,
+                    discountPercent: l.discountPercent,
                   }} index={i} />
                 </div>
               ))}
@@ -744,6 +745,7 @@ const ProductDetail = () => {
                   image: l.image ?? "", category: l.category, sizes: l.sizes,
                   description: l.description, isBoosted: l.boosted,
                   sellerVerified: l.sellerVerified, sellerIsOfficial: l.sellerIsOfficial,
+                  discountPercent: l.discountPercent,
                 }} index={i} />
               ))}
             </div>
