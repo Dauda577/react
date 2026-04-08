@@ -288,10 +288,10 @@ const Footer = () => {
               in Ghana 🇬🇭
             </span>
             <div className="flex items-center gap-4">
-              <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
-              <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
-              <button onClick={() => setShowFAQ(true)} className="hover:text-foreground transition-colors">FAQ</button>
-            </div>
+  <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
+  <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
+  <button onClick={() => setShowFAQ(true)} className="hover:text-foreground transition-colors">FAQ</button>
+</div>
           </div>
         </div>
       </footer>

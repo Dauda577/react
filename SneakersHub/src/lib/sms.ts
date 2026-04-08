@@ -10,7 +10,8 @@ type SMSEvent =
   | { type: "payout.released";        record: any }
   | { type: "payout.missing_details"; record: any }
   | { type: "payout.transfer_failed"; record: any }
-  | { type: "admin.alert";            record: any };
+  | { type: "admin.alert";            record: any }
+  | { type: "order.seller_notified";  record: any };
 
 export async function triggerSMS(event: SMSEvent) {
   try {

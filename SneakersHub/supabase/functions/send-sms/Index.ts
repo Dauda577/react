@@ -102,6 +102,25 @@ serve(async (req) => {
         message = record.message;
         break;
         
+      case "order.seller_notified": {
+        // Try caller-supplied phone first
+        phoneNumber = record.seller_phone || "";
+
+        // If missing, look up from profiles using seller_id
+        if (!phoneNumber && record.seller_id) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("phone")
+            .eq("id", record.seller_id)
+            .single();
+          phoneNumber = profile?.phone ?? "";
+          console.log(`📞 Looked up phone for seller ${record.seller_id}:`, phoneNumber);
+        }
+
+        message = `🛒 Great news! Someone just bought your listing "${record.listing_name?.substring(0, 30)}" for GHS ${record.total}. Check your orders at sneakershub.site/account`;
+        break;
+      }
+        
       default:
         console.error("❌ Unknown SMS type:", type);
         return new Response(

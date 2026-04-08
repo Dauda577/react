@@ -406,11 +406,11 @@ const Admin = () => {
             </button>
           </motion.div>
 
-          <div className="flex overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+          <div className="flex overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 gap-1 scrollbar-none">
             {tabs.map((tab) => (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                className={`relative flex items-center gap-1.5 px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-all
-                  ${activeTab === tab.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+                className={`relative flex items-center gap-1.5 px-3 py-3 text-xs font-medium whitespace-nowrap border-b-2 transition-all flex-shrink-0
+  ${activeTab === tab.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
                 <tab.icon className="w-4 h-4" />
                 {tab.label}
                 {"badge" in tab && tab.badge > 0 && (

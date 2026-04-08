@@ -24,6 +24,7 @@ import AuthCallback from "./pages/AuthCallback";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import SafariNotifPrompt from "./components/SafariNotifPrompt";
+import TermsOfService from "@/pages/TermsOfService";
 
 const Shop = lazy(() => import("./pages/Shop"));
 const Featured = lazy(() => import("./pages/Featured"));
@@ -131,6 +132,7 @@ const App = () => (
                                 <Route path="/reset-password" element={<ResetPassword />} />
                                 <Route path="/admin" element={<Admin />} />
                                 <Route path="/unsubscribe" element={<Unsubscribe />} />
+                                <Route path="/terms" element={<TermsOfService />} />
                                 <Route path="*" element={<NotFound />} />
                               </Routes>
                             </Suspense>

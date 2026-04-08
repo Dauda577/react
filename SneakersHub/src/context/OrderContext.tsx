@@ -335,6 +335,16 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       }
     });
 
+    await triggerSMS({
+    type: "order.seller_notified",
+  record: {
+    seller_id: order.sellerId,
+    listing_name: order.items[0]?.name ?? "your listing",
+    total: order.total,
+    id: orderRow.id,
+  }
+}).catch((err) => console.warn("Seller SMS failed (non-fatal):", err));
+
     try {
       const { data: subscriptions } = await supabase
         .from("push_subscriptions")
