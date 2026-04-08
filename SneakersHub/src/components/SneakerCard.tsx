@@ -105,7 +105,7 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
             ) : null}
 
             {/* Discount badge */}
-            {sneaker.discountPercent && (
+            {sneaker.discountPercent != null && sneaker.discountPercent > 0 && (
               <Badge className="bg-red-500 text-white text-[10px] uppercase tracking-wider font-display border-0 shadow-md">
                 -{sneaker.discountPercent}% OFF
               </Badge>
