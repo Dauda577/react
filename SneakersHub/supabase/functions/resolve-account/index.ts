@@ -59,6 +59,12 @@ serve(async (req) => {
 
     console.log(`Resolving account: ${formattedNumber} on ${bank_code}`);
 
+    // Map bank codes correctly
+    let paystackBankCode = bank_code;
+    if (bank_code === "VOD") paystackBankCode = "VOD";
+    if (bank_code === "ATL") paystackBankCode = "ATL";
+    if (bank_code === "MTN") paystackBankCode = "MTN";
+
     // Call Paystack's resolve account endpoint
     const response = await fetch("https://api.paystack.co/bank/resolve", {
       method: "POST",
@@ -68,7 +74,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         account_number: formattedNumber,
-        bank_code: bank_code,
+        bank_code: paystackBankCode,
       }),
     });
 
@@ -82,7 +88,7 @@ serve(async (req) => {
           error: data.message || "Account not found. Please verify the number is correct." 
         }),
         { 
-          status: 400, 
+          status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" } 
         }
       );

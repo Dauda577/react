@@ -509,7 +509,6 @@ const resolveAccountName = async () => {
   setResolveError(null);
 
   try {
-    // Get session - this might be null if not logged in properly
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session) {
@@ -538,17 +537,44 @@ const resolveAccountName = async () => {
     );
 
     console.log("Response status:", response.status);
-    const result = await response.json();
+    
+    // Check if response is ok before trying to parse JSON
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("Response not OK:", text);
+      setResolveError(`Server error: ${response.status}`);
+      setResolvedName(null);
+      setResolving(false);
+      return;
+    }
+    
+    // Try to parse JSON
+    let result;
+    try {
+      result = await response.json();
+    } catch (jsonError) {
+      console.error("JSON parse error:", jsonError);
+      const text = await response.text();
+      console.error("Raw response:", text);
+      setResolveError("Invalid response from server");
+      setResolvedName(null);
+      setResolving(false);
+      return;
+    }
+    
     console.log("Resolve result:", result);
     
-    if (response.ok && result.success && result.account_name) {
-      setResolvedName(result.account_name);
-      setPayoutForm(f => ({ ...f, name: result.account_name }));
-      setResolveError(null);
-    } else {
-      setResolveError(result.error || "Could not verify account name");
-      setResolvedName(null);
-    }
+    if (result.success && result.account_name) {
+  console.log("Setting account name to:", result.account_name);
+  setResolvedName(result.account_name);
+  setPayoutForm(f => {
+    console.log("Previous form:", f);
+    const updated = { ...f, name: result.account_name };
+    console.log("Updated form:", updated);
+    return updated;
+  });
+  setResolveError(null);
+}
   } catch (err) {
     console.error("Resolve error:", err);
     setResolveError("Network error. Please try again.");
@@ -813,12 +839,12 @@ const resolveAccountName = async () => {
               <div className="relative">
                 <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
                 <input
-                  value={payoutForm.name}
-                  onChange={e => setPayoutForm(p => ({ ...p, name: e.target.value }))}
-                  placeholder={resolving ? "Verifying account..." : "Auto-verified from MoMo number"}
-                  disabled={true}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-muted/50 text-sm text-muted-foreground cursor-not-allowed"
-                />
+  value={payoutForm.name}
+  onChange={e => setPayoutForm(p => ({ ...p, name: e.target.value }))}
+  placeholder={resolving ? "Verifying account..." : "Auto-verified from MoMo number"}
+  disabled={true}
+  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-muted/50 text-sm text-muted-foreground cursor-not-allowed"
+/>
                 {resolving && (
                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
                     <Loader2 className="w-4 h-4 animate-spin text-primary" />

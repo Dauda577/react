@@ -17,12 +17,46 @@ const REGIONS = [
   "Ahafo","Bono East","Oti","Savannah","North East","Western North",
 ];
 
-// Detect network based on phone number prefix
+// ✅ FIXED: Detect network based on phone number prefix (handles 0 and 233 prefixes)
 const detectNetwork = (number: string): string | null => {
-  const cleaned = number.replace(/\D/g, "");
-  if (cleaned.startsWith("50")) return "VOD"; // Telecel/Vodafone
-  if (cleaned.startsWith("26") || cleaned.startsWith("27")) return "ATL"; // AirtelTigo
-  if (cleaned.startsWith("54") || cleaned.startsWith("55") || cleaned.startsWith("59")) return "MTN"; // MTN
+  let cleaned = number.replace(/\D/g, "");
+  console.log("Detecting network for number:", cleaned);
+  
+  // Remove leading 0 or 233 if present to get the core number
+  if (cleaned.startsWith("233")) {
+    cleaned = cleaned.slice(3);
+  }
+  if (cleaned.startsWith("0")) {
+    cleaned = cleaned.slice(1);
+  }
+  
+  console.log("Normalized number:", cleaned);
+  
+  // Get first 2 digits after normalization
+  const prefix = cleaned.slice(0, 2);
+  
+  // Telecel/Vodafone (formerly Vodafone) - starts with 50
+  if (prefix === "50") {
+    return "VOD";
+  }
+  // AirtelTigo - starts with 26, 27
+  if (prefix === "26" || prefix === "27") {
+    return "ATL";
+  }
+  // MTN - starts with 54, 55, 59, 24
+  if (prefix === "54" || prefix === "55" || prefix === "59" || prefix === "24") {
+    return "MTN";
+  }
+  
+  console.log("No network detected for prefix:", prefix);
+  return null;
+};
+
+const getNetworkName = (number: string) => {
+  const network = detectNetwork(number);
+  if (network === "VOD") return "Telecel Cash";
+  if (network === "ATL") return "AirtelTigo Money";
+  if (network === "MTN") return "MTN MoMo";
   return null;
 };
 
@@ -33,6 +67,7 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
   const [resolving, setResolving] = useState(false);
   const [resolvedName, setResolvedName] = useState<string | null>(null);
   const [resolveError, setResolveError] = useState<string | null>(null);
+  const [detectedNetwork, setDetectedNetwork] = useState<string | null>(null);
   const [form, setForm] = useState({
     store_name: "", store_description: "",
     momo_number: "", momo_name: "",
@@ -43,69 +78,100 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
   // Auto-resolve account name when momo_number changes
-useEffect(() => {
-  const resolveAccountName = async () => {
-    const number = form.momo_number.trim();
-    if (number.length < 9) {
-      setResolvedName(null);
-      setResolveError(null);
-      return;
-    }
-
-    const network = detectNetwork(number);
-    if (!network) {
-      setResolveError("Could not detect network. Please check your number.");
-      setResolvedName(null);
-      return;
-    }
-
-    setResolving(true);
-    setResolveError(null);
-
-    try {
-      // Call your edge function to resolve account
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      // ✅ Make sure the URL is correct
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resolve-account`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${session?.access_token}`,
-            "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
-          },
-          body: JSON.stringify({
-            account_number: number,
-            bank_code: network,
-          }),
-        }
-      );
-
-      const result = await response.json();
-      
-      if (result.success && result.account_name) {
-        setResolvedName(result.account_name);
-        // Auto-fill the name field (but make it read-only)
-        setForm(f => ({ ...f, momo_name: result.account_name }));
-        setResolveError(null);
-      } else {
-        setResolveError(result.error || "Could not verify account name");
+  useEffect(() => {
+    const resolveAccountName = async () => {
+      const number = form.momo_number.trim();
+      if (number.length < 9) {
         setResolvedName(null);
+        setResolveError(null);
+        setDetectedNetwork(null);
+        return;
       }
-    } catch (err) {
-      console.error("Resolve error:", err);
-      setResolveError("Network error. Please try again.");
-      setResolvedName(null);
-    } finally {
-      setResolving(false);
-    }
-  };
 
-  const timeoutId = setTimeout(resolveAccountName, 1500);
-  return () => clearTimeout(timeoutId);
-}, [form.momo_number]);
+      const network = detectNetwork(number);
+      if (!network) {
+        setResolveError("Could not detect network. Please check your number.");
+        setResolvedName(null);
+        setDetectedNetwork(null);
+        return;
+      }
+
+      setDetectedNetwork(getNetworkName(number));
+      setResolving(true);
+      setResolveError(null);
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          console.error("No active session");
+          setResolveError("Please log in again to verify your account");
+          setResolving(false);
+          return;
+        }
+        
+        console.log("Calling resolve-account for:", number, "network:", network);
+        
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resolve-account`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${session.access_token}`,
+              "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+            },
+            body: JSON.stringify({
+              account_number: number,
+              bank_code: network,
+            }),
+          }
+        );
+
+        console.log("Response status:", response.status);
+        
+        if (!response.ok) {
+          const text = await response.text();
+          console.error("Response error:", text);
+          setResolveError(`Server error: ${response.status}`);
+          setResolvedName(null);
+          setResolving(false);
+          return;
+        }
+        
+        let result;
+        try {
+          result = await response.json();
+        } catch (jsonError) {
+          console.error("JSON parse error:", jsonError);
+          setResolveError("Invalid response from server");
+          setResolvedName(null);
+          setResolving(false);
+          return;
+        }
+        
+        console.log("Resolve result:", result);
+        
+        if (result.success && result.account_name) {
+          setResolvedName(result.account_name);
+          setForm(f => ({ ...f, momo_name: result.account_name }));
+          setResolveError(null);
+        } else {
+          setResolveError(result.error || "Could not verify account name");
+          setResolvedName(null);
+        }
+      } catch (err) {
+        console.error("Resolve error:", err);
+        setResolveError("Network error. Please try again.");
+        setResolvedName(null);
+      } finally {
+        setResolving(false);
+      }
+    };
+
+    const timeoutId = setTimeout(resolveAccountName, 800);
+    return () => clearTimeout(timeoutId);
+  }, [form.momo_number]);
 
   const canNext = () => {
     if (step === 0) return form.store_name.trim().length >= 2 && form.store_description.trim().length >= 10;
@@ -149,16 +215,8 @@ useEffect(() => {
       setForm({ store_name:"",store_description:"",momo_number:"",momo_name:"",city:"",region:"",instagram:"",twitter:"",whatsapp:"" });
       setResolvedName(null);
       setResolveError(null);
+      setDetectedNetwork(null);
     }, 400);
-  };
-
-  // Get network display name
-  const getNetworkName = (number: string) => {
-    const network = detectNetwork(number);
-    if (network === "VOD") return "Telecel Cash";
-    if (network === "ATL") return "AirtelTigo Money";
-    if (network === "MTN") return "MTN MoMo";
-    return null;
   };
 
   return (
@@ -275,7 +333,7 @@ useEffect(() => {
                           <input
                             value={form.momo_name}
                             onChange={e => set("momo_name", e.target.value)}
-                            placeholder={resolving ? "Verifying account..." : "Will auto-fill after number entry"}
+                            placeholder={resolving ? "Verifying account..." : "Auto-verified from MoMo number"}
                             disabled={true}
                             className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 text-sm text-muted-foreground cursor-not-allowed"
                           />
