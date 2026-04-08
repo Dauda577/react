@@ -4,7 +4,6 @@ import { useCart } from "@/context/CartContext";
 import { useOrders } from "@/context/OrderContext";
 import { useMessages } from "@/context/MessageContext";
 import { useAuth } from "@/context/AuthContext";
-import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import BecomeSellerDrawer from "@/components/Becomesellerdrawer";
 
@@ -63,10 +62,7 @@ const Navbar = () => {
 
   return (
     <>
-      <motion.nav
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
+      <nav
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
           scrolled 
             ? "bg-background/95 backdrop-blur-xl border-b border-border shadow-lg" 
@@ -82,18 +78,12 @@ const Navbar = () => {
               to="/" 
               className="group relative flex items-center gap-1"
             >
-              <div className="absolute -inset-2 bg-gradient-to-r from-primary/20 to-primary/10 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <span className="font-display text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                 Sneakers
               </span>
               <span className="font-display text-xl font-bold text-foreground">
                 Hub
               </span>
-              <motion.div 
-                className="absolute -top-1 -right-2 w-1.5 h-1.5 rounded-full bg-primary"
-                animate={{ scale: [1, 1.5, 1] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              />
             </Link>
 
             {/* Desktop Navigation */}
@@ -114,21 +104,10 @@ const Navbar = () => {
                     {link.icon}
                     {link.label}
                   </span>
-                  {location.pathname === link.to && (
-                    <motion.div
-                      layoutId="activeNav"
-                      className="absolute inset-0 rounded-full bg-primary/10 -z-10"
-                      transition={{ type: "spring", duration: 0.5 }}
-                    />
-                  )}
                   {link.to === "/account" && showBell && (
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-bold shadow-lg"
-                    >
+                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-bold shadow-lg">
                       {totalBellCount > 9 ? "9+" : totalBellCount}
-                    </motion.span>
+                    </span>
                   )}
                 </Link>
               ))}
@@ -152,33 +131,22 @@ const Navbar = () => {
                   to="/account" 
                   className="relative p-2 rounded-full hover:bg-muted/50 transition-colors group"
                 >
-                  <motion.div
-                    animate={{ rotate: [0, -10, 10, -5, 5, 0] }}
-                    transition={{ duration: 0.5, delay: 0.3 }}
-                  >
-                    <Bell className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                  </motion.div>
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center px-1 font-bold shadow-lg"
-                  >
+                  <Bell className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center px-1 font-bold shadow-lg">
                     {totalBellCount > 9 ? "9+" : totalBellCount}
-                  </motion.span>
+                  </span>
                 </Link>
               )}
 
               {/* Become a Seller CTA — Desktop */}
               {showBecomeSeller && (
-                <motion.button
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
+                <button
                   onClick={() => setSellerDrawerOpen(true)}
                   className="hidden md:flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-primary to-primary/80 text-white text-xs font-semibold hover:shadow-lg hover:scale-105 transition-all duration-200"
                 >
                   <Store className="w-3.5 h-3.5" /> 
                   Start Selling
-                </motion.button>
+                </button>
               )}
 
               {/* Cart */}
@@ -189,13 +157,9 @@ const Navbar = () => {
               >
                 <ShoppingBag className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
                 {totalItems > 0 && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full bg-primary text-white text-[9px] flex items-center justify-center px-1 font-bold shadow-lg"
-                  >
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full bg-primary text-white text-[9px] flex items-center justify-center px-1 font-bold shadow-lg">
                     {totalItems > 9 ? "9+" : totalItems}
-                  </motion.span>
+                  </span>
                 )}
               </Link>
 
@@ -211,124 +175,110 @@ const Navbar = () => {
           </div>
 
           {/* Search Bar Dropdown */}
-          <AnimatePresence>
-            {searchOpen && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden"
-              >
-                <form onSubmit={handleSearch} className="py-4 border-t border-border">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search for sneakers, watches, clothing..."
-                      className="w-full pl-10 pr-12 py-3 rounded-xl border border-border bg-muted/30 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
-                      autoFocus
-                    />
-                    <button
-                      type="submit"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors"
-                    >
-                      Search
-                    </button>
-                  </div>
-                </form>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {searchOpen && (
+            <div className="py-4 border-t border-border">
+              <form onSubmit={handleSearch}>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search for sneakers, watches, clothing..."
+                    className="w-full pl-10 pr-12 py-3 rounded-xl border border-border bg-muted/30 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
+                    autoFocus
+                  />
+                  <button
+                    type="submit"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors"
+                  >
+                    Search
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
         </div>
 
         {/* Mobile Menu */}
-        <AnimatePresence>
-          {mobileOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="md:hidden overflow-hidden border-t border-border bg-background/95 backdrop-blur-xl"
-            >
-              <div className="px-4 py-4 flex flex-col gap-3">
-                
-                {/* Nav Links */}
-                {links.map((link) => (
-                  <Link
-                    key={link.to}
-                    to={link.to}
-                    onClick={() => setMobileOpen(false)}
-                    className={`flex items-center justify-between py-3 px-4 rounded-xl transition-all duration-200
-                      ${location.pathname === link.to 
-                        ? "bg-primary/10 text-primary" 
-                        : link.special 
-                          ? "text-amber-500 hover:bg-amber-500/10" 
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                      }`}
-                  >
-                    <span className="flex items-center gap-2 font-medium">
-                      {link.icon}
-                      {link.label}
+        {mobileOpen && (
+          <div className="md:hidden border-t border-border bg-background/95 backdrop-blur-xl">
+            <div className="px-4 py-4 flex flex-col gap-3">
+              
+              {/* Nav Links */}
+              {links.map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  onClick={() => setMobileOpen(false)}
+                  className={`flex items-center justify-between py-3 px-4 rounded-xl transition-all duration-200
+                    ${location.pathname === link.to 
+                      ? "bg-primary/10 text-primary" 
+                      : link.special 
+                        ? "text-amber-500 hover:bg-amber-500/10" 
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    }`}
+                >
+                  <span className="flex items-center gap-2 font-medium">
+                    {link.icon}
+                    {link.label}
+                  </span>
+                  {link.to === "/account" && showBell && (
+                    <span className="w-5 h-5 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center font-bold">
+                      {totalBellCount > 9 ? "9+" : totalBellCount}
                     </span>
-                    {link.to === "/account" && showBell && (
-                      <span className="w-5 h-5 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center font-bold">
-                        {totalBellCount > 9 ? "9+" : totalBellCount}
-                      </span>
-                    )}
-                  </Link>
-                ))}
+                  )}
+                </Link>
+              ))}
 
-                {/* Category Shortcuts */}
-                <div className="border-t border-border pt-4 mt-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-3">
-                    Browse Categories
-                  </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {QUICK_CATEGORIES.map((c) => (
-                      <Link
-                        key={c.label}
-                        to={`/shop?category=${c.label}`}
-                        onClick={() => setMobileOpen(false)}
-                        className={`flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-r ${c.color} border border-border/50 text-sm font-medium text-foreground hover:scale-[1.02] transition-all`}
-                      >
-                        <img src={c.svg} alt={c.label} className="w-5 h-5" />
-                        {c.label}
-                      </Link>
-                    ))}
-                  </div>
+              {/* Category Shortcuts */}
+              <div className="border-t border-border pt-4 mt-2">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-3">
+                  Browse Categories
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {QUICK_CATEGORIES.map((c) => (
+                    <Link
+                      key={c.label}
+                      to={`/shop?category=${c.label}`}
+                      onClick={() => setMobileOpen(false)}
+                      className={`flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-r ${c.color} border border-border/50 text-sm font-medium text-foreground hover:scale-[1.02] transition-all`}
+                    >
+                      <img src={c.svg} alt={c.label} className="w-5 h-5" />
+                      {c.label}
+                    </Link>
+                  ))}
                 </div>
+              </div>
 
-                {/* Become a Seller — Mobile */}
-                {showBecomeSeller && (
-                  <button
-                    onClick={() => { setMobileOpen(false); setSellerDrawerOpen(true); }}
-                    className="flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-primary to-primary/80 text-white text-sm font-semibold mt-2"
-                  >
-                    <Store className="w-4 h-4" /> Start Selling Today
-                  </button>
-                )}
+              {/* Become a Seller — Mobile */}
+              {showBecomeSeller && (
+                <button
+                  onClick={() => { setMobileOpen(false); setSellerDrawerOpen(true); }}
+                  className="flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r from-primary to-primary/80 text-white text-sm font-semibold mt-2"
+                >
+                  <Store className="w-4 h-4" /> Start Selling Today
+                </button>
+              )}
 
-                {/* User Info Section */}
-                {user && (
-                  <div className="border-t border-border pt-4 mt-2">
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                        <User className="w-5 h-5 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold">{user.name || "User"}</p>
-                        <p className="text-[10px] text-muted-foreground">{user.email}</p>
-                      </div>
+              {/* User Info Section */}
+              {user && (
+                <div className="border-t border-border pt-4 mt-2">
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                      <User className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold">{user.name || "User"}</p>
+                      <p className="text-[10px] text-muted-foreground">{user.email}</p>
                     </div>
                   </div>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.nav>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </nav>
 
       <BecomeSellerDrawer open={sellerDrawerOpen} onClose={() => setSellerDrawerOpen(false)} />
     </>
