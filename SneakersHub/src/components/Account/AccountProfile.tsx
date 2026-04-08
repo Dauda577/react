@@ -83,17 +83,10 @@ const AccountProfile = memo(({
   const { orders } = useOrders();
   const { listings } = useListings();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [showAvatarMenu, setShowAvatarMenu] = useState(false);
 
   const initials = user?.name
     ? user.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
     : isGuest ? "G" : "?";
-
-  const getMemberSince = () => {
-    if (!user?.created_at) return "Recently";
-    const date = new Date(user.created_at);
-    return date.toLocaleDateString("en-GH", { month: "long", year: "numeric" });
-  };
 
   const handleSaveProfile = useCallback(() => {
     if (!profileForm.name?.trim()) {
@@ -148,22 +141,14 @@ const AccountProfile = memo(({
 
   return (
     <div className="space-y-6">
-      {/* Profile Header with Avatar */}
-      <div className="flex items-center gap-4 p-5 rounded-2xl bg-gradient-to-r from-primary/5 via-transparent to-transparent border border-border">
-        <div className="relative">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white font-display text-xl font-bold shadow-lg">
-            {avatarUrl ? (
-              <img src={avatarUrl} alt={user?.name} className="w-full h-full rounded-full object-cover" />
-            ) : (
-              initials
-            )}
-          </div>
-          <button 
-            onClick={() => setShowAvatarMenu(!showAvatarMenu)}
-            className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-background border border-border flex items-center justify-center hover:bg-muted transition-colors"
-          >
-            <Pencil className="w-3 h-3 text-muted-foreground" />
-          </button>
+      {/* Simple Profile Header - removed avatar edit button and member since */}
+      <div className="flex items-center gap-4 p-5 rounded-2xl border border-border bg-card">
+        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white font-display text-xl font-bold shadow-lg flex-shrink-0">
+          {avatarUrl ? (
+            <img src={avatarUrl} alt={user?.name} className="w-full h-full rounded-full object-cover" />
+          ) : (
+            initials
+          )}
         </div>
         <div className="flex-1">
           <h2 className="font-display text-xl font-bold tracking-tight">{user?.name || "User"}</h2>
@@ -177,28 +162,10 @@ const AccountProfile = memo(({
               </span>
             )}
           </div>
-          <p className="text-xs text-muted-foreground mt-1">Member since {getMemberSince()}</p>
         </div>
-        {role === "seller" && (
-          <div className="text-right">
-            {isOfficial ? (
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-purple-500/10 text-purple-600 border border-purple-500/20">
-                <Sparkles className="w-3 h-3" /> Official Store
-              </span>
-            ) : isVerified ? (
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-green-500/10 text-green-600 border border-green-500/20">
-                <BadgeCheck className="w-3 h-3" /> Verified Seller
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">
-                <Store className="w-3 h-3" /> Seller
-              </span>
-            )}
-          </div>
-        )}
       </div>
 
-      {/* Stats Row for Sellers - NOW WITH REAL DATA */}
+      {/* Stats Row for Sellers - WITH REAL DATA */}
       {role === "seller" && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <StatCard 

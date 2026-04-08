@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import {
   User, LayoutGrid, ShoppingBag, Heart, Settings,
   MapPin, Store, Tag, Star, BadgeCheck, Sparkles,
-  Bell, MessageCircle, BarChart2,
+  Bell, MessageCircle,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -42,7 +42,6 @@ const sellerTabs = [
   { id: "settings",  label: "Settings",  icon: Settings },
 ];
 
-
 const buyerTabs = [
   { id: "profile",  label: "Profile",  icon: User },
   { id: "orders",   label: "Orders",   icon: ShoppingBag },
@@ -50,6 +49,7 @@ const buyerTabs = [
   { id: "messages", label: "Messages", icon: MessageCircle },
   { id: "settings", label: "Settings", icon: Settings },
 ];
+
 const guestTabs = [
   { id: "profile", label: "Profile", icon: User },
   { id: "saved",   label: "Saved",   icon: Heart },
@@ -178,7 +178,8 @@ const Account = () => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab");
-    if (tab && ["profile","orders","listings","analytics","messages","settings"].includes(tab)) {
+    // ✅ Removed "analytics" from allowed tabs
+    if (tab && ["profile","orders","listings","messages","settings"].includes(tab)) {
       setActiveTab(tab);
       window.history.replaceState({}, "", window.location.pathname);
     }
