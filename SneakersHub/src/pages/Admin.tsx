@@ -5,12 +5,13 @@ import {
   ShieldAlert, TrendingUp, Package, Wallet, AlertTriangle,
   CheckCircle, Clock, RefreshCw, ChevronDown, ChevronUp,
   ArrowUpRight, DollarSign, BarChart2, X,
-  Filter, Search, Phone, MapPin, Users, Percent, BadgeCheck,
+  Filter, Search, Phone, MapPin, Users, Percent, BadgeCheck, Ticket,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { PromoCodeManager } from "@/components/admin/PromoCodeManager";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type AdminOrder = {
@@ -91,7 +92,7 @@ const Admin = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"overview" | "sellers" | "failed" | "orders" | "payouts">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "sellers" | "failed" | "orders" | "payouts" | "promos">("overview");
   const [sellers, setSellers] = useState<any[]>([]);
   const [applications, setApplications] = useState<any[]>([]);
   const [appActionLoading, setAppActionLoading] = useState<Record<string, boolean>>({});
@@ -380,6 +381,7 @@ const Admin = () => {
     { id: "failed",   label: "Failed",     icon: AlertTriangle, badge: failedOrders.length },
     { id: "orders",   label: "All Orders", icon: Package },
     { id: "payouts",  label: "Payouts",    icon: Wallet },
+    { id: "promos",   label: "Promo Codes", icon: Ticket },
   ] as const;
 
   return (
@@ -865,6 +867,14 @@ const Admin = () => {
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* ── Promo Codes ── */}
+            {activeTab === "promos" && (
+              <div>
+                <SectionHeader title="Promo Code Management" icon={Ticket} />
+                <PromoCodeManager />
               </div>
             )}
 
