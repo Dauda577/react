@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Bell, Shield, Lock, Trash, ChevronRight, Wallet, CreditCard,
   CheckCircle, AlertTriangle, Share, Moon, Sun, Store, Clock, X,
-  ShieldCheck, Smartphone, Banknote, Loader2,
+  ShieldCheck, Smartphone, Banknote, AlertCircle, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
