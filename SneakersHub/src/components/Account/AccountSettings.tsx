@@ -33,9 +33,30 @@ const REGIONS = [
 // Detect network based on phone number prefix
 const detectNetwork = (number: string): string | null => {
   const cleaned = number.replace(/\D/g, "");
-  if (cleaned.startsWith("50")) return "VOD";
-  if (cleaned.startsWith("26") || cleaned.startsWith("27")) return "ATL";
-  if (cleaned.startsWith("54") || cleaned.startsWith("55") || cleaned.startsWith("59")) return "MTN";
+  console.log("Detecting network for number:", cleaned);
+  
+  // Remove leading 0 or 233 if present
+  let normalized = cleaned;
+  if (normalized.startsWith("233")) {
+    normalized = normalized.slice(3);
+  }
+  if (normalized.startsWith("0")) {
+    normalized = normalized.slice(1);
+  }
+  console.log("Normalized number:", normalized);
+  const prefix = normalized.slice(0, 2);
+  
+  if (prefix === "50") {
+    return "VOD";
+  }
+  if (prefix === "26" || prefix === "27") {
+    return "ATL";
+  }
+  if (prefix === "54" || prefix === "55" || prefix === "59" || prefix === "24") {
+    return "MTN";
+  }
+  
+  console.log("No network detected for prefix:", prefix);
   return null;
 };
 
@@ -466,64 +487,76 @@ const AccountSettings = memo(({
 
   // Auto-resolve account name when momo_number changes
   useEffect(() => {
-    const resolveAccountName = async () => {
-      const number = payoutForm.number.trim();
-      if (number.length < 9) {
-        setResolvedName(null);
-        setResolveError(null);
-        setDetectedNetwork(null);
-        return;
-      }
+const resolveAccountName = async () => {
+  const number = payoutForm.number.trim();
+  if (number.length < 9) {
+    setResolvedName(null);
+    setResolveError(null);
+    setDetectedNetwork(null);
+    return;
+  }
 
-      const network = detectNetwork(number);
-      if (!network) {
-        setResolveError("Could not detect network. Please check your number.");
-        setResolvedName(null);
-        setDetectedNetwork(null);
-        return;
-      }
+  const network = detectNetwork(number);
+  if (!network) {
+    setResolveError("Could not detect network. Please check your number.");
+    setResolvedName(null);
+    setDetectedNetwork(null);
+    return;
+  }
 
-      setDetectedNetwork(getNetworkName(number));
-      setResolving(true);
+  setDetectedNetwork(getNetworkName(number));
+  setResolving(true);
+  setResolveError(null);
+
+  try {
+    // Get session - this might be null if not logged in properly
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      console.error("No active session");
+      setResolveError("Please log in again to verify your account");
+      setResolving(false);
+      return;
+    }
+    
+    console.log("Calling resolve-account for:", number, "network:", network);
+    
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resolve-account`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+          "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          account_number: number,
+          bank_code: network,
+        }),
+      }
+    );
+
+    console.log("Response status:", response.status);
+    const result = await response.json();
+    console.log("Resolve result:", result);
+    
+    if (response.ok && result.success && result.account_name) {
+      setResolvedName(result.account_name);
+      setPayoutForm(f => ({ ...f, name: result.account_name }));
       setResolveError(null);
-
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resolve-account`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${session?.access_token}`,
-              "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
-            },
-            body: JSON.stringify({
-              account_number: number,
-              bank_code: network,
-            }),
-          }
-        );
-
-        const result = await response.json();
-        
-        if (result.success && result.account_name) {
-          setResolvedName(result.account_name);
-          // Auto-fill the name field
-          setPayoutForm(f => ({ ...f, name: result.account_name }));
-          setResolveError(null);
-        } else {
-          setResolveError(result.error || "Could not verify account name");
-          setResolvedName(null);
-        }
-      } catch (err) {
-        console.error("Resolve error:", err);
-        setResolveError("Network error. Please try again.");
-        setResolvedName(null);
-      } finally {
-        setResolving(false);
-      }
-    };
+    } else {
+      setResolveError(result.error || "Could not verify account name");
+      setResolvedName(null);
+    }
+  } catch (err) {
+    console.error("Resolve error:", err);
+    setResolveError("Network error. Please try again.");
+    setResolvedName(null);
+  } finally {
+    setResolving(false);
+  }
+};
 
     const timeoutId = setTimeout(resolveAccountName, 800);
     return () => clearTimeout(timeoutId);
