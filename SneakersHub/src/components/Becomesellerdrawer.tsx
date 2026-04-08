@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Store, Phone, MapPin, Instagram, ChevronRight, CheckCircle, Clock, Loader2 } from "lucide-react";
+import { X, Store, Phone, MapPin, Instagram, ChevronRight, CheckCircle, Clock, Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
@@ -17,10 +17,22 @@ const REGIONS = [
   "Ahafo","Bono East","Oti","Savannah","North East","Western North",
 ];
 
+// Detect network based on phone number prefix
+const detectNetwork = (number: string): string | null => {
+  const cleaned = number.replace(/\D/g, "");
+  if (cleaned.startsWith("50")) return "VOD"; // Telecel/Vodafone
+  if (cleaned.startsWith("26") || cleaned.startsWith("27")) return "ATL"; // AirtelTigo
+  if (cleaned.startsWith("54") || cleaned.startsWith("55") || cleaned.startsWith("59")) return "MTN"; // MTN
+  return null;
+};
+
 export default function BecomeSellerDrawer({ open, onClose }: Props) {
   const { user } = useAuth();
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [resolving, setResolving] = useState(false);
+  const [resolvedName, setResolvedName] = useState<string | null>(null);
+  const [resolveError, setResolveError] = useState<string | null>(null);
   const [form, setForm] = useState({
     store_name: "", store_description: "",
     momo_number: "", momo_name: "",
@@ -30,9 +42,74 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
+  // Auto-resolve account name when momo_number changes
+useEffect(() => {
+  const resolveAccountName = async () => {
+    const number = form.momo_number.trim();
+    if (number.length < 9) {
+      setResolvedName(null);
+      setResolveError(null);
+      return;
+    }
+
+    const network = detectNetwork(number);
+    if (!network) {
+      setResolveError("Could not detect network. Please check your number.");
+      setResolvedName(null);
+      return;
+    }
+
+    setResolving(true);
+    setResolveError(null);
+
+    try {
+      // Call your edge function to resolve account
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // ✅ Make sure the URL is correct
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resolve-account`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session?.access_token}`,
+            "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({
+            account_number: number,
+            bank_code: network,
+          }),
+        }
+      );
+
+      const result = await response.json();
+      
+      if (result.success && result.account_name) {
+        setResolvedName(result.account_name);
+        // Auto-fill the name field (but make it read-only)
+        setForm(f => ({ ...f, momo_name: result.account_name }));
+        setResolveError(null);
+      } else {
+        setResolveError(result.error || "Could not verify account name");
+        setResolvedName(null);
+      }
+    } catch (err) {
+      console.error("Resolve error:", err);
+      setResolveError("Network error. Please try again.");
+      setResolvedName(null);
+    } finally {
+      setResolving(false);
+    }
+  };
+
+  const timeoutId = setTimeout(resolveAccountName, 1500);
+  return () => clearTimeout(timeoutId);
+}, [form.momo_number]);
+
   const canNext = () => {
     if (step === 0) return form.store_name.trim().length >= 2 && form.store_description.trim().length >= 10;
-    if (step === 1) return form.momo_number.trim().length >= 9 && form.momo_name.trim().length >= 2;
+    if (step === 1) return form.momo_number.trim().length >= 9 && resolvedName !== null && !resolveError;
     if (step === 2) return form.city.trim().length >= 2 && form.region.length > 0;
     return true;
   };
@@ -70,7 +147,18 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
     setTimeout(() => {
       setStep(0);
       setForm({ store_name:"",store_description:"",momo_number:"",momo_name:"",city:"",region:"",instagram:"",twitter:"",whatsapp:"" });
+      setResolvedName(null);
+      setResolveError(null);
     }, 400);
+  };
+
+  // Get network display name
+  const getNetworkName = (number: string) => {
+    const network = detectNetwork(number);
+    if (network === "VOD") return "Telecel Cash";
+    if (network === "ATL") return "AirtelTigo Money";
+    if (network === "MTN") return "MTN MoMo";
+    return null;
   };
 
   return (
@@ -172,19 +260,56 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
                             className="flex-1 px-4 py-3 rounded-r-xl border border-border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
                           />
                         </div>
+                        {/* Show detected network */}
+                        {form.momo_number.length >= 9 && detectNetwork(form.momo_number) && (
+                          <p className="text-[11px] text-green-600 mt-1 flex items-center gap-1">
+                            <CheckCircle className="w-3 h-3" />
+                            Network detected: {getNetworkName(form.momo_number)}
+                          </p>
+                        )}
                       </div>
+                      
                       <div>
-                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Account Name *</label>
-                        <input
-                          value={form.momo_name}
-                          onChange={e => set("momo_name", e.target.value)}
-                          placeholder="Name registered on MoMo"
-                          className="w-full mt-1.5 px-4 py-3 rounded-xl border border-border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-                        />
-                        {/* ✅ Added hint note */}
-                        <p className="text-[11px] text-muted-foreground mt-1">
-                          Enter the exact name on your MoMo account — must match your network registration.
-                        </p>
+                        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Account Name</label>
+                        <div className="relative mt-1.5">
+                          <input
+                            value={form.momo_name}
+                            onChange={e => set("momo_name", e.target.value)}
+                            placeholder={resolving ? "Verifying account..." : "Will auto-fill after number entry"}
+                            disabled={true}
+                            className="w-full px-4 py-3 rounded-xl border border-border bg-muted/50 text-sm text-muted-foreground cursor-not-allowed"
+                          />
+                          {resolving && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                              <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                            </div>
+                          )}
+                          {resolvedName && !resolveError && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                              <CheckCircle className="w-4 h-4 text-green-500" />
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Resolve status messages */}
+                        {resolveError && (
+                          <p className="text-[11px] text-red-500 mt-1 flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" />
+                            {resolveError}
+                          </p>
+                        )}
+                        {resolvedName && !resolveError && (
+                          <p className="text-[11px] text-green-600 mt-1 flex items-center gap-1">
+                            <CheckCircle className="w-3 h-3" />
+                            Account verified: {resolvedName}
+                          </p>
+                        )}
+                        {!resolvedName && !resolveError && form.momo_number.length >= 9 && !resolving && (
+                          <p className="text-[11px] text-amber-600 mt-1 flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" />
+                            Verifying account name...
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="rounded-xl bg-blue-500/10 border border-blue-500/20 p-3">

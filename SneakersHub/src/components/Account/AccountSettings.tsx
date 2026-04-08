@@ -1,9 +1,9 @@
-import React, { memo, useState } from "react";
+import React, { memo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Bell, Shield, Lock, Trash, ChevronRight, Wallet, CreditCard,
   CheckCircle, AlertTriangle, Share, Moon, Sun, Store, Clock, X,
-  ShieldCheck, Smartphone, Banknote,
+  ShieldCheck, Smartphone, Banknote, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
@@ -29,6 +29,23 @@ const REGIONS = [
   "Northern","Upper East","Upper West","Volta","Western",
   "Ahafo","Bono East","Oti","Savannah","North East","Western North",
 ];
+
+// Detect network based on phone number prefix
+const detectNetwork = (number: string): string | null => {
+  const cleaned = number.replace(/\D/g, "");
+  if (cleaned.startsWith("50")) return "VOD";
+  if (cleaned.startsWith("26") || cleaned.startsWith("27")) return "ATL";
+  if (cleaned.startsWith("54") || cleaned.startsWith("55") || cleaned.startsWith("59")) return "MTN";
+  return null;
+};
+
+const getNetworkName = (number: string) => {
+  const network = detectNetwork(number);
+  if (network === "VOD") return "Telecel Cash";
+  if (network === "ATL") return "AirtelTigo Money";
+  if (network === "MTN") return "MTN MoMo";
+  return null;
+};
 
 // ── Notification settings block ───────────────────────────────────────────────
 const NotificationSettings = ({
@@ -424,9 +441,15 @@ const AccountSettings = memo(({
   const [payoutForm,        setPayoutForm]        = useState({ method: "", number: "", name: "", bankCode: "" });
   const [payoutSaved,       setPayoutSaved]       = useState(false);
   const [showPayoutConfirm, setShowPayoutConfirm] = useState(false);
+  
+  // Auto-resolve state
+  const [resolving, setResolving] = useState(false);
+  const [resolvedName, setResolvedName] = useState<string | null>(null);
+  const [resolveError, setResolveError] = useState<string | null>(null);
+  const [detectedNetwork, setDetectedNetwork] = useState<string | null>(null);
 
   // Load saved payout details and pre-fill form so fields are never blank
-  React.useEffect(() => {
+  useEffect(() => {
     if (!user?.id) return;
     supabase.from("profiles")
       .select("payout_method, payout_number, payout_name")
@@ -436,9 +459,75 @@ const AccountSettings = memo(({
           const loaded = { method: data.payout_method, number: data.payout_number ?? "", name: data.payout_name ?? "" };
           setSavedPayout(loaded);
           setPayoutForm({ ...loaded, bankCode: "" });
+          setResolvedName(data.payout_name ?? null);
         }
       });
   }, [user?.id]);
+
+  // Auto-resolve account name when momo_number changes
+  useEffect(() => {
+    const resolveAccountName = async () => {
+      const number = payoutForm.number.trim();
+      if (number.length < 9) {
+        setResolvedName(null);
+        setResolveError(null);
+        setDetectedNetwork(null);
+        return;
+      }
+
+      const network = detectNetwork(number);
+      if (!network) {
+        setResolveError("Could not detect network. Please check your number.");
+        setResolvedName(null);
+        setDetectedNetwork(null);
+        return;
+      }
+
+      setDetectedNetwork(getNetworkName(number));
+      setResolving(true);
+      setResolveError(null);
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resolve-account`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${session?.access_token}`,
+              "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+            },
+            body: JSON.stringify({
+              account_number: number,
+              bank_code: network,
+            }),
+          }
+        );
+
+        const result = await response.json();
+        
+        if (result.success && result.account_name) {
+          setResolvedName(result.account_name);
+          // Auto-fill the name field
+          setPayoutForm(f => ({ ...f, name: result.account_name }));
+          setResolveError(null);
+        } else {
+          setResolveError(result.error || "Could not verify account name");
+          setResolvedName(null);
+        }
+      } catch (err) {
+        console.error("Resolve error:", err);
+        setResolveError("Network error. Please try again.");
+        setResolvedName(null);
+      } finally {
+        setResolving(false);
+      }
+    };
+
+    const timeoutId = setTimeout(resolveAccountName, 800);
+    return () => clearTimeout(timeoutId);
+  }, [payoutForm.number]);
 
   const toggleNotif = (key: string, value: boolean, set: (v: boolean) => void) => {
     set(value);
@@ -502,13 +591,11 @@ const AccountSettings = memo(({
             }),
           });
 
-          // ✅ Use resolved_name from Paystack if returned
           const subResult = await res.json();
           finalName = subResult.resolved_name ?? payoutForm.name;
 
           toast.success("Payout details updated — Paystack subaccount synced!");
           
-          // ✅ Update snapshot with resolved name
           setSavedPayout({ method: payoutForm.method, number: payoutForm.number, name: finalName });
           setPayoutForm(p => ({ ...p, name: finalName }));
           setPayoutSaved(true);
@@ -520,7 +607,6 @@ const AccountSettings = memo(({
         }
       }
 
-      // ✅ Only set snapshot here for non-verified sellers (verified path sets it above)
       if (!(isVerified && subaccountCode)) {
         setSavedPayout({ method: payoutForm.method, number: payoutForm.number, name: payoutForm.name });
         setPayoutSaved(true);
@@ -670,35 +756,69 @@ const AccountSettings = memo(({
             </div>
 
             <div>
-              <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">MoMo Number</label>
+              <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">MoMo Number *</label>
               <div className="relative">
                 <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
                 <input
                   value={payoutForm.number}
-                  onChange={e => setPayoutForm(p => ({ ...p, number: e.target.value }))}
+                  onChange={e => setPayoutForm(p => ({ ...p, number: e.target.value.replace(/\D/g, "") }))}
                   placeholder="0244 000 000"
+                  maxLength={10}
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
                 />
               </div>
+              {payoutForm.number.length >= 9 && detectedNetwork && (
+                <p className="text-[11px] text-green-600 mt-1 flex items-center gap-1">
+                  <CheckCircle className="w-3 h-3" />
+                  Network detected: {detectedNetwork}
+                </p>
+              )}
             </div>
+
             <div>
-  <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Account Name</label>
-  <div className="relative">
-    <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
-    <input
-      value={payoutForm.name}
-      onChange={e => setPayoutForm(p => ({ ...p, name: e.target.value }))}
-      placeholder="Name on account"
-      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
-    />
-  </div>
-  {/* ✅ Show verified name from Paystack if it differs from what user typed */}
-  {savedPayout.name && savedPayout.name !== payoutForm.name && (
-    <p className="text-[11px] text-amber-600 mt-1">
-      ⚠ Paystack verified name: <strong>{savedPayout.name}</strong>
-    </p>
-  )}
-</div>
+              <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Account Name</label>
+              <div className="relative">
+                <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
+                <input
+                  value={payoutForm.name}
+                  onChange={e => setPayoutForm(p => ({ ...p, name: e.target.value }))}
+                  placeholder={resolving ? "Verifying account..." : "Auto-verified from MoMo number"}
+                  disabled={true}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-muted/50 text-sm text-muted-foreground cursor-not-allowed"
+                />
+                {resolving && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  </div>
+                )}
+                {resolvedName && !resolveError && !resolving && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                  </div>
+                )}
+              </div>
+              
+              {/* Resolve status messages */}
+              {resolveError && (
+                <p className="text-[11px] text-red-500 mt-1 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3" />
+                  {resolveError}
+                </p>
+              )}
+              {resolvedName && !resolveError && !resolving && (
+                <p className="text-[11px] text-green-600 mt-1 flex items-center gap-1">
+                  <CheckCircle className="w-3 h-3" />
+                  Verified account: {resolvedName}
+                </p>
+              )}
+              {!resolvedName && !resolveError && payoutForm.number.length >= 9 && !resolving && (
+                <p className="text-[11px] text-amber-600 mt-1 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  Verifying account name...
+                </p>
+              )}
+            </div>
+
             <Button className="btn-primary rounded-full h-9 px-5 text-sm w-full" onClick={handleSavePayoutIntent}>
               {payoutSaved ? <><CheckCircle className="w-3.5 h-3.5 mr-1.5" /> Saved!</> : "Save Payout Details"}
             </Button>
