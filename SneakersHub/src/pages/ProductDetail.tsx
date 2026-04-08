@@ -341,6 +341,11 @@ const ProductDetail = () => {
   const related = listings.filter((l) => l.id !== id && l.category === listing?.category).slice(0, 8);
   const tier = listing ? getSellerTier(listing.sellerIsOfficial, listing.sellerVerified) : "standard";
 
+  // Calculate discounted price if discount percent exists
+  const discountedPrice = listing?.discountPercent
+    ? Math.round(listing.price * (1 - listing.discountPercent / 100))
+    : null;
+
   useEffect(() => {
     if (id) incrementViews(id);
   }, [id]);
@@ -512,6 +517,12 @@ const ProductDetail = () => {
                   ⚡ Featured
                 </div>
               )}
+              {/* Discount badge on product detail image */}
+              {listing.discountPercent && (
+                <div className="absolute bottom-4 left-4 bg-red-500 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg">
+                  -{listing.discountPercent}% OFF
+                </div>
+              )}
             </motion.div>
 
             {/* ── Image thumbnails ── */}
@@ -537,7 +548,20 @@ const ProductDetail = () => {
               <p className="text-xs text-muted-foreground mt-1">{listing.category}</p>
             </div>
 
-            <p className="font-display text-3xl font-bold text-primary">GHS {listing.price.toLocaleString()}</p>
+            {/* Price display with discount */}
+            {discountedPrice ? (
+              <div className="flex items-baseline gap-2 flex-wrap">
+                <p className="font-display text-3xl font-bold text-primary">GHS {discountedPrice.toLocaleString()}</p>
+                <p className="text-muted-foreground text-lg line-through">GHS {listing.price.toLocaleString()}</p>
+                {listing.discountPercent && (
+                  <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                    -{listing.discountPercent}%
+                  </span>
+                )}
+              </div>
+            ) : (
+              <p className="font-display text-3xl font-bold text-primary">GHS {listing.price.toLocaleString()}</p>
+            )}
 
             <p className="text-muted-foreground text-sm leading-relaxed">{listing.description}</p>
 
