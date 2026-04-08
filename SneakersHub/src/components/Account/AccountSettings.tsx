@@ -1,4 +1,4 @@
-import React, { memo, useState, useEffect, useCallback, useRef } from "react";
+import React, { memo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Bell, Shield, Lock, Trash, ChevronRight, Wallet, CreditCard,
@@ -487,128 +487,106 @@ const AccountSettings = memo(({
 
   // Auto-resolve account name when momo_number changes
   useEffect(() => {
-    const resolveAccountName = async () => {
-      const number = payoutForm.number.trim();
-      if (number.length < 9) {
-        setResolvedName(null);
-        setResolveError(null);
-        setDetectedNetwork(null);
-        // Clear the name when number is invalid
-        setPayoutForm(f => ({ ...f, name: "" }));
-        return;
+const resolveAccountName = async () => {
+  const number = payoutForm.number.trim();
+  if (number.length < 9) {
+    setResolvedName(null);
+    setResolveError(null);
+    setDetectedNetwork(null);
+    return;
+  }
+
+  const network = detectNetwork(number);
+  if (!network) {
+    setResolveError("Could not detect network. Please check your number.");
+    setResolvedName(null);
+    setDetectedNetwork(null);
+    return;
+  }
+
+  setDetectedNetwork(getNetworkName(number));
+  setResolving(true);
+  setResolveError(null);
+
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      console.error("No active session");
+      setResolveError("Please log in again to verify your account");
+      setResolving(false);
+      return;
+    }
+    
+    console.log("Calling resolve-account for:", number, "network:", network);
+    
+    const response = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resolve-account`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${session.access_token}`,
+          "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          account_number: number,
+          bank_code: network,
+        }),
       }
+    );
 
-      const network = detectNetwork(number);
-      if (!network) {
-        setResolveError("Could not detect network. Please check your number.");
-        setResolvedName(null);
-        setDetectedNetwork(null);
-        // Clear the name when network not detected
-        setPayoutForm(f => ({ ...f, name: "" }));
-        return;
-      }
-
-      const networkName = getNetworkName(number);
-      setDetectedNetwork(networkName);
-      setResolving(true);
-      setResolveError(null);
-
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) {
-          console.error("No active session");
-          setResolveError("Please log in again to verify your account");
-          setResolving(false);
-          return;
-        }
-        
-        console.log("Calling resolve-account for:", number, "network:", network);
-        
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resolve-account`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${session.access_token}`,
-              "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
-            },
-            body: JSON.stringify({
-              account_number: number,
-              bank_code: network,
-            }),
-          }
-        );
-
-        console.log("Response status:", response.status);
-        
-        if (!response.ok) {
-          const text = await response.text();
-          console.error("Response not OK:", text);
-          setResolveError(`Server error: ${response.status}`);
-          setResolvedName(null);
-          setResolving(false);
-          return;
-        }
-        
-        let result;
-        try {
-          result = await response.json();
-        } catch (jsonError) {
-          console.error("JSON parse error:", jsonError);
-          const text = await response.text();
-          console.error("Raw response:", text);
-          setResolveError("Invalid response from server");
-          setResolvedName(null);
-          setResolving(false);
-          return;
-        }
-        
-        console.log("Resolve result:", result);
-        
-        if (result.success && result.account_name) {
-          console.log("Setting account name to:", result.account_name);
-          setResolvedName(result.account_name);
-          setPayoutForm(f => {
-            console.log("Previous form:", f);
-            const updated = { ...f, name: result.account_name };
-            console.log("Updated form:", updated);
-            return updated;
-          });
-          setResolveError(null);
-        } else {
-          setResolveError(result.error || "Could not verify account name");
-          setResolvedName(null);
-        }
-      } catch (err) {
-        console.error("Resolve error:", err);
-        setResolveError("Network error. Please try again.");
-        setResolvedName(null);
-      } finally {
-        setResolving(false);
-      }
-    };
+    console.log("Response status:", response.status);
+    
+    // Check if response is ok before trying to parse JSON
+    if (!response.ok) {
+      const text = await response.text();
+      console.error("Response not OK:", text);
+      setResolveError(`Server error: ${response.status}`);
+      setResolvedName(null);
+      setResolving(false);
+      return;
+    }
+    
+    // Try to parse JSON
+    let result;
+    try {
+      result = await response.json();
+    } catch (jsonError) {
+      console.error("JSON parse error:", jsonError);
+      const text = await response.text();
+      console.error("Raw response:", text);
+      setResolveError("Invalid response from server");
+      setResolvedName(null);
+      setResolving(false);
+      return;
+    }
+    
+    console.log("Resolve result:", result);
+    
+    if (result.success && result.account_name) {
+  console.log("Setting account name to:", result.account_name);
+  setResolvedName(result.account_name);
+  setPayoutForm(f => {
+    console.log("Previous form:", f);
+    const updated = { ...f, name: result.account_name };
+    console.log("Updated form:", updated);
+    return updated;
+  });
+  setResolveError(null);
+}
+  } catch (err) {
+    console.error("Resolve error:", err);
+    setResolveError("Network error. Please try again.");
+    setResolvedName(null);
+  } finally {
+    setResolving(false);
+  }
+};
 
     const timeoutId = setTimeout(resolveAccountName, 800);
     return () => clearTimeout(timeoutId);
   }, [payoutForm.number]);
-
-  // ✅ Auto-select payout method based on detected network
-  useEffect(() => {
-    if (detectedNetwork) {
-      // Map network display name to payout method value
-      let methodValue = "";
-      if (detectedNetwork === "MTN MoMo") methodValue = "momo_mtn";
-      else if (detectedNetwork === "Telecel Cash") methodValue = "momo_telecel";
-      else if (detectedNetwork === "AirtelTigo Money") methodValue = "momo_airteltigo";
-      
-      if (methodValue && payoutForm.method !== methodValue) {
-        console.log("Auto-selecting payout method:", methodValue, "for network:", detectedNetwork);
-        setPayoutForm(p => ({ ...p, method: methodValue }));
-      }
-    }
-  }, [detectedNetwork, payoutForm.method]);
 
   const toggleNotif = (key: string, value: boolean, set: (v: boolean) => void) => {
     set(value);
@@ -826,28 +804,14 @@ const AccountSettings = memo(({
                   { value: "momo_telecel",    label: "Telecel Cash", icon: Smartphone },
                   { value: "momo_airteltigo", label: "AirtelTigo",  icon: Smartphone },
                 ] as const).map(({ value, label, icon: Icon }) => (
-                  <button 
-                    key={value} 
-                    onClick={() => setPayoutForm(p => ({ ...p, method: value, bankCode: "" }))}
+                  <button key={value} onClick={() => setPayoutForm(p => ({ ...p, method: value, bankCode: "" }))}
                     className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition-all text-xs font-semibold
-                      ${payoutForm.method === value 
-                        ? "border-primary bg-primary/5 text-foreground ring-1 ring-primary/30" 
-                        : "border-border text-muted-foreground hover:border-primary/40"}`}
-                  >
+                      ${payoutForm.method === value ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground hover:border-primary/40"}`}>
                     <Icon className={`w-4 h-4 ${payoutForm.method === value ? "text-primary" : ""}`} />
                     {label}
-                    {detectedNetwork === label && payoutForm.method === value && (
-                      <span className="text-[8px] text-green-500 mt-0.5">✓ Auto-detected</span>
-                    )}
                   </button>
                 ))}
               </div>
-              {detectedNetwork && (
-                <p className="text-[11px] text-green-600 mt-2 flex items-center gap-1">
-                  <CheckCircle className="w-3 h-3" />
-                  Network detected: {detectedNetwork}
-                </p>
-              )}
             </div>
 
             <div>
@@ -862,6 +826,12 @@ const AccountSettings = memo(({
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
                 />
               </div>
+              {payoutForm.number.length >= 9 && detectedNetwork && (
+                <p className="text-[11px] text-green-600 mt-1 flex items-center gap-1">
+                  <CheckCircle className="w-3 h-3" />
+                  Network detected: {detectedNetwork}
+                </p>
+              )}
             </div>
 
             <div>
@@ -869,12 +839,12 @@ const AccountSettings = memo(({
               <div className="relative">
                 <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
                 <input
-                  value={payoutForm.name}
-                  onChange={e => setPayoutForm(p => ({ ...p, name: e.target.value }))}
-                  placeholder={resolving ? "Verifying account..." : "Auto-verified from MoMo number"}
-                  disabled={true}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-muted/50 text-sm text-muted-foreground cursor-not-allowed"
-                />
+  value={payoutForm.name}
+  onChange={e => setPayoutForm(p => ({ ...p, name: e.target.value }))}
+  placeholder={resolving ? "Verifying account..." : "Auto-verified from MoMo number"}
+  disabled={true}
+  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-muted/50 text-sm text-muted-foreground cursor-not-allowed"
+/>
                 {resolving && (
                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
                     <Loader2 className="w-4 h-4 animate-spin text-primary" />
