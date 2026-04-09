@@ -1,12 +1,11 @@
 import React, { memo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Bell, Shield, Lock, Trash, ChevronRight, Wallet, CreditCard,
+  Bell, Shield, Lock, Trash, ChevronRight, Wallet,
   CheckCircle, AlertTriangle, Share, Moon, Sun, Store, Clock, X,
   ShieldCheck, Smartphone, Banknote, AlertCircle, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/useTheme";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
@@ -24,39 +23,16 @@ const isStandalone = () =>
   (window.matchMedia("(display-mode: standalone)").matches ||
     (window.navigator as any).standalone === true);
 
-const REGIONS = [
-  "Ashanti","Brong-Ahafo","Central","Eastern","Greater Accra",
-  "Northern","Upper East","Upper West","Volta","Western",
-  "Ahafo","Bono East","Oti","Savannah","North East","Western North",
-];
-
 // Detect network based on phone number prefix
 const detectNetwork = (number: string): string | null => {
   const cleaned = number.replace(/\D/g, "");
-  console.log("Detecting network for number:", cleaned);
-  
-  // Remove leading 0 or 233 if present
   let normalized = cleaned;
-  if (normalized.startsWith("233")) {
-    normalized = normalized.slice(3);
-  }
-  if (normalized.startsWith("0")) {
-    normalized = normalized.slice(1);
-  }
-  console.log("Normalized number:", normalized);
+  if (normalized.startsWith("233")) normalized = normalized.slice(3);
+  if (normalized.startsWith("0")) normalized = normalized.slice(1);
   const prefix = normalized.slice(0, 2);
-  
-  if (prefix === "50") {
-    return "VOD";
-  }
-  if (prefix === "26" || prefix === "27") {
-    return "ATL";
-  }
-  if (prefix === "54" || prefix === "55" || prefix === "59" || prefix === "24") {
-    return "MTN";
-  }
-  
-  console.log("No network detected for prefix:", prefix);
+  if (prefix === "50") return "VOD";
+  if (prefix === "26" || prefix === "27") return "ATL";
+  if (["54","55","59","24"].includes(prefix)) return "MTN";
   return null;
 };
 
@@ -273,7 +249,7 @@ const SellerApplicationStatus = ({ userId, userEmail, onActivated }: {
         document.body.classList.add("paystack-open");
       }
       const handler = PaystackPop.setup({
-        key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY ?? "pk_live_9e1705a04e21f148e758dc11c1e920ed6393702b",
+        key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
         email: userEmail,
         amount: 5000,
         currency: "GHS",
@@ -452,24 +428,25 @@ const AccountSettings = memo(({
   const [notifOrders,     setNotifOrders]     = useState(() => localStorage.getItem("notif_orders") !== "false");
   const [notifMessages,   setNotifMessages]   = useState(() => localStorage.getItem("notif_messages") !== "false");
   const [notifPromotions, setNotifPromotions] = useState(() => localStorage.getItem("notif_promotions") === "true");
-  const [showDeleteConfirm,   setShowDeleteConfirm]   = useState(false);
-  const [showChangePassword,  setShowChangePassword]  = useState(false);
+  const [showDeleteConfirm,  setShowDeleteConfirm]  = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const [newPassword,     setNewPassword]     = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // Payout state — savedPayout holds what's in DB, payoutForm holds live edits
+  // Payout state
   const [savedPayout,       setSavedPayout]       = useState({ method: "", number: "", name: "" });
   const [payoutForm,        setPayoutForm]        = useState({ method: "", number: "", name: "", bankCode: "" });
   const [payoutSaved,       setPayoutSaved]       = useState(false);
   const [showPayoutConfirm, setShowPayoutConfirm] = useState(false);
-  
-  // Auto-resolve state
-  const [resolving, setResolving] = useState(false);
-  const [resolvedName, setResolvedName] = useState<string | null>(null);
-  const [resolveError, setResolveError] = useState<string | null>(null);
-  const [detectedNetwork, setDetectedNetwork] = useState<string | null>(null);
 
-  // Load saved payout details and pre-fill form so fields are never blank
+  // Auto-resolve state
+  const [resolving,          setResolving]          = useState(false);
+  const [resolvedName,       setResolvedName]       = useState<string | null>(null);
+  const [resolveError,       setResolveError]       = useState<string | null>(null);
+  const [detectedNetwork,    setDetectedNetwork]    = useState<string | null>(null);
+  const [autoDetectedMethod, setAutoDetectedMethod] = useState<string | null>(null);
+
+  // Load saved payout details
   useEffect(() => {
     if (!user?.id) return;
     supabase.from("profiles")
@@ -485,104 +462,88 @@ const AccountSettings = memo(({
       });
   }, [user?.id]);
 
-  // Auto-resolve account name when momo_number changes
+  // Auto-resolve account name + auto-select network when MoMo number changes
   useEffect(() => {
-const resolveAccountName = async () => {
-  const number = payoutForm.number.trim();
-  if (number.length < 9) {
-    setResolvedName(null);
-    setResolveError(null);
-    setDetectedNetwork(null);
-    return;
-  }
+    const resolveAccountName = async () => {
+      const number = payoutForm.number.trim();
 
-  const network = detectNetwork(number);
-  if (!network) {
-    setResolveError("Could not detect network. Please check your number.");
-    setResolvedName(null);
-    setDetectedNetwork(null);
-    return;
-  }
-
-  setDetectedNetwork(getNetworkName(number));
-  setResolving(true);
-  setResolveError(null);
-
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (!session) {
-      console.error("No active session");
-      setResolveError("Please log in again to verify your account");
-      setResolving(false);
-      return;
-    }
-    
-    console.log("Calling resolve-account for:", number, "network:", network);
-    
-    const response = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resolve-account`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session.access_token}`,
-          "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({
-          account_number: number,
-          bank_code: network,
-        }),
+      if (number.length < 9) {
+        setResolvedName(null);
+        setResolveError(null);
+        setDetectedNetwork(null);
+        setAutoDetectedMethod(null);
+        setPayoutForm(f => ({ ...f, name: "" }));
+        return;
       }
-    );
 
-    console.log("Response status:", response.status);
-    
-    // Check if response is ok before trying to parse JSON
-    if (!response.ok) {
-      const text = await response.text();
-      console.error("Response not OK:", text);
-      setResolveError(`Server error: ${response.status}`);
-      setResolvedName(null);
-      setResolving(false);
-      return;
-    }
-    
-    // Try to parse JSON
-    let result;
-    try {
-      result = await response.json();
-    } catch (jsonError) {
-      console.error("JSON parse error:", jsonError);
-      const text = await response.text();
-      console.error("Raw response:", text);
-      setResolveError("Invalid response from server");
-      setResolvedName(null);
-      setResolving(false);
-      return;
-    }
-    
-    console.log("Resolve result:", result);
-    
-    if (result.success && result.account_name) {
-  console.log("Setting account name to:", result.account_name);
-  setResolvedName(result.account_name);
-  setPayoutForm(f => {
-    console.log("Previous form:", f);
-    const updated = { ...f, name: result.account_name };
-    console.log("Updated form:", updated);
-    return updated;
-  });
-  setResolveError(null);
-}
-  } catch (err) {
-    console.error("Resolve error:", err);
-    setResolveError("Network error. Please try again.");
-    setResolvedName(null);
-  } finally {
-    setResolving(false);
-  }
-};
+      const network = detectNetwork(number);
+      if (!network) {
+        setResolveError("Could not detect network. Please check your number.");
+        setResolvedName(null);
+        setDetectedNetwork(null);
+        setAutoDetectedMethod(null);
+        setPayoutForm(f => ({ ...f, name: "" }));
+        return;
+      }
+
+      // ✅ Auto-select payout method
+      const methodMap: Record<string, string> = {
+        "VOD": "momo_telecel",
+        "ATL": "momo_airteltigo",
+        "MTN": "momo_mtn",
+      };
+      const detectedMethod = methodMap[network];
+      setAutoDetectedMethod(detectedMethod);
+      setPayoutForm(f => ({ ...f, method: detectedMethod }));
+      setDetectedNetwork(getNetworkName(number));
+      setResolving(true);
+      setResolveError(null);
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          setResolveError("Please log in again to verify your account");
+          setResolving(false);
+          return;
+        }
+
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resolve-account`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${session.access_token}`,
+              "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+            },
+            body: JSON.stringify({ account_number: number, bank_code: network }),
+          }
+        );
+
+        if (!response.ok) {
+          setResolveError(`Server error: ${response.status}`);
+          setResolvedName(null);
+          setPayoutForm(f => ({ ...f, name: "" }));
+          setResolving(false);
+          return;
+        }
+
+        const result = await response.json();
+        if (result.success && result.account_name) {
+          setResolvedName(result.account_name);
+          setPayoutForm(f => ({ ...f, name: result.account_name }));
+          setResolveError(null);
+        } else {
+          setPayoutForm(f => ({ ...f, name: "" }));
+        }
+      } catch (err) {
+        setResolveError("Network error. Please try again.");
+        setResolvedName(null);
+        setPayoutForm(f => ({ ...f, name: "" }));
+      } finally {
+        setResolving(false);
+      }
+    };
 
     const timeoutId = setTimeout(resolveAccountName, 800);
     return () => clearTimeout(timeoutId);
@@ -604,7 +565,6 @@ const resolveAccountName = async () => {
     } catch (err: any) { toast.error(err.message ?? "Failed to update password"); }
   };
 
-  // Shows confirmation modal only when there are real existing saved payout details to compare against
   const handleSavePayoutIntent = () => {
     if (!payoutForm.method || !payoutForm.number || !payoutForm.name) {
       toast.error("Please fill in all payout details"); return;
@@ -616,7 +576,6 @@ const resolveAccountName = async () => {
     executeSavePayout();
   };
 
-  // The actual DB + Paystack save — called directly or after modal confirmation
   const executeSavePayout = async () => {
     setShowPayoutConfirm(false);
     try {
@@ -626,8 +585,6 @@ const resolveAccountName = async () => {
       }).eq("id", user!.id);
       if (error) throw error;
 
-      let finalName = payoutForm.name;
-
       if (isVerified && subaccountCode) {
         try {
           const settlementBank = payoutForm.method === "momo_telecel" ? "VOD"
@@ -636,7 +593,7 @@ const resolveAccountName = async () => {
           if (num.startsWith("233")) num = "0" + num.slice(3);
           if (!num.startsWith("0")) num = "0" + num;
           const { data: { session } } = await supabase.auth.getSession();
-          
+
           const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-subaccount`, {
             method: "POST",
             headers: {
@@ -651,38 +608,31 @@ const resolveAccountName = async () => {
           });
 
           const subResult = await res.json();
-          finalName = subResult.resolved_name ?? payoutForm.name;
+          const finalName = subResult.resolved_name ?? payoutForm.name;
 
           toast.success("Payout details updated — Paystack subaccount synced!");
-          
           setSavedPayout({ method: payoutForm.method, number: payoutForm.number, name: finalName });
           setPayoutForm(p => ({ ...p, name: finalName }));
-          setPayoutSaved(true);
-          setTimeout(() => setPayoutSaved(false), 3000);
-          return;
+          setResolvedName(finalName);
         } catch (err) {
           console.error("Paystack sync error:", err);
           toast.success("Payout details saved! (Paystack sync failed — contact support)");
+          setSavedPayout({ method: payoutForm.method, number: payoutForm.number, name: payoutForm.name });
         }
+      } else {
+        toast.success("Payout details saved!");
+        setSavedPayout({ method: payoutForm.method, number: payoutForm.number, name: payoutForm.name });
       }
 
-      if (!(isVerified && subaccountCode)) {
-        setSavedPayout({ method: payoutForm.method, number: payoutForm.number, name: payoutForm.name });
-        setPayoutSaved(true);
-        setTimeout(() => setPayoutSaved(false), 3000);
-      }
-      
-      if (!(isVerified && subaccountCode)) {
-        toast.success("Payout details saved!");
-      }
-    } catch (err: any) { 
-      toast.error(err.message ?? "Failed to save payout details"); 
+      setPayoutSaved(true);
+      setTimeout(() => setPayoutSaved(false), 3000);
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to save payout details");
     }
   };
 
   return (
     <div className="space-y-6 max-w-lg">
-      {/* Payout change confirmation modal — rendered at top level so it overlays everything */}
       <PayoutConfirmModal
         open={showPayoutConfirm}
         oldNumber={savedPayout.number}
@@ -693,7 +643,6 @@ const resolveAccountName = async () => {
         onCancel={() => setShowPayoutConfirm(false)}
       />
 
-      {/* Become a seller card — non-sellers only */}
       {!canSell && (
         <SellerApplicationStatus
           userId={user?.id}
@@ -774,7 +723,7 @@ const resolveAccountName = async () => {
         </div>
       </div>
 
-      {/* Payout details — verified sellers only, not official */}
+      {/* Payout details — sellers only, not official */}
       {canSell && !isOfficial && (
         <div className="rounded-2xl border border-border overflow-hidden">
           <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border bg-muted/20">
@@ -796,24 +745,46 @@ const resolveAccountName = async () => {
               {!isVerified && <span className="block mt-1 text-[11px]">Only applies when you become a verified seller.</span>}
             </p>
 
+            {/* ── Payout method buttons ── */}
             <div>
               <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-2">Payout Method</label>
               <div className="grid grid-cols-3 gap-2">
                 {([
-                  { value: "momo_mtn",       label: "MTN MoMo",     icon: Smartphone },
-                  { value: "momo_telecel",    label: "Telecel Cash", icon: Smartphone },
-                  { value: "momo_airteltigo", label: "AirtelTigo",  icon: Smartphone },
+                  { value: "momo_mtn",        label: "MTN MoMo",     icon: Smartphone },
+                  { value: "momo_telecel",     label: "Telecel Cash", icon: Smartphone },
+                  { value: "momo_airteltigo",  label: "AirtelTigo",  icon: Smartphone },
                 ] as const).map(({ value, label, icon: Icon }) => (
-                  <button key={value} onClick={() => setPayoutForm(p => ({ ...p, method: value, bankCode: "" }))}
-                    className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition-all text-xs font-semibold
-                      ${payoutForm.method === value ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground hover:border-primary/40"}`}>
+                  <button
+                    key={value}
+                    onClick={() => {
+                      setPayoutForm(p => ({ ...p, method: value, bankCode: "" }));
+                      setAutoDetectedMethod(null); // clear auto-detected on manual select
+                    }}
+                    className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition-all text-xs font-semibold relative
+                      ${payoutForm.method === value ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground hover:border-primary/40"}`}
+                  >
                     <Icon className={`w-4 h-4 ${payoutForm.method === value ? "text-primary" : ""}`} />
                     {label}
+                    {/* ✅ Auto-detected badge */}
+                    {autoDetectedMethod === value && (
+                      <span className="text-[9px] text-green-600 font-bold flex items-center gap-0.5 leading-none">
+                        <CheckCircle className="w-2.5 h-2.5" /> Auto-detected
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
+
+              {/* ✅ Green confirmation message — inside payout section, right after buttons */}
+              {detectedNetwork && autoDetectedMethod && (
+                <p className="text-[11px] text-green-600 flex items-center gap-1 mt-2">
+                  <CheckCircle className="w-3 h-3" />
+                  {detectedNetwork} detected and selected automatically
+                </p>
+              )}
             </div>
 
+            {/* ── MoMo Number ── */}
             <div>
               <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">MoMo Number *</label>
               <div className="relative">
@@ -826,25 +797,19 @@ const resolveAccountName = async () => {
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
                 />
               </div>
-              {payoutForm.number.length >= 9 && detectedNetwork && (
-                <p className="text-[11px] text-green-600 mt-1 flex items-center gap-1">
-                  <CheckCircle className="w-3 h-3" />
-                  Network detected: {detectedNetwork}
-                </p>
-              )}
             </div>
 
+            {/* ── Account Name (auto-resolved) ── */}
             <div>
               <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Account Name</label>
               <div className="relative">
                 <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
                 <input
-  value={payoutForm.name}
-  onChange={e => setPayoutForm(p => ({ ...p, name: e.target.value }))}
-  placeholder={resolving ? "Verifying account..." : "Auto-verified from MoMo number"}
-  disabled={true}
-  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-muted/50 text-sm text-muted-foreground cursor-not-allowed"
-/>
+                  value={payoutForm.name}
+                  placeholder={resolving ? "Verifying account..." : "Auto-verified from MoMo number"}
+                  disabled
+                  className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-border bg-muted/50 text-sm text-muted-foreground cursor-not-allowed"
+                />
                 {resolving && (
                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
                     <Loader2 className="w-4 h-4 animate-spin text-primary" />
@@ -856,24 +821,19 @@ const resolveAccountName = async () => {
                   </div>
                 )}
               </div>
-              
-              {/* Resolve status messages */}
               {resolveError && (
                 <p className="text-[11px] text-red-500 mt-1 flex items-center gap-1">
-                  <AlertTriangle className="w-3 h-3" />
-                  {resolveError}
+                  <AlertTriangle className="w-3 h-3" /> {resolveError}
                 </p>
               )}
               {resolvedName && !resolveError && !resolving && (
                 <p className="text-[11px] text-green-600 mt-1 flex items-center gap-1">
-                  <CheckCircle className="w-3 h-3" />
-                  Verified account: {resolvedName}
+                  <CheckCircle className="w-3 h-3" /> Verified account: {resolvedName}
                 </p>
               )}
               {!resolvedName && !resolveError && payoutForm.number.length >= 9 && !resolving && (
                 <p className="text-[11px] text-amber-600 mt-1 flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3" />
-                  Verifying account name...
+                  <AlertCircle className="w-3 h-3" /> Verifying account name...
                 </p>
               )}
             </div>
@@ -892,7 +852,6 @@ const resolveAccountName = async () => {
           <p className="font-display font-semibold text-sm">Privacy &amp; Security</p>
         </div>
         <div className="divide-y divide-border">
-          {/* Change password */}
           <div className="px-5 py-4">
             <button onClick={() => setShowChangePassword(!showChangePassword)} className="w-full flex items-center justify-between group">
               <div className="flex items-center gap-3">
@@ -919,7 +878,6 @@ const resolveAccountName = async () => {
             </AnimatePresence>
           </div>
 
-          {/* Delete account */}
           <div className="px-5 py-4">
             {!showDeleteConfirm ? (
               <button onClick={() => setShowDeleteConfirm(true)} className="w-full flex items-center gap-3 group">
