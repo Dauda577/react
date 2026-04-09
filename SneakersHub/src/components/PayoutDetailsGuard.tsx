@@ -1,10 +1,4 @@
-// ── PayoutDetailsGuard ────────────────────────────────────────────────────────
-// Drop this component at the TOP of your CreateListing.tsx return statement.
-// It shows a blocking banner for verified sellers who haven't added payout details.
-//
-// Usage in CreateListing.tsx:
-//   1. Import this component: import PayoutDetailsGuard from "@/components/PayoutDetailsGuard"
-//   2. Wrap your form: <PayoutDetailsGuard><YourFormHere /></PayoutDetailsGuard>
+
 
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
