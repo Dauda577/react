@@ -49,6 +49,39 @@ serve(async (req) => {
 
   console.log(`[paystack-webhook] event=${event.event}`);
 
+  // ── charge.success ───────────────────────────────────────────────────────
+  if (event.event === "charge.success") {
+    const reference = event.data?.reference;
+    console.log(`Charge SUCCESS: ${reference}`);
+
+    const { data: order } = await supabase
+      .from("orders")
+      .select("id, seller_id, payout_status")
+      .eq("paystack_reference", reference)
+      .single();
+
+    if (!order) {
+      console.warn(`No order found for reference ${reference}`);
+    } else if (order.payout_status === "pending") {
+      // Check if seller uses subaccount split
+      const { data: seller } = await supabase
+        .from("profiles")
+        .select("verified, subaccount_code, is_official")
+        .eq("id", order.seller_id)
+        .single();
+
+      if (seller?.is_official || (seller?.verified && seller?.subaccount_code)) {
+        await supabase.from("orders").update({
+          payout_status: "released",
+          transfer_confirmed: true,
+          transfer_confirmed_at: new Date().toISOString(),
+        }).eq("id", order.id);
+
+        console.log(`Order ${order.id} auto-released via subaccount split ✓`);
+      }
+    }
+  }
+
   // ── transfer.success ─────────────────────────────────────────────────────
   if (event.event === "transfer.success") {
     const transferCode = event.data?.transfer_code;
