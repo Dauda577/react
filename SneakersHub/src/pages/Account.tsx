@@ -91,7 +91,7 @@ const Account = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("profile");
 
-  const role   = user?.role ?? "buyer";
+  const role    = user?.role ?? "buyer";
   const canSell = user?.isSeller ?? role === "seller";
   const tabs    = isGuest ? guestTabs : canSell ? sellerTabs : buyerTabs;
 
@@ -103,11 +103,12 @@ const Account = () => {
   const { requestPermission, isSupported: pushSupported, permission: pushPermission, showLocalNotification } = usePush();
 
   // ── Profile state ──────────────────────────────────────────────────────────
-  const [editMode,    setEditMode]    = useState(false);
-  const [avatarUrl,   setAvatarUrl]   = useState<string | null>(null);
-  const [isVerified,  setIsVerified]  = useState(false);
-  const [isOfficial,  setIsOfficial]  = useState(false);
-  const [subaccountCode, setSubaccountCode] = useState<string | null>(null);
+  const [profileLoaded,   setProfileLoaded]   = useState(false);
+  const [editMode,        setEditMode]        = useState(false);
+  const [avatarUrl,       setAvatarUrl]       = useState<string | null>(null);
+  const [isVerified,      setIsVerified]      = useState(false);
+  const [isOfficial,      setIsOfficial]      = useState(false);
+  const [subaccountCode,  setSubaccountCode]  = useState<string | null>(null);
   const [verificationLoading, setVerificationLoading] = useState(false);
   const [hasMissingPayoutDetails, setHasMissingPayoutDetails] = useState(false);
   const [totalListingsCreated, setTotalListingsCreated] = useState(0);
@@ -123,15 +124,50 @@ const Account = () => {
   const [payoutForm, setPayoutForm] = useState({ method: "", number: "", name: "", bankCode: "" });
 
   // ── Listing / boost state ──────────────────────────────────────────────────
-  const [boostingListing, setBoostingListing] = useState<Listing | null>(null);
+  const [boostingListing,       setBoostingListing]       = useState<Listing | null>(null);
   const [showFirstListingBanner, setShowFirstListingBanner] = useState(false);
-  const [trackingInputs, setTrackingInputs]   = useState<Record<string, string>>({});
-  const [savingTracking, setSavingTracking]   = useState<Record<string, boolean>>({});
+  const [trackingInputs, setTrackingInputs] = useState<Record<string, string>>({});
+  const [savingTracking, setSavingTracking] = useState<Record<string, boolean>>({});
 
-  // ── Load profile + avatar in a single query (no artificial delay) ──────────
+  // ── Load profile + avatar — cache-first, then fresh from DB ───────────────
   useEffect(() => {
     if (!user?.id) return;
 
+    const CACHE_KEY = `profile_cache_${user.id}`;
+
+    const applyProfileData = (p: any) => {
+      setIsVerified(p.verified ?? false);
+      setIsOfficial(p.is_official ?? false);
+      setSubaccountCode(p.subaccount_code ?? null);
+      setProfileForm(prev => ({
+        ...prev,
+        name:   p.name   ?? prev.name,
+        phone:  p.phone  ?? "",
+        city:   p.city   ?? "",
+        region: p.region ?? "",
+      }));
+      if (p.avatar_url) setAvatarUrl(p.avatar_url);
+      if (p.payout_method) {
+        setPayoutForm({
+          method:   p.payout_method,
+          number:   p.payout_number ?? "",
+          name:     p.payout_name   ?? "",
+          bankCode: "",
+        });
+      }
+      if (p.role === "seller") setTotalListingsCreated(p.listing_count ?? 0);
+    };
+
+    // 1. Serve from cache immediately — badges render without any network wait
+    try {
+      const cached = sessionStorage.getItem(CACHE_KEY);
+      if (cached) {
+        applyProfileData(JSON.parse(cached));
+        setProfileLoaded(true);
+      }
+    } catch { /* sessionStorage unavailable — skip cache */ }
+
+    // 2. Always fetch fresh in background to keep cache up to date
     supabase
       .from("profiles")
       .select("name, phone, city, region, verified, is_official, subaccount_code, payout_method, payout_number, payout_name, listing_count, role, avatar_url")
@@ -140,11 +176,13 @@ const Account = () => {
       .then(async ({ data }) => {
         if (!data) return;
 
-        // Avatar — prefer DB value, fall back to auth metadata
-        if (data.avatar_url) {
-          setAvatarUrl(data.avatar_url);
-        } else {
-          // Only hit auth.getUser if profiles table has no avatar
+        // Update cache with latest data
+        try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch { /* ignore */ }
+
+        applyProfileData(data);
+
+        // Avatar fallback to auth metadata if DB has none
+        if (!data.avatar_url) {
           supabase.auth.getUser().then(({ data: authData }) => {
             const metaPhoto =
               authData?.user?.user_metadata?.avatar_url ??
@@ -153,28 +191,6 @@ const Account = () => {
             if (metaPhoto) setAvatarUrl(metaPhoto);
           });
         }
-
-        setProfileForm(p => ({
-          ...p,
-          name:   data.name   ?? p.name,
-          phone:  data.phone  ?? "",
-          city:   data.city   ?? "",
-          region: data.region ?? "",
-        }));
-        setIsVerified(data.verified ?? false);
-        setSubaccountCode(data.subaccount_code ?? null);
-        setIsOfficial(data.is_official ?? false);
-
-        if (data.payout_method) {
-          setPayoutForm({
-            method:   data.payout_method,
-            number:   data.payout_number ?? "",
-            name:     data.payout_name   ?? "",
-            bankCode: "",
-          });
-        }
-
-        if (data.role === "seller") setTotalListingsCreated(data.listing_count ?? 0);
 
         // Check for missing payout details only if verified
         if (data.verified && (!data.payout_method || !data.payout_number)) {
@@ -186,6 +202,8 @@ const Account = () => {
             .maybeSingle();
           if (!application?.momo_number) setHasMissingPayoutDetails(true);
         }
+
+        setProfileLoaded(true);
       });
   }, [user?.id]);
 
@@ -237,7 +255,14 @@ const Account = () => {
   }, [role, isGuest, listings.length]);
 
   // ── Callbacks ──────────────────────────────────────────────────────────────
-  const handleLogout = useCallback(async () => { await logout(); navigate("/"); }, [logout, navigate]);
+  const handleLogout = useCallback(async () => {
+    // Clear profile cache on logout
+    if (user?.id) {
+      try { sessionStorage.removeItem(`profile_cache_${user.id}`); } catch { /* ignore */ }
+    }
+    await logout();
+    navigate("/");
+  }, [logout, navigate, user?.id]);
 
   const handleSaveProfile = useCallback(async () => {
     if (!user) return;
@@ -250,7 +275,10 @@ const Account = () => {
         city: profileForm.city || null, region: profileForm.region || null,
       }).eq("id", user.id);
       if (error) throw error;
-      setEditMode(false); toast.success("Profile updated!");
+      // Invalidate cache so next load reflects updated profile
+      try { sessionStorage.removeItem(`profile_cache_${user.id}`); } catch { /* ignore */ }
+      setEditMode(false);
+      toast.success("Profile updated!");
     } catch (err: any) { toast.error(err.message ?? "Failed to save profile"); }
   }, [user, role, profileForm]);
 
@@ -265,19 +293,15 @@ const Account = () => {
     if (!user?.id) return;
     try {
       const { data: { session } } = await supabase.auth.getSession();
-
       const { data, error } = await supabase.functions.invoke("delete-account", {
         body: { user_id: user.id },
-        headers: {
-          Authorization: `Bearer ${session?.access_token}`,
-        },
+        headers: { Authorization: `Bearer ${session?.access_token}` },
       });
-
       if (error || !data?.success) {
         toast.error("Failed to delete account. Please contact support.");
         return;
       }
-
+      try { sessionStorage.removeItem(`profile_cache_${user.id}`); } catch { /* ignore */ }
       await supabase.auth.signOut();
       toast.success("Account deleted.");
       navigate("/");
@@ -309,6 +333,7 @@ const Account = () => {
         <div className="section-padding max-w-4xl mx-auto pt-14 pb-0">
           <motion.div {...(IS_MOBILE ? { initial: { opacity: 0 }, animate: { opacity: 1 } } : fadeUp)}
             className="flex items-center gap-5 pb-8">
+
             {/* Avatar */}
             <div className="relative flex-shrink-0">
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
@@ -331,7 +356,9 @@ const Account = () => {
                     : role === "seller" ? <><Store className="w-3 h-3" /> Seller Account</>
                     : <><Tag className="w-3 h-3" /> Buyer Account</>}
                 </div>
-                {!isGuest && role === "seller" && (
+
+                {/* Only render badges once profile is confirmed loaded — no flashing "Unverified" */}
+                {!isGuest && role === "seller" && profileLoaded && (
                   <>
                     {isOfficial && (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border"
@@ -352,6 +379,7 @@ const Account = () => {
                   </>
                 )}
               </div>
+
               <h1 className="font-display text-2xl font-bold tracking-tight">
                 {isGuest ? "Guest" : profileForm.name || user?.name || "User"}
               </h1>
