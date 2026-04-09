@@ -76,7 +76,7 @@ const StatCard = ({ label, value, sub, icon: Icon, accent }: {
 );
 
 const SectionHeader = ({ title, icon: Icon, count }: { title: string; icon: any; count?: number }) => (
-  <div className="flex items-center gap-2.5 mb-5">
+  <div className="flex items-center gap-2.5">
     <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
       <Icon className="w-3.5 h-3.5 text-primary" />
     </div>
@@ -188,7 +188,7 @@ const Admin = () => {
     if (apps) setApplications(apps);
   }, []);
 
-  const checkPaystackStatuses = async () => {
+  const checkPaystackStatuses = useCallback(async (silent: boolean = true) => {
     setCheckingPaystack(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -207,18 +207,29 @@ const Admin = () => {
         map[item.seller_id] = item;
       }
       setPaystackStatuses(map);
-      toast.success("Paystack statuses synced");
+      if (!silent) {
+        toast.success("Paystack statuses synced");
+      }
     } catch {
-      toast.error("Failed to check Paystack statuses");
+      if (!silent) {
+        toast.error("Failed to check Paystack statuses");
+      }
     } finally {
       setCheckingPaystack(false);
     }
-  };
+  }, []);
 
   const pendingApplications  = applications.filter(a => a.status === "pending");
   const approvedApplications = applications.filter(a => a.status === "approved");
   const pendingSellers       = sellers.filter(s => !s.verified && !s.is_official);
   const verifiedSellers      = sellers.filter(s => s.verified || s.is_official);
+
+  // Auto-check Paystack statuses when sellers tab is active and there are verified sellers
+  useEffect(() => {
+    if (activeTab === "sellers" && verifiedSellers.length > 0) {
+      checkPaystackStatuses(true);
+    }
+  }, [activeTab, verifiedSellers.length, checkPaystackStatuses]);
 
   const handleAppAction = async (appId: string, userId: string, action: "approve" | "reject") => {
     setAppActionLoading(l => ({ ...l, [appId]: true }));
@@ -566,11 +577,12 @@ const Admin = () => {
                   <div className="flex items-center justify-between mb-5">
                     <SectionHeader title="Verified Sellers" icon={BadgeCheck} count={verifiedSellers.length} />
                     <button
-                      onClick={checkPaystackStatuses}
+                      onClick={() => checkPaystackStatuses(false)}
                       disabled={checkingPaystack}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border text-xs font-medium hover:bg-muted/40 transition-colors disabled:opacity-50">
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border text-xs font-medium hover:bg-muted/40 transition-colors disabled:opacity-50"
+                      title="Refresh Paystack statuses"
+                    >
                       <RefreshCw className={`w-3 h-3 ${checkingPaystack ? "animate-spin" : ""}`} />
-                      {checkingPaystack ? "Checking..." : "Check Paystack"}
                     </button>
                   </div>
                   {verifiedSellers.length === 0 ? (
