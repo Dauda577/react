@@ -21,9 +21,11 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { fadeUp, IS_MOBILE } from "../components/Account/accountHelpers";
 
-// Tab components — lazy loaded so only active tab is in memory
-const AccountProfile   = lazy(() => import("../components/Account/AccountProfile"));
-const AccountOrders    = lazy(() => import("../components/Account/AccountOrders"));
+// Eagerly load the two most-visited tabs so they render instantly
+import AccountProfile  from "../components/Account/AccountProfile";
+import AccountOrders   from "../components/Account/AccountOrders";
+
+// Lazy load less-visited tabs
 const AccountListings  = lazy(() => import("../components/Account/AccountListings"));
 const AccountSaved     = lazy(() => import("../components/Account/AccountSaved"));
 const AccountMessages  = lazy(() => import("../components/Account/AccountMessages"));
@@ -73,6 +75,15 @@ const GuestAuthBanner = ({ action }: { action: string }) => {
   );
 };
 
+// ── Skeleton fallback ─────────────────────────────────────────────────────────
+const TabSkeleton = () => (
+  <div className="space-y-4 py-4">
+    {[1, 2, 3].map(i => (
+      <div key={i} className="h-20 rounded-2xl bg-muted/40 animate-pulse" />
+    ))}
+  </div>
+);
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 const Account = () => {
@@ -117,56 +128,65 @@ const Account = () => {
   const [trackingInputs, setTrackingInputs]   = useState<Record<string, string>>({});
   const [savingTracking, setSavingTracking]   = useState<Record<string, boolean>>({});
 
-  // ── Load avatar ────────────────────────────────────────────────────────────
+  // ── Load profile + avatar in a single query (no artificial delay) ──────────
   useEffect(() => {
     if (!user?.id) return;
-    supabase.auth.getUser().then(async ({ data }) => {
-      const metaPhoto =
-        data?.user?.user_metadata?.avatar_url ??
-        data?.user?.user_metadata?.picture ??
-        null;
-      if (metaPhoto) { setAvatarUrl(metaPhoto); return; }
-      // Fallback: profiles table (covers cases where metadata is missing)
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("avatar_url")
-        .eq("id", user.id)
-        .single();
-      if (profile?.avatar_url) setAvatarUrl(profile.avatar_url);
-    });
-  }, [user?.id]);
 
-  // ── Load profile from DB ───────────────────────────────────────────────────
-  useEffect(() => {
-    if (!user?.id) return;
-    const t = setTimeout(() => {
-      supabase.from("profiles")
-        .select("name, phone, city, region, verified, is_official, subaccount_code, payout_method, payout_number, payout_name, listing_count, role")
-        .eq("id", user.id).single()
-        .then(async ({ data }) => {
-          if (!data) return;
-          setProfileForm(p => ({ ...p, name: data.name ?? p.name, phone: data.phone ?? "", city: data.city ?? "", region: data.region ?? "" }));
-          setIsVerified(data.verified ?? false);
-          setSubaccountCode(data.subaccount_code ?? null);
-          setIsOfficial(data.is_official ?? false);
-          if (data.payout_method) setPayoutForm({ method: data.payout_method, number: data.payout_number ?? "", name: data.payout_name ?? "", bankCode: "" });
-          if (data.role === "seller") setTotalListingsCreated(data.listing_count ?? 0);
+    supabase
+      .from("profiles")
+      .select("name, phone, city, region, verified, is_official, subaccount_code, payout_method, payout_number, payout_name, listing_count, role, avatar_url")
+      .eq("id", user.id)
+      .single()
+      .then(async ({ data }) => {
+        if (!data) return;
 
-          if (data.verified && (!data.payout_method || !data.payout_number)) {
-            // Before flagging missing payout, check if they submitted via BecomeSellerDrawer
-            const { data: application } = await supabase
-              .from("seller_applications")
-              .select("momo_number")
-              .eq("user_id", user.id)
-              .in("status", ["pending", "approved"])
-              .maybeSingle();
+        // Avatar — prefer DB value, fall back to auth metadata
+        if (data.avatar_url) {
+          setAvatarUrl(data.avatar_url);
+        } else {
+          // Only hit auth.getUser if profiles table has no avatar
+          supabase.auth.getUser().then(({ data: authData }) => {
+            const metaPhoto =
+              authData?.user?.user_metadata?.avatar_url ??
+              authData?.user?.user_metadata?.picture ??
+              null;
+            if (metaPhoto) setAvatarUrl(metaPhoto);
+          });
+        }
 
-            // Only flag as missing if no application with MoMo details exists
-            if (!application?.momo_number) setHasMissingPayoutDetails(true);
-          }
-        });
-    }, 300);
-    return () => clearTimeout(t);
+        setProfileForm(p => ({
+          ...p,
+          name:   data.name   ?? p.name,
+          phone:  data.phone  ?? "",
+          city:   data.city   ?? "",
+          region: data.region ?? "",
+        }));
+        setIsVerified(data.verified ?? false);
+        setSubaccountCode(data.subaccount_code ?? null);
+        setIsOfficial(data.is_official ?? false);
+
+        if (data.payout_method) {
+          setPayoutForm({
+            method:   data.payout_method,
+            number:   data.payout_number ?? "",
+            name:     data.payout_name   ?? "",
+            bankCode: "",
+          });
+        }
+
+        if (data.role === "seller") setTotalListingsCreated(data.listing_count ?? 0);
+
+        // Check for missing payout details only if verified
+        if (data.verified && (!data.payout_method || !data.payout_number)) {
+          const { data: application } = await supabase
+            .from("seller_applications")
+            .select("momo_number")
+            .eq("user_id", user.id)
+            .in("status", ["pending", "approved"])
+            .maybeSingle();
+          if (!application?.momo_number) setHasMissingPayoutDetails(true);
+        }
+      });
   }, [user?.id]);
 
   // ── Mark orders seen when tab opens ───────────────────────────────────────
@@ -178,7 +198,6 @@ const Account = () => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab");
-    // ✅ Removed "analytics" from allowed tabs
     if (tab && ["profile","orders","listings","messages","settings"].includes(tab)) {
       setActiveTab(tab);
       window.history.replaceState({}, "", window.location.pathname);
@@ -274,9 +293,9 @@ const Account = () => {
     ? user.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
     : isGuest ? "G" : "?";
 
-  // ── Split orders: sellers see their sales AND their own purchases separately
+  // ── Split orders ───────────────────────────────────────────────────────────
   const sellerOrders = orders.filter(o => o.sellerId === user?.id);
-  const buyerOrders  = orders.filter(o => o.buyerId === user?.id);
+  const buyerOrders  = orders.filter(o => o.buyerId  === user?.id);
 
   return (
     <div className="min-h-screen bg-background">
@@ -389,7 +408,7 @@ const Account = () => {
       <section className="section-padding max-w-4xl mx-auto py-10">
         <AnimatePresence mode="wait">
           <motion.div key={activeTab} {...fadeUp}>
-            <Suspense fallback={<div className="py-16 text-center text-sm text-muted-foreground">Loading...</div>}>
+            <Suspense fallback={<TabSkeleton />}>
 
               {activeTab === "profile" && (
                 <AccountProfile
