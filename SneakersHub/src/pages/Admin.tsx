@@ -105,6 +105,8 @@ const Admin = () => {
   const [refundOrder, setRefundOrder] = useState<AdminOrder | null>(null);
   const [refundReason, setRefundReason] = useState("");
   const [refundLoading, setRefundLoading] = useState(false);
+  const [paystackStatuses, setPaystackStatuses] = useState<Record<string, { is_verified: boolean; settlement_schedule: string | null; error?: string }>>({});
+  const [checkingPaystack, setCheckingPaystack] = useState(false);
 
   const REFUND_REASONS = [
     "Item not received",
@@ -173,7 +175,7 @@ const Admin = () => {
     const [{ data: profiles }, { data: apps }] = await Promise.all([
       supabase
         .from("profiles")
-        .select("id, name, phone, region, city, verified, is_official, commission_rate, created_at, listing_count")
+        .select("id, name, phone, region, city, verified, is_official, commission_rate, created_at, listing_count, subaccount_code")
         .in("role", ["seller", "buyer"])
         .or("verified.eq.true,is_official.eq.true,is_seller.eq.true")
         .order("created_at", { ascending: false }),
@@ -185,6 +187,33 @@ const Admin = () => {
     if (profiles) setSellers(profiles);
     if (apps) setApplications(apps);
   }, []);
+
+  const checkPaystackStatuses = async () => {
+    setCheckingPaystack(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-subaccount-status`,
+        {
+          headers: {
+            Authorization: `Bearer ${session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+        }
+      );
+      const json = await res.json();
+      const map: Record<string, any> = {};
+      for (const item of json.data ?? []) {
+        map[item.seller_id] = item;
+      }
+      setPaystackStatuses(map);
+      toast.success("Paystack statuses synced");
+    } catch {
+      toast.error("Failed to check Paystack statuses");
+    } finally {
+      setCheckingPaystack(false);
+    }
+  };
 
   const pendingApplications  = applications.filter(a => a.status === "pending");
   const approvedApplications = applications.filter(a => a.status === "approved");
@@ -534,7 +563,16 @@ const Admin = () => {
 
                 {/* Verified sellers + commission control */}
                 <div>
-                  <SectionHeader title="Verified Sellers" icon={BadgeCheck} count={verifiedSellers.length} />
+                  <div className="flex items-center justify-between mb-5">
+                    <SectionHeader title="Verified Sellers" icon={BadgeCheck} count={verifiedSellers.length} />
+                    <button
+                      onClick={checkPaystackStatuses}
+                      disabled={checkingPaystack}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border text-xs font-medium hover:bg-muted/40 transition-colors disabled:opacity-50">
+                      <RefreshCw className={`w-3 h-3 ${checkingPaystack ? "animate-spin" : ""}`} />
+                      {checkingPaystack ? "Checking..." : "Check Paystack"}
+                    </button>
+                  </div>
                   {verifiedSellers.length === 0 ? (
                     <div className="text-center py-12 rounded-2xl border border-border">
                       <Users className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
@@ -542,15 +580,15 @@ const Admin = () => {
                     </div>
                   ) : (
                     <div className="rounded-2xl border border-border overflow-hidden">
-                      <div className="hidden sm:grid grid-cols-4 px-5 py-3 bg-muted/30 border-b border-border">
-                        {["Seller", "Location", "Listings", "Commission Rate"].map(h => (
+                      <div className="hidden sm:grid grid-cols-5 px-5 py-3 bg-muted/30 border-b border-border">
+                        {["Seller", "Location", "Listings", "Paystack Status", "Commission Rate"].map(h => (
                           <p key={h} className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{h}</p>
                         ))}
                       </div>
                       {verifiedSellers.map((seller, i) => (
                         <motion.div key={seller.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                           transition={{ delay: i * 0.03 }}
-                          className={`grid grid-cols-2 sm:grid-cols-4 items-center px-5 py-4 gap-3 ${i > 0 ? "border-t border-border" : ""} hover:bg-muted/10 transition-colors`}>
+                          className={`grid grid-cols-2 sm:grid-cols-5 items-center px-5 py-4 gap-3 ${i > 0 ? "border-t border-border" : ""} hover:bg-muted/10 transition-colors`}>
                           <div>
                             <p className="font-display font-bold text-sm">{seller.name}</p>
                             <p className="text-[11px] text-muted-foreground">{seller.phone ?? "—"}</p>
@@ -559,6 +597,21 @@ const Admin = () => {
                             {seller.city ? `${seller.city}, ${seller.region}` : seller.region ?? "—"}
                           </p>
                           <p className="text-sm font-medium hidden sm:block">{seller.listing_count ?? 0}</p>
+                          <div className="hidden sm:block">
+                            {paystackStatuses[seller.id] ? (
+                              paystackStatuses[seller.id].is_verified ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-green-500/10 text-green-600 border border-green-500/20">
+                                  <CheckCircle className="w-3 h-3" /> Verified
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                                  <Clock className="w-3 h-3" /> Pending
+                                </span>
+                              )
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-2">
                             {editingCommission[seller.id] !== undefined ? (
                               <>
