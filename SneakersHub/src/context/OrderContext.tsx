@@ -14,7 +14,7 @@ export type OrderItem = {
   brand: string;
   image: string;
   price: number;
-  size: number;
+  size: number | string | null;
   quantity: number;
 };
 
@@ -326,7 +326,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       brand: item.brand,
       image_url: item.imageUrl ?? item.image ?? null,
       price: item.price,
-      size: typeof item.size === "number" ? item.size : null,
+      size: item.size != null ? String(item.size) : null,
       quantity: item.quantity,
     }));
 
