@@ -19,7 +19,7 @@ const QUICK_CATEGORIES = [
 const Navbar = () => {
   const location = useLocation();
   const { totalItems } = useCart();
-  const { unseenCount } = useOrders();
+  const { orders } = useOrders();
   const { totalUnread } = useMessages();
   const { user, activeMode } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -36,9 +36,16 @@ const Navbar = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const showOrderBadge = user?.role === "seller" && unseenCount > 0;
+  const canSell = user?.isSeller ?? user?.role === "seller";
+  
+  // Orders badge count — persists until both sides confirm for sellers, or buyer confirms for buyers
+  const incompleteOrdersCount = canSell
+    ? orders.filter(o => o.sellerId === user?.id && !(o.sellerConfirmed && o.buyerConfirmed)).length
+    : orders.filter(o => o.buyerId === user?.id && !o.buyerConfirmed).length;
+
+  const showOrderBadge = !!user && incompleteOrdersCount > 0;
   const showMessageBadge = !!user && totalUnread > 0;
-  const totalBellCount = (showOrderBadge ? unseenCount : 0) + (showMessageBadge ? totalUnread : 0);
+  const totalBellCount = (showOrderBadge ? incompleteOrdersCount : 0) + (showMessageBadge ? totalUnread : 0);
   const showBell = totalBellCount > 0;
 
   const showBecomeSeller = !!user && !user.isSeller && user.sellerAppStatus === "none";
