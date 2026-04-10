@@ -507,6 +507,39 @@ const AccountProfile = memo(({
         </div>
       )}
 
+      {/* Promo request button — sellers only */}
+      {isSeller && (
+        <button
+          onClick={() => setShowPromoSheet(true)}
+          className="w-full flex items-center justify-between px-5 py-4 rounded-2xl border border-border hover:border-primary/30 hover:bg-primary/5 transition-all group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="relative w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+              <Ticket className="w-4 h-4 text-primary" />
+              {hasUnseenPromo && (
+                <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-green-500 border-2 border-background" />
+              )}
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-semibold flex items-center gap-2">
+                Request a Promo Code
+                {hasUnseenPromo && (
+                  <span className="px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-600 text-[10px] font-bold border border-green-500/20">
+                    Code Ready
+                  </span>
+                )}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {hasUnseenPromo
+                  ? "Your promo code has been generated — tap to view"
+                  : "Boost your sales with a discount code for your store"}
+              </p>
+            </div>
+          </div>
+          <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+        </button>
+      )}
+
       {/* Profile form */}
       <div className="rounded-2xl border border-border p-6">
         <div className="flex items-center justify-between mb-5">
@@ -671,39 +704,6 @@ const AccountProfile = memo(({
           </button>
         </div>
       </div>
-
-      {/* Promo request button — sellers only */}
-      {isSeller && (
-        <button
-          onClick={() => setShowPromoSheet(true)}
-          className="w-full flex items-center justify-between px-5 py-4 rounded-2xl border border-border hover:border-primary/30 hover:bg-primary/5 transition-all group"
-        >
-          <div className="flex items-center gap-3">
-            <div className="relative w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-              <Ticket className="w-4 h-4 text-primary" />
-              {hasUnseenPromo && (
-                <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-green-500 border-2 border-background" />
-              )}
-            </div>
-            <div className="text-left">
-              <p className="text-sm font-semibold flex items-center gap-2">
-                Request a Promo Code
-                {hasUnseenPromo && (
-                  <span className="px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-600 text-[10px] font-bold border border-green-500/20">
-                    Code Ready
-                  </span>
-                )}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {hasUnseenPromo
-                  ? "Your promo code has been generated — tap to view"
-                  : "Boost your sales with a discount code for your store"}
-              </p>
-            </div>
-          </div>
-          <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-        </button>
-      )}
 
       {/* Verification banners */}
       {isSeller && !isVerified && !isOfficial && (
