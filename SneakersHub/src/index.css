@@ -85,13 +85,10 @@
 @layer base {
   html {
     overflow-x: hidden;
-    /* Fix iOS Safari 100vw including scrollbar width */
     width: 100%;
     max-width: 100%;
-    /* Prevent font size inflation on orientation change */
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
-    /* Remove transitions from html to prevent flash */
     transition: none !important;
   }
 
@@ -115,11 +112,9 @@
     @apply border-border;
     min-width: 0;
     box-sizing: border-box;
-    /* Faster transitions to feel responsive */
     transition: border-color 0.15s ease, background-color 0.15s ease;
   }
 
-  /* Disable transitions on theme change to make it instant */
   .theme-transition * {
     transition: none !important;
   }
@@ -127,6 +122,11 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
   }
+}
+
+/* Sonner toast — clear Dynamic Island / notch on iOS PWA */
+[data-sonner-toaster] {
+  padding-top: env(safe-area-inset-top) !important;
 }
 
 @layer components {
@@ -152,14 +152,13 @@
     box-shadow: var(--shadow-glow);
   }
 
-  /* ── Responsive section padding ── */
   .section-padding {
-  @apply px-4 sm:px-6 md:px-12 lg:px-20;
-}
+    @apply px-4 sm:px-6 md:px-12 lg:px-20;
+  }
 
   .sneaker-card {
-  @apply block w-full bg-card rounded-lg overflow-hidden border border-border transition-all duration-500 ease-out cursor-pointer;
-}
+    @apply block w-full bg-card rounded-lg overflow-hidden border border-border transition-all duration-500 ease-out cursor-pointer;
+  }
 
   .sneaker-card:hover {
     @apply border-primary/40;
