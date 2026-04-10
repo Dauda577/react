@@ -102,8 +102,8 @@ const App = () => (
                     <MessageProvider>
                       <PushProvider>
                         <ThemeWrapper> {/* Add ThemeWrapper here */}
-                        <Toaster />
-                         <Sonner position="top-center" offset="16px" />
+                          <Toaster />
+                         <Sonner position="top-center" offset="env(safe-area-inset-top, 60px)" />
                           <InstallPrompt />
                           <SafariNotifPrompt />
                           <BrowserRouter>

@@ -103,8 +103,6 @@
     max-width: 100%;
     position: relative;
     transition: background-color 0.2s ease, color 0.2s ease;
-    padding-top: env(safe-area-inset-top);      
-    padding-bottom: env(safe-area-inset-bottom);
   }
 
   #root {
