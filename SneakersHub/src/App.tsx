@@ -89,6 +89,12 @@ const ThemeWrapper = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// Add this before the App component
+const safeAreaTop = parseInt(
+  getComputedStyle(document.documentElement)
+    .getPropertyValue("--sat") || "0"
+) || 60;
+
 const App = () => (
   <ErrorBoundary>
     <TooltipProvider>
@@ -103,7 +109,13 @@ const App = () => (
                       <PushProvider>
                         <ThemeWrapper> {/* Add ThemeWrapper here */}
                           <Toaster />
-                         <Sonner position="top-center" offset="16px" />
+                         <Sonner 
+  position="top-center" 
+  offset="16px"
+  style={{
+    top: `calc(env(safe-area-inset-top, 60px) + 16px)`,
+  }}
+/>
                           <InstallPrompt />
                           <SafariNotifPrompt />
                           <BrowserRouter>

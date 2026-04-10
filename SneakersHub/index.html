@@ -35,12 +35,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://liqpxjhnfyuyrtqumumu.supabase.co">
     
-    <!-- Load CSS asynchronously with fallback -->
-    <link rel="stylesheet" href="/assets/index-C663EKnX.css" media="print" onload="this.media='all'">
-    <noscript>
-      <link rel="stylesheet" href="/assets/index-C663EKnX.css">
-    </noscript>
-
     <!-- Load fonts with display swap -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
@@ -91,6 +85,10 @@
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       }
       
+      [data-sonner-toaster][data-y-position="top"] {
+  top: calc(env(safe-area-inset-top) + 16px) !important;
+}
+
       html.dark #initial-loader {
         background-color: #09090b;
       }
