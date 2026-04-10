@@ -12,7 +12,6 @@ import { TrackingDisplay } from "@/components/TrackingDisplay";
 
 const RatingModal = lazy(() => import("@/components/RatingModal"));
 
-// ── PayoutBadge ───────────────────────────────────────────────────────────────
 const PayoutBadge = ({ status }: { status: string }) => {
   if (status === "released" || status === "auto_released") return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-500/10 text-green-600 border border-green-500/20">
@@ -27,15 +26,14 @@ const PayoutBadge = ({ status }: { status: string }) => {
   return null;
 };
 
-// ── StatusBadge with icons ────────────────────────────────────────────────────
 const StatusBadge = ({ status }: { status: string }) => {
   const config: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
-    pending: { icon: <Clock className="w-2.5 h-2.5" />, label: "Pending", color: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
-    processing: { icon: <Truck className="w-2.5 h-2.5" />, label: "Processing", color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
-    shipped: { icon: <Package className="w-2.5 h-2.5" />, label: "Shipped", color: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
-    delivered: { icon: <CheckCircle className="w-2.5 h-2.5" />, label: "Delivered", color: "bg-green-500/10 text-green-600 border-green-500/20" },
-    completed: { icon: <CheckCircle className="w-2.5 h-2.5" />, label: "Completed", color: "bg-green-500/10 text-green-600 border-green-500/20" },
-    cancelled: { icon: <AlertTriangle className="w-2.5 h-2.5" />, label: "Cancelled", color: "bg-red-500/10 text-red-600 border-red-500/20" },
+    pending:    { icon: <Clock className="w-2.5 h-2.5" />,     label: "Pending",    color: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
+    processing: { icon: <Truck className="w-2.5 h-2.5" />,     label: "Processing", color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
+    shipped:    { icon: <Package className="w-2.5 h-2.5" />,   label: "Shipped",    color: "bg-purple-500/10 text-purple-600 border-purple-500/20" },
+    delivered:  { icon: <CheckCircle className="w-2.5 h-2.5" />, label: "Delivered", color: "bg-green-500/10 text-green-600 border-green-500/20" },
+    completed:  { icon: <CheckCircle className="w-2.5 h-2.5" />, label: "Completed", color: "bg-green-500/10 text-green-600 border-green-500/20" },
+    cancelled:  { icon: <AlertTriangle className="w-2.5 h-2.5" />, label: "Cancelled", color: "bg-red-500/10 text-red-600 border-red-500/20" },
   };
   const c = config[status] || config.pending;
   return (
@@ -45,7 +43,6 @@ const StatusBadge = ({ status }: { status: string }) => {
   );
 };
 
-// ── OrderSummaryCard ── Reusable component to reduce duplication ──────────────
 const OrderSummaryCard = ({ order, isSellerView }: { order: any; isSellerView?: boolean }) => (
   <div className="space-y-2 mb-4">
     {order.items.map((item: any) => (
@@ -66,7 +63,6 @@ const OrderSummaryCard = ({ order, isSellerView }: { order: any; isSellerView?: 
   </div>
 );
 
-// ── DeliveryInfoCard ── Reusable component ────────────────────────────────────
 const DeliveryInfoCard = ({ order }: { order: any }) => (
   <div className="border-t border-border pt-3 flex flex-wrap gap-4 mb-4">
     <div>
@@ -96,7 +92,6 @@ const DeliveryInfoCard = ({ order }: { order: any }) => (
   </div>
 );
 
-// ── Guest banner ──────────────────────────────────────────────────────────────
 const GuestAuthBanner = ({ action }: { action: string }) => {
   const navigate = useNavigate();
   return (
@@ -115,8 +110,7 @@ const GuestAuthBanner = ({ action }: { action: string }) => {
   );
 };
 
-// ── EmptyState ── Reusable empty state component ──────────────────────────────
-const EmptyState = ({ title, message, actionText, actionLink }: { 
+const EmptyState = ({ title, message, actionText, actionLink }: {
   title: string; message: string; actionText?: string; actionLink?: string;
 }) => (
   <div className="text-center py-20">
@@ -164,10 +158,13 @@ const AccountOrders = memo(({
 
   if (isGuest) return <GuestAuthBanner action="view or place orders" />;
 
-  // Filter orders based on search and status
+  // Badge counts — persist until order is fully complete
+  const incompleteSalesCount = sellerOrders.filter(o => !(o.sellerConfirmed && o.buyerConfirmed)).length;
+  const incompletePurchasesCount = buyerOrders.filter(o => !o.buyerConfirmed).length;
+
   const filterOrders = useCallback((orders: any[]) => {
     return orders.filter(order => {
-      const matchesSearch = searchTerm === "" || 
+      const matchesSearch = searchTerm === "" ||
         formatOrderId(order.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
         order.items.some((item: any) => item.name.toLowerCase().includes(searchTerm.toLowerCase()));
       const matchesStatus = statusFilter === "all" || order.status === statusFilter;
@@ -175,7 +172,6 @@ const AccountOrders = memo(({
     });
   }, [searchTerm, statusFilter]);
 
-  // Memoize filtered orders
   const filteredSellerOrders = useMemo(() => filterOrders(sellerOrders), [filterOrders, sellerOrders]);
   const filteredBuyerOrders = useMemo(() => filterOrders(buyerOrders), [filterOrders, buyerOrders]);
 
@@ -187,37 +183,42 @@ const AccountOrders = memo(({
     setSavingTracking((p: any) => ({ ...p, [orderId]: false }));
   }, [trackingInputs, addTracking, setSavingTracking]);
 
-  // Get unique statuses for filter dropdown
   const getUniqueStatuses = (orders: any[]) => {
     const statuses = new Set(orders.map(o => o.status));
     return ["all", ...Array.from(statuses)];
   };
 
-  // ── Seller view (with Sales / Purchases toggle) ────────────────────────────
   if (canSell) {
     const currentOrders = orderTab === "sales" ? filteredSellerOrders : filteredBuyerOrders;
     const statuses = getUniqueStatuses(orderTab === "sales" ? sellerOrders : buyerOrders);
 
     return (
       <div>
-        {/* Tab toggle */}
+        {/* Tab toggle with badge counts */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <div className="flex gap-2">
-            {(["sales", "purchases"] as const).map(t => (
-              <button
-                key={t}
-                onClick={() => setOrderTab(t)}
-                className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all capitalize
-                  ${orderTab === t
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"}`}
-              >
-                {t === "sales" ? `Sales (${sellerOrders.length})` : `Purchases (${buyerOrders.length})`}
-              </button>
-            ))}
+            {(["sales", "purchases"] as const).map(t => {
+              const badgeCount = t === "sales" ? incompleteSalesCount : incompletePurchasesCount;
+              return (
+                <button
+                  key={t}
+                  onClick={() => setOrderTab(t)}
+                  className={`relative px-4 py-1.5 rounded-full text-sm font-semibold transition-all capitalize
+                    ${orderTab === t
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "bg-muted text-muted-foreground hover:text-foreground hover:bg-muted/80"}`}
+                >
+                  {t === "sales" ? "Sales" : "Purchases"}
+                  {badgeCount > 0 && (
+                    <span className="ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-white/20 text-[10px] font-bold">
+                      {badgeCount}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
-          
-          {/* Search and Filter */}
+
           {currentOrders.length > 0 && (
             <div className="flex gap-2">
               <div className="relative">
@@ -247,13 +248,13 @@ const AccountOrders = memo(({
           <div>
             {filteredSellerOrders.length === 0 ? (
               searchTerm || statusFilter !== "all" ? (
-                <EmptyState 
-                  title="No matching orders" 
+                <EmptyState
+                  title="No matching orders"
                   message={`No orders found matching "${searchTerm}"${statusFilter !== "all" ? ` with status "${statusFilter}"` : ""}`}
                 />
               ) : (
-                <EmptyState 
-                  title="No orders yet" 
+                <EmptyState
+                  title="No orders yet"
                   message="When buyers purchase your items, orders will appear here."
                   actionText="Start Selling"
                   actionLink="/listings/new"
@@ -267,10 +268,7 @@ const AccountOrders = memo(({
                     {(searchTerm || statusFilter !== "all") && " (filtered)"}
                   </p>
                   {(searchTerm || statusFilter !== "all") && (
-                    <button
-                      onClick={() => { setSearchTerm(""); setStatusFilter("all"); }}
-                      className="text-xs text-primary hover:underline"
-                    >
+                    <button onClick={() => { setSearchTerm(""); setStatusFilter("all"); }} className="text-xs text-primary hover:underline">
                       Clear filters
                     </button>
                   )}
@@ -278,7 +276,6 @@ const AccountOrders = memo(({
                 <div className="space-y-4">
                   {filteredSellerOrders.map((order, i) => (
                     <motion.div key={order.id} {...itemVariant(i)} className="rounded-2xl border border-border p-5 hover:shadow-md transition-shadow">
-                      {/* Order header */}
                       <div className="flex items-start justify-between gap-3 mb-4 flex-wrap">
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
@@ -293,18 +290,16 @@ const AccountOrders = memo(({
                           </div>
                           <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                             <Calendar className="w-3 h-3" />
-                            {new Date(order.placedAt).toLocaleDateString("en-GH", { 
-                              day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" 
+                            {new Date(order.placedAt).toLocaleDateString("en-GH", {
+                              day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
                             })}
                           </p>
                         </div>
                         <p className="font-display font-bold text-lg flex-shrink-0">GHS {order.total}</p>
                       </div>
 
-                      {/* Items */}
                       <OrderSummaryCard order={order} isSellerView />
 
-                      {/* Buyer info */}
                       <div className="border-t border-border pt-3 flex flex-wrap gap-4 mb-4">
                         <div>
                           <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Buyer</p>
@@ -319,7 +314,6 @@ const AccountOrders = memo(({
                         <DeliveryInfoCard order={order} />
                       </div>
 
-                      {/* Confirmation */}
                       <div className="border-t border-border pt-4 space-y-3">
                         <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-3">Confirmation</p>
                         <div className="flex flex-col sm:flex-row gap-3">
@@ -344,7 +338,6 @@ const AccountOrders = memo(({
                           </div>
                         </div>
 
-                        {/* Tracking */}
                         {order.sellerConfirmed && (isVerified || isOfficial) && (
                           <div className="mt-3 pt-3 border-t border-border/50">
                             {order.trackingNumber ? (
@@ -374,9 +367,7 @@ const AccountOrders = memo(({
                                   >
                                     {savingTracking[order.id] ? (
                                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                    ) : (
-                                      "Save"
-                                    )}
+                                    ) : "Save"}
                                   </button>
                                 </div>
                               </div>
@@ -385,8 +376,7 @@ const AccountOrders = memo(({
                         )}
 
                         {order.sellerConfirmed && order.buyerConfirmed && (
-                          <motion.div {...fadeUp}
-                            className="px-4 py-3 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center gap-2">
+                          <motion.div {...fadeUp} className="px-4 py-3 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center gap-2">
                             <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
                             <p className="text-xs font-semibold text-green-600">Order complete — both sides confirmed! 🎉</p>
                           </motion.div>
@@ -400,18 +390,18 @@ const AccountOrders = memo(({
           </div>
         )}
 
-        {/* ── Purchases tab (seller buying from others) ── */}
+        {/* ── Purchases tab ── */}
         {orderTab === "purchases" && (
           <div>
             {filteredBuyerOrders.length === 0 ? (
               searchTerm || statusFilter !== "all" ? (
-                <EmptyState 
-                  title="No matching orders" 
+                <EmptyState
+                  title="No matching orders"
                   message={`No purchases found matching "${searchTerm}"${statusFilter !== "all" ? ` with status "${statusFilter}"` : ""}`}
                 />
               ) : (
-                <EmptyState 
-                  title="No purchases yet" 
+                <EmptyState
+                  title="No purchases yet"
                   message="Your purchase history will appear here."
                   actionText="Shop Now"
                   actionLink="/shop"
@@ -425,10 +415,7 @@ const AccountOrders = memo(({
                     {(searchTerm || statusFilter !== "all") && " (filtered)"}
                   </p>
                   {(searchTerm || statusFilter !== "all") && (
-                    <button
-                      onClick={() => { setSearchTerm(""); setStatusFilter("all"); }}
-                      className="text-xs text-primary hover:underline"
-                    >
+                    <button onClick={() => { setSearchTerm(""); setStatusFilter("all"); }} className="text-xs text-primary hover:underline">
                       Clear filters
                     </button>
                   )}
@@ -492,8 +479,7 @@ const AccountOrders = memo(({
                         </div>
 
                         {order.sellerConfirmed && order.buyerConfirmed && (
-                          <motion.div {...fadeUp}
-                            className="mt-3 px-4 py-3 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center gap-2">
+                          <motion.div {...fadeUp} className="mt-3 px-4 py-3 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center gap-2">
                             <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
                             <p className="text-xs font-semibold text-green-600">Order complete — enjoy your item! 🎉</p>
                           </motion.div>
@@ -533,7 +519,6 @@ const AccountOrders = memo(({
 
   return (
     <div>
-      {/* Search and Filter for buyer view */}
       {buyerOrders.length > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
           <p className="text-sm text-muted-foreground">
@@ -564,13 +549,13 @@ const AccountOrders = memo(({
 
       {filteredBuyerOnlyOrders.length === 0 ? (
         searchTerm || statusFilter !== "all" ? (
-          <EmptyState 
-            title="No matching orders" 
+          <EmptyState
+            title="No matching orders"
             message={`No orders found matching "${searchTerm}"${statusFilter !== "all" ? ` with status "${statusFilter}"` : ""}`}
           />
         ) : (
-          <EmptyState 
-            title="No orders yet" 
+          <EmptyState
+            title="No orders yet"
             message="Your purchase history will appear here."
             actionText="Shop Now"
             actionLink="/shop"
@@ -580,10 +565,7 @@ const AccountOrders = memo(({
         <div className="space-y-4">
           {(searchTerm || statusFilter !== "all") && (
             <div className="flex justify-end">
-              <button
-                onClick={() => { setSearchTerm(""); setStatusFilter("all"); }}
-                className="text-xs text-primary hover:underline"
-              >
+              <button onClick={() => { setSearchTerm(""); setStatusFilter("all"); }} className="text-xs text-primary hover:underline">
                 Clear filters
               </button>
             </div>
@@ -646,8 +628,7 @@ const AccountOrders = memo(({
                 </div>
 
                 {order.sellerConfirmed && order.buyerConfirmed && (
-                  <motion.div {...fadeUp}
-                    className="mt-3 px-4 py-3 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center gap-2">
+                  <motion.div {...fadeUp} className="mt-3 px-4 py-3 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
                     <p className="text-xs font-semibold text-green-600">Order complete — enjoy your item! 🎉</p>
                   </motion.div>

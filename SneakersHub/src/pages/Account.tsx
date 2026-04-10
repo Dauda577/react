@@ -21,17 +21,13 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { fadeUp, IS_MOBILE } from "../components/Account/accountHelpers";
 
-// Eagerly load the two most-visited tabs so they render instantly
 import AccountProfile  from "../components/Account/AccountProfile";
 import AccountOrders   from "../components/Account/AccountOrders";
 
-// Lazy load less-visited tabs
 const AccountListings  = lazy(() => import("../components/Account/AccountListings"));
 const AccountSaved     = lazy(() => import("../components/Account/AccountSaved"));
 const AccountMessages  = lazy(() => import("../components/Account/AccountMessages"));
 const AccountSettings  = lazy(() => import("../components/Account/AccountSettings"));
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 const FIRST_LISTING_BANNER_KEY  = "sneakershub-first-listing-dismissed";
 const FIRST_LISTING_NOTIF_KEY   = "sneakershub-first-listing-notif-sent";
@@ -75,7 +71,6 @@ const GuestAuthBanner = ({ action }: { action: string }) => {
   );
 };
 
-// ── Skeleton fallback ─────────────────────────────────────────────────────────
 const TabSkeleton = () => (
   <div className="space-y-4 py-4">
     {[1, 2, 3].map(i => (
@@ -83,8 +78,6 @@ const TabSkeleton = () => (
     ))}
   </div>
 );
-
-// ── Main component ────────────────────────────────────────────────────────────
 
 const Account = () => {
   const { user, isGuest, logout } = useAuth();
@@ -102,7 +95,11 @@ const Account = () => {
   const { totalUnread } = useMessages();
   const { requestPermission, isSupported: pushSupported, permission: pushPermission, showLocalNotification } = usePush();
 
-  // ── Profile state ──────────────────────────────────────────────────────────
+  // Orders badge — persists until both sides confirm
+  const incompleteOrdersCount = orders.filter(o =>
+    o.sellerId === user?.id && !(o.sellerConfirmed && o.buyerConfirmed)
+  ).length;
+
   const [profileLoaded,   setProfileLoaded]   = useState(false);
   const [editMode,        setEditMode]        = useState(false);
   const [avatarUrl,       setAvatarUrl]       = useState<string | null>(null);
@@ -123,13 +120,11 @@ const Account = () => {
   });
   const [payoutForm, setPayoutForm] = useState({ method: "", number: "", name: "", bankCode: "" });
 
-  // ── Listing / boost state ──────────────────────────────────────────────────
   const [boostingListing,       setBoostingListing]       = useState<Listing | null>(null);
   const [showFirstListingBanner, setShowFirstListingBanner] = useState(false);
   const [trackingInputs, setTrackingInputs] = useState<Record<string, string>>({});
   const [savingTracking, setSavingTracking] = useState<Record<string, boolean>>({});
 
-  // ── Load profile + avatar — cache-first, then fresh from DB ───────────────
   useEffect(() => {
     if (!user?.id) return;
 
@@ -158,16 +153,14 @@ const Account = () => {
       if (p.role === "seller") setTotalListingsCreated(p.listing_count ?? 0);
     };
 
-    // 1. Serve from cache immediately — badges render without any network wait
     try {
       const cached = sessionStorage.getItem(CACHE_KEY);
       if (cached) {
         applyProfileData(JSON.parse(cached));
         setProfileLoaded(true);
       }
-    } catch { /* sessionStorage unavailable — skip cache */ }
+    } catch { /* sessionStorage unavailable */ }
 
-    // 2. Always fetch fresh in background to keep cache up to date
     supabase
       .from("profiles")
       .select("name, phone, city, region, verified, is_official, subaccount_code, payout_method, payout_number, payout_name, listing_count, role, avatar_url")
@@ -175,13 +168,9 @@ const Account = () => {
       .single()
       .then(async ({ data }) => {
         if (!data) return;
-
-        // Update cache with latest data
         try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch { /* ignore */ }
-
         applyProfileData(data);
 
-        // Avatar fallback to auth metadata if DB has none
         if (!data.avatar_url) {
           supabase.auth.getUser().then(({ data: authData }) => {
             const metaPhoto =
@@ -192,7 +181,6 @@ const Account = () => {
           });
         }
 
-        // Check for missing payout details only if verified
         if (data.verified && (!data.payout_method || !data.payout_number)) {
           const { data: application } = await supabase
             .from("seller_applications")
@@ -207,12 +195,10 @@ const Account = () => {
       });
   }, [user?.id]);
 
-  // ── Mark orders seen when tab opens ───────────────────────────────────────
   useEffect(() => {
     if (role === "seller" && activeTab === "orders") markOrdersSeen();
   }, [role, activeTab]);
 
-  // ── Read tab from URL params ───────────────────────────────────────────────
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab");
@@ -222,7 +208,6 @@ const Account = () => {
     }
   }, []);
 
-  // ── Handle boost success redirect ─────────────────────────────────────────
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const boostListingId = params.get("boost_success");
@@ -233,12 +218,10 @@ const Account = () => {
       .catch(() => toast.error("Payment received but boost failed. Contact support."));
   }, [user?.id]);
 
-  // ── Fetch reviews when on profile ─────────────────────────────────────────
   useEffect(() => {
     if (role === "seller" && activeTab === "profile" && user?.id) fetchReviews(user.id);
   }, [role, activeTab, user?.id]);
 
-  // ── First listing banner ───────────────────────────────────────────────────
   useEffect(() => {
     if (role !== "seller" || isGuest) return;
     const dismissed = localStorage.getItem(FIRST_LISTING_BANNER_KEY);
@@ -254,9 +237,7 @@ const Account = () => {
     }
   }, [role, isGuest, listings.length]);
 
-  // ── Callbacks ──────────────────────────────────────────────────────────────
   const handleLogout = useCallback(async () => {
-    // Clear profile cache on logout
     if (user?.id) {
       try { sessionStorage.removeItem(`profile_cache_${user.id}`); } catch { /* ignore */ }
     }
@@ -275,7 +256,6 @@ const Account = () => {
         city: profileForm.city || null, region: profileForm.region || null,
       }).eq("id", user.id);
       if (error) throw error;
-      // Invalidate cache so next load reflects updated profile
       try { sessionStorage.removeItem(`profile_cache_${user.id}`); } catch { /* ignore */ }
       setEditMode(false);
       toast.success("Profile updated!");
@@ -286,7 +266,6 @@ const Account = () => {
     if (!user?.email || !payoutForm.number?.trim()) {
       toast.error("Please save your payout details in Settings first."); return;
     }
-    // Verification is handled via SellerApplicationStatus — this is a no-op placeholder
   }, [user?.email, payoutForm.number]);
 
   const handleDeleteAccount = useCallback(async () => {
@@ -310,14 +289,11 @@ const Account = () => {
     }
   }, [user?.id, navigate]);
 
-  const showBell = (canSell && unseenCount > 0) || (!!user && totalUnread > 0);
-  const totalBellCount = (canSell ? unseenCount : 0) + (user ? totalUnread : 0);
-
+  const totalUnreadCount = (user ? totalUnread : 0);
   const initials = user?.name
     ? user.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
     : isGuest ? "G" : "?";
 
-  // ── Split orders ───────────────────────────────────────────────────────────
   const sellerOrders = orders.filter(o => o.sellerId === user?.id);
   const buyerOrders  = orders.filter(o => o.buyerId  === user?.id);
 
@@ -325,7 +301,6 @@ const Account = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      {/* ── Profile header ── */}
       <section
         className="relative pt-16 border-b border-border"
         style={{ paddingTop: `calc(64px + env(safe-area-inset-top, 0px))` }}
@@ -334,7 +309,6 @@ const Account = () => {
           <motion.div {...(IS_MOBILE ? { initial: { opacity: 0 }, animate: { opacity: 1 } } : fadeUp)}
             className="flex items-center gap-5 pb-8">
 
-            {/* Avatar */}
             <div className="relative flex-shrink-0">
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
                 {avatarUrl
@@ -345,7 +319,6 @@ const Account = () => {
               <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-green-500 border-2 border-background" />
             </div>
 
-            {/* Name + badges */}
             <div className="flex-1">
               <div className="flex items-center gap-2 flex-wrap mb-2">
                 <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold
@@ -357,7 +330,6 @@ const Account = () => {
                     : <><Tag className="w-3 h-3" /> Buyer Account</>}
                 </div>
 
-                {/* Only render badges once profile is confirmed loaded — no flashing "Unverified" */}
                 {!isGuest && role === "seller" && profileLoaded && (
                   <>
                     {isOfficial && (
@@ -411,19 +383,22 @@ const Account = () => {
               >
                 <tab.icon className="w-5 h-5 sm:w-4 sm:h-4" />
                 <span>{tab.label}</span>
-                {tab.id === "orders" && canSell && unseenCount > 0 && (
+
+                {/* Orders badge — persists until both sides confirm */}
+                {tab.id === "orders" && canSell && incompleteOrdersCount > 0 && (
                   <span className="absolute top-2 right-2 sm:static sm:ml-1 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
-                    {unseenCount}
+                    {incompleteOrdersCount}
                   </span>
                 )}
+
                 {tab.id === "saved" && saved.length > 0 && (
                   <span className="absolute top-2 right-2 sm:static sm:ml-1 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
                     {saved.length}
                   </span>
                 )}
-                {tab.id === "messages" && totalUnread > 0 && (
+                {tab.id === "messages" && totalUnreadCount > 0 && (
                   <span className="absolute top-2 right-2 sm:static sm:ml-1 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
-                    {totalUnread > 9 ? "9+" : totalUnread}
+                    {totalUnreadCount > 9 ? "9+" : totalUnreadCount}
                   </span>
                 )}
               </button>
@@ -432,7 +407,6 @@ const Account = () => {
         </div>
       </section>
 
-      {/* ── Tab content ── */}
       <section className="section-padding max-w-4xl mx-auto py-10">
         <AnimatePresence mode="wait">
           <motion.div key={activeTab} {...fadeUp}>
