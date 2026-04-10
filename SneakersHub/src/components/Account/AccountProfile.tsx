@@ -2,29 +2,10 @@ import React, { memo, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
-  User,
-  MapPin,
-  Store,
-  Tag,
-  Star,
-  Pencil,
-  CheckCircle,
-  ArrowRight,
-  LogOut,
-  ShieldCheck,
-  BadgeCheck,
-  ChevronDown,
-  Sparkles,
-  Mail,
-  Phone,
-  Map,
-  Award,
-  TrendingUp,
-  Users,
-  X,
-  Wallet,
-  AlertTriangle,
-  ShoppingBag,
+  User, MapPin, Store, Tag, Star, Pencil, CheckCircle, ArrowRight,
+  LogOut, ShieldCheck, BadgeCheck, ChevronDown, Sparkles, Mail, Phone,
+  Map, Award, TrendingUp, Users, X, Wallet, AlertTriangle, ShoppingBag,
+  Ticket, RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRatings } from "@/context/RatingContext";
@@ -32,6 +13,7 @@ import { fadeUp, itemVariant, IS_MOBILE } from "../Account/accountHelpers";
 import { toast } from "sonner";
 import { useOrders } from "@/context/OrderContext";
 import { useListings } from "@/context/ListingContext";
+import { supabase } from "@/lib/supabase";
 
 const ghanaRegions = [
   "Greater Accra", "Ashanti", "Western", "Central", "Eastern", "Volta",
@@ -60,7 +42,8 @@ interface Props {
   onSetTab: (tab: string) => void;
 }
 
-// Stats Card Component
+// ── Sub-components ─────────────────────────────────────────────────────────────
+
 const StatCard = ({ icon: Icon, label, value, accent }: any) => (
   <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border">
     <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${accent}`}>
@@ -73,6 +56,350 @@ const StatCard = ({ icon: Icon, label, value, accent }: any) => (
   </div>
 );
 
+// ── Promo Request Form ─────────────────────────────────────────────────────────
+
+type PromoRequestStatus = "idle" | "submitting" | "submitted";
+type MyRequest = {
+  id: string;
+  status: "pending" | "approved" | "rejected";
+  discount_amount: number;
+  discount_type: string;
+  expiry_date: string;
+  promo_code_id: string | null;
+  promo_code?: string | null;
+};
+
+const PromoRequestSheet = ({
+  userId,
+  onClose,
+}: {
+  userId: string;
+  onClose: () => void;
+}) => {
+  const [view, setView] = useState<"form" | "history">("form");
+  const [status, setStatus] = useState<PromoRequestStatus>("idle");
+  const [myRequests, setMyRequests] = useState<MyRequest[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [form, setForm] = useState({
+    discount_type: "percentage",
+    discount_amount: "",
+    expiry_date: "",
+    max_uses: "1",
+    note: "",
+  });
+
+  const fetchMyRequests = useCallback(async () => {
+    setLoadingHistory(true);
+    const { data } = await supabase
+      .from("promo_requests")
+      .select("id, status, discount_amount, discount_type, expiry_date, promo_code_id, promo_codes(code)")
+      .eq("seller_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (data) {
+      setMyRequests(
+        data.map((d: any) => ({
+          ...d,
+          promo_code: d.promo_codes?.code ?? null,
+        }))
+      );
+    }
+    setLoadingHistory(false);
+  }, [userId]);
+
+  const handleViewHistory = () => {
+    setView("history");
+    fetchMyRequests();
+  };
+
+  const handleSubmit = async () => {
+    if (!form.discount_amount || !form.expiry_date || !form.max_uses) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+    if (new Date(form.expiry_date) <= new Date()) {
+      toast.error("Expiry date must be in the future");
+      return;
+    }
+    if (parseFloat(form.discount_amount) <= 0) {
+      toast.error("Discount amount must be greater than 0");
+      return;
+    }
+
+    setStatus("submitting");
+    const { error } = await supabase.from("promo_requests").insert({
+      seller_id: userId,
+      discount_type: form.discount_type,
+      discount_amount: parseFloat(form.discount_amount),
+      expiry_date: form.expiry_date,
+      max_uses: parseInt(form.max_uses),
+      note: form.note || null,
+      status: "pending",
+    });
+
+    if (error) {
+      toast.error("Failed to submit request. Please try again.");
+      setStatus("idle");
+      return;
+    }
+
+    setStatus("submitted");
+  };
+
+  const formatDate = (d: string) =>
+    new Date(d).toLocaleDateString("en-GH", { day: "numeric", month: "short", year: "numeric" });
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.div
+        className="w-full max-w-md rounded-2xl bg-background border border-border shadow-2xl overflow-hidden"
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 40 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-border">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Ticket className="w-4 h-4 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-display font-bold text-base">Promo Code Request</h3>
+              <p className="text-xs text-muted-foreground">We'll review and generate it for you</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Tab switcher */}
+        <div className="flex gap-1 p-3 border-b border-border bg-muted/20">
+          <button
+            onClick={() => setView("form")}
+            className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+              view === "form" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"
+            }`}
+          >
+            New Request
+          </button>
+          <button
+            onClick={handleViewHistory}
+            className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-all ${
+              view === "history" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground"
+            }`}
+          >
+            My Requests
+          </button>
+        </div>
+
+        <div className="px-6 py-5 max-h-[70vh] overflow-y-auto">
+
+          {/* ── Form view ── */}
+          {view === "form" && (
+            <>
+              {status === "submitted" ? (
+                <div className="text-center py-6">
+                  <div className="w-14 h-14 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="w-7 h-7 text-green-500" />
+                  </div>
+                  <h4 className="font-display font-bold text-lg mb-2">Request Submitted!</h4>
+                  <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                    We'll review your request and generate your promo code. Check back in "My Requests" to see the status.
+                  </p>
+                  <div className="flex gap-2 mt-6">
+                    <button
+                      onClick={handleViewHistory}
+                      className="flex-1 py-2.5 rounded-xl border border-border text-sm font-semibold hover:bg-muted transition-colors"
+                    >
+                      View My Requests
+                    </button>
+                    <button
+                      onClick={onClose}
+                      className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:opacity-90 transition-opacity"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Discount type */}
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-2">
+                      Discount Type <span className="text-red-400">*</span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(["percentage", "fixed"] as const).map((t) => (
+                        <button
+                          key={t}
+                          onClick={() => setForm(f => ({ ...f, discount_type: t }))}
+                          className={`py-2.5 rounded-xl border text-sm font-semibold transition-all ${
+                            form.discount_type === t
+                              ? "border-primary bg-primary/10 text-primary"
+                              : "border-border text-muted-foreground hover:border-primary/40"
+                          }`}
+                        >
+                          {t === "percentage" ? "Percentage (%)" : "Fixed (GHS)"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Discount amount */}
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                      Discount Amount <span className="text-red-400">*</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-medium">
+                        {form.discount_type === "percentage" ? "%" : "GHS"}
+                      </span>
+                      <input
+                        type="number"
+                        value={form.discount_amount}
+                        onChange={e => setForm(f => ({ ...f, discount_amount: e.target.value }))}
+                        placeholder={form.discount_type === "percentage" ? "e.g. 10" : "e.g. 20"}
+                        min={1}
+                        max={form.discount_type === "percentage" ? 90 : undefined}
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm
+                          focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Expiry date */}
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                      Expiry Date <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={form.expiry_date}
+                      min={new Date().toISOString().split("T")[0]}
+                      onChange={e => setForm(f => ({ ...f, expiry_date: e.target.value }))}
+                      className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm
+                        focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
+                    />
+                  </div>
+
+                  {/* Max uses */}
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                      Max Uses <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      value={form.max_uses}
+                      onChange={e => setForm(f => ({ ...f, max_uses: e.target.value }))}
+                      placeholder="e.g. 50"
+                      min={1}
+                      max={1000}
+                      className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm
+                        focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
+                    />
+                    <p className="text-[11px] text-muted-foreground mt-1">How many customers can use this code</p>
+                  </div>
+
+                  {/* Note */}
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
+                      Campaign / Reason (optional)
+                    </label>
+                    <textarea
+                      value={form.note}
+                      onChange={e => setForm(f => ({ ...f, note: e.target.value }))}
+                      placeholder="e.g. Flash sale for new arrivals, Eid promo..."
+                      rows={2}
+                      className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm
+                        focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20
+                        transition-all resize-none"
+                    />
+                  </div>
+
+                  <button
+                    onClick={handleSubmit}
+                    disabled={status === "submitting"}
+                    className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-bold
+                      hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {status === "submitting" ? (
+                      <><RefreshCw className="w-4 h-4 animate-spin" /> Submitting...</>
+                    ) : (
+                      <><Ticket className="w-4 h-4" /> Submit Request</>
+                    )}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ── History view ── */}
+          {view === "history" && (
+            <div className="space-y-3">
+              {loadingHistory ? (
+                <div className="py-8 text-center text-sm text-muted-foreground">Loading...</div>
+              ) : myRequests.length === 0 ? (
+                <div className="py-8 text-center">
+                  <Ticket className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground">No requests yet.</p>
+                </div>
+              ) : (
+                myRequests.map((req) => (
+                  <div key={req.id} className="rounded-xl border border-border p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-bold">
+                        {req.discount_type === "percentage"
+                          ? `${req.discount_amount}% off`
+                          : `GHS ${req.discount_amount} off`}
+                      </p>
+                      <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold border ${
+                        req.status === "pending"
+                          ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                          : req.status === "approved"
+                          ? "bg-green-500/10 text-green-600 border-green-500/20"
+                          : "bg-red-500/10 text-red-500 border-red-500/20"
+                      }`}>
+                        {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Expires: {formatDate(req.expiry_date)}
+                    </p>
+                    {req.status === "approved" && req.promo_code && (
+                      <div className="flex items-center gap-2 mt-1 p-2 rounded-lg bg-green-500/10 border border-green-500/20">
+                        <CheckCircle className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+                        <p className="text-xs text-green-600">
+                          Your code: <span className="font-mono font-bold">{req.promo_code}</span>
+                        </p>
+                      </div>
+                    )}
+                    {req.status === "pending" && (
+                      <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                        <RefreshCw className="w-3 h-3" /> Under review — we'll generate your code shortly
+                      </p>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+// ── Main Component ─────────────────────────────────────────────────────────────
+
 const AccountProfile = memo(({
   user, isGuest, role, isVerified, isOfficial, subaccountCode,
   verificationLoading, editMode, setEditMode, profileForm, setProfileForm,
@@ -83,6 +410,7 @@ const AccountProfile = memo(({
   const { orders } = useOrders();
   const { listings } = useListings();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showPromoSheet, setShowPromoSheet] = useState(false);
 
   const initials = user?.name
     ? user.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
@@ -96,7 +424,6 @@ const AccountProfile = memo(({
     onSaveProfile();
   }, [profileForm, onSaveProfile]);
 
-  // Calculate real stats from orders and listings
   const sellerOrdersList = orders?.filter(o => o.sellerId === user?.id) || [];
   const totalSales = sellerOrdersList.reduce((sum, o) => sum + o.total, 0);
   const orderCount = sellerOrdersList.length;
@@ -124,8 +451,8 @@ const AccountProfile = memo(({
           </Button>
         </div>
       </div>
-      <button 
-        onClick={() => setShowLogoutConfirm(true)} 
+      <button
+        onClick={() => setShowLogoutConfirm(true)}
         className="mt-6 text-sm text-red-500 flex items-center gap-1.5 hover:opacity-70 transition-opacity mx-auto"
       >
         <LogOut className="w-3.5 h-3.5" /> Exit guest mode
@@ -139,9 +466,11 @@ const AccountProfile = memo(({
   const count = stats?.count ?? 0;
   const hasCompleteProfile = profileForm.name && profileForm.phone && profileForm.region;
 
+  const isSeller = role === "seller";
+
   return (
     <div className="space-y-6">
-      {/* Simple Profile Header - removed avatar edit button and member since */}
+      {/* Profile header */}
       <div className="flex items-center gap-4 p-5 rounded-2xl border border-border bg-card">
         <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white font-display text-xl font-bold shadow-lg flex-shrink-0">
           {avatarUrl ? (
@@ -165,54 +494,30 @@ const AccountProfile = memo(({
         </div>
       </div>
 
-      {/* Stats Row for Sellers - WITH REAL DATA */}
-      {role === "seller" && (
+      {/* Stats */}
+      {isSeller && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <StatCard 
-            icon={TrendingUp} 
-            label="Total Sales" 
-            value={`GHS ${totalSales.toLocaleString()}`} 
-            accent="bg-green-500/10 text-green-500" 
-          />
-          <StatCard 
-            icon={ShoppingBag} 
-            label="Orders" 
-            value={orderCount.toString()} 
-            accent="bg-blue-500/10 text-blue-500" 
-          />
-          <StatCard 
-            icon={Star} 
-            label="Rating" 
-            value={count > 0 ? `${average.toFixed(1)} (${count})` : "No reviews"} 
-            accent="bg-amber-500/10 text-amber-500" 
-          />
-          <StatCard 
-            icon={Store} 
-            label="Listings" 
-            value={`${activeListings}/${totalListings}`} 
-            accent="bg-purple-500/10 text-purple-500" 
-          />
+          <StatCard icon={TrendingUp} label="Total Sales" value={`GHS ${totalSales.toLocaleString()}`} accent="bg-green-500/10 text-green-500" />
+          <StatCard icon={ShoppingBag} label="Orders" value={orderCount.toString()} accent="bg-blue-500/10 text-blue-500" />
+          <StatCard icon={Star} label="Rating" value={count > 0 ? `${average.toFixed(1)} (${count})` : "No reviews"} accent="bg-amber-500/10 text-amber-500" />
+          <StatCard icon={Store} label="Listings" value={`${activeListings}/${totalListings}`} accent="bg-purple-500/10 text-purple-500" />
         </div>
       )}
 
-      {/* Profile Form */}
+      {/* Profile form */}
       <div className="rounded-2xl border border-border p-6">
         <div className="flex items-center justify-between mb-5">
           <h3 className="font-display text-base font-bold flex items-center gap-2">
             <User className="w-4 h-4 text-primary" /> Profile Information
           </h3>
           {!editMode && (
-            <button 
-              onClick={() => setEditMode(true)} 
-              className="text-xs text-primary flex items-center gap-1 hover:underline"
-            >
+            <button onClick={() => setEditMode(true)} className="text-xs text-primary flex items-center gap-1 hover:underline">
               <Pencil className="w-3 h-3" /> Edit
             </button>
           )}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Name */}
           <div>
             <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
               Full Name <span className="text-red-400">*</span>
@@ -231,7 +536,6 @@ const AccountProfile = memo(({
             </div>
           </div>
 
-          {/* Email (read-only) */}
           <div>
             <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
               Email
@@ -246,7 +550,6 @@ const AccountProfile = memo(({
             </div>
           </div>
 
-          {/* Phone */}
           <div>
             <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
               Phone Number
@@ -265,7 +568,6 @@ const AccountProfile = memo(({
             </div>
           </div>
 
-          {/* City */}
           <div>
             <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
               City
@@ -284,10 +586,9 @@ const AccountProfile = memo(({
             </div>
           </div>
 
-          {/* Region */}
           <div>
             <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
-              Region {role === "seller" && <span className="text-red-400 text-[10px] normal-case">*</span>}
+              Region {isSeller && <span className="text-red-400 text-[10px] normal-case">*</span>}
             </label>
             <div className="relative">
               <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
@@ -314,7 +615,6 @@ const AccountProfile = memo(({
             </div>
           </div>
 
-          {/* Bio (full width) */}
           <div className="col-span-full">
             <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
               Bio
@@ -332,7 +632,6 @@ const AccountProfile = memo(({
           </div>
         </div>
 
-        {/* Profile Completion Warning */}
         {!hasCompleteProfile && editMode && (
           <div className="mt-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
@@ -342,22 +641,17 @@ const AccountProfile = memo(({
           </div>
         )}
 
-        {/* Action Buttons */}
         <div className="flex items-center justify-between gap-3 pt-5 mt-2 border-t border-border">
           {editMode ? (
             <div className="flex gap-2">
-              <Button 
-                className="btn-primary rounded-full h-9 px-6 text-sm" 
+              <Button
+                className="btn-primary rounded-full h-9 px-6 text-sm"
                 onClick={handleSaveProfile}
                 disabled={!hasCompleteProfile}
               >
                 <CheckCircle className="mr-1.5 w-3.5 h-3.5" /> Save Changes
               </Button>
-              <Button 
-                variant="outline" 
-                className="rounded-full h-9 px-6 text-sm" 
-                onClick={() => setEditMode(false)}
-              >
+              <Button variant="outline" className="rounded-full h-9 px-6 text-sm" onClick={() => setEditMode(false)}>
                 Cancel
               </Button>
             </div>
@@ -366,8 +660,8 @@ const AccountProfile = memo(({
               <Pencil className="mr-1.5 w-3.5 h-3.5" /> Edit Profile
             </Button>
           )}
-          <button 
-            onClick={() => setShowLogoutConfirm(true)} 
+          <button
+            onClick={() => setShowLogoutConfirm(true)}
             className="text-sm text-red-500 flex items-center gap-1.5 hover:opacity-70 transition-opacity"
           >
             <LogOut className="w-3.5 h-3.5" /> Sign out
@@ -375,8 +669,27 @@ const AccountProfile = memo(({
         </div>
       </div>
 
-      {/* Verification banner — unverified seller */}
-      {role === "seller" && !isVerified && !isOfficial && (
+      {/* Promo request link — sellers only */}
+      {isSeller && (
+        <button
+          onClick={() => setShowPromoSheet(true)}
+          className="w-full flex items-center justify-between px-5 py-4 rounded-2xl border border-border hover:border-primary/30 hover:bg-primary/5 transition-all group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+              <Ticket className="w-4 h-4 text-primary" />
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-semibold">Request a Promo Code</p>
+              <p className="text-xs text-muted-foreground">Boost your sales with a discount code for your store</p>
+            </div>
+          </div>
+          <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+        </button>
+      )}
+
+      {/* Verification banners */}
+      {isSeller && !isVerified && !isOfficial && (
         <motion.div {...fadeUp}
           className="flex items-start gap-4 p-5 rounded-2xl border border-green-500/30 bg-gradient-to-r from-green-500/5 to-transparent">
           <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center flex-shrink-0">
@@ -387,7 +700,7 @@ const AccountProfile = memo(({
               Get Verified — GHS 50 one-time fee
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed mb-3">
-              Verified sellers get a ✅ badge, Paystack split payments, and significantly more sales. 
+              Verified sellers get a ✅ badge, Paystack split payments, and significantly more sales.
               Buyers trust verified sellers 3x more!
             </p>
             <div className="flex flex-wrap gap-3">
@@ -425,8 +738,7 @@ const AccountProfile = memo(({
         </motion.div>
       )}
 
-      {/* Verified confirmation */}
-      {role === "seller" && isVerified && !isOfficial && (
+      {isSeller && isVerified && !isOfficial && (
         <motion.div {...fadeUp}
           className="flex items-start gap-4 p-5 rounded-2xl border border-green-500/30 bg-gradient-to-r from-green-500/5 to-transparent">
           <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center flex-shrink-0">
@@ -451,8 +763,7 @@ const AccountProfile = memo(({
         </motion.div>
       )}
 
-      {/* Official seller confirmation */}
-      {role === "seller" && isOfficial && (
+      {isSeller && isOfficial && (
         <motion.div {...fadeUp}
           className="flex items-start gap-4 p-5 rounded-2xl border"
           style={{ borderColor: "#6d28d9", background: "linear-gradient(135deg, rgba(59,7,100,0.08), rgba(30,27,75,0.08))" }}
@@ -464,15 +775,15 @@ const AccountProfile = memo(({
           <div>
             <p className="font-display font-semibold text-base" style={{ color: "#a78bfa" }}>Official Seller ✨</p>
             <p className="text-sm text-muted-foreground mt-1">
-              Your store is recognised as an official brand on SneakersHub. 
+              Your store is recognised as an official brand on SneakersHub.
               Your listings are permanently boosted and appear at the top of search results.
             </p>
           </div>
         </motion.div>
       )}
 
-      {/* Reviews section — all sellers (verified and official) */}
-      {role === "seller" && (
+      {/* Reviews */}
+      {isSeller && (
         <div className="rounded-2xl border border-border p-6">
           <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
             <div>
@@ -516,8 +827,8 @@ const AccountProfile = memo(({
                         <div>
                           <p className="text-sm font-medium">{review.buyerName || "Anonymous"}</p>
                           <p className="text-[10px] text-muted-foreground">
-                            {new Date(review.createdAt).toLocaleDateString("en-GH", { 
-                              day: "numeric", month: "short", year: "numeric" 
+                            {new Date(review.createdAt).toLocaleDateString("en-GH", {
+                              day: "numeric", month: "short", year: "numeric"
                             })}
                           </p>
                         </div>
@@ -539,14 +850,19 @@ const AccountProfile = memo(({
         </div>
       )}
 
-      {/* Logout Confirmation Modal */}
+      {/* Promo request bottom sheet */}
+      <AnimatePresence>
+        {showPromoSheet && user?.id && (
+          <PromoRequestSheet userId={user.id} onClose={() => setShowPromoSheet(false)} />
+        )}
+      </AnimatePresence>
+
+      {/* Logout modal */}
       <AnimatePresence>
         {showLogoutConfirm && (
           <motion.div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => setShowLogoutConfirm(false)}
           >
             <motion.div
@@ -572,10 +888,7 @@ const AccountProfile = memo(({
                     Cancel
                   </button>
                   <button
-                    onClick={() => {
-                      setShowLogoutConfirm(false);
-                      onLogout();
-                    }}
+                    onClick={() => { setShowLogoutConfirm(false); onLogout(); }}
                     className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 transition"
                   >
                     Sign Out

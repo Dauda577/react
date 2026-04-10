@@ -80,7 +80,11 @@ export default function Checkout() {
   // Promo code state
   const [promoCode, setPromoCode] = useState("");
   const [promoLoading, setPromoLoading] = useState(false);
-  const [appliedPromo, setAppliedPromo] = useState<{ code: string; discountPercent: number } | null>(null);
+  const [appliedPromo, setAppliedPromo] = useState<{
+  code: string;
+  discountPercent: number;
+  sellerId: string | null;
+} | null>(null);
 
   // Group cart items by seller
   const sellerGroups = groupBySeller(items);
@@ -130,34 +134,46 @@ export default function Checkout() {
   const finalTotal = groupTotal - promoDiscount;
 
   const handleApplyPromo = async () => {
-    if (!promoCode.trim()) return;
-    setPromoLoading(true);
-    const { data, error } = await supabase
-      .from("promo_codes")
-      .select("code, discount_percent, expires_at, max_uses, uses_count")
-      .eq("code", promoCode.trim().toUpperCase())
-      .single();
+  if (!promoCode.trim()) return;
+  setPromoLoading(true);
 
-    if (error || !data) {
-      toast.error("Invalid promo code");
-      setPromoLoading(false);
-      return;
-    }
-    if (data.expires_at && new Date(data.expires_at) < new Date()) {
-      toast.error("This promo code has expired");
-      setPromoLoading(false);
-      return;
-    }
-    if (data.max_uses && data.uses_count >= data.max_uses) {
-      toast.error("This promo code has reached its usage limit");
-      setPromoLoading(false);
-      return;
-    }
-    setAppliedPromo({ code: data.code, discountPercent: data.discount_percent });
-    toast.success(`Promo applied — ${data.discount_percent}% off!`);
+  const { data, error } = await supabase
+    .from("promo_codes")
+    .select("code, discount_percent, expires_at, max_uses, uses_count, seller_id")
+    .eq("code", promoCode.trim().toUpperCase())
+    .single();
+
+  if (error || !data) {
+    toast.error("Invalid promo code");
     setPromoLoading(false);
-  };
+    return;
+  }
+  if (data.expires_at && new Date(data.expires_at) < new Date()) {
+    toast.error("This promo code has expired");
+    setPromoLoading(false);
+    return;
+  }
+  if (data.max_uses && data.uses_count >= data.max_uses) {
+    toast.error("This promo code has reached its usage limit");
+    setPromoLoading(false);
+    return;
+  }
 
+  if (data.seller_id && data.seller_id !== currentGroup?.sellerId) {
+    toast.error("This promo code is not valid for this seller");
+    setPromoLoading(false);
+    return;
+  }
+
+  setAppliedPromo({ 
+  code: data.code, 
+  discountPercent: data.discount_percent,
+  sellerId: data.seller_id ?? null,
+});
+  toast.success(`Promo applied — ${data.discount_percent}% off!`);
+  setPromoLoading(false);
+  };
+  
   const handleRemovePromo = () => {
     setAppliedPromo(null);
     setPromoCode("");
@@ -285,6 +301,7 @@ export default function Checkout() {
 
               if (currentGroupIndex + 1 < sellerGroups.length) {
                 setCurrentGroupIndex((i) => i + 1);
+                setAppliedPromo(null)
                 setLoading(false);
               } else {
                 clearCart();
@@ -325,6 +342,7 @@ export default function Checkout() {
 
       if (currentGroupIndex + 1 < sellerGroups.length) {
         setCurrentGroupIndex((i) => i + 1);
+        setAppliedPromo(null)
         setLoading(false);
       } else {
         clearCart();
