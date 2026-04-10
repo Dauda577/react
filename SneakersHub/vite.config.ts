@@ -8,30 +8,24 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      injectRegister: false, // we handle registration manually in main.tsx
+      injectRegister: false,
 
       workbox: {
-        // Clean up old caches automatically on SW activation
         cleanupOutdatedCaches: true,
-
-        // Activate new SW immediately without waiting for all tabs to close
         skipWaiting: true,
         clientsClaim: true,
 
-        // Cache strategies
         runtimeCaching: [
           {
-            // Supabase API — network first, fall back to cache
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
             handler: "NetworkFirst",
             options: {
               cacheName: "supabase-cache",
               networkTimeoutSeconds: 10,
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 5 }, // 5 min
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 5 },
             },
           },
           {
-            // Images — cache first (they don't change)
             urlPattern: /\.(?:png|jpg|jpeg|webp|svg|gif|ico)$/i,
             handler: "CacheFirst",
             options: {
@@ -40,30 +34,28 @@ export default defineConfig({
             },
           },
           {
-            // Google Fonts CSS
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: "StaleWhileRevalidate",
             options: {
               cacheName: "google-fonts-css",
-              expiration: { maxEntries: 5, maxAgeSeconds: 60 * 60 * 24 * 30 }, // 30 days
+              expiration: { maxEntries: 5, maxAgeSeconds: 60 * 60 * 24 * 30 },
             },
           },
           {
-            // Google Fonts WOFF2 files
             urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
             handler: "CacheFirst",
             options: {
               cacheName: "google-fonts-woff2",
-              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 }, // 1 year
+              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
             },
           },
           {
-            // Static assets (JS/CSS) — cache first with versioning
             urlPattern: /^https:\/\/sneakershub\.site\/assets\/.*\.(js|css)$/i,
-            handler: "CacheFirst",
+            handler: "NetworkFirst",
             options: {
               cacheName: "static-assets",
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 * 30 }, // 30 days
+              networkTimeoutSeconds: 10,
+              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 * 30 },
             },
           },
         ],
@@ -98,59 +90,42 @@ export default defineConfig({
     alias: { "@": path.resolve(__dirname, "./src") },
   },
   build: {
-    // Enable source maps for debugging (optional, disable in prod if not needed)
     sourcemap: false,
-    
-    // Target modern browsers for smaller bundles
     target: "es2020",
-    
-    // Chunk size warning limit
     chunkSizeWarningLimit: 1000,
-    
     rollupOptions: {
       output: {
         manualChunks: {
           "vendor-react":    ["react", "react-dom", "react-router-dom"],
           "vendor-motion":   ["framer-motion"],
           "vendor-supabase": ["@supabase/supabase-js"],
-          "vendor-ui":       ["@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu"], // if you use Radix
+          "vendor-ui":       ["@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu"],
         },
-        // Optimize chunk naming for better caching
         chunkFileNames: "assets/[name]-[hash].js",
         entryFileNames: "assets/[name]-[hash].js",
         assetFileNames: "assets/[name]-[hash].[ext]",
       },
     },
-    
-    // CSS optimization
     cssCodeSplit: true,
     cssMinify: true,
-    
-    // Drop console logs in production
     minify: "terser",
     terserOptions: {
-      compress: { 
-        drop_console: true, 
+      compress: {
+        drop_console: true,
         drop_debugger: true,
-        pure_funcs: ["console.log", "console.info", "console.debug", "console.trace"], // Remove specific console methods
+        pure_funcs: ["console.log", "console.info", "console.debug", "console.trace"],
       },
     },
-    
-    // Improve build performance
     reportCompressedSize: false,
   },
-  
-  // Development server optimizations
   server: {
-    open: false, // Don't auto-open browser
+    open: false,
     hmr: {
-      overlay: true, // Show errors in browser
+      overlay: true,
     },
   },
-  
-  // Optimize dependencies pre-bundling
   optimizeDeps: {
     include: ["react", "react-dom", "react-router-dom", "framer-motion", "@supabase/supabase-js"],
-    exclude: [], // Add any problematic dependencies here
+    exclude: [],
   },
 });
