@@ -101,10 +101,10 @@
     overflow-x: hidden;
     width: 100%;
     max-width: 100%;
-    /* Prevent horizontal scroll on mobile */
     position: relative;
-    /* Smooth transitions but don't block theme change */
     transition: background-color 0.2s ease, color 0.2s ease;
+    padding-top: env(safe-area-inset-top);      
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   #root {
