@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Zap, Package, Search, X } from "lucide-react";
 import Navbar from "@/components/Navbar";
@@ -7,25 +7,35 @@ import SneakerCard from "@/components/SneakerCard";
 import { usePublicListings } from "@/context/PublicListingsContext";
 import { Button } from "@/components/ui/button";
 
+const PAGE_SIZE = 30;
+
 const Featured = () => {
   const { listings, loading } = usePublicListings();
   const [search, setSearch] = useState("");
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const now = Date.now();
   const isActiveBoost = (l: (typeof listings)[0]) => {
     if (!l.boosted) return false;
-    if (!l.boostExpiresAt) return true; // official — no expiry
+    if (!l.boostExpiresAt) return true;
     return new Date(l.boostExpiresAt).getTime() > now;
   };
 
-  // All actively boosted listings, newest boost first
-  const featured = listings
+  const allFeatured = listings
     .filter(isActiveBoost)
     .filter((l) =>
       !search ||
       l.name.toLowerCase().includes(search.toLowerCase()) ||
       l.brand.toLowerCase().includes(search.toLowerCase())
     );
+
+  const featured = allFeatured.slice(0, visibleCount);
+  const hasMore = allFeatured.length > visibleCount;
+
+  // Reset pagination when search changes
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [search]);
 
   const toCardShape = (l: typeof listings[0]) => ({
     id: l.id,
@@ -57,7 +67,7 @@ const Featured = () => {
           <p className="text-muted-foreground mt-2 text-sm">
             {loading
               ? "Loading..."
-              : `${featured.length} ${featured.length === 1 ? "listing" : "listings"} currently featured`}
+              : `${allFeatured.length} ${allFeatured.length === 1 ? "listing" : "listings"} currently featured`}
           </p>
         </motion.div>
 
@@ -85,7 +95,7 @@ const Featured = () => {
               <div key={i} className="rounded-2xl border border-border bg-card h-56 sm:h-72 animate-pulse" />
             ))}
           </div>
-        ) : featured.length === 0 ? (
+        ) : allFeatured.length === 0 ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
             className="text-center py-20 border border-dashed border-border rounded-2xl">
             <div className="w-14 h-14 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto mb-4">
@@ -104,17 +114,35 @@ const Featured = () => {
             )}
           </motion.div>
         ) : (
-          <motion.div layout className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
-            <AnimatePresence>
-              {featured.map((l, i) => (
-                <motion.div key={l.id} layout initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                  transition={{ delay: i * 0.04 }}>
-                  <SneakerCard sneaker={toCardShape(l)} index={i} />
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </motion.div>
+          <>
+            <motion.div layout className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
+              <AnimatePresence>
+                {featured.map((l, i) => (
+                  <motion.div key={l.id} layout initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                    transition={{ delay: i < PAGE_SIZE ? i * 0.04 : 0 }}>
+                    <SneakerCard sneaker={toCardShape(l)} index={i} />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </motion.div>
+
+            {/* Load more */}
+            {hasMore && (
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                className="text-center mt-10"
+              >
+                <Button
+                  variant="outline"
+                  className="rounded-full px-8"
+                  onClick={() => setVisibleCount(v => v + PAGE_SIZE)}
+                >
+                  Load More ({allFeatured.length - visibleCount} remaining)
+                </Button>
+              </motion.div>
+            )}
+          </>
         )}
       </div>
 

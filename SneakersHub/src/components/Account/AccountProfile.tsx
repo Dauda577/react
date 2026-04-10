@@ -1,15 +1,15 @@
-import React, { memo, useState, useCallback } from "react";
+import React, { memo, useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
-  User, MapPin, Store, Tag, Star, Pencil, CheckCircle, ArrowRight,
+  User, MapPin, Store, Star, Pencil, CheckCircle, ArrowRight,
   LogOut, ShieldCheck, BadgeCheck, ChevronDown, Sparkles, Mail, Phone,
-  Map, Award, TrendingUp, Users, X, Wallet, AlertTriangle, ShoppingBag,
+  Map, TrendingUp, X, Wallet, AlertTriangle, ShoppingBag,
   Ticket, RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRatings } from "@/context/RatingContext";
-import { fadeUp, itemVariant, IS_MOBILE } from "../Account/accountHelpers";
+import { fadeUp, itemVariant } from "../Account/accountHelpers";
 import { toast } from "sonner";
 import { useOrders } from "@/context/OrderContext";
 import { useListings } from "@/context/ListingContext";
@@ -56,7 +56,7 @@ const StatCard = ({ icon: Icon, label, value, accent }: any) => (
   </div>
 );
 
-// ── Promo Request Form ─────────────────────────────────────────────────────────
+// ── Promo Request Sheet ────────────────────────────────────────────────────────
 
 type PromoRequestStatus = "idle" | "submitting" | "submitted";
 type MyRequest = {
@@ -66,15 +66,18 @@ type MyRequest = {
   discount_type: string;
   expiry_date: string;
   promo_code_id: string | null;
+  seen_at: string | null;
   promo_code?: string | null;
 };
 
 const PromoRequestSheet = ({
   userId,
   onClose,
+  onSeen,
 }: {
   userId: string;
   onClose: () => void;
+  onSeen: () => void;
 }) => {
   const [view, setView] = useState<"form" | "history">("form");
   const [status, setStatus] = useState<PromoRequestStatus>("idle");
@@ -92,20 +95,32 @@ const PromoRequestSheet = ({
     setLoadingHistory(true);
     const { data } = await supabase
       .from("promo_requests")
-      .select("id, status, discount_amount, discount_type, expiry_date, promo_code_id, promo_codes(code)")
+      .select("id, status, discount_amount, discount_type, expiry_date, promo_code_id, seen_at, promo_codes(code)")
       .eq("seller_id", userId)
       .order("created_at", { ascending: false });
 
     if (data) {
-      setMyRequests(
-        data.map((d: any) => ({
-          ...d,
-          promo_code: d.promo_codes?.code ?? null,
-        }))
-      );
+      const mapped = data.map((d: any) => ({
+        ...d,
+        promo_code: d.promo_codes?.code ?? null,
+      }));
+      setMyRequests(mapped);
+
+      // Mark unseen approved requests as seen
+      const unseenIds = mapped
+        .filter((r: MyRequest) => r.status === "approved" && !r.seen_at)
+        .map((r: MyRequest) => r.id);
+
+      if (unseenIds.length > 0) {
+        await supabase
+          .from("promo_requests")
+          .update({ seen_at: new Date().toISOString() })
+          .in("id", unseenIds);
+        onSeen();
+      }
     }
     setLoadingHistory(false);
-  }, [userId]);
+  }, [userId, onSeen]);
 
   const handleViewHistory = () => {
     setView("history");
@@ -213,7 +228,7 @@ const PromoRequestSheet = ({
                   </div>
                   <h4 className="font-display font-bold text-lg mb-2">Request Submitted!</h4>
                   <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-                    We'll review your request and generate your promo code. Check back in "My Requests" to see the status.
+                    We'll review your request and generate your promo code. Check "My Requests" to see the status.
                   </p>
                   <div className="flex gap-2 mt-6">
                     <button
@@ -232,7 +247,6 @@ const PromoRequestSheet = ({
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {/* Discount type */}
                   <div>
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-2">
                       Discount Type <span className="text-red-400">*</span>
@@ -254,7 +268,6 @@ const PromoRequestSheet = ({
                     </div>
                   </div>
 
-                  {/* Discount amount */}
                   <div>
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
                       Discount Amount <span className="text-red-400">*</span>
@@ -276,7 +289,6 @@ const PromoRequestSheet = ({
                     </div>
                   </div>
 
-                  {/* Expiry date */}
                   <div>
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
                       Expiry Date <span className="text-red-400">*</span>
@@ -291,7 +303,6 @@ const PromoRequestSheet = ({
                     />
                   </div>
 
-                  {/* Max uses */}
                   <div>
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
                       Max Uses <span className="text-red-400">*</span>
@@ -309,7 +320,6 @@ const PromoRequestSheet = ({
                     <p className="text-[11px] text-muted-foreground mt-1">How many customers can use this code</p>
                   </div>
 
-                  {/* Note */}
                   <div>
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1.5">
                       Campaign / Reason (optional)
@@ -411,6 +421,24 @@ const AccountProfile = memo(({
   const { listings } = useListings();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showPromoSheet, setShowPromoSheet] = useState(false);
+  const [hasUnseenPromo, setHasUnseenPromo] = useState(false);
+
+  const isSeller = role === "seller";
+
+  // Check for unseen approved promo codes on mount
+  useEffect(() => {
+    if (!user?.id || !isSeller) return;
+    supabase
+      .from("promo_requests")
+      .select("id")
+      .eq("seller_id", user.id)
+      .eq("status", "approved")
+      .is("seen_at", null)
+      .limit(1)
+      .then(({ data }) => {
+        setHasUnseenPromo((data?.length ?? 0) > 0);
+      });
+  }, [user?.id, isSeller]);
 
   const initials = user?.name
     ? user.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
@@ -466,35 +494,10 @@ const AccountProfile = memo(({
   const count = stats?.count ?? 0;
   const hasCompleteProfile = profileForm.name && profileForm.phone && profileForm.region;
 
-  const isSeller = role === "seller";
-
   return (
     <div className="space-y-6">
-      {/* Profile header */}
-      <div className="flex items-center gap-4 p-5 rounded-2xl border border-border bg-card">
-        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white font-display text-xl font-bold shadow-lg flex-shrink-0">
-          {avatarUrl ? (
-            <img src={avatarUrl} alt={user?.name} className="w-full h-full rounded-full object-cover" />
-          ) : (
-            initials
-          )}
-        </div>
-        <div className="flex-1">
-          <h2 className="font-display text-xl font-bold tracking-tight">{user?.name || "User"}</h2>
-          <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <span className="text-xs text-muted-foreground flex items-center gap-1">
-              <Mail className="w-3 h-3" /> {user?.email}
-            </span>
-            {user?.phone && (
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <Phone className="w-3 h-3" /> {user.phone}
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
 
-      {/* Stats */}
+      {/* Stats — sellers only */}
       {isSeller && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <StatCard icon={TrendingUp} label="Total Sales" value={`GHS ${totalSales.toLocaleString()}`} accent="bg-green-500/10 text-green-500" />
@@ -669,19 +672,33 @@ const AccountProfile = memo(({
         </div>
       </div>
 
-      {/* Promo request link — sellers only */}
+      {/* Promo request button — sellers only */}
       {isSeller && (
         <button
           onClick={() => setShowPromoSheet(true)}
           className="w-full flex items-center justify-between px-5 py-4 rounded-2xl border border-border hover:border-primary/30 hover:bg-primary/5 transition-all group"
         >
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+            <div className="relative w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
               <Ticket className="w-4 h-4 text-primary" />
+              {hasUnseenPromo && (
+                <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-green-500 border-2 border-background" />
+              )}
             </div>
             <div className="text-left">
-              <p className="text-sm font-semibold">Request a Promo Code</p>
-              <p className="text-xs text-muted-foreground">Boost your sales with a discount code for your store</p>
+              <p className="text-sm font-semibold flex items-center gap-2">
+                Request a Promo Code
+                {hasUnseenPromo && (
+                  <span className="px-1.5 py-0.5 rounded-full bg-green-500/10 text-green-600 text-[10px] font-bold border border-green-500/20">
+                    Code Ready
+                  </span>
+                )}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {hasUnseenPromo
+                  ? "Your promo code has been generated — tap to view"
+                  : "Boost your sales with a discount code for your store"}
+              </p>
             </div>
           </div>
           <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -853,7 +870,11 @@ const AccountProfile = memo(({
       {/* Promo request bottom sheet */}
       <AnimatePresence>
         {showPromoSheet && user?.id && (
-          <PromoRequestSheet userId={user.id} onClose={() => setShowPromoSheet(false)} />
+          <PromoRequestSheet
+            userId={user.id}
+            onClose={() => setShowPromoSheet(false)}
+            onSeen={() => setHasUnseenPromo(false)}
+          />
         )}
       </AnimatePresence>
 
