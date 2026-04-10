@@ -38,9 +38,12 @@ const Navbar = () => {
 
   const canSell = user?.isSeller ?? user?.role === "seller";
   
-  // Orders badge count — persists until both sides confirm for sellers, or buyer confirms for buyers
+  // Orders badge count — includes both seller AND buyer orders for sellers
   const incompleteOrdersCount = canSell
-    ? orders.filter(o => o.sellerId === user?.id && !(o.sellerConfirmed && o.buyerConfirmed)).length
+    ? orders.filter(o => 
+        (o.sellerId === user?.id && !(o.sellerConfirmed && o.buyerConfirmed)) || 
+        (o.buyerId === user?.id && !o.buyerConfirmed)
+      ).length
     : orders.filter(o => o.buyerId === user?.id && !o.buyerConfirmed).length;
 
   const showOrderBadge = !!user && incompleteOrdersCount > 0;
