@@ -4,8 +4,7 @@ import { supabase } from "@/lib/supabase";
 import App from "./App.tsx";
 import "./index.css";
 
-// Reset Safari viewport zoom after navigating away from pages with inputs
-// Without this, Safari stays zoomed in after the Auth page
+
 function resetViewportZoom() {
   const viewport = document.querySelector('meta[name="viewport"]') as HTMLMetaElement | null;
   if (!viewport) return;
@@ -23,7 +22,16 @@ history.pushState = function(...args) {
 
 // ── Service Worker registration ───────────────────────────────────────────
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
+  window.addEventListener("load", async () => {
+    // Unregister stale service workers to force cache clear on new deploys
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    for (const reg of registrations) {
+      const swUrl = reg.active?.scriptURL ?? "";
+      if (!swUrl.includes("sw.js")) {
+        await reg.unregister();
+      }
+    }
+
     navigator.serviceWorker
       .register("/sw.js")
       .then((reg) => {
