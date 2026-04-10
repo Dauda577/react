@@ -95,10 +95,10 @@ const Account = () => {
   const { totalUnread } = useMessages();
   const { requestPermission, isSupported: pushSupported, permission: pushPermission, showLocalNotification } = usePush();
 
-  // Orders badge — persists until both sides confirm
-  const incompleteOrdersCount = orders.filter(o =>
-    o.sellerId === user?.id && !(o.sellerConfirmed && o.buyerConfirmed)
-  ).length;
+  // Orders badge — persists until both sides confirm for sellers, or buyer confirms for buyers
+  const incompleteOrdersCount = canSell
+    ? orders.filter(o => o.sellerId === user?.id && !(o.sellerConfirmed && o.buyerConfirmed)).length
+    : orders.filter(o => o.buyerId === user?.id && !o.buyerConfirmed).length;
 
   const [profileLoaded,   setProfileLoaded]   = useState(false);
   const [editMode,        setEditMode]        = useState(false);
@@ -385,7 +385,7 @@ const Account = () => {
                 <span>{tab.label}</span>
 
                 {/* Orders badge — persists until both sides confirm */}
-                {tab.id === "orders" && canSell && incompleteOrdersCount > 0 && (
+                {tab.id === "orders" && incompleteOrdersCount > 0 && (
                   <span className="absolute top-2 right-2 sm:static sm:ml-1 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
                     {incompleteOrdersCount}
                   </span>
