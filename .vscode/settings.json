@@ -1,12 +1,21 @@
 {
   "cSpell.words": [
     "Ahafo",
+    "apikey",
     "Becomesellerdrawer",
     "categoryicons",
     "favourite",
+    "imageutils",
+    "Kwame",
+    "Mensah",
+    "momo",
+    "NOTIF",
     "Paystack",
+    "sneakershub",
     "subaccount",
-    "supabase"
+    "supabase",
+    "SVGS",
+    "Telecel"
   ],
   "deno.enable": true,
   "deno.enablePaths": [

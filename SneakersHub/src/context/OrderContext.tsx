@@ -321,11 +321,12 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
 
     const itemsToInsert = order.items.map((item) => ({
       order_id: orderRow.id,
+      listing_id: item.sneakerId ?? item.id ?? null,
       name: item.name,
       brand: item.brand,
       image_url: item.imageUrl ?? item.image ?? null,
       price: item.price,
-      size: item.size ?? item.sneakerId ?? null,
+      size: typeof item.size === "number" ? item.size : null,
       quantity: item.quantity,
     }));
 
