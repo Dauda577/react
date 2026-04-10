@@ -103,7 +103,7 @@ const App = () => (
                       <PushProvider>
                         <ThemeWrapper> {/* Add ThemeWrapper here */}
                           <Toaster />
-                          <Sonner />
+                          <Sonner position="top-center" />
                           <InstallPrompt />
                           <SafariNotifPrompt />
                           <BrowserRouter>
