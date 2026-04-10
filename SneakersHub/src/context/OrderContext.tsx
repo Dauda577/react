@@ -153,12 +153,27 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
           if (row.buyer_id !== user.id && row.seller_id !== user.id) return;
           if (ordersRef.current.some((o) => o.id === row.id)) return;
 
+          // ── FIX: Wait 1.5s for order_items to be inserted before fetching ──
+          // The realtime INSERT fires as soon as the order row is created,
+          // but order_items are inserted immediately after. Without the delay
+          // we fetch items too early and get an empty array.
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+
           const { data: itemData } = await supabase
-            .from("order_items").select("id, order_id, name, brand, price, size, quantity, image_url").eq("order_id", row.id);
+            .from("order_items")
+            .select("id, order_id, name, brand, price, size, quantity, image_url")
+            .eq("order_id", row.id);
           const items = (itemData as OrderItemRow[]) ?? [];
+
+          console.log(`[Realtime INSERT] order ${row.id} — fetched ${items.length} items`);
+
           setOrders((prev) => {
-            if (prev.some((o) => o.id === row.id)) return prev;
-            return [rowToOrder(row, items), ...prev];
+            // If order was already added by placeOrder() with items, keep it
+            const existing = prev.find((o) => o.id === row.id);
+            if (existing && existing.items.length > 0) return prev;
+            // Otherwise add/replace with fetched items
+            const without = prev.filter((o) => o.id !== row.id);
+            return [rowToOrder(row, items), ...without];
           });
         }
       )
@@ -186,13 +201,11 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
         }
       )
       .subscribe((status) => {
-        // FIX: Log channel status so silent failures are visible in the console
         if (status === "SUBSCRIBED") {
           console.log("[OrderContext] Realtime channel subscribed ✓");
         }
         if (status === "CHANNEL_ERROR") {
           console.error("[OrderContext] Realtime channel error — attempting re-fetch");
-          // Re-fetch as fallback when the channel fails to connect
           fetchOrders();
         }
         if (status === "TIMED_OUT") {
@@ -202,7 +215,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       });
 
     return () => { supabase.removeChannel(channel); };
-  }, [user?.id, fetchOrders]); // ✅ fetchOrders in deps so fallback re-fetch uses fresh function
+  }, [user?.id, fetchOrders]);
 
   const placeOrder = async (order: {
     sellerId: string;
@@ -229,7 +242,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     const deliveryLabel = order.deliveryInfo?.label ?? (deliveryMethod === "pickup" ? "Store Pickup" : "Delivery");
     const deliveryEstimatedCost = order.deliveryInfo?.estimatedCost ?? (order.deliveryFee === 0 ? "Free" : `GHS ${order.deliveryFee}`);
     const deliveryDays = order.deliveryInfo?.days ?? (deliveryMethod === "pickup" ? "Ready in 1-2 days" : "Contact to arrange");
-    
+
     const [buyerFirstName, ...rest] = (order.buyerName ?? `${order.buyer?.firstName ?? ""} ${order.buyer?.lastName ?? ""}`.trim()).split(" ");
     const buyerLastName = rest.join(" ");
     const buyerPhone = order.buyerPhone ?? order.buyer?.phone ?? "";
@@ -260,10 +273,10 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
             .from("order_items")
             .select("*")
             .eq("order_id", existingOrder.id);
-          
+
           const items = (itemData as OrderItemRow[]) ?? [];
           const orderObj = rowToOrder(fullOrder as OrderRow, items);
-          
+
           setOrders((prev) => {
             if (prev.some((o) => o.id === orderObj.id)) return prev;
             return [orderObj, ...prev];
@@ -304,6 +317,8 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       throw new Error(error.message);
     }
 
+    console.log(`[placeOrder] Order created: ${orderRow.id} — inserting ${order.items.length} items`);
+
     const itemsToInsert = order.items.map((item) => ({
       order_id: orderRow.id,
       name: item.name,
@@ -314,14 +329,29 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       quantity: item.quantity,
     }));
 
-    const { data: insertedItems } = await supabase.from("order_items").insert(itemsToInsert).select();
-    const insertedRows = (insertedItems as OrderItemRow[]) ?? [];
+    console.log("[placeOrder] Items to insert:", JSON.stringify(itemsToInsert));
 
+    const { data: insertedItems, error: itemsError } = await supabase
+      .from("order_items")
+      .insert(itemsToInsert)
+      .select();
+
+    console.log("[placeOrder] Items insert result — data:", insertedItems, "error:", itemsError);
+
+    if (itemsError) {
+      console.error("[placeOrder] ITEMS INSERT FAILED:", itemsError);
+      // Order was created but items failed — still return order so payment isn't lost
+      // Admin will need to manually fix this order
+      toast.error("Order placed but item details failed to save. Contact support.");
+    }
+
+    const insertedRows = (insertedItems as OrderItemRow[]) ?? [];
     const newOrder = rowToOrder(orderRow, insertedRows);
 
+    // ── FIX: Always upsert into state so realtime early-add doesn't win ──
     setOrders((prev) => {
-      if (prev.some((o) => o.id === orderRow.id)) return prev;
-      return [newOrder, ...prev];
+      const without = prev.filter((o) => o.id !== orderRow.id);
+      return [newOrder, ...without];
     });
 
     await triggerSMS({
@@ -336,14 +366,14 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     });
 
     await triggerSMS({
-    type: "order.seller_notified",
-  record: {
-    seller_id: order.sellerId,
-    listing_name: order.items[0]?.name ?? "your listing",
-    total: order.total,
-    id: orderRow.id,
-  }
-}).catch((err) => console.warn("Seller SMS failed (non-fatal):", err));
+      type: "order.seller_notified",
+      record: {
+        seller_id: order.sellerId,
+        listing_name: order.items[0]?.name ?? "your listing",
+        total: order.total,
+        id: orderRow.id,
+      }
+    }).catch((err) => console.warn("Seller SMS failed (non-fatal):", err));
 
     try {
       const { data: subscriptions } = await supabase
@@ -354,9 +384,9 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       if (subscriptions && subscriptions.length > 0) {
         const itemNames = order.items.map(i => i.name).join(", ");
         const totalAmount = order.total;
-        
+
         const { data: { session } } = await supabase.auth.getSession();
-        
+
         for (const sub of subscriptions) {
           await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-push`, {
             method: "POST",
@@ -402,8 +432,8 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
 
     setOrders((prev) =>
       prev.map((o) => o.id === orderId
-        ? { 
-            ...o, 
+        ? {
+            ...o,
             deliveryStatus: status,
             deliveryFee: deliveryFee ?? o.deliveryFee,
             deliveryLocation: location ?? (o as any).deliveryLocation
