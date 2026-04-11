@@ -66,6 +66,15 @@ export const ReferralCard = () => {
                 .order("created_at", { ascending: false });
 
             setRewards(rewardData ?? []);
+
+            // Save first unused discount reward for auto-apply at checkout
+            const firstDiscount = rewardData?.find(r => r.type === "discount" && !r.used);
+            if (firstDiscount) {
+                localStorage.setItem("pending_checkout_promo", JSON.stringify({
+                    code: firstDiscount.promo_code,
+                    discountPercent: firstDiscount.discount_pct,
+                }));
+            }
         } catch {
             // Silent fail — non-critical UI
         } finally {
@@ -114,7 +123,7 @@ export const ReferralCard = () => {
                     <div>
                         <p className="font-display font-bold text-sm">Refer & Earn</p>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                            Share your code — you both get 15% off + you get a free listing boost
+                            Share your code — you both get 15% off Official Products + you get a free listing boost
                         </p>
                     </div>
                 </div>

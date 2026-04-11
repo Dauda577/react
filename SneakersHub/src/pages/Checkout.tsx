@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -134,37 +134,44 @@ export default function Checkout() {
   const promoDiscount = appliedPromo ? Math.round(groupTotal * appliedPromo.discountPercent / 100) : 0;
   const finalTotal = groupTotal - promoDiscount;
 
-  // Auto-apply referral reward if buyer has one unused
+  // Auto-apply referral reward from localStorage
   useEffect(() => {
-    if (!user?.id) return;
-    if (!items.length) return;
     if (appliedPromo) return;
-
     const group = groupBySeller(items)[0];
     if (!group || group.tier !== "official") return;
 
-    supabase
-      .from("referral_rewards")
-      .select("promo_code, discount_pct")
-      .eq("user_id", user.id)
-      .eq("type", "discount")
-      .eq("used", false)
-      .gt("expires_at", new Date().toISOString())
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle()
-      .then(({ data: reward, error }) => {
-        if (error) console.error("referral_rewards error:", error);
-        if (reward && !appliedPromo) {
-          setAppliedPromo({
-            code: reward.promo_code,
-            discountPercent: reward.discount_pct,
-            sellerId: null,
-            isReferralCode: true,
-          });
-        }
-      });
-  }, [user?.id, items.length, appliedPromo]);
+    const saved = localStorage.getItem("pending_checkout_promo");
+    if (!saved) return;
+
+    try {
+      const { code, discountPercent } = JSON.parse(saved);
+
+      // Validate against DB before applying
+      supabase
+        .from("referral_rewards")
+        .select("promo_code, discount_pct")
+        .eq("promo_code", code)
+        .eq("user_id", user!.id)
+        .eq("used", false)
+        .gt("expires_at", new Date().toISOString())
+        .maybeSingle()
+        .then(({ data: reward }) => {
+          if (reward) {
+            setAppliedPromo({
+              code: reward.promo_code,
+              discountPercent: reward.discount_pct,
+              sellerId: null,
+              isReferralCode: true,
+            });
+          } else {
+            // Code is used or expired — clear localStorage
+            localStorage.removeItem("pending_checkout_promo");
+          }
+        });
+    } catch {
+      localStorage.removeItem("pending_checkout_promo");
+    }
+  }, [user?.id, items.length]);
 
   const handleApplyPromo = async () => {
     if (!promoCode.trim()) return;
@@ -324,6 +331,7 @@ export default function Checkout() {
           .update({ used: true })
           .eq("promo_code", appliedPromo.code)
           .eq("user_id", user!.id);
+        localStorage.removeItem("pending_checkout_promo"); // 👈 clear after use
       } else {
         await supabase.rpc("increment_promo_uses", { promo_code: appliedPromo.code });
       }
