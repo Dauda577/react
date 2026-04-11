@@ -72,6 +72,7 @@ export function groupBySeller(items: CartItem[]): SellerGroup[] {
 
 type CartContextType = {
   items: CartItem[];
+  loading: boolean;
   addItem: (listing: CartItem["listing"], size: string | number, originalPrice?: number, discountPercent?: number | null) => void;
   removeItem: (id: string, size: string | number) => void;
   clearCart: () => void;
@@ -268,7 +269,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
 
   return (
-    <CartContext.Provider value={{ items, addItem, removeItem, clearCart, totalPrice, totalItems }}>
+    <CartContext.Provider value={{
+      items,
+      loading: !readyToSave, 
+      addItem, removeItem, clearCart, totalPrice, totalItems
+    }}>
       {children}
     </CartContext.Provider>
   );

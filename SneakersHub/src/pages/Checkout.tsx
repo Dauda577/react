@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -65,8 +65,7 @@ type DeliveryInfo = {
 };
 
 export default function Checkout() {
-  console.log("🛒 Checkout component mounted"); 
-  const { items, clearCart } = useCart();
+  const { items, clearCart, loading: cartLoading } = useCart();
   const { placeOrder } = useOrders();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -136,15 +135,41 @@ export default function Checkout() {
   const finalTotal = groupTotal - promoDiscount;
 
   // Auto-apply referral reward if buyer has one unused
+  const autoApplyAttempted = useRef(false);
+
   useEffect(() => {
-    console.log("=== AUTO APPLY EFFECT ===");
-    console.log("user?.id:", user?.id);
-    console.log("appliedPromo:", appliedPromo);
-    console.log("currentGroup:", currentGroup);
-    console.log("currentGroup?.tier:", currentGroup?.tier);
-    console.log("items.length:", items.length);
-    console.log("========================");
-  }, [user?.id, currentGroup?.sellerId, currentGroup?.tier, items.length, appliedPromo]);
+    if (autoApplyAttempted.current) return;
+    if (!user?.id) return;
+    if (!items.length) return;
+    if (appliedPromo) return;
+
+    const group = groupBySeller(items)[0];
+    if (!group) return;
+    if (group.tier !== "official") return;
+
+    autoApplyAttempted.current = true;
+
+    supabase
+      .from("referral_rewards")
+      .select("promo_code, discount_pct")
+      .eq("user_id", user.id)
+      .eq("type", "discount")
+      .eq("used", false)
+      .gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data: reward }) => {
+        if (reward) {
+          setAppliedPromo({
+            code: reward.promo_code,
+            discountPercent: reward.discount_pct,
+            sellerId: null,
+            isReferralCode: true,
+          });
+        }
+      });
+  }, [user?.id, items.length]);
 
   const handleApplyPromo = async () => {
     if (!promoCode.trim()) return;
@@ -253,6 +278,19 @@ export default function Checkout() {
         }));
       });
   }, [user?.id]);
+
+  // Don't flash empty cart while cart is loading
+  if (cartLoading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!items.length) {
     return (
