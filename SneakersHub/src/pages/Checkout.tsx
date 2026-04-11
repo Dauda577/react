@@ -65,6 +65,7 @@ type DeliveryInfo = {
 };
 
 export default function Checkout() {
+  console.log("🛒 Checkout component mounted"); 
   const { items, clearCart } = useCart();
   const { placeOrder } = useOrders();
   const { user } = useAuth();
