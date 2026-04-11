@@ -136,6 +136,14 @@ export default function Checkout() {
 
   // Auto-apply referral reward if buyer has one unused
   useEffect(() => {
+    console.log("🔍 Auto-apply effect fired:", {
+      userId: user?.id,
+      tier: currentGroup?.tier,
+      sellerId: currentGroup?.sellerId,
+      itemsLength: items.length,
+      appliedPromo,
+    });
+
     if (!user?.id) return;
     if (appliedPromo) return;
     if (!currentGroup) return;
