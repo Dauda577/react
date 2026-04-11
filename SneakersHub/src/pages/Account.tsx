@@ -21,7 +21,7 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { fadeUp, IS_MOBILE } from "../components/Account/accountHelpers";
 
-import AdminLink from "../components/AdminLink";
+import AdminLink from "@/components/admin/AdminLink";
 import AccountProfile from "../components/Account/AccountProfile";
 import AccountOrders from "../components/Account/AccountOrders";
 
