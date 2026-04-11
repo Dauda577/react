@@ -142,9 +142,6 @@ export default function Checkout() {
     if (currentGroup.tier !== "official") return;
 
     const autoApplyReferral = async () => {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      if (currentGroup.tier !== "official") return;
-
       const { data: reward } = await supabase
         .from("referral_rewards")
         .select("promo_code, discount_pct")
@@ -167,7 +164,7 @@ export default function Checkout() {
     };
 
     autoApplyReferral();
-  }, [user?.id, currentGroup?.sellerId, currentGroup?.tier, currentGroup?.id]);
+  }, [user?.id, currentGroup?.sellerId, currentGroup?.tier, items.length]);
 
   const handleApplyPromo = async () => {
     if (!promoCode.trim()) return;
