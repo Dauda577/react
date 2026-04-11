@@ -78,10 +78,10 @@ const OrderContext = createContext<OrderContextType | null>(null);
 
 const rowToOrder = (row: OrderRow, items: OrderItemRow[]): Order => ({
   id: row.id,
+  discountAmount: (row as any).discount_amount ?? undefined,
+  promoCode: (row as any).promo_code ?? undefined,
   items: items.map((i) => ({
     id: i.id,
-    discountAmount: (row as any).discount_amount ?? undefined,  
-    promoCode: (row as any).promo_code ?? undefined,
     name: i.name,
     brand: i.brand ?? "",
     image: i.image_url ?? "",

@@ -173,7 +173,7 @@ export const ReferralCard = () => {
                     {rewards.map(reward => (
                         <div key={reward.id} className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border">
                             <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0
-                ${reward.type === "discount" ? "bg-green-500/10" : "bg-purple-500/10"}`}>
+                                ${reward.type === "discount" ? "bg-green-500/10" : "bg-purple-500/10"}`}>
                                 {reward.type === "discount"
                                     ? <Tag className="w-3.5 h-3.5 text-green-600" />
                                     : <Zap className="w-3.5 h-3.5 text-purple-600" />}
@@ -188,13 +188,19 @@ export const ReferralCard = () => {
                                     Code: <span className="font-mono font-bold text-foreground">{reward.promo_code}</span>
                                     {" · "}Expires {new Date(reward.expires_at).toLocaleDateString("en-GH", { day: "numeric", month: "short" })}
                                 </p>
+                                {/* Clear call to action for discount codes */}
+                                {reward.type === "discount" && (
+                                    <p className="text-[11px] text-green-600 font-semibold mt-1">
+                                        💡 Use at checkout on Official Products
+                                    </p>
+                                )}
                             </div>
                             <button
                                 onClick={async () => {
                                     await navigator.clipboard.writeText(reward.promo_code);
-                                    toast.success("Code copied!");
+                                    toast.success("Code copied — paste it at checkout!");
                                 }}
-                                className="p-1.5 rounded-lg hover:bg-muted transition-colors flex-shrink-0"
+                                className="p-1.5 rounded-lg hover:bg-muted transition-colors flex-shrink-0 flex items-center gap-1"
                             >
                                 <Copy className="w-3.5 h-3.5 text-muted-foreground" />
                             </button>
