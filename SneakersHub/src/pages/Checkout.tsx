@@ -81,10 +81,11 @@ export default function Checkout() {
   const [promoCode, setPromoCode] = useState("");
   const [promoLoading, setPromoLoading] = useState(false);
   const [appliedPromo, setAppliedPromo] = useState<{
-  code: string;
-  discountPercent: number;
-  sellerId: string | null;
-} | null>(null);
+    code: string;
+    discountPercent: number;
+    sellerId: string | null;
+    isReferralCode?: boolean; // 👈 Track if this is a referral code
+  } | null>(null);
 
   // Group cart items by seller
   const sellerGroups = groupBySeller(items);
@@ -133,52 +134,78 @@ export default function Checkout() {
   const promoDiscount = appliedPromo ? Math.round(groupTotal * appliedPromo.discountPercent / 100) : 0;
   const finalTotal = groupTotal - promoDiscount;
 
-  const handleApplyPromo = async () => {
-  if (!promoCode.trim()) return;
-  setPromoLoading(true);
-
-  const { data, error } = await supabase
-    .from("promo_codes")
-    .select("code, discount_percent, expires_at, max_uses, uses_count, seller_id")
-    .eq("code", promoCode.trim().toUpperCase())
-    .single();
-
-  if (error || !data) {
-    toast.error("Invalid promo code");
-    setPromoLoading(false);
-    return;
-  }
-  if (data.expires_at && new Date(data.expires_at) < new Date()) {
-    toast.error("This promo code has expired");
-    setPromoLoading(false);
-    return;
-  }
-  if (data.max_uses && data.uses_count >= data.max_uses) {
-    toast.error("This promo code has reached its usage limit");
-    setPromoLoading(false);
-    return;
-  }
-
-  if (data.seller_id && data.seller_id !== currentGroup?.sellerId) {
-    toast.error("This promo code is not valid for this seller");
-    setPromoLoading(false);
-    return;
-  }
-
-  setAppliedPromo({ 
-  code: data.code, 
-  discountPercent: data.discount_percent,
-  sellerId: data.seller_id ?? null,
-});
-  toast.success(`Promo applied — ${data.discount_percent}% off!`);
-  setPromoLoading(false);
+  // 👇 Helper to check if code is a referral code
+  const isReferralCode = (code: string): boolean => {
+    return code.startsWith("REF") || code.startsWith("NEW");
   };
-  
+
+  const handleApplyPromo = async () => {
+    if (!promoCode.trim()) return;
+    setPromoLoading(true);
+
+    const { data, error } = await supabase
+      .from("promo_codes")
+      .select("code, discount_percent, expires_at, max_uses, uses_count, seller_id")
+      .eq("code", promoCode.trim().toUpperCase())
+      .single();
+
+    if (error || !data) {
+      toast.error("Invalid promo code");
+      setPromoLoading(false);
+      return;
+    }
+    if (data.expires_at && new Date(data.expires_at) < new Date()) {
+      toast.error("This promo code has expired");
+      setPromoLoading(false);
+      return;
+    }
+    if (data.max_uses && data.uses_count >= data.max_uses) {
+      toast.error("This promo code has reached its usage limit");
+      setPromoLoading(false);
+      return;
+    }
+
+    // 👇 Check if this is a referral code (starts with REF or NEW)
+    const codeIsReferral = isReferralCode(data.code);
+
+    // 👇 If it's a referral code, the seller MUST be official
+    if (codeIsReferral && tier !== "official") {
+      toast.error("Referral discounts can only be used on Official Products");
+      setPromoLoading(false);
+      return;
+    }
+
+    if (data.seller_id && data.seller_id !== currentGroup?.sellerId) {
+      toast.error("This promo code is not valid for this seller");
+      setPromoLoading(false);
+      return;
+    }
+
+    setAppliedPromo({
+      code: data.code,
+      discountPercent: data.discount_percent,
+      sellerId: data.seller_id ?? null,
+      isReferralCode: codeIsReferral, // 👈 Track this
+    });
+    toast.success(`Promo applied — ${data.discount_percent}% off!`);
+    setPromoLoading(false);
+  };
+
   const handleRemovePromo = () => {
     setAppliedPromo(null);
     setPromoCode("");
     toast.info("Promo code removed");
   };
+
+  // 👇 Reset promo when switching between seller groups if it's a referral code
+  useEffect(() => {
+    if (appliedPromo?.isReferralCode && tier !== "official") {
+      // If we switched to a non-official seller and have a referral code applied
+      setAppliedPromo(null);
+      setPromoCode("");
+      toast.warning("Referral code removed — only valid on Official Products");
+    }
+  }, [currentGroupIndex, tier]);
 
   useEffect(() => {
     if (requiresPayment) ensurePaystackScript();
@@ -229,12 +256,12 @@ export default function Checkout() {
 
   const submitGroupOrder = async (group: SellerGroup, paystackRef?: string) => {
     const deliveryInfo = buildDeliveryInfo();
-    
+
     // Increment promo code usage if applied
     if (appliedPromo) {
       await supabase.rpc("increment_promo_uses", { promo_code: appliedPromo.code });
     }
-    
+
     await placeOrder({
       sellerId: group.sellerId,
       items: group.items.map((i) => ({
@@ -407,11 +434,10 @@ export default function Checkout() {
           <div className="flex gap-2 mb-6">
             {sellerGroups.map((g, i) => (
               <div key={g.sellerId}
-                className={`h-1.5 flex-1 rounded-full transition-colors ${
-                  completedGroups.includes(g.sellerId) ? "bg-green-500"
-                  : i === currentGroupIndex ? "bg-primary"
-                  : "bg-muted"
-                }`} />
+                className={`h-1.5 flex-1 rounded-full transition-colors ${completedGroups.includes(g.sellerId) ? "bg-green-500"
+                    : i === currentGroupIndex ? "bg-primary"
+                      : "bg-muted"
+                  }`} />
             ))}
           </div>
         )}
@@ -467,7 +493,10 @@ export default function Checkout() {
                 <div className="flex items-center justify-between p-3 rounded-xl bg-green-500/10 border border-green-500/30">
                   <div>
                     <p className="text-sm font-semibold text-green-600">{appliedPromo.code}</p>
-                    <p className="text-xs text-green-600/70">{appliedPromo.discountPercent}% discount applied</p>
+                    <p className="text-xs text-green-600/70">
+                      {appliedPromo.discountPercent}% discount applied
+                      {appliedPromo.isReferralCode && " · Official Products only"}
+                    </p>
                   </div>
                   <button
                     onClick={handleRemovePromo}
@@ -503,6 +532,12 @@ export default function Checkout() {
                   </Button>
                 </div>
               )}
+              {/* 👇 Hint for referral codes */}
+              {tier !== "official" && (
+                <p className="text-[11px] text-muted-foreground mt-2">
+                  💡 Referral codes (REF/NEW) only work with Official Products
+                </p>
+              )}
             </div>
 
             {/* Delivery Options */}
@@ -536,7 +571,7 @@ export default function Checkout() {
               <div className="grid grid-cols-2 gap-3">
                 {[
                   { key: "firstName", label: "First Name", icon: <User className="w-4 h-4" />, placeholder: "Kwame" },
-                  { key: "lastName",  label: "Last Name",  icon: <User className="w-4 h-4" />, placeholder: "Mensah" },
+                  { key: "lastName", label: "Last Name", icon: <User className="w-4 h-4" />, placeholder: "Mensah" },
                 ].map(({ key, label, icon, placeholder }) => (
                   <div key={key} className="space-y-1.5">
                     <label className="text-xs text-muted-foreground font-medium">{label}</label>
@@ -620,9 +655,8 @@ export default function Checkout() {
             </div>
 
             {/* Payment method info */}
-            <div className={`rounded-2xl border p-4 flex items-start gap-3 ${
-              requiresPayment ? "border-primary/20 bg-primary/5" : "border-amber-500/20 bg-amber-500/5"
-            }`}>
+            <div className={`rounded-2xl border p-4 flex items-start gap-3 ${requiresPayment ? "border-primary/20 bg-primary/5" : "border-amber-500/20 bg-amber-500/5"
+              }`}>
               {requiresPayment
                 ? <Lock className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                 : <ShieldAlert className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
