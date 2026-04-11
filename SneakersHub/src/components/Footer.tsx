@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
-import { X, ChevronDown, Mail, MapPin, Clock, Facebook, Instagram, Twitter, Heart } from "lucide-react";
+import { X, ChevronDown, Mail, MapPin, Clock, Instagram, Twitter, Heart } from "lucide-react";
 
 const WHATSAPP = "https://wa.me/233256221777";
 const PHONE = "tel:+233256221777";
@@ -20,6 +20,12 @@ const WhatsAppIcon = () => (
   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
     <path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.558 4.118 1.528 5.845L.057 23.428a.75.75 0 00.916.937l5.688-1.492A11.955 11.955 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-1.891 0-3.667-.5-5.2-1.373l-.372-.22-3.853 1.011 1.029-3.764-.242-.389A9.96 9.96 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+  </svg>
+);
+
+const TikTokIcon = () => (
+  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+    <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/>
   </svg>
 );
 
@@ -153,9 +159,9 @@ const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   const socialLinks = [
-    { icon: Instagram, href: "https://instagram.com", label: "Instagram" },
+    { icon: Instagram, href: "https://www.instagram.com/sneakershub567?igsh=eXd2eng4anN3ZDIz&utm_source=qr", label: "Instagram" },
     { icon: Twitter, href: "https://twitter.com", label: "Twitter" },
-    { icon: Facebook, href: "https://facebook.com", label: "Facebook" },
+    { icon: TikTokIcon, href: "https://www.tiktok.com/@.boy_spyce?is_from_webapp=1&sender_device=pc", label: "TikTok" },
   ];
 
   return (
@@ -188,7 +194,7 @@ const Footer = () => {
                     className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all hover:scale-110"
                     aria-label={social.label}
                   >
-                    <social.icon className="w-4 h-4" />
+                    {typeof social.icon === 'function' ? <social.icon /> : <social.icon className="w-4 h-4" />}
                   </a>
                 ))}
               </div>
@@ -288,10 +294,10 @@ const Footer = () => {
               in Ghana 🇬🇭
             </span>
             <div className="flex items-center gap-4">
-  <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
-  <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
-  <button onClick={() => setShowFAQ(true)} className="hover:text-foreground transition-colors">FAQ</button>
-</div>
+              <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
+              <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
+              <button onClick={() => setShowFAQ(true)} className="hover:text-foreground transition-colors">FAQ</button>
+            </div>
           </div>
         </div>
       </footer>
