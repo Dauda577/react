@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Mail, Lock, User, ArrowRight, CheckCircle, AlertCircle, Phone } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, ArrowRight, CheckCircle, AlertCircle, Phone, Gift } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -12,10 +12,10 @@ type Mode = "login" | "signup" | "forgot";
 
 const GoogleIcon = () => (
   <svg className="w-4 h-4" viewBox="0 0 24 24">
-    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
-    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
+    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
   </svg>
 );
 
@@ -25,18 +25,28 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [forgotSent, setForgotSent] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", password: "", phone: "" });
+  const [form, setForm] = useState({ name: "", email: "", password: "", phone: "", referralCode: "" });
   const [googlePhone, setGooglePhone] = useState("");
   const [triggerInstall, setTriggerInstall] = useState(false);
 
   const { login, signup, signInWithGoogle, needsRole, assignRole, continueAsGuest, resetPassword } = useAuth();
   const navigate = useNavigate();
 
+  // Check for referral code in URL and pre-fill
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (ref) {
+      setForm(prev => ({ ...prev, referralCode: ref.toUpperCase() }));
+      setMode("signup"); // auto-switch to signup tab
+    }
+  }, []);
+
   const afterAuth = (destination = "/") => {
     navigate(destination);
     setTriggerInstall(true);
     if (typeof window !== "undefined" && "Notification" in window && (window as any).Notification?.permission === "default") {
-      (window as any).Notification?.requestPermission?.().catch(() => {});
+      (window as any).Notification?.requestPermission?.().catch(() => { });
     }
   };
 
@@ -48,7 +58,7 @@ const Auth = () => {
     if (!form.email || !form.password) { toast.error("Please fill in all fields"); return; }
     if (mode === "signup" && !form.name) { toast.error("Please enter your name"); return; }
     if (mode === "signup" && !form.phone) { toast.error("Please enter your phone number"); return; }
-    
+
     setLoading(true);
     try {
       if (mode === "login") {
@@ -56,9 +66,32 @@ const Auth = () => {
         toast.success("Welcome back!");
         afterAuth("/");
       } else {
-        // ✅ Use the signup function from context
-        await signup(form.name, form.email, form.password, "buyer", form.phone);
-        
+        // Sign up the user
+        const newUser = await signup(form.name, form.email, form.password, "buyer", form.phone);
+
+        // If a referral code was entered, call the edge function
+        if (form.referralCode.trim() && newUser?.id) {
+          try {
+            const res = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/handle-referral`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  referee_id: newUser.id,
+                  referral_code: form.referralCode.trim().toUpperCase(),
+                }),
+              }
+            );
+            const data = await res.json();
+            if (data.success) {
+              toast.success(`🎉 Referral applied! You've got a 15% discount code: ${data.referee_reward.promo_code}`);
+            }
+          } catch {
+            // Silent — referral failure shouldn't block signup
+          }
+        }
+
         toast.success("Account created! Please check your email for confirmation.");
         // Don't redirect immediately - they need to confirm email
       }
@@ -109,7 +142,7 @@ const Auth = () => {
   const switchMode = (newMode: Mode) => {
     setMode(newMode);
     setForgotSent(false);
-    setForm({ name: "", email: "", password: "", phone: "" });
+    setForm({ name: "", email: "", password: "", phone: "", referralCode: "" });
   };
 
   // ── Role picker for new Google users ────────────────────────────────────────
@@ -175,7 +208,7 @@ const Auth = () => {
           <p className="text-muted-foreground text-sm mt-2">
             {mode === "login" ? "Sign in to access your account"
               : mode === "signup" ? "Join the sneaker community"
-              : "We'll send you a reset link"}
+                : "We'll send you a reset link"}
           </p>
         </motion.div>
 
@@ -308,6 +341,28 @@ const Auth = () => {
                           className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]" />
                       </div>
                       <p className="text-xs text-muted-foreground mt-1.5">Used for order & message SMS alerts.</p>
+                    </div>
+                  )}
+
+                  {/* Referral Code — signup only */}
+                  {mode === "signup" && (
+                    <div>
+                      <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
+                        Referral Code <span className="text-muted-foreground font-normal">(optional)</span>
+                      </label>
+                      <div className="relative">
+                        <Gift className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <input
+                          name="referralCode"
+                          value={form.referralCode}
+                          onChange={handleChange}
+                          placeholder="e.g. 9DF1431D"
+                          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm
+                            focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all
+                            font-mono font-[inherit] uppercase tracking-widest"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1.5">Have a friend's referral code? Enter it here.</p>
                     </div>
                   )}
 

@@ -19,7 +19,7 @@ type AuthContextType = {
   loading: boolean;
   needsRole: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (name: string, email: string, password: string, role: "buyer" | "seller", phone: string) => Promise<void>;
+  signup: (name: string, email: string, password: string, role: "buyer" | "seller", phone: string) => Promise<User | null>;
   signInWithGoogle: () => Promise<void>;
   assignRole: (role: "buyer" | "seller", phone: string) => Promise<void>;
   continueAsGuest: () => void;
@@ -70,7 +70,7 @@ const setCachedUser = (u: User | null) => {
       localStorage.removeItem(CACHE_KEY);
       deleteCookie(CACHE_KEY);
     }
-  } catch {}
+  } catch { }
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -248,7 +248,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsGuest(false);
   };
 
-  const signup = async (name: string, email: string, password: string, role: "buyer" | "seller", phone: string) => {
+  const signup = async (name: string, email: string, password: string, role: "buyer" | "seller", phone: string): Promise<User | null> => {
     try {
       console.log("Starting signup with:", { name, email, role, phone });
 
@@ -299,6 +299,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsGuest(false);
 
       console.log("Signup complete, user set");
+
+      return newUser; // Return the new user object
     } catch (err: any) {
       console.error("Signup error caught in catch:", err);
       throw err;
