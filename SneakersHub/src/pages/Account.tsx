@@ -21,36 +21,37 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { fadeUp, IS_MOBILE } from "../components/Account/accountHelpers";
 
-import AccountProfile  from "../components/Account/AccountProfile";
-import AccountOrders   from "../components/Account/AccountOrders";
+import AdminLink from "../components/AdminLink";
+import AccountProfile from "../components/Account/AccountProfile";
+import AccountOrders from "../components/Account/AccountOrders";
 
-const AccountListings  = lazy(() => import("../components/Account/AccountListings"));
-const AccountSaved     = lazy(() => import("../components/Account/AccountSaved"));
-const AccountMessages  = lazy(() => import("../components/Account/AccountMessages"));
-const AccountSettings  = lazy(() => import("../components/Account/AccountSettings"));
+const AccountListings = lazy(() => import("../components/Account/AccountListings"));
+const AccountSaved = lazy(() => import("../components/Account/AccountSaved"));
+const AccountMessages = lazy(() => import("../components/Account/AccountMessages"));
+const AccountSettings = lazy(() => import("../components/Account/AccountSettings"));
 
-const FIRST_LISTING_BANNER_KEY  = "sneakershub-first-listing-dismissed";
-const FIRST_LISTING_NOTIF_KEY   = "sneakershub-first-listing-notif-sent";
+const FIRST_LISTING_BANNER_KEY = "sneakershub-first-listing-dismissed";
+const FIRST_LISTING_NOTIF_KEY = "sneakershub-first-listing-notif-sent";
 
 const sellerTabs = [
-  { id: "profile",   label: "Profile",   icon: User },
-  { id: "orders",    label: "Orders",    icon: ShoppingBag },
-  { id: "listings",  label: "Listings",  icon: LayoutGrid },
-  { id: "messages",  label: "Messages",  icon: MessageCircle },
-  { id: "settings",  label: "Settings",  icon: Settings },
+  { id: "profile", label: "Profile", icon: User },
+  { id: "orders", label: "Orders", icon: ShoppingBag },
+  { id: "listings", label: "Listings", icon: LayoutGrid },
+  { id: "messages", label: "Messages", icon: MessageCircle },
+  { id: "settings", label: "Settings", icon: Settings },
 ];
 
 const buyerTabs = [
-  { id: "profile",  label: "Profile",  icon: User },
-  { id: "orders",   label: "Orders",   icon: ShoppingBag },
-  { id: "saved",    label: "Saved",    icon: Heart },
+  { id: "profile", label: "Profile", icon: User },
+  { id: "orders", label: "Orders", icon: ShoppingBag },
+  { id: "saved", label: "Saved", icon: Heart },
   { id: "messages", label: "Messages", icon: MessageCircle },
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
 const guestTabs = [
   { id: "profile", label: "Profile", icon: User },
-  { id: "saved",   label: "Saved",   icon: Heart },
+  { id: "saved", label: "Saved", icon: Heart },
 ];
 
 const GuestAuthBanner = ({ action }: { action: string }) => {
@@ -84,9 +85,9 @@ const Account = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("profile");
 
-  const role    = user?.role ?? "buyer";
+  const role = user?.role ?? "buyer";
   const canSell = user?.isSeller ?? role === "seller";
-  const tabs    = isGuest ? guestTabs : canSell ? sellerTabs : buyerTabs;
+  const tabs = isGuest ? guestTabs : canSell ? sellerTabs : buyerTabs;
 
   const { saved, toggleSaved } = useSaved();
   const { orders, unseenCount, markOrdersSeen, confirmAsSeller, confirmAsBuyer, addTracking } = useOrders();
@@ -97,18 +98,18 @@ const Account = () => {
 
   // Orders badge — includes both seller AND buyer orders for sellers
   const incompleteOrdersCount = canSell
-    ? orders.filter(o => 
-        (o.sellerId === user?.id && !(o.sellerConfirmed && o.buyerConfirmed)) || 
-        (o.buyerId === user?.id && !o.buyerConfirmed)
-      ).length
+    ? orders.filter(o =>
+      (o.sellerId === user?.id && !(o.sellerConfirmed && o.buyerConfirmed)) ||
+      (o.buyerId === user?.id && !o.buyerConfirmed)
+    ).length
     : orders.filter(o => o.buyerId === user?.id && !o.buyerConfirmed).length;
 
-  const [profileLoaded,   setProfileLoaded]   = useState(false);
-  const [editMode,        setEditMode]        = useState(false);
-  const [avatarUrl,       setAvatarUrl]       = useState<string | null>(null);
-  const [isVerified,      setIsVerified]      = useState(false);
-  const [isOfficial,      setIsOfficial]      = useState(false);
-  const [subaccountCode,  setSubaccountCode]  = useState<string | null>(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [isVerified, setIsVerified] = useState(false);
+  const [isOfficial, setIsOfficial] = useState(false);
+  const [subaccountCode, setSubaccountCode] = useState<string | null>(null);
   const [verificationLoading, setVerificationLoading] = useState(false);
   const [hasMissingPayoutDetails, setHasMissingPayoutDetails] = useState(false);
   const [totalListingsCreated, setTotalListingsCreated] = useState(0);
@@ -123,7 +124,7 @@ const Account = () => {
   });
   const [payoutForm, setPayoutForm] = useState({ method: "", number: "", name: "", bankCode: "" });
 
-  const [boostingListing,       setBoostingListing]       = useState<Listing | null>(null);
+  const [boostingListing, setBoostingListing] = useState<Listing | null>(null);
   const [showFirstListingBanner, setShowFirstListingBanner] = useState(false);
   const [trackingInputs, setTrackingInputs] = useState<Record<string, string>>({});
   const [savingTracking, setSavingTracking] = useState<Record<string, boolean>>({});
@@ -139,17 +140,17 @@ const Account = () => {
       setSubaccountCode(p.subaccount_code ?? null);
       setProfileForm(prev => ({
         ...prev,
-        name:   p.name   ?? prev.name,
-        phone:  p.phone  ?? "",
-        city:   p.city   ?? "",
+        name: p.name ?? prev.name,
+        phone: p.phone ?? "",
+        city: p.city ?? "",
         region: p.region ?? "",
       }));
       if (p.avatar_url) setAvatarUrl(p.avatar_url);
       if (p.payout_method) {
         setPayoutForm({
-          method:   p.payout_method,
-          number:   p.payout_number ?? "",
-          name:     p.payout_name   ?? "",
+          method: p.payout_method,
+          number: p.payout_number ?? "",
+          name: p.payout_name ?? "",
           bankCode: "",
         });
       }
@@ -205,7 +206,7 @@ const Account = () => {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab");
-    if (tab && ["profile","orders","listings","messages","settings"].includes(tab)) {
+    if (tab && ["profile", "orders", "listings", "messages", "settings"].includes(tab)) {
       setActiveTab(tab);
       window.history.replaceState({}, "", window.location.pathname);
     }
@@ -298,7 +299,7 @@ const Account = () => {
     : isGuest ? "G" : "?";
 
   const sellerOrders = orders.filter(o => o.sellerId === user?.id);
-  const buyerOrders  = orders.filter(o => o.buyerId  === user?.id);
+  const buyerOrders = orders.filter(o => o.buyerId === user?.id);
 
   return (
     <div className="min-h-screen bg-background">
@@ -309,6 +310,8 @@ const Account = () => {
         style={{ paddingTop: `calc(64px + env(safe-area-inset-top, 0px))` }}
       >
         <div className="section-padding max-w-4xl mx-auto pt-14 pb-0">
+          <AdminLink />
+
           <motion.div {...(IS_MOBILE ? { initial: { opacity: 0 }, animate: { opacity: 1 } } : fadeUp)}
             className="flex items-center gap-5 pb-8">
 
@@ -327,10 +330,10 @@ const Account = () => {
                 <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold
                   ${isGuest ? "bg-muted text-muted-foreground border border-border"
                     : role === "seller" ? "bg-primary/10 text-primary border border-primary/20"
-                    : "bg-secondary text-muted-foreground border border-border"}`}>
+                      : "bg-secondary text-muted-foreground border border-border"}`}>
                   {isGuest ? <><User className="w-3 h-3" /> Guest</>
                     : role === "seller" ? <><Store className="w-3 h-3" /> Seller Account</>
-                    : <><Tag className="w-3 h-3" /> Buyer Account</>}
+                      : <><Tag className="w-3 h-3" /> Buyer Account</>}
                 </div>
 
                 {!isGuest && role === "seller" && profileLoaded && (
@@ -466,13 +469,13 @@ const Account = () => {
                 isGuest
                   ? <GuestAuthBanner action="access settings" />
                   : <AccountSettings
-                      user={user} canSell={canSell} isOfficial={isOfficial}
-                      isVerified={isVerified} subaccountCode={subaccountCode}
-                      hasMissingPayoutDetails={hasMissingPayoutDetails}
-                      pushSupported={pushSupported} pushPermission={pushPermission}
-                      requestPermission={requestPermission}
-                      onDeleteAccount={handleDeleteAccount}
-                    />
+                    user={user} canSell={canSell} isOfficial={isOfficial}
+                    isVerified={isVerified} subaccountCode={subaccountCode}
+                    hasMissingPayoutDetails={hasMissingPayoutDetails}
+                    pushSupported={pushSupported} pushPermission={pushPermission}
+                    requestPermission={requestPermission}
+                    onDeleteAccount={handleDeleteAccount}
+                  />
               )}
 
             </Suspense>

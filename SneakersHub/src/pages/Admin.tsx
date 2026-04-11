@@ -12,6 +12,9 @@ import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { PromoCodeManager } from "@/components/admin/PromoCodeManager";
+import { MessagingTab } from "@/components/admin/MessagingTab";
+import AdminLink from "@/components/admin/AdminLink";
+
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type AdminOrder = {
@@ -421,7 +424,8 @@ const Admin = () => {
     { id: "failed",   label: "Failed",     icon: AlertTriangle, badge: failedOrders.length },
     { id: "orders",   label: "All Orders", icon: Package },
     { id: "payouts",  label: "Payouts",    icon: Wallet },
-    { id: "promos",   label: "Promo Codes", icon: Ticket },
+    { id: "promos", label: "Promo Codes", icon: Ticket },
+    { id: "messaging", label: "Messaging", icon: Send },
   ] as const;
 
   return (
@@ -943,6 +947,8 @@ const Admin = () => {
               </div>
             )}
 
+            {activeTab === "messaging" && <MessagingTab />}
+            
           </motion.div>
         </AnimatePresence>
       </section>
