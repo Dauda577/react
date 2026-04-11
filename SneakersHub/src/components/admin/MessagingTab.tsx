@@ -137,29 +137,18 @@ export const MessagingTab = () => {
             let failed = 0;
 
             if (channel === "sms") {
-                // One call per recipient via your existing send-sms edge function
-                for (const r of effectiveRecipients) {
-                    if (!r.phone) continue;
-                    try {
-                        const res = await fetch(`${baseUrl}/functions/v1/send-sms`, {
-                            method: "POST",
-                            headers,
-                            body: JSON.stringify({
-                                type: "admin.alert",
-                                record: {
-                                    seller_phone: r.phone,
-                                    admin_phone: r.phone,
-                                    message: message.trim(),
-                                },
-                            }),
-                        });
-                        res.ok ? sent++ : failed++;
-                    } catch { failed++; }
-                    // Respect Arkesel rate limits
-                    await new Promise(res => setTimeout(res, 150));
-                }
+                const res = await fetch(`${baseUrl}/functions/v1/admin-broadcast-sms`, {
+                    method: "POST",
+                    headers,
+                    body: JSON.stringify({
+                        message: message.trim(),
+                        recipient_ids: effectiveRecipients.map(r => r.id),
+                    }),
+                });
+                const data = await res.json();
+                sent = data.sent ?? 0;
+                failed = data.failed ?? 0;
             } else {
-                // Custom broadcast mode — requires edge function update (see note in UI)
                 const res = await fetch(`${baseUrl}/functions/v1/send-marketing-email`, {
                     method: "POST",
                     headers,
@@ -205,7 +194,7 @@ export const MessagingTab = () => {
                             key={ch}
                             onClick={() => { setChannel(ch); setSentResult(null); }}
                             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border text-sm font-semibold transition-all
-                ${channel === ch
+                                ${channel === ch
                                     ? "bg-primary text-primary-foreground border-primary shadow-sm"
                                     : "border-border text-muted-foreground hover:text-foreground hover:border-primary/40"}`}
                         >
@@ -230,7 +219,7 @@ export const MessagingTab = () => {
                             key={m.id}
                             onClick={() => { setMode(m.id); setSelectedIds(new Set()); setSentResult(null); }}
                             className={`flex items-center gap-1.5 px-4 py-2 rounded-xl border text-sm font-medium transition-all
-                ${mode === m.id
+                                ${mode === m.id
                                     ? "bg-primary/10 text-primary border-primary/30"
                                     : "border-border text-muted-foreground hover:text-foreground"}`}
                         >
@@ -252,7 +241,7 @@ export const MessagingTab = () => {
                                     key={s.value}
                                     onClick={() => setSegment(s.value)}
                                     className={`text-left px-4 py-3 rounded-xl border text-sm transition-all
-                    ${segment === s.value
+                                        ${segment === s.value
                                             ? "bg-primary/10 border-primary/30 text-primary"
                                             : "border-border text-muted-foreground hover:border-primary/20 hover:text-foreground"}`}
                                 >
@@ -315,11 +304,11 @@ export const MessagingTab = () => {
                                             key={r.id}
                                             onClick={() => toggleSelected(r.id)}
                                             className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors
-                        ${i > 0 ? "border-t border-border" : ""}
-                        ${selectedIds.has(r.id) ? "bg-primary/5" : "hover:bg-muted/30"}`}
+                                                ${i > 0 ? "border-t border-border" : ""}
+                                                ${selectedIds.has(r.id) ? "bg-primary/5" : "hover:bg-muted/30"}`}
                                         >
                                             <div className={`w-4 h-4 rounded flex-shrink-0 border-2 flex items-center justify-center transition-colors
-                        ${selectedIds.has(r.id) ? "bg-primary border-primary" : "border-muted-foreground/30"}`}>
+                                                ${selectedIds.has(r.id) ? "bg-primary border-primary" : "border-muted-foreground/30"}`}>
                                                 {selectedIds.has(r.id) && <CheckCircle className="w-3 h-3 text-primary-foreground" />}
                                             </div>
                                             <div className="flex-1 min-w-0">
@@ -338,7 +327,7 @@ export const MessagingTab = () => {
                                                 </div>
                                             </div>
                                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex-shrink-0
-                        ${r.is_official ? "bg-purple-500/10 text-purple-600 border-purple-500/20"
+                                                ${r.is_official ? "bg-purple-500/10 text-purple-600 border-purple-500/20"
                                                     : r.verified ? "bg-green-500/10  text-green-600  border-green-500/20"
                                                         : r.is_seller ? "bg-blue-500/10   text-blue-600   border-blue-500/20"
                                                             : "bg-muted text-muted-foreground border-border"}`}>
@@ -379,7 +368,7 @@ export const MessagingTab = () => {
                         onChange={e => setSubject(e.target.value)}
                         placeholder="Email subject…"
                         className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm outline-none
-              focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-muted-foreground font-[inherit]"
+                            focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-muted-foreground font-[inherit]"
                     />
                 )}
 
@@ -391,7 +380,7 @@ export const MessagingTab = () => {
                         : "Type your email message… (plain text or basic HTML)"}
                     rows={channel === "sms" ? 4 : 6}
                     className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm outline-none resize-none
-            focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-muted-foreground font-[inherit]"
+                        focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all placeholder:text-muted-foreground font-[inherit]"
                 />
 
                 {channel === "sms" && message.length > 0 && (
@@ -407,7 +396,7 @@ export const MessagingTab = () => {
                     onClick={handleSend}
                     disabled={!canSend || sending}
                     className="flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-bold
-            hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+                        hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                     {sending
                         ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending…</>
@@ -422,18 +411,6 @@ export const MessagingTab = () => {
                     </motion.p>
                 )}
             </div>
-
-            {/* Email edge function note */}
-            {channel === "email" && (
-                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
-                    <p className="text-xs text-amber-600 leading-relaxed">
-                        <span className="font-bold">Note:</span> Email broadcasting requires your{" "}
-                        <code className="font-mono bg-amber-500/10 px-1 rounded">send-marketing-email</code> edge function
-                        to handle <code className="font-mono bg-amber-500/10 px-1 rounded">mode: "custom_broadcast"</code>.
-                        Paste the updated edge function from the README into your Supabase dashboard.
-                    </p>
-                </div>
-            )}
 
         </div>
     );
