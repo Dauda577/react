@@ -28,7 +28,6 @@ const Auth = () => {
   const [forgotSent, setForgotSent] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", password: "", phone: "", referralCode: "" });
   const [googlePhone, setGooglePhone] = useState("");
-  const [googleReferralCode, setGoogleReferralCode] = useState("");
   const [triggerInstall, setTriggerInstall] = useState(false);
 
   const { login, signup, signInWithGoogle, needsRole, assignRole, continueAsGuest, resetPassword } = useAuth();
@@ -39,8 +38,10 @@ const Auth = () => {
     const params = new URLSearchParams(window.location.search);
     const ref = params.get("ref");
     if (ref) {
-      setForm(prev => ({ ...prev, referralCode: ref.toUpperCase() }));
-      setMode("signup"); // auto-switch to signup tab
+      const code = ref.toUpperCase();
+      setForm(prev => ({ ...prev, referralCode: code }));
+      sessionStorage.setItem("pending_referral_code", code); // 👈 persist across redirect
+      setMode("signup");
     }
   }, []);
 
@@ -120,6 +121,9 @@ const Auth = () => {
 
   const handleGoogle = async () => {
     setGoogleLoading(true);
+    // Save referral code before OAuth redirect wipes state
+    const currentRef = form.referralCode || sessionStorage.getItem("pending_referral_code");
+    if (currentRef) sessionStorage.setItem("pending_referral_code", currentRef);
     try {
       await signInWithGoogle();
     } catch (err: any) {
@@ -138,6 +142,8 @@ const Auth = () => {
 
   // ── Role picker for new Google users ────────────────────────────────────────
   if (needsRole) {
+    const savedRef = sessionStorage.getItem("pending_referral_code");
+
     return (
       <div className="min-h-screen bg-background flex items-center justify-center relative overflow-hidden">
         <div className="absolute inset-0 opacity-20 pointer-events-none">
@@ -149,8 +155,19 @@ const Auth = () => {
             <h1 className="font-display text-3xl font-bold tracking-tighter">Almost there!</h1>
             <p className="text-muted-foreground text-sm mt-2">Just add your phone number to complete your account.</p>
           </motion.div>
+
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
             className="rounded-2xl border border-border bg-background p-6 shadow-sm space-y-4">
+
+            {/* Show referral code banner if one is pending */}
+            {savedRef && (
+              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-green-500/10 border border-green-500/20">
+                <Gift className="w-4 h-4 text-green-600 flex-shrink-0" />
+                <p className="text-xs text-green-700">
+                  Referral code <span className="font-mono font-bold">{savedRef}</span> will be applied automatically
+                </p>
+              </div>
+            )}
 
             <div>
               <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
@@ -167,32 +184,15 @@ const Auth = () => {
               </div>
             </div>
 
-            {/* Referral code for Google users */}
-            <div>
-              <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
-                Referral Code <span className="text-muted-foreground font-normal">(optional)</span>
-              </label>
-              <div className="relative">
-                <Gift className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  value={googleReferralCode}
-                  onChange={(e) => setGoogleReferralCode(e.target.value.toUpperCase())}
-                  placeholder="e.g. 9DF1431D"
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm
-                    focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all
-                    font-mono uppercase tracking-widest"
-                />
-              </div>
-              <p className="text-xs text-muted-foreground mt-1.5">Have a friend's referral code? Enter it here.</p>
-            </div>
-
             <button
               onClick={async () => {
                 if (!googlePhone.trim()) { toast.error("Please enter your phone number"); return; }
                 try {
                   await assignRole("buyer", googlePhone.trim());
-                  // Fire referral edge function if code entered
-                  if (googleReferralCode.trim()) {
+
+                  // Auto-fire referral if code was saved
+                  const refCode = sessionStorage.getItem("pending_referral_code");
+                  if (refCode) {
                     const { data: { session } } = await supabase.auth.getSession();
                     if (session?.user?.id) {
                       try {
@@ -203,17 +203,21 @@ const Auth = () => {
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({
                               referee_id: session.user.id,
-                              referral_code: googleReferralCode.trim(),
+                              referral_code: refCode,
                             }),
                           }
                         );
                         const data = await res.json();
                         if (data.success) {
-                          toast.success(`🎉 Referral applied! Your 15% discount code: ${data.referee_reward.promo_code}`);
+                          toast.success(`🎉 Referral applied! Your 15% discount: ${data.referee_reward.promo_code}`);
                         }
                       } catch { /* silent */ }
+                      finally {
+                        sessionStorage.removeItem("pending_referral_code"); // 👈 clean up
+                      }
                     }
                   }
+
                   toast.success("Account created!");
                   afterAuth("/");
                 } catch (err: any) {

@@ -5,7 +5,7 @@ import {
   ArrowLeft, MapPin, Phone, User, CheckCircle,
   ShoppingBag, ChevronDown, ArrowRight, ShieldAlert, X,
   ShieldCheck, CreditCard, Lock, Sparkles, BadgeCheck, Package,
-  Store, Truck, MessageCircle, Clock, Ticket, Percent,
+  Store, Truck, MessageCircle, Clock, Ticket, Percent, Gift,
 } from "lucide-react";
 import { thumbImage } from "@/lib/imageutils";
 import { useCart, groupBySeller, SellerGroup } from "@/context/CartContext";
@@ -133,6 +133,35 @@ export default function Checkout() {
   const groupTotal = currentGroup?.total ?? 0;
   const promoDiscount = appliedPromo ? Math.round(groupTotal * appliedPromo.discountPercent / 100) : 0;
   const finalTotal = groupTotal - promoDiscount;
+
+  // Auto-apply referral reward if buyer has one unused
+  useEffect(() => {
+    if (!user?.id || appliedPromo) return;
+
+    const autoApplyReferral = async () => {
+      const { data: reward } = await supabase
+        .from("referral_rewards")
+        .select("promo_code, discount_pct")
+        .eq("user_id", user.id)
+        .eq("type", "discount")
+        .eq("used", false)
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (reward && tier === "official") {
+        setAppliedPromo({
+          code: reward.promo_code,
+          discountPercent: reward.discount_pct,
+          sellerId: null,
+          isReferralCode: true,
+        });
+      }
+    };
+
+    autoApplyReferral();
+  }, [user?.id, tier]);
 
   const handleApplyPromo = async () => {
     if (!promoCode.trim()) return;
@@ -510,13 +539,29 @@ export default function Checkout() {
               <h3 className="font-display text-sm font-semibold mb-3 flex items-center gap-2">
                 <Ticket className="w-4 h-4" /> Promo Code
               </h3>
-              {appliedPromo ? (
+
+              {/* Auto-applied referral banner */}
+              {appliedPromo?.isReferralCode && (
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-green-500/10 border border-green-500/20 mb-3">
+                  <Gift className="w-4 h-4 text-green-600 flex-shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-xs font-semibold text-green-700">Referral discount auto-applied 🎉</p>
+                    <p className="text-[11px] text-green-600/80">
+                      {appliedPromo.discountPercent}% off · Code: <span className="font-mono font-bold">{appliedPromo.code}</span>
+                    </p>
+                  </div>
+                  <button onClick={handleRemovePromo} className="p-1 rounded-lg hover:bg-green-500/20 transition-colors">
+                    <X className="w-3.5 h-3.5 text-green-600" />
+                  </button>
+                </div>
+              )}
+
+              {appliedPromo && !appliedPromo.isReferralCode ? (
                 <div className="flex items-center justify-between p-3 rounded-xl bg-green-500/10 border border-green-500/30">
                   <div>
                     <p className="text-sm font-semibold text-green-600">{appliedPromo.code}</p>
                     <p className="text-xs text-green-600/70">
                       {appliedPromo.discountPercent}% discount applied
-                      {appliedPromo.isReferralCode && " · Official Products only"}
                     </p>
                   </div>
                   <button
@@ -526,7 +571,7 @@ export default function Checkout() {
                     <X className="w-4 h-4 text-green-600" />
                   </button>
                 </div>
-              ) : (
+              ) : !appliedPromo ? (
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <Percent className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -552,7 +597,7 @@ export default function Checkout() {
                     )}
                   </Button>
                 </div>
-              )}
+              ) : null}
               {tier !== "official" && (
                 <p className="text-[11px] text-muted-foreground mt-2">
                   💡 Referral codes only work with Official Products
