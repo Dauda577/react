@@ -19,6 +19,10 @@ function generateCode(userId: string) {
     return userId.replace(/-/g, "").slice(0, 8).toUpperCase();
 }
 
+// Cache for referral data
+const referralCache: Record<string, { data: any; timestamp: number }> = {};
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 export const ReferralCard = () => {
     const { user } = useAuth();
     const [copied, setCopied] = useState(false);
@@ -29,6 +33,17 @@ export const ReferralCard = () => {
 
     useEffect(() => {
         if (!user?.id) return;
+
+        // Check cache first
+        const cached = referralCache[user.id];
+        if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+            setReferralCode(cached.data.code);
+            setReferralCount(cached.data.count);
+            setRewards(cached.data.rewards);
+            setLoading(false);
+            return;
+        }
+
         fetchReferralData();
     }, [user?.id]);
 
@@ -62,6 +77,14 @@ export const ReferralCard = () => {
             setReferralCode(code);
             setReferralCount(profile?.referral_count ?? 0);
             setRewards(rewardData ?? []);
+
+            // Cache the data
+            if (user?.id) {
+                referralCache[user.id] = {
+                    data: { code, count: profile?.referral_count ?? 0, rewards: rewardData ?? [] },
+                    timestamp: Date.now(),
+                };
+            }
 
             const firstDiscount = rewardData?.find(r => r.type === "discount" && !r.used);
             if (firstDiscount) {
@@ -99,9 +122,27 @@ export const ReferralCard = () => {
         }
     };
 
+    // Show minimal skeleton while loading
     if (loading) return (
-        <div className="rounded-2xl border border-border bg-card p-5 animate-pulse h-40" />
+        <div className="rounded-2xl border border-border bg-card p-5 space-y-4 animate-pulse">
+            <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-primary/10" />
+                <div className="flex-1">
+                    <div className="h-4 w-24 bg-muted rounded mb-2" />
+                    <div className="h-3 w-48 bg-muted rounded" />
+                </div>
+            </div>
+            <div className="h-16 bg-muted rounded-xl" />
+            <div className="flex gap-2">
+                <div className="flex-1 h-10 bg-muted rounded-xl" />
+                <div className="w-20 h-10 bg-muted rounded-xl" />
+            </div>
+        </div>
     );
+
+    const maxReferrals = 15;
+    const remaining = maxReferrals - referralCount;
+    const isMaxedOut = referralCount >= maxReferrals;
 
     return (
         <div className="space-y-4">
@@ -125,19 +166,27 @@ export const ReferralCard = () => {
 
                 {/* Code display */}
                 <div className="flex items-center gap-2">
-                    <div className="flex-1 px-4 py-3 rounded-xl bg-background border border-border">
+                    <div className={`flex-1 px-4 py-3 rounded-xl border transition-all ${isMaxedOut
+                            ? "bg-muted/50 border-amber-500/30"
+                            : "bg-background border-border"
+                        }`}>
                         <p className="text-xs text-muted-foreground mb-0.5">Your referral code</p>
-                        <p className="font-display font-bold text-lg tracking-[0.2em] text-primary">
+                        <p className={`font-display font-bold text-lg tracking-[0.2em] ${isMaxedOut ? "text-muted-foreground line-through" : "text-primary"
+                            }`}>
                             {referralCode ?? "—"}
                         </p>
                     </div>
                     <button
                         onClick={handleCopy}
-                        className="p-3 rounded-xl border border-border bg-background hover:border-primary/40 hover:bg-primary/5 transition-all"
+                        disabled={isMaxedOut}
+                        className={`p-3 rounded-xl border transition-all ${isMaxedOut
+                                ? "border-border bg-muted/30 text-muted-foreground cursor-not-allowed"
+                                : "border-border bg-background hover:border-primary/40 hover:bg-primary/5"
+                            }`}
                     >
                         {copied
                             ? <CheckCircle className="w-4 h-4 text-green-500" />
-                            : <Copy className="w-4 h-4 text-muted-foreground" />}
+                            : <Copy className="w-4 h-4" />}
                     </button>
                 </div>
 
@@ -145,15 +194,36 @@ export const ReferralCard = () => {
                 <div className="flex gap-2">
                     <button
                         onClick={handleShare}
-                        className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-opacity"
+                        disabled={isMaxedOut}
+                        className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-opacity ${isMaxedOut
+                                ? "bg-muted text-muted-foreground cursor-not-allowed"
+                                : "bg-primary text-primary-foreground hover:opacity-90"
+                            }`}
                     >
                         <Share2 className="w-3.5 h-3.5" /> Share Code
                     </button>
                     <div className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-border bg-background text-xs font-medium text-muted-foreground">
                         <Users className="w-3.5 h-3.5 text-primary" />
-                        <span><span className="font-bold text-foreground">{referralCount}</span> referral{referralCount !== 1 ? "s" : ""}</span>
+                        <span><span className="font-bold text-foreground">{referralCount}</span> / {maxReferrals} referrals</span>
                     </div>
                 </div>
+
+                {/* Maxed out warning */}
+                {isMaxedOut && (
+                    <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                        <Users className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                        <p className="text-xs text-amber-700 font-medium">
+                            You've reached the maximum of {maxReferrals} referrals — your code is no longer active.
+                        </p>
+                    </div>
+                )}
+
+                {/* Remaining referrals */}
+                {referralCount > 0 && !isMaxedOut && (
+                    <p className="text-[11px] text-muted-foreground text-center">
+                        {remaining} referral{remaining !== 1 ? "s" : ""} remaining
+                    </p>
+                )}
             </motion.div>
 
             {/* ── Active rewards ── */}
@@ -223,7 +293,10 @@ export const ReferralCard = () => {
 
                                             toast.success("🚀 Your 10 listings are now boosted for 7 days!");
 
-                                            // Refresh rewards
+                                            // Clear cache and refresh
+                                            if (user?.id) {
+                                                delete referralCache[user.id];
+                                            }
                                             fetchReferralData();
                                         } catch {
                                             toast.error("Failed to redeem boost. Please try again.");

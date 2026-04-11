@@ -88,7 +88,14 @@ const Auth = () => {
             );
             const data = await res.json();
             if (data.success) {
-              toast.success(`🎉 Referral applied! You've got a 15% discount code: ${data.referee_reward.promo_code}`);
+              toast.success(`🎉 Referral applied! Your 15% discount code: ${data.referee_reward.promo_code}`);
+            } else {
+              if (data.error === "This referral code has reached its limit") {
+                toast.info("This referral code has reached its maximum uses — but your account was created successfully!");
+              } else if (data.error === "Referral already used") {
+                toast.info("You've already used a referral code before.");
+              }
+              // Other errors like invalid code are silently ignored — signup still succeeds
             }
           } catch {
             // Silent — referral failure shouldn't block signup
@@ -210,6 +217,13 @@ const Auth = () => {
                         const data = await res.json();
                         if (data.success) {
                           toast.success(`🎉 Referral applied! Your 15% discount: ${data.referee_reward.promo_code}`);
+                        } else {
+                          if (data.error === "This referral code has reached its limit") {
+                            toast.info("This referral code has reached its maximum uses — but your account was created successfully!");
+                          } else if (data.error === "Referral already used") {
+                            toast.info("You've already used a referral code before.");
+                          }
+                          // Other errors like invalid code are silently ignored — signup still succeeds
                         }
                       } catch { /* silent */ }
                       finally {
