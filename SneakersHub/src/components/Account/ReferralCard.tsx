@@ -35,16 +35,22 @@ export const ReferralCard = () => {
     const fetchReferralData = async () => {
         setLoading(true);
         try {
-            // Get or generate referral code
-            const { data: profile } = await supabase
-                .from("profiles")
-                .select("referral_code, referral_count")
-                .eq("id", user!.id)
-                .single();
+            const [{ data: profile }, { data: rewardData }] = await Promise.all([
+                supabase
+                    .from("profiles")
+                    .select("referral_code, referral_count")
+                    .eq("id", user!.id)
+                    .single(),
+                supabase
+                    .from("referral_rewards")
+                    .select("*")
+                    .eq("user_id", user!.id)
+                    .eq("used", false)
+                    .gt("expires_at", new Date().toISOString())
+                    .order("created_at", { ascending: false }),
+            ]);
 
             let code = profile?.referral_code;
-
-            // If no code yet, generate and save one
             if (!code) {
                 code = generateCode(user!.id);
                 await supabase
@@ -55,19 +61,8 @@ export const ReferralCard = () => {
 
             setReferralCode(code);
             setReferralCount(profile?.referral_count ?? 0);
-
-            // Fetch unused rewards
-            const { data: rewardData } = await supabase
-                .from("referral_rewards")
-                .select("*")
-                .eq("user_id", user!.id)
-                .eq("used", false)
-                .gt("expires_at", new Date().toISOString())
-                .order("created_at", { ascending: false });
-
             setRewards(rewardData ?? []);
 
-            // Save first unused discount reward for auto-apply at checkout
             const firstDiscount = rewardData?.find(r => r.type === "discount" && !r.used);
             if (firstDiscount) {
                 localStorage.setItem("pending_checkout_promo", JSON.stringify({
@@ -76,7 +71,7 @@ export const ReferralCard = () => {
                 }));
             }
         } catch {
-            // Silent fail — non-critical UI
+            // Silent fail
         } finally {
             setLoading(false);
         }
@@ -188,22 +183,57 @@ export const ReferralCard = () => {
                                     Code: <span className="font-mono font-bold text-foreground">{reward.promo_code}</span>
                                     {" · "}Expires {new Date(reward.expires_at).toLocaleDateString("en-GH", { day: "numeric", month: "short" })}
                                 </p>
-                                {/* Clear call to action for discount codes */}
                                 {reward.type === "discount" && (
                                     <p className="text-[11px] text-green-600 font-semibold mt-1">
                                         💡 Use at checkout on Official Products
                                     </p>
                                 )}
+                                {reward.type === "free_boost" && (
+                                    <p className="text-[11px] text-purple-600 font-semibold mt-1">
+                                        ⚡ Boosts your 10 most recent listings for 7 days
+                                    </p>
+                                )}
                             </div>
-                            <button
-                                onClick={async () => {
-                                    await navigator.clipboard.writeText(reward.promo_code);
-                                    toast.success("Code copied — paste it at checkout!");
-                                }}
-                                className="p-1.5 rounded-lg hover:bg-muted transition-colors flex-shrink-0 flex items-center gap-1"
-                            >
-                                <Copy className="w-3.5 h-3.5 text-muted-foreground" />
-                            </button>
+
+                            {/* Copy for discount, Redeem for boost */}
+                            {reward.type === "discount" ? (
+                                <button
+                                    onClick={async () => {
+                                        await navigator.clipboard.writeText(reward.promo_code);
+                                        toast.success("Code copied — paste it at checkout!");
+                                    }}
+                                    className="p-1.5 rounded-lg hover:bg-muted transition-colors flex-shrink-0"
+                                >
+                                    <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+                                </button>
+                            ) : (
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            // Mark reward as used
+                                            await supabase
+                                                .from("referral_rewards")
+                                                .update({ used: true })
+                                                .eq("id", reward.id);
+
+                                            // Boost listings
+                                            await supabase.rpc("redeem_listing_boost", {
+                                                seller_id: user!.id
+                                            });
+
+                                            toast.success("🚀 Your 10 listings are now boosted for 7 days!");
+
+                                            // Refresh rewards
+                                            fetchReferralData();
+                                        } catch {
+                                            toast.error("Failed to redeem boost. Please try again.");
+                                        }
+                                    }}
+                                    className="px-3 py-1.5 rounded-lg bg-purple-500 text-white text-xs font-bold hover:bg-purple-600 transition-colors flex-shrink-0 flex items-center gap-1"
+                                >
+                                    <Zap className="w-3 h-3" /> Redeem
+                                </button>
+                            )}
                         </div>
                     ))}
                 </motion.div>
