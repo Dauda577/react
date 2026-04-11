@@ -84,7 +84,7 @@ export default function Checkout() {
     code: string;
     discountPercent: number;
     sellerId: string | null;
-    isReferralCode?: boolean; // 👈 Track if this is a referral code
+    isReferralCode?: boolean;
   } | null>(null);
 
   // Group cart items by seller
@@ -134,19 +134,44 @@ export default function Checkout() {
   const promoDiscount = appliedPromo ? Math.round(groupTotal * appliedPromo.discountPercent / 100) : 0;
   const finalTotal = groupTotal - promoDiscount;
 
-  // 👇 Helper to check if code is a referral code
-  const isReferralCode = (code: string): boolean => {
-    return code.startsWith("REF") || code.startsWith("NEW");
-  };
-
   const handleApplyPromo = async () => {
     if (!promoCode.trim()) return;
     setPromoLoading(true);
 
+    const upperCode = promoCode.trim().toUpperCase();
+
+    // ── 1. Check referral_rewards first ──────────────────────────────
+    const { data: reward } = await supabase
+      .from("referral_rewards")
+      .select("id, promo_code, discount_pct, user_id, expires_at, used")
+      .eq("promo_code", upperCode)
+      .eq("used", false)
+      .eq("user_id", user!.id)
+      .gt("expires_at", new Date().toISOString())
+      .maybeSingle();
+
+    if (reward) {
+      if (tier !== "official") {
+        toast.error("Referral discounts can only be used on Official Products");
+        setPromoLoading(false);
+        return;
+      }
+      setAppliedPromo({
+        code: reward.promo_code,
+        discountPercent: reward.discount_pct,
+        sellerId: null,
+        isReferralCode: true,
+      });
+      toast.success(`Referral code applied — ${reward.discount_pct}% off!`);
+      setPromoLoading(false);
+      return;
+    }
+
+    // ── 2. Fall back to regular promo_codes ──────────────────────────
     const { data, error } = await supabase
       .from("promo_codes")
       .select("code, discount_percent, expires_at, max_uses, uses_count, seller_id")
-      .eq("code", promoCode.trim().toUpperCase())
+      .eq("code", upperCode)
       .single();
 
     if (error || !data) {
@@ -164,17 +189,6 @@ export default function Checkout() {
       setPromoLoading(false);
       return;
     }
-
-    // 👇 Check if this is a referral code (starts with REF or NEW)
-    const codeIsReferral = isReferralCode(data.code);
-
-    // 👇 If it's a referral code, the seller MUST be official
-    if (codeIsReferral && tier !== "official") {
-      toast.error("Referral discounts can only be used on Official Products");
-      setPromoLoading(false);
-      return;
-    }
-
     if (data.seller_id && data.seller_id !== currentGroup?.sellerId) {
       toast.error("This promo code is not valid for this seller");
       setPromoLoading(false);
@@ -185,7 +199,7 @@ export default function Checkout() {
       code: data.code,
       discountPercent: data.discount_percent,
       sellerId: data.seller_id ?? null,
-      isReferralCode: codeIsReferral, // 👈 Track this
+      isReferralCode: false,
     });
     toast.success(`Promo applied — ${data.discount_percent}% off!`);
     setPromoLoading(false);
@@ -197,10 +211,9 @@ export default function Checkout() {
     toast.info("Promo code removed");
   };
 
-  // 👇 Reset promo when switching between seller groups if it's a referral code
+  // Reset promo when switching between seller groups if it's a referral code
   useEffect(() => {
     if (appliedPromo?.isReferralCode && tier !== "official") {
-      // If we switched to a non-official seller and have a referral code applied
       setAppliedPromo(null);
       setPromoCode("");
       toast.warning("Referral code removed — only valid on Official Products");
@@ -259,7 +272,16 @@ export default function Checkout() {
 
     // Increment promo code usage if applied
     if (appliedPromo) {
-      await supabase.rpc("increment_promo_uses", { promo_code: appliedPromo.code });
+      if (appliedPromo.isReferralCode) {
+        // Mark referral reward as used
+        await supabase
+          .from("referral_rewards")
+          .update({ used: true })
+          .eq("promo_code", appliedPromo.code)
+          .eq("user_id", user!.id);
+      } else {
+        await supabase.rpc("increment_promo_uses", { promo_code: appliedPromo.code });
+      }
     }
 
     await placeOrder({
@@ -296,7 +318,6 @@ export default function Checkout() {
       const PaystackPop = (window as any).PaystackPop;
       if (!PaystackPop) throw new Error("Payment SDK not available");
 
-      // Use finalTotal for payment amount
       const chargeTotal = finalTotal;
 
       let paymentCompleted = false;
@@ -435,8 +456,8 @@ export default function Checkout() {
             {sellerGroups.map((g, i) => (
               <div key={g.sellerId}
                 className={`h-1.5 flex-1 rounded-full transition-colors ${completedGroups.includes(g.sellerId) ? "bg-green-500"
-                    : i === currentGroupIndex ? "bg-primary"
-                      : "bg-muted"
+                  : i === currentGroupIndex ? "bg-primary"
+                    : "bg-muted"
                   }`} />
             ))}
           </div>
@@ -532,10 +553,9 @@ export default function Checkout() {
                   </Button>
                 </div>
               )}
-              {/* 👇 Hint for referral codes */}
               {tier !== "official" && (
                 <p className="text-[11px] text-muted-foreground mt-2">
-                  💡 Referral codes (REF/NEW) only work with Official Products
+                  💡 Referral codes only work with Official Products
                 </p>
               )}
             </div>

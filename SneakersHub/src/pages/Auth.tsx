@@ -6,6 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import InstallPrompt from "@/components/InstallPrompt";
+import { supabase } from "@/lib/supabase";
 
 
 type Mode = "login" | "signup" | "forgot";
@@ -27,6 +28,7 @@ const Auth = () => {
   const [forgotSent, setForgotSent] = useState(false);
   const [form, setForm] = useState({ name: "", email: "", password: "", phone: "", referralCode: "" });
   const [googlePhone, setGooglePhone] = useState("");
+  const [googleReferralCode, setGoogleReferralCode] = useState("");
   const [triggerInstall, setTriggerInstall] = useState(false);
 
   const { login, signup, signInWithGoogle, needsRole, assignRole, continueAsGuest, resetPassword } = useAuth();
@@ -126,17 +128,6 @@ const Auth = () => {
     }
   };
 
-  const handleAssignRole = async (selectedRole: "buyer" | "seller") => {
-    if (!googlePhone.trim()) { toast.error("Please enter your phone number"); return; }
-    try {
-      await assignRole(selectedRole, googlePhone.trim());
-      toast.success(`${selectedRole === "buyer" ? "Buyer" : "Seller"} account created!`);
-      afterAuth("/");
-    } catch (err: any) {
-      toast.error(err.message ?? "Failed to set account type");
-    }
-  };
-
   const handleSkip = () => { continueAsGuest(); navigate("/account"); };
 
   const switchMode = (newMode: Mode) => {
@@ -161,7 +152,6 @@ const Auth = () => {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
             className="rounded-2xl border border-border bg-background p-6 shadow-sm space-y-4">
 
-            {/* Phone number */}
             <div>
               <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
                 Phone Number <span className="text-primary">*</span>
@@ -175,10 +165,61 @@ const Auth = () => {
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
                 />
               </div>
-              <p className="text-xs text-muted-foreground mt-1.5">Used for order notifications.</p>
             </div>
 
-            <button onClick={() => handleAssignRole("buyer")}
+            {/* Referral code for Google users */}
+            <div>
+              <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
+                Referral Code <span className="text-muted-foreground font-normal">(optional)</span>
+              </label>
+              <div className="relative">
+                <Gift className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  value={googleReferralCode}
+                  onChange={(e) => setGoogleReferralCode(e.target.value.toUpperCase())}
+                  placeholder="e.g. 9DF1431D"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm
+                    focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all
+                    font-mono uppercase tracking-widest"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1.5">Have a friend's referral code? Enter it here.</p>
+            </div>
+
+            <button
+              onClick={async () => {
+                if (!googlePhone.trim()) { toast.error("Please enter your phone number"); return; }
+                try {
+                  await assignRole("buyer", googlePhone.trim());
+                  // Fire referral edge function if code entered
+                  if (googleReferralCode.trim()) {
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (session?.user?.id) {
+                      try {
+                        const res = await fetch(
+                          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/handle-referral`,
+                          {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              referee_id: session.user.id,
+                              referral_code: googleReferralCode.trim(),
+                            }),
+                          }
+                        );
+                        const data = await res.json();
+                        if (data.success) {
+                          toast.success(`🎉 Referral applied! Your 15% discount code: ${data.referee_reward.promo_code}`);
+                        }
+                      } catch { /* silent */ }
+                    }
+                  }
+                  toast.success("Account created!");
+                  afterAuth("/");
+                } catch (err: any) {
+                  toast.error(err.message ?? "Failed to set account type");
+                }
+              }}
               className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-display font-semibold text-sm hover:bg-primary/90 transition-colors">
               Continue to SneakersHub
             </button>
