@@ -135,19 +135,13 @@ export default function Checkout() {
   const finalTotal = groupTotal - promoDiscount;
 
   // Auto-apply referral reward if buyer has one unused
-  const autoApplyAttempted = useRef(false);
-
   useEffect(() => {
-    if (autoApplyAttempted.current) return;
     if (!user?.id) return;
     if (!items.length) return;
     if (appliedPromo) return;
 
     const group = groupBySeller(items)[0];
-    if (!group) return;
-    if (group.tier !== "official") return;
-
-    autoApplyAttempted.current = true;
+    if (!group || group.tier !== "official") return;
 
     supabase
       .from("referral_rewards")
@@ -159,8 +153,9 @@ export default function Checkout() {
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle()
-      .then(({ data: reward }) => {
-        if (reward) {
+      .then(({ data: reward, error }) => {
+        if (error) console.error("referral_rewards error:", error);
+        if (reward && !appliedPromo) {
           setAppliedPromo({
             code: reward.promo_code,
             discountPercent: reward.discount_pct,
@@ -169,7 +164,7 @@ export default function Checkout() {
           });
         }
       });
-  }, [user?.id, items.length]);
+  }, [user?.id, items.length, appliedPromo]);
 
   const handleApplyPromo = async () => {
     if (!promoCode.trim()) return;
