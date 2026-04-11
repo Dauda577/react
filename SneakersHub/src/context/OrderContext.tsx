@@ -5,7 +5,13 @@ import { triggerSMS } from "@/lib/sms";
 import { toast } from "sonner";
 
 export type DeliveryMethod = "pickup" | "delivery";
-export type DeliveryStatus = "pending" | "contacted" | "driver_assigned" | "delivered" | "cancelled";
+export type DeliveryStatus =
+  | "pending"
+  | "ready_for_pickup"
+  | "processing"
+  | "shipped"
+  | "delivered"
+  | "cancelled";
 export type PaymentStatus = "pending" | "completed" | "failed" | "refunded";
 
 export type OrderItem = {
@@ -20,6 +26,9 @@ export type OrderItem = {
 
 export type Order = {
   id: string;
+  discountAmount?: number;
+  promoCode?: string;
+  deliveryMethod?: DeliveryMethod;
   items: OrderItem[];
   buyer: {
     firstName: string; lastName: string; phone: string;
@@ -71,6 +80,8 @@ const rowToOrder = (row: OrderRow, items: OrderItemRow[]): Order => ({
   id: row.id,
   items: items.map((i) => ({
     id: i.id,
+    discountAmount: (row as any).discount_amount ?? undefined,  
+    promoCode: (row as any).promo_code ?? undefined,
     name: i.name,
     brand: i.brand ?? "",
     image: i.image_url ?? "",
@@ -293,6 +304,8 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       subtotal: order.subtotal,
       delivery_fee: order.deliveryFee,
       total: order.total,
+      discount_amount: (order as any).discountAmount ?? null,  
+      promo_code: (order as any).promoCode ?? null,        
       delivery_method: deliveryMethod,
       delivery_status: deliveryStatus,
       delivery_label: deliveryLabel,

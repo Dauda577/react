@@ -136,9 +136,15 @@ export default function Checkout() {
 
   // Auto-apply referral reward if buyer has one unused
   useEffect(() => {
-    if (!user?.id || appliedPromo) return;
+    if (!user?.id) return;
+    if (appliedPromo) return;
+    if (!currentGroup) return;
+    if (currentGroup.tier !== "official") return;
 
     const autoApplyReferral = async () => {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      if (currentGroup.tier !== "official") return;
+
       const { data: reward } = await supabase
         .from("referral_rewards")
         .select("promo_code, discount_pct")
@@ -150,7 +156,7 @@ export default function Checkout() {
         .limit(1)
         .maybeSingle();
 
-      if (reward && tier === "official") {
+      if (reward) {
         setAppliedPromo({
           code: reward.promo_code,
           discountPercent: reward.discount_pct,
@@ -161,7 +167,7 @@ export default function Checkout() {
     };
 
     autoApplyReferral();
-  }, [user?.id, tier]);
+  }, [user?.id, currentGroup?.sellerId, currentGroup?.tier, currentGroup?.id]);
 
   const handleApplyPromo = async () => {
     if (!promoCode.trim()) return;
@@ -316,6 +322,7 @@ export default function Checkout() {
     await placeOrder({
       sellerId: group.sellerId,
       items: group.items.map((i) => ({
+        id: i.listing.id,
         sneakerId: i.listing.id,
         name: i.listing.name,
         brand: i.listing.brand,
@@ -323,6 +330,7 @@ export default function Checkout() {
         price: i.listing.price,
         quantity: i.quantity,
         imageUrl: i.listing.image,
+        image: i.listing.image,
       })),
       subtotal: group.total,
       deliveryFee: 0,
