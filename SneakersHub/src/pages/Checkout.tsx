@@ -136,43 +136,14 @@ export default function Checkout() {
 
   // Auto-apply referral reward if buyer has one unused
   useEffect(() => {
-    console.log("🔍 Auto-apply effect fired:", {
-      userId: user?.id,
-      tier: currentGroup?.tier,
-      sellerId: currentGroup?.sellerId,
-      itemsLength: items.length,
-      appliedPromo,
-    });
-
-    if (!user?.id) return;
-    if (appliedPromo) return;
-    if (!currentGroup) return;
-    if (currentGroup.tier !== "official") return;
-
-    const autoApplyReferral = async () => {
-      const { data: reward } = await supabase
-        .from("referral_rewards")
-        .select("promo_code, discount_pct")
-        .eq("user_id", user.id)
-        .eq("type", "discount")
-        .eq("used", false)
-        .gt("expires_at", new Date().toISOString())
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      if (reward) {
-        setAppliedPromo({
-          code: reward.promo_code,
-          discountPercent: reward.discount_pct,
-          sellerId: null,
-          isReferralCode: true,
-        });
-      }
-    };
-
-    autoApplyReferral();
-  }, [user?.id, currentGroup?.sellerId, currentGroup?.tier, items.length]);
+    console.log("=== AUTO APPLY EFFECT ===");
+    console.log("user?.id:", user?.id);
+    console.log("appliedPromo:", appliedPromo);
+    console.log("currentGroup:", currentGroup);
+    console.log("currentGroup?.tier:", currentGroup?.tier);
+    console.log("items.length:", items.length);
+    console.log("========================");
+  }, [user?.id, currentGroup?.sellerId, currentGroup?.tier, items.length, appliedPromo]);
 
   const handleApplyPromo = async () => {
     if (!promoCode.trim()) return;
