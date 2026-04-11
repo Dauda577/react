@@ -32,7 +32,7 @@ const detectNetwork = (number: string): string | null => {
   const prefix = normalized.slice(0, 2);
   if (prefix === "50") return "VOD";
   if (prefix === "26" || prefix === "27") return "ATL";
-  if (["54","55","59","24"].includes(prefix)) return "MTN";
+  if (["54", "55", "59", "24"].includes(prefix)) return "MTN";
   return null;
 };
 
@@ -185,6 +185,86 @@ const PayoutConfirmModal = ({
               className="flex-1 py-2.5 rounded-xl bg-amber-500 text-white text-sm font-bold hover:bg-amber-600 transition-colors"
             >
               Yes, Update
+            </button>
+          </div>
+        </motion.div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
+
+// ── Delete Account Confirmation Modal ─────────────────────────────────────────
+const DeleteAccountModal = ({
+  open,
+  onConfirm,
+  onCancel,
+}: {
+  open: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) => (
+  <AnimatePresence>
+    {open && (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm"
+        onClick={onCancel}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 12 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: 12 }}
+          transition={{ type: "spring", damping: 28, stiffness: 320 }}
+          className="w-full max-w-sm bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-5"
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0">
+              <Trash className="w-5 h-5 text-red-500" />
+            </div>
+            <div>
+              <p className="font-display font-bold text-base text-red-500">Delete Account</p>
+              <p className="text-xs text-muted-foreground mt-0.5">This action cannot be undone</p>
+            </div>
+          </div>
+
+          <div className="rounded-xl bg-red-500/5 border border-red-500/20 p-4 space-y-2">
+            <p className="text-xs font-semibold text-red-500 uppercase tracking-wide">This will permanently delete:</p>
+            <div className="space-y-1.5 mt-2">
+              {[
+                "Your profile and personal information",
+                "All your active and past listings",
+                "Your saved items and preferences",
+                "Access to all your order history",
+                "Your messages and conversations",
+              ].map(item => (
+                <div key={item} className="flex items-start gap-2">
+                  <X className="w-3 h-3 text-red-400 mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-muted-foreground">{item}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            This action is <span className="font-semibold text-foreground">permanent and cannot be undone</span>.
+            All your data will be completely removed from our servers.
+          </p>
+
+          <div className="flex gap-2">
+            <button
+              onClick={onCancel}
+              className="flex-1 py-2.5 rounded-xl border border-border text-sm font-semibold hover:bg-muted/40 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onConfirm}
+              className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors"
+            >
+              Yes, delete forever
             </button>
           </div>
         </motion.div>
@@ -425,25 +505,25 @@ const AccountSettings = memo(({
 }: Props) => {
   const { theme, toggleTheme } = useTheme();
 
-  const [notifOrders,     setNotifOrders]     = useState(() => localStorage.getItem("notif_orders") !== "false");
-  const [notifMessages,   setNotifMessages]   = useState(() => localStorage.getItem("notif_messages") !== "false");
+  const [notifOrders, setNotifOrders] = useState(() => localStorage.getItem("notif_orders") !== "false");
+  const [notifMessages, setNotifMessages] = useState(() => localStorage.getItem("notif_messages") !== "false");
   const [notifPromotions, setNotifPromotions] = useState(() => localStorage.getItem("notif_promotions") === "true");
-  const [showDeleteConfirm,  setShowDeleteConfirm]  = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
-  const [newPassword,     setNewPassword]     = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
   // Payout state
-  const [savedPayout,       setSavedPayout]       = useState({ method: "", number: "", name: "" });
-  const [payoutForm,        setPayoutForm]        = useState({ method: "", number: "", name: "", bankCode: "" });
-  const [payoutSaved,       setPayoutSaved]       = useState(false);
+  const [savedPayout, setSavedPayout] = useState({ method: "", number: "", name: "" });
+  const [payoutForm, setPayoutForm] = useState({ method: "", number: "", name: "", bankCode: "" });
+  const [payoutSaved, setPayoutSaved] = useState(false);
   const [showPayoutConfirm, setShowPayoutConfirm] = useState(false);
 
   // Auto-resolve state
-  const [resolving,          setResolving]          = useState(false);
-  const [resolvedName,       setResolvedName]       = useState<string | null>(null);
-  const [resolveError,       setResolveError]       = useState<string | null>(null);
-  const [detectedNetwork,    setDetectedNetwork]    = useState<string | null>(null);
+  const [resolving, setResolving] = useState(false);
+  const [resolvedName, setResolvedName] = useState<string | null>(null);
+  const [resolveError, setResolveError] = useState<string | null>(null);
+  const [detectedNetwork, setDetectedNetwork] = useState<string | null>(null);
   const [autoDetectedMethod, setAutoDetectedMethod] = useState<string | null>(null);
 
   // Load saved payout details
@@ -631,6 +711,11 @@ const AccountSettings = memo(({
     }
   };
 
+  const handleDeleteConfirm = () => {
+    setShowDeleteModal(false);
+    onDeleteAccount();
+  };
+
   return (
     <div className="space-y-6 max-w-lg">
       <PayoutConfirmModal
@@ -641,6 +726,12 @@ const AccountSettings = memo(({
         newName={payoutForm.name}
         onConfirm={executeSavePayout}
         onCancel={() => setShowPayoutConfirm(false)}
+      />
+
+      <DeleteAccountModal
+        open={showDeleteModal}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setShowDeleteModal(false)}
       />
 
       {!canSell && (
@@ -664,9 +755,9 @@ const AccountSettings = memo(({
             requestPermission={requestPermission}
           />
           {[
-            { label: "Order updates",  sub: "Confirmations, dispatch and delivery", key: "notif_orders",     value: notifOrders,     set: setNotifOrders },
-            { label: "Messages",       sub: "Replies from buyers or sellers",       key: "notif_messages",   value: notifMessages,   set: setNotifMessages },
-            { label: "Promotions",     sub: "Deals, new arrivals and boosts",       key: "notif_promotions", value: notifPromotions, set: setNotifPromotions },
+            { label: "Order updates", sub: "Confirmations, dispatch and delivery", key: "notif_orders", value: notifOrders, set: setNotifOrders },
+            { label: "Messages", sub: "Replies from buyers or sellers", key: "notif_messages", value: notifMessages, set: setNotifMessages },
+            { label: "Promotions", sub: "Deals, new arrivals and boosts", key: "notif_promotions", value: notifPromotions, set: setNotifPromotions },
           ].map(({ label, sub, key, value, set }) => (
             <div key={label} className="flex items-center justify-between px-5 py-4 gap-4">
               <div>
@@ -710,8 +801,8 @@ const AccountSettings = memo(({
           </div>
           <div className="mt-4 grid grid-cols-2 gap-2">
             {[
-              { id: "light", Icon: Sun,  label: "Light", sub: "Default",        iconClass: "text-amber-500" },
-              { id: "dark",  Icon: Moon, label: "Dark",  sub: "Easier on eyes", iconClass: "text-primary"   },
+              { id: "light", Icon: Sun, label: "Light", sub: "Default", iconClass: "text-amber-500" },
+              { id: "dark", Icon: Moon, label: "Dark", sub: "Easier on eyes", iconClass: "text-primary" },
             ].map(({ id, Icon, label, sub, iconClass }) => (
               <div key={id} className={`p-3 rounded-xl border transition-all ${theme === id ? "border-primary bg-primary/5" : "border-border"}`}>
                 <Icon className={`w-4 h-4 mb-1 ${theme === id ? iconClass : "text-muted-foreground"}`} />
@@ -750,9 +841,9 @@ const AccountSettings = memo(({
               <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-2">Payout Method</label>
               <div className="grid grid-cols-3 gap-2">
                 {([
-                  { value: "momo_mtn",        label: "MTN MoMo",     icon: Smartphone },
-                  { value: "momo_telecel",     label: "Telecel Cash", icon: Smartphone },
-                  { value: "momo_airteltigo",  label: "AirtelTigo",  icon: Smartphone },
+                  { value: "momo_mtn", label: "MTN MoMo", icon: Smartphone },
+                  { value: "momo_telecel", label: "Telecel Cash", icon: Smartphone },
+                  { value: "momo_airteltigo", label: "AirtelTigo", icon: Smartphone },
                 ] as const).map(({ value, label, icon: Icon }) => (
                   <button
                     key={value}
@@ -879,54 +970,13 @@ const AccountSettings = memo(({
           </div>
 
           <div className="px-5 py-4">
-            {!showDeleteConfirm ? (
-              <button onClick={() => setShowDeleteConfirm(true)} className="w-full flex items-center gap-3 group">
-                <Trash className="w-4 h-4 text-muted-foreground group-hover:text-red-500 transition-colors" />
-                <div className="text-left">
-                  <p className="text-sm font-medium group-hover:text-red-500 transition-colors">Delete account</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Permanently remove your account and data</p>
-                </div>
-              </button>
-            ) : (
-              <motion.div {...fadeUp} className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center flex-shrink-0">
-                    <Trash className="w-4 h-4 text-red-500" />
-                  </div>
-                  <p className="text-sm font-bold text-red-500">Delete Account</p>
-                </div>
-                <div className="rounded-xl bg-red-500/5 border border-red-500/20 p-4 space-y-2">
-                  <p className="text-xs font-semibold text-red-500 uppercase tracking-wide">This will permanently delete:</p>
-                  <div className="space-y-1.5 mt-2">
-                    {[
-                      "Your profile and personal information",
-                      "All your active and past listings",
-                      "Your saved items and preferences",
-                      "Access to all your order history",
-                      "Your messages and conversations",
-                    ].map(item => (
-                      <div key={item} className="flex items-start gap-2">
-                        <span className="text-red-400 text-xs mt-0.5 flex-shrink-0">x</span>
-                        <p className="text-xs text-muted-foreground">{item}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  This action is <span className="font-semibold text-foreground">permanent and cannot be undone</span>.
-                </p>
-                <div className="flex gap-2">
-                  <button onClick={onDeleteAccount}
-                    className="flex-1 px-4 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition-colors">
-                    Yes, delete forever
-                  </button>
-                  <button onClick={() => setShowDeleteConfirm(false)}
-                    className="flex-1 px-4 py-2.5 rounded-xl border border-border text-sm font-medium hover:bg-muted/40 transition-colors">
-                    Cancel
-                  </button>
-                </div>
-              </motion.div>
-            )}
+            <button onClick={() => setShowDeleteModal(true)} className="w-full flex items-center gap-3 group">
+              <Trash className="w-4 h-4 text-muted-foreground group-hover:text-red-500 transition-colors" />
+              <div className="text-left">
+                <p className="text-sm font-medium group-hover:text-red-500 transition-colors">Delete account</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Permanently remove your account and data</p>
+              </div>
+            </button>
           </div>
         </div>
       </div>
