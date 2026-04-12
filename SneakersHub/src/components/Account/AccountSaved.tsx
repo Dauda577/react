@@ -4,6 +4,8 @@ import { Link } from "react-router-dom";
 import { Heart, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { itemVariant } from "../Account/accountHelpers";
+import { useSound } from "@/hooks/useSound";
+
 
 interface SavedItem {
   id: string;
@@ -26,6 +28,16 @@ interface Props {
 }
 
 const AccountSaved = memo(({ saved, toggleSaved }: Props) => {
+  const { play } = useSound();
+
+  const isSaved = (id: string) => saved.some((item) => item.id === id);
+
+  const handleToggle = (item: SavedItem) => {
+    const alreadySaved = isSaved(item.id);
+    play(alreadySaved ? "unsave" : "save");
+    toggleSaved(item);
+  };
+
   if (saved.length === 0) return (
     <div className="text-center py-20">
       <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
@@ -98,7 +110,7 @@ const AccountSaved = memo(({ saved, toggleSaved }: Props) => {
                   </button>
                 </Link>
                 <button
-                  onClick={() => toggleSaved(item)}
+                  onClick={() => handleToggle(item)}
                   className="w-8 h-8 rounded-lg border border-border flex items-center justify-center hover:bg-red-500/10 hover:border-red-300 transition-colors"
                 >
                   <Heart className="w-3.5 h-3.5 text-red-400" fill="currentColor" />

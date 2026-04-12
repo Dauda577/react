@@ -103,6 +103,41 @@ const loadFromStorage = (userId?: string): CartItem[] => {
 
 const sizeKey = (size: string | number): string => String(size);
 
+// Add this after the imports, before CartProvider
+const playCartSound = (type: "cart" | "pop") => {
+  try {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    gainNode.gain.setValueAtTime(0, ctx.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.01);
+
+    if (type === "cart") {
+      // Add to cart — satisfying pop
+      oscillator.frequency.setValueAtTime(800, ctx.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.15);
+      gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.15);
+      oscillator.type = "sine";
+      oscillator.start(ctx.currentTime);
+      oscillator.stop(ctx.currentTime + 0.15);
+    } else {
+      // Remove from cart — descending pop
+      oscillator.frequency.setValueAtTime(500, ctx.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(250, ctx.currentTime + 0.12);
+      gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.12);
+      oscillator.type = "sine";
+      oscillator.start(ctx.currentTime);
+      oscillator.stop(ctx.currentTime + 0.12);
+    }
+
+    setTimeout(() => ctx.close(), 1000);
+  } catch { /* silent fail */ }
+};
+
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
 
@@ -170,7 +205,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           sneaker_data: local.listing,
           size: sizeKey(local.size),
           quantity: local.quantity,
-        }, { onConflict: "user_id,sneaker_id,size" }).catch(() => {});
+        }, { onConflict: "user_id,sneaker_id,size" }).catch(() => { });
       }
     }
 
@@ -200,7 +235,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (!readyToSave) return;
     try {
       localStorage.setItem(storageKey(user?.id), JSON.stringify(items));
-    } catch {}
+    } catch { }
   }, [items, readyToSave, user?.id]);
 
   // ── Remote sync helpers ───────────────────────────────────────────────────
@@ -231,6 +266,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   // ── Actions ───────────────────────────────────────────────────────────────
   const addItem = (listing: CartItem["listing"], size: string | number) => {
+    playCartSound("cart"); // 👈 add
     setItems((prev) => {
       const existing = prev.find(
         (i) => i.listing.id === listing.id && sizeKey(i.size) === sizeKey(size)
@@ -253,6 +289,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const removeItem = (id: string, size: string | number) => {
+    playCartSound("pop"); // 👈 add
     deleteRemote(id, size);
     setItems((prev) =>
       prev.filter((i) => !(i.listing.id === id && sizeKey(i.size) === sizeKey(size)))
@@ -262,7 +299,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const clearCart = () => {
     clearRemote();
     setItems([]);
-    try { localStorage.removeItem(storageKey(user?.id)); } catch {}
+    try { localStorage.removeItem(storageKey(user?.id)); } catch { }
   };
 
   const totalPrice = items.reduce((sum, i) => sum + i.listing.price * i.quantity, 0);
@@ -271,7 +308,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   return (
     <CartContext.Provider value={{
       items,
-      loading: !readyToSave, 
+      loading: !readyToSave,
       addItem, removeItem, clearCart, totalPrice, totalItems
     }}>
       {children}

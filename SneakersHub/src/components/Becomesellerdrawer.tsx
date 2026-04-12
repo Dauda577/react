@@ -203,6 +203,7 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
       setStep(4);
     } catch (e: any) {
       toast.error(e.message ?? "Failed to submit application");
+      
     } finally {
       setSubmitting(false);
     }

@@ -567,6 +567,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     const { error } = await supabase.from("orders").update({
       buyer_confirmed: true,
       status: newStatus,
+      delivered_at: newStatus === "delivered" ? new Date().toISOString() : null,
     }).eq("id", orderId);
 
     if (error) { await fetchOrders(); throw new Error(error.message); }

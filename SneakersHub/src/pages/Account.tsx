@@ -20,6 +20,7 @@ import { usePush } from "@/context/PushContext";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { fadeUp, IS_MOBILE } from "../components/Account/accountHelpers";
+import { useSound } from "@/hooks/useSound";
 
 import AdminLink from "@/components/admin/AdminLink";
 import AccountProfile from "../components/Account/AccountProfile";
@@ -84,6 +85,7 @@ const Account = () => {
   const { user, isGuest, logout } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("profile");
+  const { play } = useSound();
 
   const role = user?.role ?? "buyer";
   const canSell = user?.isSeller ?? role === "seller";
@@ -218,7 +220,10 @@ const Account = () => {
     if (!boostListingId || !user?.id) return;
     window.history.replaceState({}, "", window.location.pathname);
     boostListing(boostListingId)
-      .then(() => { toast.success("🎉 Listing boosted! Featured for 10 days."); setActiveTab("listings"); })
+      .then(() => {
+        play("success");
+        toast.success("🎉 Listing boosted! Featured for 10 days."); setActiveTab("listings");
+      })
       .catch(() => toast.error("Payment received but boost failed. Contact support."));
   }, [user?.id]);
 

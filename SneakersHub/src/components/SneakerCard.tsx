@@ -5,6 +5,7 @@ import { useSaved } from "@/context/SavedContext";
 import { cardImage } from "@/lib/imageutils";
 import { toast } from "sonner";
 import { CATEGORY_SVGS } from "@/data/sneakers";
+import { useSound } from "@/hooks/useSound"; 
 
 interface SneakerCardSneaker {
   id: string;
@@ -29,6 +30,7 @@ interface SneakerCardProps {
 
 const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
   const { toggleSaved, isSaved } = useSaved();
+  const { play } = useSound();
   const saved = isSaved(sneaker.id);
 
   // Compute discounted price
@@ -42,6 +44,7 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
   const handleSave = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    play(saved ? "unsave" : "save");
     toggleSaved({
       id: sneaker.id,
       name: sneaker.name,
