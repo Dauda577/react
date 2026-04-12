@@ -10,6 +10,7 @@ interface SavedItem {
   name: string;
   brand: string;
   price: number;
+  savedPrice: number | null; // 👈 add
   image: string | null;
   category: string;
   sizes: number[];
@@ -68,10 +69,27 @@ const AccountSaved = memo(({ saved, toggleSaved }: Props) => {
               </div>
               <div className="flex-1 min-w-0">
                 {item.brand && (
-                  <p className="text-[11px] text-muted-foreground uppercase tracking-widest font-medium mb-0.5">{item.brand}</p>
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-widest font-medium mb-0.5">
+                    {item.brand}
+                  </p>
                 )}
                 <p className="font-medium text-sm truncate">{item.name}</p>
-                <p className="font-display font-bold text-sm text-primary mt-0.5">GHS {item.price.toLocaleString()}</p>
+                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                  <p className="font-display font-bold text-sm text-primary">
+                    GHS {item.price.toLocaleString()}
+                  </p>
+                  {/* 👇 Price drop badge */}
+                  {item.savedPrice && item.price < item.savedPrice && (
+                    <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-[10px] font-bold text-green-600">
+                      ↓ GHS {Math.round(item.savedPrice - item.price)} off
+                    </span>
+                  )}
+                  {item.savedPrice && item.price < item.savedPrice && (
+                    <p className="text-[10px] text-muted-foreground line-through">
+                      GHS {item.savedPrice.toLocaleString()}
+                    </p>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
                 <Link to={`/product/${item.id}`}>

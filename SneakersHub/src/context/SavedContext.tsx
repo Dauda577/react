@@ -7,6 +7,7 @@ type SavedSneaker = {
   name: string;
   brand: string;
   price: number;
+  savedPrice: number | null; // 👈 add
   image: string | null;
   category: string;
   sizes: number[];
@@ -35,7 +36,7 @@ const getGuestSaved = (): SavedSneaker[] => {
 };
 
 const setGuestSaved = (items: SavedSneaker[]) => {
-  try { localStorage.setItem(GUEST_KEY, JSON.stringify(items)); } catch {}
+  try { localStorage.setItem(GUEST_KEY, JSON.stringify(items)); } catch { }
 };
 
 export const SavedProvider = ({ children }: { children: ReactNode }) => {
@@ -51,6 +52,7 @@ export const SavedProvider = ({ children }: { children: ReactNode }) => {
       .from("saved_listings")
       .select(`
         listing_id,
+        saved_price,
         listings (
           id, name, brand, price, image_url, category,
           sizes, description, boosted,
@@ -70,6 +72,7 @@ export const SavedProvider = ({ children }: { children: ReactNode }) => {
             name: l.name,
             brand: l.brand,
             price: l.price,
+            savedPrice: row.saved_price ?? null, // 👈 add
             image: l.image_url,
             category: l.category,
             sizes: l.sizes,
@@ -117,7 +120,11 @@ export const SavedProvider = ({ children }: { children: ReactNode }) => {
       } else {
         const { error } = await supabase
           .from("saved_listings")
-          .insert({ user_id: user.id, listing_id: item.id });
+          .insert({
+            user_id: user.id,
+            listing_id: item.id,
+            saved_price: item.price
+          });
 
         // If insert failed (e.g. listing deleted), revert
         if (error) {

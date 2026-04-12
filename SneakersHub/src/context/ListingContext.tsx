@@ -353,6 +353,28 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
       await fetchListings();
       throw new Error(error.message);
     }
+
+    // After supabase update succeeds, check if price dropped
+    if (updates.price !== undefined) {
+      const existing = listings.find(l => l.id === id);
+      if (existing && updates.price < existing.price) {
+        // Fire price drop alert — don't await, non-blocking
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/price-drop-alert`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${session?.access_token}`,
+              "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+            },
+            body: JSON.stringify({
+              listing_id: id,
+              new_price: updates.price,
+            }),
+          }).catch(() => { }); // silent fail — non-critical
+        });
+      }
+    }
   };
 
   const deleteListing = async (id: string) => {
