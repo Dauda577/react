@@ -5,7 +5,7 @@ import {
   User, MapPin, Store, Star, Pencil, CheckCircle, ArrowRight,
   LogOut, ShieldCheck, BadgeCheck, ChevronDown, Sparkles, Mail, Phone,
   Map, TrendingUp, X, Wallet, AlertTriangle, ShoppingBag,
-  Ticket, RefreshCw,
+  Ticket, RefreshCw, Trophy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRatings } from "@/context/RatingContext";
@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { useOrders } from "@/context/OrderContext";
 import { useListings } from "@/context/ListingContext";
 import { supabase } from "@/lib/supabase";
-import ReferralCard from "./ReferralCard"; // 👈 Import ReferralCard
+import ReferralCard from "./ReferralCard"; 
 
 const ghanaRegions = [
   "Greater Accra", "Ashanti", "Western", "Central", "Eastern", "Volta",
@@ -256,8 +256,8 @@ const PromoRequestSheet = ({
                           key={t}
                           onClick={() => setForm(f => ({ ...f, discount_type: t }))}
                           className={`py-2.5 rounded-xl border text-sm font-semibold transition-all ${form.discount_type === t
-                              ? "border-primary bg-primary/10 text-primary"
-                              : "border-border text-muted-foreground hover:border-primary/40"
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted-foreground hover:border-primary/40"
                             }`}
                         >
                           {t === "percentage" ? "Percentage (%)" : "Fixed (GHS)"}
@@ -370,10 +370,10 @@ const PromoRequestSheet = ({
                           : `GHS ${req.discount_amount} off`}
                       </p>
                       <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold border ${req.status === "pending"
-                          ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
-                          : req.status === "approved"
-                            ? "bg-green-500/10 text-green-600 border-green-500/20"
-                            : "bg-red-500/10 text-red-500 border-red-500/20"
+                        ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                        : req.status === "approved"
+                          ? "bg-green-500/10 text-green-600 border-green-500/20"
+                          : "bg-red-500/10 text-red-500 border-red-500/20"
                         }`}>
                         {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
                       </span>
@@ -419,6 +419,7 @@ const AccountProfile = memo(({
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showPromoSheet, setShowPromoSheet] = useState(false);
   const [hasUnseenPromo, setHasUnseenPromo] = useState(false);
+  const [myRank, setMyRank] = useState<number | null>(null); // 👈 add rank state
 
   const isSeller = role === "seller";
 
@@ -436,6 +437,19 @@ const AccountProfile = memo(({
         setHasUnseenPromo((data?.length ?? 0) > 0);
       });
   }, [user?.id, isSeller]);
+
+  // 👇 Fetch seller rank
+  useEffect(() => {
+    if (!isSeller || !user?.id) return;
+    supabase
+      .from("seller_leaderboard")
+      .select("id")
+      .then(({ data }) => {
+        if (!data) return;
+        const rank = data.findIndex(s => s.id === user.id) + 1;
+        if (rank > 0) setMyRank(rank);
+      });
+  }, [isSeller, user?.id]);
 
   const initials = user?.name
     ? user.name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
@@ -505,6 +519,30 @@ const AccountProfile = memo(({
           <StatCard icon={Star} label="Rating" value={count > 0 ? `${average.toFixed(1)} (${count})` : "No reviews"} accent="bg-amber-500/10 text-amber-500" />
           <StatCard icon={Store} label="Listings" value={`${activeListings}/${totalListings}`} accent="bg-purple-500/10 text-purple-500" />
         </div>
+      )}
+
+      {/* 👇 Seller Rank Card - sellers only */}
+      {isSeller && myRank && (
+        <motion.div {...fadeUp}
+          className="flex items-center gap-4 p-5 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/5 to-transparent">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+            <Trophy className="w-5 h-5 text-amber-500" />
+          </div>
+          <div className="flex-1">
+            <p className="font-display font-semibold text-base text-amber-700 dark:text-amber-400">
+              #{myRank} Top Seller
+            </p>
+            <p className="text-sm text-muted-foreground">
+              You're ranked #{myRank} on the leaderboard! Keep selling to climb higher.
+            </p>
+            <button
+              onClick={() => navigate("/leaderboard")}
+              className="mt-2 text-sm text-primary font-semibold flex items-center gap-1 hover:underline"
+            >
+              View Leaderboard <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </motion.div>
       )}
 
       {/* Promo request button — sellers only */}

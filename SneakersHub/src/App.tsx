@@ -16,6 +16,7 @@ import { useTheme } from "@/hooks/useTheme"; // Import useTheme
 import ScrollToTop from "@/components/ScrollToTop";
 import InstallPrompt from "@/components/InstallPrompt";
 import Spinner from "@/components/Spinner";
+import NetworkBanner from "@/components/NetworkBanner";
 
 import Index from "./pages/Index";
 import Privacy from "@/pages/Privacy";
@@ -37,6 +38,7 @@ const Account = lazy(() => import("./pages/Account"));
 const CreateListing = lazy(() => import("./pages/CreateListing"));
 const Admin = lazy(() => import("./pages/Admin"));
 const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
+const Leaderboard = lazy(() => import("./pages/Leaderboard")); // 👈 add this
 
 class ErrorBoundary extends Component<
   { children: ReactNode },
@@ -108,14 +110,15 @@ const App = () => (
                     <MessageProvider>
                       <PushProvider>
                         <ThemeWrapper> {/* Add ThemeWrapper here */}
+                          <NetworkBanner /> {/* 👈 add this */}
                           <Toaster />
-                         <Sonner 
-  position="top-center" 
-  offset="16px"
-  style={{
-    top: `calc(env(safe-area-inset-top, 60px) + 16px)`,
-  }}
-/>
+                          <Sonner
+                            position="top-center"
+                            offset="16px"
+                            style={{
+                              top: `calc(env(safe-area-inset-top, 60px) + 16px)`,
+                            }}
+                          />
                           <InstallPrompt />
                           <SafariNotifPrompt />
                           <BrowserRouter>
@@ -130,6 +133,7 @@ const App = () => (
                                 <Route path="/checkout" element={<Checkout />} />
                                 <Route path="/order-confirmation" element={<OrderConfirmation />} />
                                 <Route path="/about" element={<About />} />
+                                <Route path="/leaderboard" element={<Leaderboard />} /> {/* 👈 add this */}
                                 <Route path="/auth" element={
                                   <GuestRoute><Auth /></GuestRoute>
                                 } />

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { ShoppingBag, Menu, X, Bell, Zap, Store, Search, User, Heart } from "lucide-react";
+import { ShoppingBag, Menu, X, Bell, Zap, Store, Search, User, Heart, Trophy } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useOrders } from "@/context/OrderContext";
 import { useMessages } from "@/context/MessageContext";
@@ -9,11 +9,11 @@ import BecomeSellerDrawer from "@/components/Becomesellerdrawer";
 
 // Quick-access category shortcuts shown in the mobile menu
 const QUICK_CATEGORIES = [
-  { label: "Sneakers",     svg: "/categoryicons/sneakers.svg",    color: "from-blue-500/20 to-blue-600/20" },
-  { label: "Watches",      svg: "/categoryicons/watches.svg",     color: "from-purple-500/20 to-purple-600/20" },
-  { label: "Tops",         svg: "/categoryicons/tops.svg",        color: "from-pink-500/20 to-pink-600/20" },
-  { label: "Bags",         svg: "/categoryicons/bags.svg",        color: "from-amber-500/20 to-amber-600/20" },
-  { label: "Accessories",  svg: "/categoryicons/accessories.svg", color: "from-emerald-500/20 to-emerald-600/20" },
+  { label: "Sneakers", svg: "/categoryicons/sneakers.svg", color: "from-blue-500/20 to-blue-600/20" },
+  { label: "Watches", svg: "/categoryicons/watches.svg", color: "from-purple-500/20 to-purple-600/20" },
+  { label: "Tops", svg: "/categoryicons/tops.svg", color: "from-pink-500/20 to-pink-600/20" },
+  { label: "Bags", svg: "/categoryicons/bags.svg", color: "from-amber-500/20 to-amber-600/20" },
+  { label: "Accessories", svg: "/categoryicons/accessories.svg", color: "from-emerald-500/20 to-emerald-600/20" },
 ];
 
 const Navbar = () => {
@@ -37,13 +37,13 @@ const Navbar = () => {
   }, []);
 
   const canSell = user?.isSeller ?? user?.role === "seller";
-  
+
   // Orders badge count — includes both seller AND buyer orders for sellers
   const incompleteOrdersCount = canSell
-    ? orders.filter(o => 
-        (o.sellerId === user?.id && !(o.sellerConfirmed && o.buyerConfirmed)) || 
-        (o.buyerId === user?.id && !o.buyerConfirmed)
-      ).length
+    ? orders.filter(o =>
+      (o.sellerId === user?.id && !(o.sellerConfirmed && o.buyerConfirmed)) ||
+      (o.buyerId === user?.id && !o.buyerConfirmed)
+    ).length
     : orders.filter(o => o.buyerId === user?.id && !o.buyerConfirmed).length;
 
   const showOrderBadge = !!user && incompleteOrdersCount > 0;
@@ -66,6 +66,7 @@ const Navbar = () => {
     { to: "/", label: "Home", icon: null },
     { to: "/shop", label: "Shop", icon: null },
     { to: "/featured", label: "Featured", icon: <Zap className="w-3.5 h-3.5" />, special: true },
+    { to: "/leaderboard", label: "Leaderboard", icon: <Trophy className="w-3.5 h-3.5" /> }, // 👈 add this
     { to: "/account", label: "Account", icon: null },
     { to: "/about", label: "About", icon: null },
   ];
@@ -73,19 +74,18 @@ const Navbar = () => {
   return (
     <>
       <nav
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrolled 
-            ? "bg-background/95 backdrop-blur-xl border-b border-border shadow-lg" 
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrolled
+            ? "bg-background/95 backdrop-blur-xl border-b border-border shadow-lg"
             : "bg-background/80 backdrop-blur-sm border-b border-border/50"
-        }`}
+          }`}
         style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            
+
             {/* Brand Logo */}
-            <Link 
-              to="/" 
+            <Link
+              to="/"
               className="group relative flex items-center gap-1"
             >
               <span className="font-display text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
@@ -103,10 +103,10 @@ const Navbar = () => {
                   key={link.to}
                   to={link.to}
                   className={`relative px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
-                    ${location.pathname === link.to 
-                      ? "text-primary bg-primary/10" 
-                      : link.special 
-                        ? "text-amber-500 hover:bg-amber-500/10" 
+                    ${location.pathname === link.to
+                      ? "text-primary bg-primary/10"
+                      : link.special
+                        ? "text-amber-500 hover:bg-amber-500/10"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                     }`}
                 >
@@ -125,7 +125,7 @@ const Navbar = () => {
 
             {/* Right-side Actions */}
             <div className="flex items-center gap-2">
-              
+
               {/* Search Button */}
               <button
                 onClick={() => setSearchOpen(!searchOpen)}
@@ -137,8 +137,8 @@ const Navbar = () => {
 
               {/* Bell Notifications */}
               {showBell && (
-                <Link 
-                  to="/account" 
+                <Link
+                  to="/account"
                   className="relative p-2 rounded-full hover:bg-muted/50 transition-colors group"
                 >
                   <Bell className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -154,7 +154,7 @@ const Navbar = () => {
                   onClick={() => setSellerDrawerOpen(true)}
                   className="hidden md:flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-primary to-primary/80 text-white text-xs font-semibold hover:shadow-lg hover:scale-105 transition-all duration-200"
                 >
-                  <Store className="w-3.5 h-3.5" /> 
+                  <Store className="w-3.5 h-3.5" />
                   Start Selling
                 </button>
               )}
@@ -214,7 +214,7 @@ const Navbar = () => {
         {mobileOpen && (
           <div className="md:hidden border-t border-border bg-background/95 backdrop-blur-xl">
             <div className="px-4 py-4 flex flex-col gap-3">
-              
+
               {/* Nav Links */}
               {links.map((link) => (
                 <Link
@@ -222,10 +222,10 @@ const Navbar = () => {
                   to={link.to}
                   onClick={() => setMobileOpen(false)}
                   className={`flex items-center justify-between py-3 px-4 rounded-xl transition-all duration-200
-                    ${location.pathname === link.to 
-                      ? "bg-primary/10 text-primary" 
-                      : link.special 
-                        ? "text-amber-500 hover:bg-amber-500/10" 
+                    ${location.pathname === link.to
+                      ? "bg-primary/10 text-primary"
+                      : link.special
+                        ? "text-amber-500 hover:bg-amber-500/10"
                         : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                     }`}
                 >
