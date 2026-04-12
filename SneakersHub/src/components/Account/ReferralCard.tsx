@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Gift, Copy, CheckCircle, Users, Tag, Zap, Share2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import { useListings } from "@/context/ListingContext";
 import { toast } from "sonner";
 
 type Reward = {
@@ -25,6 +26,7 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 export const ReferralCard = () => {
     const { user } = useAuth();
+    const { listings, boostListing } = useListings();
     const [copied, setCopied] = useState(false);
     const [referralCode, setReferralCode] = useState<string | null>(null);
     const [referralCount, setReferralCount] = useState(0);
@@ -167,8 +169,8 @@ export const ReferralCard = () => {
                 {/* Code display */}
                 <div className="flex items-center gap-2">
                     <div className={`flex-1 px-4 py-3 rounded-xl border transition-all ${isMaxedOut
-                            ? "bg-muted/50 border-amber-500/30"
-                            : "bg-background border-border"
+                        ? "bg-muted/50 border-amber-500/30"
+                        : "bg-background border-border"
                         }`}>
                         <p className="text-xs text-muted-foreground mb-0.5">Your referral code</p>
                         <p className={`font-display font-bold text-lg tracking-[0.2em] ${isMaxedOut ? "text-muted-foreground line-through" : "text-primary"
@@ -180,8 +182,8 @@ export const ReferralCard = () => {
                         onClick={handleCopy}
                         disabled={isMaxedOut}
                         className={`p-3 rounded-xl border transition-all ${isMaxedOut
-                                ? "border-border bg-muted/30 text-muted-foreground cursor-not-allowed"
-                                : "border-border bg-background hover:border-primary/40 hover:bg-primary/5"
+                            ? "border-border bg-muted/30 text-muted-foreground cursor-not-allowed"
+                            : "border-border bg-background hover:border-primary/40 hover:bg-primary/5"
                             }`}
                     >
                         {copied
@@ -196,8 +198,8 @@ export const ReferralCard = () => {
                         onClick={handleShare}
                         disabled={isMaxedOut}
                         className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-bold transition-opacity ${isMaxedOut
-                                ? "bg-muted text-muted-foreground cursor-not-allowed"
-                                : "bg-primary text-primary-foreground hover:opacity-90"
+                            ? "bg-muted text-muted-foreground cursor-not-allowed"
+                            : "bg-primary text-primary-foreground hover:opacity-90"
                             }`}
                     >
                         <Share2 className="w-3.5 h-3.5" /> Share Code
@@ -280,20 +282,20 @@ export const ReferralCard = () => {
                                 <button
                                     onClick={async () => {
                                         try {
-                                            // Mark reward as used
                                             await supabase
                                                 .from("referral_rewards")
                                                 .update({ used: true })
                                                 .eq("id", reward.id);
 
-                                            // Boost listings
-                                            await supabase.rpc("redeem_listing_boost", {
-                                                seller_id: user!.id
-                                            });
+                                            const myListings = listings
+                                                .filter(l => l.status === "active")
+                                                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                                                .slice(0, 10);
 
-                                            toast.success("🚀 Your 10 listings are now boosted for 7 days!");
+                                            await Promise.all(myListings.map(l => boostListing(l.id, 7))); // 7 days for referral
 
-                                            // Clear cache and refresh
+                                            toast.success(`🚀 Your ${myListings.length} listing${myListings.length !== 1 ? "s are" : " is"} now featured for 7 days!`);
+
                                             if (user?.id) {
                                                 delete referralCache[user.id];
                                             }

@@ -34,7 +34,7 @@ type ListingContextType = {
   updateListing: (id: string, data: Partial<Listing>, imageFile?: File, extraImages?: File[]) => Promise<void>;
   deleteListing: (id: string) => Promise<void>;
   markSold: (id: string) => Promise<void>;
-  boostListing: (id: string) => Promise<void>;
+  boostListing: (id: string, days?: number) => Promise<void>;
   fetchListings: () => Promise<void>;
 };
 
@@ -53,8 +53,8 @@ const rowToListing = (r: ListingRow): Listing => ({
   sizes: Array.isArray(r.sizes)
     ? (r.category === "Sneakers"
       ? (r.sizes as (string | number)[])
-          .map((s) => Number(s))
-          .filter((n) => !Number.isNaN(n))
+        .map((s) => Number(s))
+        .filter((n) => !Number.isNaN(n))
       : (r.sizes as (string | number)[]).map((s) => String(s)))
     : [],
   description: r.description ?? "",
@@ -105,7 +105,7 @@ const compressImage = (file: File): Promise<Blob> => {
         width = MAX_WIDTH;
       }
       const canvas = document.createElement("canvas");
-      canvas.width  = width;
+      canvas.width = width;
       canvas.height = height;
       const ctx = canvas.getContext("2d");
       if (!ctx) { reject(new Error("Canvas not available")); return; }
@@ -270,14 +270,14 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
     if (error) throw new Error(error.message);
 
     // ✅ FIXED: Add seller's phone number to SMS trigger
-    triggerSMS({ 
-      type: "listing.created", 
-      record: { 
-        ...data, 
+    triggerSMS({
+      type: "listing.created",
+      record: {
+        ...data,
         seller_phone: sellerPhone,
-        listing_name: data.name 
-      } 
-    }).catch(() => {});
+        listing_name: data.name
+      }
+    }).catch(() => { });
 
     // Upload images — use unique paths for each image
     if (imageFile && data) {
@@ -326,16 +326,16 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
       const allFiles: File[] = [];
       if (imageFile) allFiles.push(imageFile);
       if (extraImages && extraImages.length > 0) allFiles.push(...extraImages);
-      
+
       // Upload each file with a unique path
       const uploadPromises = allFiles.map(async (file, index) => {
         const uniquePath = `${id}/${timestamp}-${index}.webp`;
         return await uploadImage(file, uniquePath);
       });
-      
+
       const urls = await Promise.all(uploadPromises);
       const validUrls = urls.filter(Boolean) as string[];
-      
+
       if (validUrls.length > 0) {
         dbUpdates.image_url = validUrls[0]; // First image is cover
         dbUpdates.images = validUrls;       // All images including cover
@@ -364,13 +364,13 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
       throw new Error(error.message);
     }
     // Remove from all buyers' carts
-    supabase.from("carts").delete().eq("sneaker_id", id).then(() => {});
+    supabase.from("carts").delete().eq("sneaker_id", id).then(() => { });
   };
 
   const markSold = (id: string) => updateListing(id, { status: "sold" });
 
-  const boostListing = (id: string) => {
-    const expiresAt = new Date(Date.now() + BOOST_DURATION * 24 * 60 * 60 * 1000).toISOString();
+  const boostListing = (id: string, days = BOOST_DURATION) => {
+    const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
     return updateListing(id, { boosted: true, boostExpiresAt: expiresAt });
   };
 

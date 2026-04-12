@@ -1,4 +1,4 @@
-import React, { memo, useState, useEffect } from "react";
+import React, { memo, useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Bell, Shield, Lock, Trash, ChevronRight, Wallet,
@@ -23,6 +23,10 @@ const isStandalone = () =>
   (window.matchMedia("(display-mode: standalone)").matches ||
     (window.navigator as any).standalone === true);
 
+// Cache for profile data
+const profileCache: Record<string, { data: any; timestamp: number }> = {};
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 // Detect network based on phone number prefix
 const detectNetwork = (number: string): string | null => {
   const cleaned = number.replace(/\D/g, "");
@@ -45,7 +49,7 @@ const getNetworkName = (number: string) => {
 };
 
 // ── Notification settings block ───────────────────────────────────────────────
-const NotificationSettings = ({
+const NotificationSettings = memo(({
   pushSupported, pushPermission, requestPermission,
 }: {
   pushSupported: boolean;
@@ -108,10 +112,12 @@ const NotificationSettings = ({
     </div>
   );
   return null;
-};
+});
+
+NotificationSettings.displayName = "NotificationSettings";
 
 // ── Payout change confirmation modal ─────────────────────────────────────────
-const PayoutConfirmModal = ({
+const PayoutConfirmModal = memo(({
   open, oldNumber, oldName, newNumber, newName, onConfirm, onCancel,
 }: {
   open: boolean;
@@ -191,10 +197,12 @@ const PayoutConfirmModal = ({
       </motion.div>
     )}
   </AnimatePresence>
-);
+));
+
+PayoutConfirmModal.displayName = "PayoutConfirmModal";
 
 // ── Delete Account Confirmation Modal ─────────────────────────────────────────
-const DeleteAccountModal = ({
+const DeleteAccountModal = memo(({
   open,
   onConfirm,
   onCancel,
@@ -271,10 +279,12 @@ const DeleteAccountModal = ({
       </motion.div>
     )}
   </AnimatePresence>
-);
+));
+
+DeleteAccountModal.displayName = "DeleteAccountModal";
 
 // ── Seller application status card ────────────────────────────────────────────
-const SellerApplicationStatus = ({ userId, userEmail, onActivated }: {
+const SellerApplicationStatus = memo(({ userId, userEmail, onActivated }: {
   userId?: string;
   userEmail?: string;
   onActivated?: () => void;
@@ -284,19 +294,30 @@ const SellerApplicationStatus = ({ userId, userEmail, onActivated }: {
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const fetchedRef = useRef(false);
 
-  React.useEffect(() => {
-    if (!userId) { setLoading(false); return; }
+  useEffect(() => {
+    if (!userId || fetchedRef.current) {
+      if (!userId) setLoading(false);
+      return;
+    }
+
+    fetchedRef.current = true;
+
     supabase.from("seller_applications")
       .select("status, store_name, momo_number, momo_name")
       .eq("user_id", userId)
       .order("submitted_at", { ascending: false })
       .limit(1)
       .maybeSingle()
-      .then(({ data }) => { setAppData(data); setStatus(data?.status ?? null); setLoading(false); });
+      .then(({ data }) => {
+        setAppData(data);
+        setStatus(data?.status ?? null);
+        setLoading(false);
+      });
   }, [userId]);
 
-  const ensurePaystackScript = (): Promise<void> =>
+  const ensurePaystackScript = useCallback((): Promise<void> =>
     new Promise((resolve, reject) => {
       if ((window as any).PaystackPop) { resolve(); return; }
       const existing = document.querySelector('script[src*="paystack"]');
@@ -311,9 +332,9 @@ const SellerApplicationStatus = ({ userId, userEmail, onActivated }: {
         script.async = true;
         document.head.appendChild(script);
       }
-    });
+    }), []);
 
-  const handlePay = async () => {
+  const handlePay = useCallback(async () => {
     if (!userId || !userEmail || !appData) return;
     setPaying(true);
     try {
@@ -389,9 +410,22 @@ const SellerApplicationStatus = ({ userId, userEmail, onActivated }: {
       toast.error(err.message ?? "Could not start payment");
       setPaying(false);
     }
-  };
+  }, [userId, userEmail, appData, onActivated, ensurePaystackScript]);
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <div className="rounded-2xl border border-border overflow-hidden animate-pulse">
+        <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border bg-muted/20">
+          <div className="w-4 h-4 bg-muted rounded" />
+          <div className="h-4 w-32 bg-muted rounded" />
+        </div>
+        <div className="px-5 py-5 space-y-4">
+          <div className="h-16 bg-muted rounded-xl" />
+          <div className="h-10 bg-muted rounded-xl" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-2xl border border-border overflow-hidden">
@@ -483,7 +517,9 @@ const SellerApplicationStatus = ({ userId, userEmail, onActivated }: {
       <BecomeSellerDrawer open={drawerOpen} onClose={() => { setDrawerOpen(false); setStatus("pending"); }} />
     </div>
   );
-};
+});
+
+SellerApplicationStatus.displayName = "SellerApplicationStatus";
 
 interface Props {
   user: any;
@@ -512,6 +548,7 @@ const AccountSettings = memo(({
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [profileLoading, setProfileLoading] = useState(true);
 
   // Payout state
   const [savedPayout, setSavedPayout] = useState({ method: "", number: "", name: "" });
@@ -526,19 +563,43 @@ const AccountSettings = memo(({
   const [detectedNetwork, setDetectedNetwork] = useState<string | null>(null);
   const [autoDetectedMethod, setAutoDetectedMethod] = useState<string | null>(null);
 
-  // Load saved payout details
+  const resolveTimeoutRef = useRef<NodeJS.Timeout>();
+
+  // Load saved payout details with cache
   useEffect(() => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      setProfileLoading(false);
+      return;
+    }
+
+    // Check cache first
+    const cached = profileCache[user.id];
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      const data = cached.data;
+      if (data?.payout_method) {
+        const loaded = { method: data.payout_method, number: data.payout_number ?? "", name: data.payout_name ?? "" };
+        setSavedPayout(loaded);
+        setPayoutForm({ ...loaded, bankCode: "" });
+        setResolvedName(data.payout_name ?? null);
+      }
+      setProfileLoading(false);
+      return;
+    }
+
     supabase.from("profiles")
       .select("payout_method, payout_number, payout_name")
       .eq("id", user.id).single()
       .then(({ data }) => {
+        if (data) {
+          profileCache[user.id] = { data, timestamp: Date.now() };
+        }
         if (data?.payout_method) {
           const loaded = { method: data.payout_method, number: data.payout_number ?? "", name: data.payout_name ?? "" };
           setSavedPayout(loaded);
           setPayoutForm({ ...loaded, bankCode: "" });
           setResolvedName(data.payout_name ?? null);
         }
+        setProfileLoading(false);
       });
   }, [user?.id]);
 
@@ -566,7 +627,7 @@ const AccountSettings = memo(({
         return;
       }
 
-      // ✅ Auto-select payout method
+      // Auto-select payout method
       const methodMap: Record<string, string> = {
         "VOD": "momo_telecel",
         "ATL": "momo_airteltigo",
@@ -616,7 +677,7 @@ const AccountSettings = memo(({
         } else {
           setPayoutForm(f => ({ ...f, name: "" }));
         }
-      } catch (err) {
+      } catch {
         setResolveError("Network error. Please try again.");
         setResolvedName(null);
         setPayoutForm(f => ({ ...f, name: "" }));
@@ -625,45 +686,58 @@ const AccountSettings = memo(({
       }
     };
 
-    const timeoutId = setTimeout(resolveAccountName, 800);
-    return () => clearTimeout(timeoutId);
+    if (resolveTimeoutRef.current) clearTimeout(resolveTimeoutRef.current);
+    resolveTimeoutRef.current = setTimeout(resolveAccountName, 800);
+    return () => {
+      if (resolveTimeoutRef.current) clearTimeout(resolveTimeoutRef.current);
+    };
   }, [payoutForm.number]);
 
-  const toggleNotif = (key: string, value: boolean, set: (v: boolean) => void) => {
+  const toggleNotif = useCallback((key: string, value: boolean, set: (v: boolean) => void) => {
     set(value);
     localStorage.setItem(key, String(value));
-  };
+  }, []);
 
-  const handleChangePassword = async () => {
+  const handleChangePassword = useCallback(async () => {
     if (newPassword.length < 8) { toast.error("Password must be at least 8 characters"); return; }
     if (newPassword !== confirmPassword) { toast.error("Passwords don't match"); return; }
     try {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
       toast.success("Password updated!");
-      setShowChangePassword(false); setNewPassword(""); setConfirmPassword("");
-    } catch (err: any) { toast.error(err.message ?? "Failed to update password"); }
-  };
+      setShowChangePassword(false);
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to update password");
+    }
+  }, [newPassword, confirmPassword]);
 
-  const handleSavePayoutIntent = () => {
+  const handleSavePayoutIntent = useCallback(() => {
     if (!payoutForm.method || !payoutForm.number || !payoutForm.name) {
-      toast.error("Please fill in all payout details"); return;
+      toast.error("Please fill in all payout details");
+      return;
     }
     if (isVerified && subaccountCode && savedPayout.number) {
       setShowPayoutConfirm(true);
       return;
     }
     executeSavePayout();
-  };
+  }, [payoutForm, isVerified, subaccountCode, savedPayout.number]);
 
-  const executeSavePayout = async () => {
+  const executeSavePayout = useCallback(async () => {
     setShowPayoutConfirm(false);
     try {
       const { error } = await supabase.from("profiles").update({
-        payout_method: payoutForm.method, payout_number: payoutForm.number,
-        payout_name: payoutForm.name, payout_bank_code: payoutForm.bankCode || null,
+        payout_method: payoutForm.method,
+        payout_number: payoutForm.number,
+        payout_name: payoutForm.name,
+        payout_bank_code: payoutForm.bankCode || null,
       }).eq("id", user!.id);
       if (error) throw error;
+
+      // Clear cache after update
+      if (user?.id) delete profileCache[user.id];
 
       if (isVerified && subaccountCode) {
         try {
@@ -709,12 +783,44 @@ const AccountSettings = memo(({
     } catch (err: any) {
       toast.error(err.message ?? "Failed to save payout details");
     }
-  };
+  }, [payoutForm, user, isVerified, subaccountCode]);
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = useCallback(() => {
     setShowDeleteModal(false);
     onDeleteAccount();
-  };
+  }, [onDeleteAccount]);
+
+  // Show skeleton while loading profile data
+  if (profileLoading && canSell && !isOfficial) {
+    return (
+      <div className="space-y-6 max-w-lg">
+        {!canSell && (
+          <SellerApplicationStatus
+            userId={user?.id}
+            userEmail={user?.email}
+          />
+        )}
+        <div className="rounded-2xl border border-border overflow-hidden animate-pulse">
+          <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border bg-muted/20">
+            <div className="w-4 h-4 bg-muted rounded" />
+            <div className="h-4 w-24 bg-muted rounded" />
+          </div>
+          <div className="divide-y divide-border">
+            <div className="px-5 py-4 h-16" />
+            <div className="px-5 py-4 h-16" />
+            <div className="px-5 py-4 h-16" />
+          </div>
+        </div>
+        <div className="rounded-2xl border border-border overflow-hidden animate-pulse">
+          <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border bg-muted/20">
+            <div className="w-4 h-4 bg-muted rounded" />
+            <div className="h-4 w-24 bg-muted rounded" />
+          </div>
+          <div className="p-5 h-32" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 max-w-lg">
@@ -836,7 +942,7 @@ const AccountSettings = memo(({
               {!isVerified && <span className="block mt-1 text-[11px]">Only applies when you become a verified seller.</span>}
             </p>
 
-            {/* ── Payout method buttons ── */}
+            {/* Payout method buttons */}
             <div>
               <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-2">Payout Method</label>
               <div className="grid grid-cols-3 gap-2">
@@ -849,14 +955,13 @@ const AccountSettings = memo(({
                     key={value}
                     onClick={() => {
                       setPayoutForm(p => ({ ...p, method: value, bankCode: "" }));
-                      setAutoDetectedMethod(null); // clear auto-detected on manual select
+                      setAutoDetectedMethod(null);
                     }}
                     className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition-all text-xs font-semibold relative
                       ${payoutForm.method === value ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground hover:border-primary/40"}`}
                   >
                     <Icon className={`w-4 h-4 ${payoutForm.method === value ? "text-primary" : ""}`} />
                     {label}
-                    {/* ✅ Auto-detected badge */}
                     {autoDetectedMethod === value && (
                       <span className="text-[9px] text-green-600 font-bold flex items-center gap-0.5 leading-none">
                         <CheckCircle className="w-2.5 h-2.5" /> Auto-detected
@@ -866,7 +971,6 @@ const AccountSettings = memo(({
                 ))}
               </div>
 
-              {/* ✅ Green confirmation message — inside payout section, right after buttons */}
               {detectedNetwork && autoDetectedMethod && (
                 <p className="text-[11px] text-green-600 flex items-center gap-1 mt-2">
                   <CheckCircle className="w-3 h-3" />
@@ -875,7 +979,7 @@ const AccountSettings = memo(({
               )}
             </div>
 
-            {/* ── MoMo Number ── */}
+            {/* MoMo Number */}
             <div>
               <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">MoMo Number *</label>
               <div className="relative">
@@ -890,7 +994,7 @@ const AccountSettings = memo(({
               </div>
             </div>
 
-            {/* ── Account Name (auto-resolved) ── */}
+            {/* Account Name (auto-resolved) */}
             <div>
               <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Account Name</label>
               <div className="relative">
