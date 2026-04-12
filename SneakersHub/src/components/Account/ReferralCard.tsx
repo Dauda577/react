@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Gift, Copy, CheckCircle, Users, Tag, Zap, Share2, Trophy } from "lucide-react";
+import { Gift, Copy, CheckCircle, Users, Tag, Zap, Share2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 import { useListings } from "@/context/ListingContext";
@@ -33,7 +33,6 @@ export const ReferralCard = () => {
     const [referralCount, setReferralCount] = useState(0);
     const [rewards, setRewards] = useState<Reward[]>([]);
     const [loading, setLoading] = useState(true);
-    const [myRank, setMyRank] = useState<number | null>(null); // 👈 add rank state
 
     const isSeller = user?.isSeller ?? user?.role === "seller";
 
@@ -52,19 +51,6 @@ export const ReferralCard = () => {
 
         fetchReferralData();
     }, [user?.id]);
-
-    // 👇 Fetch seller rank
-    useEffect(() => {
-        if (!isSeller || !user?.id) return;
-        supabase
-            .from("seller_leaderboard")
-            .select("id")
-            .then(({ data }) => {
-                if (!data) return;
-                const rank = data.findIndex(s => s.id === user.id) + 1;
-                if (rank > 0) setMyRank(rank);
-            });
-    }, [isSeller, user?.id]);
 
     const fetchReferralData = async () => {
         setLoading(true);
@@ -244,32 +230,6 @@ export const ReferralCard = () => {
                     </p>
                 )}
             </motion.div>
-
-            {/* 👇 Seller Rank Card - shows for sellers only */}
-            {isSeller && myRank && (
-                <motion.div
-                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                    className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 flex items-center gap-4"
-                >
-                    <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-                        <Trophy className="w-5 h-5 text-amber-500" />
-                    </div>
-                    <div className="flex-1">
-                        <p className="font-display font-bold text-sm">
-                            {myRank <= 3
-                                ? `You're ${["🥇 #1", "🥈 #2", "🥉 #3"][myRank - 1]} on the leaderboard!`
-                                : `You're ranked #${myRank} on the leaderboard`
-                            }
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                            Keep selling to climb higher
-                        </p>
-                    </div>
-                    <Link to="/leaderboard" className="text-xs text-primary font-semibold hover:opacity-70 transition-opacity flex-shrink-0">
-                        View all →
-                    </Link>
-                </motion.div>
-            )}
 
             {/* ── Active rewards ── */}
             {rewards.length > 0 && (

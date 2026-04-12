@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { ShoppingBag, Menu, X, Bell, Zap, Store, Search, User, Heart, Trophy } from "lucide-react";
+import { ShoppingBag, Menu, X, Bell, Zap, Store, Search, User, Heart } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useOrders } from "@/context/OrderContext";
 import { useMessages } from "@/context/MessageContext";
@@ -66,7 +66,6 @@ const Navbar = () => {
     { to: "/", label: "Home", icon: null },
     { to: "/shop", label: "Shop", icon: null },
     { to: "/featured", label: "Featured", icon: <Zap className="w-3.5 h-3.5" />, special: true },
-    { to: "/leaderboard", label: "Leaderboard", icon: <Trophy className="w-3.5 h-3.5" /> }, // 👈 add this
     { to: "/account", label: "Account", icon: null },
     { to: "/about", label: "About", icon: null },
   ];

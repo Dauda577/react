@@ -5,6 +5,8 @@ import { Trophy, Star, ShoppingBag, Store, Sparkles, BadgeCheck, MapPin, Trendin
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 type LeaderboardEntry = {
     id: string;
@@ -31,9 +33,19 @@ const getRankColor = (rank: number) => {
 };
 
 export default function Leaderboard() {
+    const { user, loading: authLoading } = useAuth();
+    const navigate = useNavigate();
     const [sellers, setSellers] = useState<LeaderboardEntry[]>([]);
     const [loading, setLoading] = useState(true);
     const [period, setPeriod] = useState<"all" | "month">("all");
+
+    // Redirect non-sellers away
+    useEffect(() => {
+        if (authLoading) return;
+        if (!user || user.role !== "seller") {
+            navigate("/account", { replace: true });
+        }
+    }, [user, authLoading, navigate]);
 
     useEffect(() => {
         fetchLeaderboard();
@@ -49,6 +61,24 @@ export default function Leaderboard() {
         if (!error && data) setSellers(data as LeaderboardEntry[]);
         setLoading(false);
     };
+
+    // Show loading while checking auth
+    if (authLoading) {
+        return (
+            <div className="min-h-screen bg-background flex flex-col">
+                <Navbar />
+                <main className="flex-1 flex items-center justify-center">
+                    <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                </main>
+                <Footer />
+            </div>
+        );
+    }
+
+    // If not seller, don't render anything (will redirect)
+    if (!user || user.role !== "seller") {
+        return null;
+    }
 
     return (
         <div className="min-h-screen bg-background flex flex-col">
