@@ -310,13 +310,9 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
               )}
 
               {/* Desktop hover overlay — hidden on touch devices */}
-              <div className="hidden md:block absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none group-hover:pointer-events-auto">
-                <div className="absolute bottom-3 left-3 right-3">
-                  {isOwnListing ? (
-                    <div className="w-full py-2 px-3 rounded-xl font-medium text-xs flex items-center justify-center gap-1.5 bg-white/20 text-white/80 backdrop-blur-sm shadow-lg cursor-default">
-                      Your Listing
-                    </div>
-                  ) : (
+              {!isOwnListing && (
+                <div className="hidden md:block absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none group-hover:pointer-events-auto">
+                  <div className="absolute bottom-3 left-3 right-3">
                     <motion.button
                       initial={{ y: 10, opacity: 0 }}
                       whileInView={{ y: 0, opacity: 1 }}
@@ -332,9 +328,9 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
                         <><ShoppingBag className="w-3.5 h-3.5" /> Quick Add</>
                       )}
                     </motion.button>
-                  )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Badges Container */}
               <div className="absolute top-3 left-3 flex flex-col gap-1 z-10">
@@ -411,11 +407,7 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
               </div>
 
               {/* Mobile Quick Add button — always visible, below price */}
-              {isOwnListing ? (
-                <div className="md:hidden mt-2.5 w-full py-2 rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5 border border-border bg-muted/40 text-muted-foreground cursor-default">
-                  Your Listing
-                </div>
-              ) : (
+              {!isOwnListing && (
                 <motion.button
                   whileTap={{ scale: 0.97 }}
                   onClick={handleQuickAdd}
