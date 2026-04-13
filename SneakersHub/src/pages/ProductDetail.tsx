@@ -994,6 +994,13 @@ const ProductDetail = () => {
                     description: l.description, isBoosted: l.boosted,
                     sellerVerified: l.sellerVerified, sellerIsOfficial: l.sellerIsOfficial,
                     discountPercent: l.discountPercent,
+                    sellerId: l.sellerId,
+                    sellerName: l.sellerName,
+                    sellerSubaccountCode: l.sellerSubaccountCode ?? null,
+                    sellerCity: l.city ?? l.sellerCity ?? null,
+                    sellerRegion: l.region ?? l.sellerRegion ?? null,
+                    shippingCost: l.shippingCost ?? 0,
+                    handlingTime: l.handlingTime ?? "Ships in 1-3 days",
                   }} index={i} />
                 </div>
               ))}
@@ -1008,6 +1015,13 @@ const ProductDetail = () => {
                   description: l.description, isBoosted: l.boosted,
                   sellerVerified: l.sellerVerified, sellerIsOfficial: l.sellerIsOfficial,
                   discountPercent: l.discountPercent,
+                  sellerId: l.sellerId,
+                  sellerName: l.sellerName,
+                  sellerSubaccountCode: l.sellerSubaccountCode ?? null,
+                  sellerCity: l.city ?? l.sellerCity ?? null,
+                  sellerRegion: l.region ?? l.sellerRegion ?? null,
+                  shippingCost: l.shippingCost ?? 0,
+                  handlingTime: l.handlingTime ?? "Ships in 1-3 days",
                 }} index={i} />
               ))}
             </div>

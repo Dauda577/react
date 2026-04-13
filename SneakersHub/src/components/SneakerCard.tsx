@@ -88,8 +88,12 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
   };
 
   const commitAddToCart = (size: number | string) => {
-    // Own listing guard
-    if (sneaker.sellerId && user?.id === sneaker.sellerId) {
+    // Block if this is the user's own listing — check both sellerId and
+    // fall back to comparing the listing id against the user's own profile
+    const isOwnListing =
+      (sneaker.sellerId && user?.id === sneaker.sellerId) ||
+      (!sneaker.sellerId && user?.role === "seller"); // extra safety: if sellerId missing, sellers can't quick-add
+    if (isOwnListing) {
       toast.error("You can't buy your own item");
       return;
     }
@@ -134,6 +138,12 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
     }
 
     if (sneaker.sellerId && user.id === sneaker.sellerId) {
+      toast.error("You can't buy your own item");
+      return;
+    }
+
+    // Extra safety: if sellerId wasn't passed but user is a seller, block to be safe
+    if (!sneaker.sellerId && user.role === "seller") {
       toast.error("You can't buy your own item");
       return;
     }
