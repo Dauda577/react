@@ -88,9 +88,8 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
   };
 
   const commitAddToCart = (size: number | string) => {
-    // Only block if this specific listing belongs to the logged-in user
-    if (sneaker.sellerId && sneaker.sellerId === user?.id) {
-      toast.error("You can't buy your own item");
+    if (sneaker.sellerId === user?.id) {
+      toast.error("You cannot buy your own item", { description: "This is your own listing" });
       return;
     }
 
@@ -117,7 +116,7 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
     setShowSizePicker(false);
     setSelectedSize(null);
     setQuickAdded(true);
-    toast.success("Added to cart!", { icon: "🛍️", duration: 2000 });
+    toast.success(`${sneaker.name} added to cart!`, { icon: "🛍️", duration: 2000 });
     setTimeout(() => setQuickAdded(false), 2000);
   };
 
@@ -133,8 +132,8 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
       return;
     }
 
-    if (sneaker.sellerId && user.id === sneaker.sellerId) {
-      toast.error("You can't buy your own item");
+    if (sneaker.sellerId === user.id) {
+      toast.error("You cannot buy your own item", { description: "This is your own listing" });
       return;
     }
 
