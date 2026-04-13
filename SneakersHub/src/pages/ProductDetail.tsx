@@ -5,7 +5,7 @@ import {
   ArrowLeft, ShoppingBag, Check, MapPin, Phone, CheckCircle,
   X, UserPlus, LogIn, Star, ShieldCheck, MessageCircle, BadgeCheck, Sparkles,
   Share2, Copy, CheckCheck, AlertTriangle, Truck, Package, Award,
-  ChevronRight, Heart, CreditCard, Clock,
+  ChevronRight, Heart, CreditCard, Clock, Ruler,
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
@@ -16,6 +16,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import SneakerCard from "@/components/SneakerCard";
 import ChatModal from "@/components/ChatModal";
+import SizeGuideModal from "@/components/SizeGuideModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -419,6 +420,7 @@ const ProductDetail = () => {
   const [showGuestModal, setShowGuestModal] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [sellerAvatarUrl, setSellerAvatarUrl] = useState<string | null>(null);
+  const [showSizeGuide, setShowSizeGuide] = useState(false);
 
   const listing = listings.find((l) => l.id === id);
   const related = listings.filter((l) => l.id !== id && l.category === listing?.category).slice(0, 8);
@@ -497,8 +499,8 @@ const ProductDetail = () => {
     addItem(cartListing, selectedSize ?? "one-size");
     setAdded(true);
     toast.success(listing.discountPercent
-      ? `Added to cart with ${listing.discountPercent}% discount!`
-      : "Added to cart!");
+      ? `${listing.name} added to cart with ${listing.discountPercent}% off!`
+      : `${listing.name} added to cart!`);
     setTimeout(() => setAdded(false), 2000);
   };
 
@@ -576,6 +578,15 @@ const ProductDetail = () => {
             listingId={listing.id}
             listingName={listing.name}
             onClose={() => setShowChat(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showSizeGuide && (
+          <SizeGuideModal
+            category={listing.category as any}
+            onClose={() => setShowSizeGuide(false)}
           />
         )}
       </AnimatePresence>
@@ -745,11 +756,12 @@ const ProductDetail = () => {
                   <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     {sizeLabel}
                   </label>
-                  {selectedSize && (
-                    <span className="text-xs text-primary font-medium">
-                      Selected: {selectedSize}
-                    </span>
-                  )}
+                  <button
+                    onClick={() => setShowSizeGuide(true)}
+                    className="text-xs text-primary font-semibold hover:opacity-70 transition-opacity flex items-center gap-1"
+                  >
+                    <Ruler className="w-3 h-3" /> Size guide
+                  </button>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {parsedSizes.map((size) => (
@@ -767,6 +779,11 @@ const ProductDetail = () => {
                     </motion.button>
                   ))}
                 </div>
+                {selectedSize && (
+                  <p className="text-xs text-muted-foreground">
+                    Selected: <span className="font-medium text-foreground">{selectedSize}</span>
+                  </p>
+                )}
               </div>
             )}
 
