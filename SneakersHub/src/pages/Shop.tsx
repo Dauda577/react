@@ -258,6 +258,7 @@ const Shop = () => {
                         description: l.description, isBoosted: l.boosted,
                         sellerVerified: l.sellerVerified, sellerIsOfficial: l.sellerIsOfficial,
                         discountPercent: l.discountPercent,
+                        sellerId: l.sellerId,
                       }}
                       index={i}
                     />

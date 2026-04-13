@@ -38,7 +38,6 @@ type PublicListingsContextType = {
   fetchListings: () => Promise<void>;
   incrementViews: (id: string) => Promise<void>;
   refreshListing: (id: string) => Promise<void>;
-  discountPercent: number | null;
 };
 
 const PublicListingsContext = createContext<PublicListingsContextType | null>(null);
@@ -70,8 +69,8 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
         description, image_url, images, boosted, boost_expires_at,
         views, created_at, city, region, shipping_cost, discount_percent, handling_time,
         profiles (
-          name, phone, city, verified, is_official, subaccount_code, created_at
-        )
+  name, phone, city, region, verified, is_official, subaccount_code, created_at
+)
       `)
       .eq("status", "active")
       .order("boosted", { ascending: false })
@@ -155,8 +154,8 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
         description, image_url, images, boosted, boost_expires_at,
         views, created_at, city, region, shipping_cost, discount_percent, handling_time,
         profiles (
-          name, phone, city, verified, is_official, subaccount_code, created_at
-        )
+  name, phone, city, region, verified, is_official, subaccount_code, created_at
+)
       `)
       .eq("id", id)
       .single();
@@ -228,8 +227,8 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
               description, image_url, images, boosted, boost_expires_at,
               views, created_at, city, region, shipping_cost, discount_percent, handling_time,
               profiles (
-                name, phone, city, verified, is_official, subaccount_code, created_at
-              )
+  name, phone, city, region, verified, is_official, subaccount_code, created_at
+)
             `)
             .eq("id", payload.new.id)
             .single();
@@ -287,8 +286,8 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
               description, image_url, images, boosted, boost_expires_at,
               views, created_at, city, region, shipping_cost, discount_percent, handling_time,
               profiles (
-                name, phone, city, verified, is_official, subaccount_code, created_at
-              )
+  name, phone, city, region, verified, is_official, subaccount_code, created_at
+)
             `)
             .eq("id", payload.new.id)
             .single();

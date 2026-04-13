@@ -234,6 +234,7 @@ const Index = () => {
     category: l.category, sizes: l.sizes, description: l.description, isBoosted,
     sellerVerified: l.sellerVerified, sellerIsOfficial: l.sellerIsOfficial,
     discountPercent: l.discountPercent,
+    sellerId: l.sellerId,
   });
 
   const sellHref = user ? "/account?tab=settings" : "/auth";
