@@ -18,7 +18,7 @@ const FALLBACK_IMG = "/placeholder-sneaker.png";
 
 const Animate = ({
   isMobile, children, className, ...props
-}: { isMobile: boolean; children: React.ReactNode; className?: string; [k: string]: unknown }) =>
+}: { isMobile: boolean; children: React.ReactNode; className?: string;[k: string]: unknown }) =>
   isMobile
     ? <div className={className}>{children}</div>
     : <motion.div className={className} {...props}>{children}</motion.div>;
@@ -26,25 +26,25 @@ const Animate = ({
 // ─── Data ────────────────────────────────────────────────────────────────────
 
 const HERO_CATEGORIES = [
-  { label: "Sneakers",    svg: "/categoryicons/sneakers.svg"    },
-  { label: "Watches",     svg: "/categoryicons/watches.svg"     },
-  { label: "Tops",        svg: "/categoryicons/tops.svg"        },
-  { label: "Bags",        svg: "/categoryicons/bags.svg"        },
-  { label: "Jewellery",   svg: "/categoryicons/jewellery.svg"   },
+  { label: "Sneakers", svg: "/categoryicons/sneakers.svg" },
+  { label: "Watches", svg: "/categoryicons/watches.svg" },
+  { label: "Tops", svg: "/categoryicons/tops.svg" },
+  { label: "Bags", svg: "/categoryicons/bags.svg" },
+  { label: "Jewellery", svg: "/categoryicons/jewellery.svg" },
   { label: "Accessories", svg: "/categoryicons/accessories.svg" },
 ];
 
 const TRUST_ITEMS = [
   { icon: ShieldCheck, label: "Verified Sellers", sub: "Every seller is reviewed" },
-  { icon: Wallet,      label: "MoMo Payouts",     sub: "Get paid instantly"       },
-  { icon: Truck,       label: "Nationwide",        sub: "Delivery across Ghana"   },
+  { icon: Wallet, label: "MoMo Payouts", sub: "Get paid instantly" },
+  { icon: Truck, label: "Nationwide", sub: "Delivery across Ghana" },
 ];
 
 const SELL_PILLS = [
-  { emoji: "🆓", label: "Free to list"      },
+  { emoji: "🆓", label: "Free to list" },
   { emoji: "⚡", label: "Fast MoMo payouts" },
-  { emoji: "🔒", label: "Verified buyers"   },
-  { emoji: "🇬🇭", label: "Built for Ghana"  },
+  { emoji: "🔒", label: "Verified buyers" },
+  { emoji: "🇬🇭", label: "Built for Ghana" },
 ];
 
 // ─── Search Dropdown ─────────────────────────────────────────────────────────
@@ -157,16 +157,16 @@ const Index = () => {
 
   const searchResults = query.trim().length > 0
     ? listings
-        .filter((l) => {
-          const q = query.toLowerCase();
-          return (
-            l.name.toLowerCase().includes(q) ||
-            l.brand.toLowerCase().includes(q) ||
-            l.category?.toLowerCase().includes(q)
-          );
-        })
-        .slice(0, 6)
-        .map((l) => ({ id: l.id, name: l.name, brand: l.brand, price: l.price, image: l.image ?? "" }))
+      .filter((l) => {
+        const q = query.toLowerCase();
+        return (
+          l.name.toLowerCase().includes(q) ||
+          l.brand.toLowerCase().includes(q) ||
+          l.category?.toLowerCase().includes(q)
+        );
+      })
+      .slice(0, 6)
+      .map((l) => ({ id: l.id, name: l.name, brand: l.brand, price: l.price, image: l.image ?? "" }))
     : [];
 
   useEffect(() => {
@@ -225,17 +225,16 @@ const Index = () => {
     return new Date(l.boostExpiresAt).getTime() > now;
   };
 
-  const featured    = listings.filter(isActiveBoost).slice(0, 6);
-  // Show all recent listings in New Arrivals regardless of boost status
-  const newArrivals = listings.filter((l) => !l.sellerIsOfficial).slice(0, 6);
-  const heroImage   = listings.find((l) => l.image)?.image ?? FALLBACK_IMG;
+  const featured = listings.filter(isActiveBoost).slice(0, 12);
+  const newArrivals = listings.filter((l) => !l.sellerIsOfficial).slice(0, 12);
+  const heroImage = listings.find((l) => l.image)?.image ?? FALLBACK_IMG;
 
   const toCardShape = (l: typeof listings[0], isBoosted = false) => ({
-  id: l.id, name: l.name, brand: l.brand, price: l.price, image: l.image ?? "",
-  category: l.category, sizes: l.sizes, description: l.description, isBoosted,
-  sellerVerified: l.sellerVerified, sellerIsOfficial: l.sellerIsOfficial,
-  discountPercent: l.discountPercent,
-});
+    id: l.id, name: l.name, brand: l.brand, price: l.price, image: l.image ?? "",
+    category: l.category, sizes: l.sizes, description: l.description, isBoosted,
+    sellerVerified: l.sellerVerified, sellerIsOfficial: l.sellerIsOfficial,
+    discountPercent: l.discountPercent,
+  });
 
   const sellHref = user ? "/account?tab=settings" : "/auth";
 
@@ -423,11 +422,11 @@ const Index = () => {
             </Link>
           </div>
           {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6">
-              {[...Array(3)].map((_, i) => <div key={i} className="rounded-2xl bg-muted h-52 sm:h-64 animate-pulse" />)}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+              {[...Array(4)].map((_, i) => <div key={i} className="rounded-2xl bg-muted h-52 sm:h-64 animate-pulse" />)}
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
               {featured.map((l, i) => <SneakerCard key={l.id} sneaker={toCardShape(l, true)} index={i} />)}
             </div>
           )}
@@ -446,8 +445,8 @@ const Index = () => {
           </Link>
         </div>
         {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6">
-            {[...Array(6)].map((_, i) => <div key={i} className="rounded-2xl bg-muted h-52 sm:h-64 animate-pulse" />)}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+            {[...Array(4)].map((_, i) => <div key={i} className="rounded-2xl bg-muted h-52 sm:h-64 animate-pulse" />)}
           </div>
         ) : newArrivals.length === 0 ? (
           <div className="text-center py-12 border border-dashed border-border rounded-3xl">
@@ -459,7 +458,7 @@ const Index = () => {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
             {newArrivals.map((l, i) => (
               <SneakerCard
                 key={l.id}
