@@ -50,6 +50,7 @@ const Featured = () => {
     sellerVerified: l.sellerVerified,
     sellerIsOfficial: l.sellerIsOfficial,
     discountPercent: l.discountPercent,
+    sellerId: l.sellerId, 
   });
 
   return (
