@@ -48,7 +48,7 @@ const formatId = (id: string) => {
   return `#${num.toString().padStart(9, "0")}`;
 };
 
-const formatGH₵ = (n: number) =>
+const formatGHC = (n: number) =>
   `GH₵ ${n.toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const payoutColors: Record<string, string> = {
