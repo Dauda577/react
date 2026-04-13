@@ -1,13 +1,15 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
-import { Heart, Zap, Sparkles, BadgeCheck, ShoppingBag } from "lucide-react";
+import { Heart, Zap, Sparkles, BadgeCheck, ShoppingBag, X, Check } from "lucide-react";
 import { useSaved } from "@/context/SavedContext";
+import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 import { cardImage } from "@/lib/imageutils";
 import { toast } from "sonner";
 import { CATEGORY_SVGS } from "@/data/sneakers";
 import { useSound } from "@/hooks/useSound";
-import { motion } from "framer-motion";
-import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useState, useRef, useEffect } from "react";
 
 interface SneakerCardSneaker {
   id: string;
@@ -23,6 +25,13 @@ interface SneakerCardSneaker {
   sellerIsOfficial?: boolean;
   isNew?: boolean;
   discountPercent?: number | null;
+  sellerId?: string;
+  sellerName?: string;
+  sellerSubaccountCode?: string | null;
+  sellerCity?: string | null;
+  sellerRegion?: string | null;
+  shippingCost?: number;
+  handlingTime?: string;
 }
 
 interface SneakerCardProps {
@@ -32,16 +41,41 @@ interface SneakerCardProps {
 
 const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
   const { toggleSaved, isSaved } = useSaved();
+  const { addItem } = useCart();
+  const { user, isGuest } = useAuth();
   const { play } = useSound();
+  const navigate = useNavigate();
+
   const saved = isSaved(sneaker.id);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [quickAdded, setQuickAdded] = useState(false);
+  const [showSizePicker, setShowSizePicker] = useState(false);
+  const [selectedSize, setSelectedSize] = useState<number | string | null>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
 
   const discountedPrice = sneaker.discountPercent
     ? Math.round(sneaker.price * (1 - sneaker.discountPercent / 100))
     : null;
 
   const fallbackSvg = CATEGORY_SVGS[sneaker.category] ?? "/categoryicons/other.svg";
+
+  const isSneakerCat = sneaker.category === "Sneakers";
+  const isClothing = ["Tops", "Bottoms", "Outerwear", "Activewear"].includes(sneaker.category);
+  const needsSize = (isSneakerCat || isClothing) && sneaker.sizes.length > 1;
+
+  // Close picker on outside click
+  useEffect(() => {
+    if (!showSizePicker) return;
+    const handler = (e: MouseEvent) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
+        setShowSizePicker(false);
+        setSelectedSize(null);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [showSizePicker]);
 
   const handleSave = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -65,6 +99,74 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
       icon: saved ? "💔" : "❤️",
       duration: 2000,
     });
+  };
+
+  const commitAddToCart = (size: number | string) => {
+    const finalPrice = discountedPrice ?? sneaker.price;
+    addItem(
+      {
+        id: sneaker.id,
+        name: sneaker.name,
+        brand: sneaker.brand,
+        price: finalPrice,
+        image: sneaker.image ?? "",
+        sellerId: sneaker.sellerId ?? "",
+        sellerName: sneaker.sellerName ?? "",
+        sellerVerified: sneaker.sellerVerified ?? false,
+        sellerIsOfficial: sneaker.sellerIsOfficial ?? false,
+        sellerSubaccountCode: sneaker.sellerSubaccountCode ?? null,
+        sellerCity: sneaker.sellerCity ?? null,
+        sellerRegion: sneaker.sellerRegion ?? null,
+        shippingCost: sneaker.shippingCost ?? 0,
+        handlingTime: sneaker.handlingTime ?? "Ships in 1-3 days",
+      },
+      size
+    );
+    setShowSizePicker(false);
+    setSelectedSize(null);
+    setQuickAdded(true);
+    toast.success("Added to cart!", { icon: "🛍️", duration: 2000 });
+    setTimeout(() => setQuickAdded(false), 2000);
+  };
+
+  const handleQuickAdd = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!user || isGuest) {
+      toast.error("Sign in to add items to your cart", {
+        description: "Create a free account to start shopping",
+        action: { label: "Sign in", onClick: () => navigate("/auth") },
+      });
+      return;
+    }
+
+    if (sneaker.sellerId && user.id === sneaker.sellerId) {
+      toast.error("You can't buy your own item");
+      return;
+    }
+
+    if (needsSize) {
+      // Toggle picker open/closed
+      setShowSizePicker((v) => !v);
+      setSelectedSize(null);
+    } else {
+      // One size or no size required
+      commitAddToCart(sneaker.sizes[0] ?? "one-size");
+    }
+  };
+
+  const handleSizeSelect = (e: React.MouseEvent, size: number | string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedSize(size);
+  };
+
+  const handleSizeConfirm = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!selectedSize) return;
+    commitAddToCart(selectedSize);
   };
 
   return (
@@ -128,20 +230,98 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
 
             {/* Quick Action Overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <div className="absolute bottom-3 left-3 right-3">
+              <div className="absolute bottom-3 left-3 right-3" ref={pickerRef}>
+
+                {/* ── Size Picker Popup ── */}
+                <AnimatePresence>
+                  {showSizePicker && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 6, scale: 0.98 }}
+                      transition={{ duration: 0.15, ease: "easeOut" }}
+                      className="mb-2 rounded-xl bg-white dark:bg-gray-950 border border-border shadow-2xl"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    >
+                      {/* Picker header */}
+                      <div className="flex items-center justify-between px-3 pt-2.5 pb-1.5 border-b border-border/50">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                          {isSneakerCat ? "EU Size" : "Size"}
+                        </span>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setShowSizePicker(false);
+                            setSelectedSize(null);
+                          }}
+                          className="w-5 h-5 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+
+                      {/* Size grid */}
+                      <div className="p-2 flex flex-wrap gap-1.5">
+                        {sneaker.sizes.map((size) => (
+                          <motion.button
+                            key={size}
+                            whileTap={{ scale: 0.93 }}
+                            onClick={(e) => handleSizeSelect(e, size)}
+                            className={`min-w-[34px] h-8 px-2 rounded-lg text-xs font-semibold transition-all duration-150 ${selectedSize === size
+                                ? "bg-primary text-primary-foreground shadow-md shadow-primary/30 scale-105"
+                                : "bg-muted/70 text-foreground hover:bg-muted"
+                              }`}
+                          >
+                            {size}
+                          </motion.button>
+                        ))}
+                      </div>
+
+                      {/* Confirm button */}
+                      <div className="px-2 pb-2">
+                        <button
+                          onClick={handleSizeConfirm}
+                          disabled={!selectedSize}
+                          className={`w-full h-8 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all duration-150 ${selectedSize
+                              ? "bg-primary text-primary-foreground hover:opacity-90 shadow-md shadow-primary/20"
+                              : "bg-muted/40 text-muted-foreground cursor-not-allowed"
+                            }`}
+                        >
+                          <ShoppingBag className="w-3 h-3" />
+                          {selectedSize ? `Add Size ${selectedSize}` : "Pick a size first"}
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* ── Quick Add Button ── */}
                 <motion.button
                   initial={{ y: 20, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
                   transition={{ delay: 0.1 }}
-                  className="w-full py-2 px-3 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl font-medium text-xs flex items-center justify-center gap-1.5 hover:bg-primary hover:text-white dark:hover:bg-primary transition-colors duration-200 shadow-lg"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    // Add to cart functionality
-                  }}
+                  onClick={handleQuickAdd}
+                  className={`w-full py-2 px-3 rounded-xl font-medium text-xs flex items-center justify-center gap-1.5 transition-colors duration-200 shadow-lg ${quickAdded
+                      ? "bg-green-500 text-white"
+                      : showSizePicker
+                        ? "bg-primary text-white"
+                        : "bg-white dark:bg-gray-900 text-gray-900 dark:text-white hover:bg-primary hover:text-white dark:hover:bg-primary"
+                    }`}
                 >
-                  <ShoppingBag className="w-3.5 h-3.5" />
-                  Quick Add
+                  {quickAdded ? (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      Added!
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingBag className="w-3.5 h-3.5" />
+                      Quick Add
+                    </>
+                  )}
                 </motion.button>
+
               </div>
             </div>
 
@@ -177,17 +357,14 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
 
           {/* Content Section */}
           <div className="p-3.5">
-            {/* Brand */}
             <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 line-clamp-1">
               {sneaker.brand}
             </p>
 
-            {/* Product Name */}
             <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors duration-200 text-sm leading-snug line-clamp-2 mb-2.5">
               {sneaker.name}
             </h3>
 
-            {/* Price and Verification Section */}
             <div className="flex items-end justify-between gap-2">
               <div className="flex flex-col">
                 {discountedPrice ? (
@@ -206,7 +383,6 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
                 )}
               </div>
 
-              {/* Seller Verification Badges */}
               <div className="flex flex-col items-end gap-1">
                 {sneaker.sellerIsOfficial && (
                   <div className="flex items-center gap-1 px-1.5 py-0.5 bg-purple-500/10 rounded-md border border-purple-500/20">
