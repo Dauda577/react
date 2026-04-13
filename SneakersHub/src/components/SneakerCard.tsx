@@ -48,6 +48,7 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
 
   const saved = isSaved(sneaker.id);
   const isOwnListing = !!user && !isGuest && sneaker.sellerId === user.id;
+  console.log("isOwnListing debug:", { userId: user?.id, sellerId: sneaker.sellerId, isOwnListing });
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [quickAdded, setQuickAdded] = useState(false);
