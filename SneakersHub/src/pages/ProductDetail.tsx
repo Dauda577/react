@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, ShoppingBag, Check, MapPin, Phone, CheckCircle,
   X, UserPlus, LogIn, Star, ShieldCheck, MessageCircle, BadgeCheck, Sparkles,
-  Share2, Copy, CheckCheck, AlertTriangle,
+  Share2, Copy, CheckCheck, AlertTriangle, Truck, Package, Award,
+  ChevronRight, Heart, CreditCard, Clock,
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
@@ -16,6 +17,7 @@ import Footer from "@/components/Footer";
 import SneakerCard from "@/components/SneakerCard";
 import ChatModal from "@/components/ChatModal";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { CATEGORY_SVGS } from "@/data/sneakers";
 import { supabase } from "@/lib/supabase";
@@ -46,95 +48,140 @@ const getFallbackSvg = (cat: string) => CATEGORY_SVGS[cat] ?? "/categoryicons/ot
 const getShareText = (listing: any) =>
   `Check out this ${listing.name} on SneakersHub — GHS ${listing.price.toLocaleString()}`;
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+// ─── Enhanced Sub-components ──────────────────────────────────────────────────
 
-const SellerBadge = ({ tier }: { tier: SellerTier }) => {
+const SellerBadge = ({ tier, size = "default" }: { tier: SellerTier; size?: "sm" | "default" }) => {
+  const sizeClasses = size === "sm" ? "text-[10px] px-2 py-0.5" : "text-[11px] px-2.5 py-1";
+
   if (tier === "official") return (
-    <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full border"
-      style={{ background: "linear-gradient(135deg, #3b0764, #1e1b4b)", color: "#a78bfa", borderColor: "#6d28d9" }}>
-      <Sparkles className="w-3 h-3" /> SneakersHub Official
-    </span>
+    <motion.span
+      initial={{ scale: 0.9 }}
+      animate={{ scale: 1 }}
+      className={`inline-flex items-center gap-1.5 ${sizeClasses} font-bold rounded-lg backdrop-blur-sm shadow-lg`}
+      style={{
+        background: "linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)",
+        color: "white",
+        border: "1px solid rgba(255,255,255,0.1)"
+      }}
+    >
+      <Sparkles className="w-3 h-3" /> OFFICIAL
+    </motion.span>
   );
   if (tier === "verified") return (
-    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-green-600 bg-green-500/10 px-2.5 py-1 rounded-full border border-green-500/20">
-      <BadgeCheck className="w-3 h-3" /> Verified Seller
-    </span>
+    <motion.span
+      initial={{ scale: 0.9 }}
+      animate={{ scale: 1 }}
+      className={`inline-flex items-center gap-1.5 ${sizeClasses} font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 rounded-lg border border-emerald-500/30 backdrop-blur-sm`}
+    >
+      <BadgeCheck className="w-3 h-3" /> VERIFIED
+    </motion.span>
   );
   return null;
 };
 
 const PaymentBadge = ({ tier }: { tier: SellerTier }) => {
   if (tier === "official") return (
-    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-      className="flex items-start gap-3 p-4 rounded-xl border"
-      style={{ background: "linear-gradient(135deg, rgba(109,40,217,0.08), rgba(30,27,75,0.12))", borderColor: "rgba(109,40,217,0.3)" }}>
-      <Sparkles className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: "#a78bfa" }} />
-      <div>
-        <p className="text-xs font-bold" style={{ color: "#a78bfa" }}>SneakersHub Official Product</p>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          This is an official SneakersHub product. Payment is processed securely via Paystack before delivery.
-        </p>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-violet-500/5 via-indigo-500/5 to-transparent border border-violet-500/20"
+    >
+      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-violet-500/10 to-indigo-500/10 rounded-full blur-2xl -mr-16 -mt-16" />
+      <div className="relative flex items-start gap-4">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-violet-500/25">
+          <Sparkles className="w-5 h-5 text-white" />
+        </div>
+        <div className="flex-1">
+          <h3 className="font-bold text-violet-700 dark:text-violet-400 mb-1">Official SneakersHub Product</h3>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            This is an official SneakersHub product. Payment is processed securely via Paystack with buyer protection.
+          </p>
+        </div>
       </div>
     </motion.div>
   );
+
   if (tier === "verified") return (
-    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-      className="flex items-start gap-3 p-4 rounded-xl border border-green-500/30 bg-green-500/5">
-      <ShieldCheck className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
-      <div>
-        <p className="text-xs font-semibold text-green-700 dark:text-green-400">Verified Seller — Secure Paystack Payment</p>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Your payment is split at checkout via Paystack — 95% goes directly to the seller, settled next business day.
-        </p>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="relative overflow-hidden rounded-2xl p-5 bg-emerald-500/5 border border-emerald-500/20"
+    >
+      <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl -mr-16 -mt-16" />
+      <div className="relative flex items-start gap-4">
+        <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+          <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+        </div>
+        <div className="flex-1">
+          <h3 className="font-bold text-emerald-700 dark:text-emerald-400 mb-1">Verified Seller — Secure Payment</h3>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            Your payment is processed securely via Paystack. 95% goes directly to the seller, settled next business day.
+          </p>
+        </div>
       </div>
     </motion.div>
   );
+
   return null;
 };
 
 const StandardSellerWarning = ({ sellerName, sellerPhone }: { sellerName: string; sellerPhone?: string }) => {
   const [dismissed, setDismissed] = useState(false);
+
   if (dismissed) return null;
+
   return (
-    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-      className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-start gap-2.5">
-          <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/5 to-transparent p-5 space-y-4"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+            <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+          </div>
           <div>
-            <p className="text-xs font-bold text-amber-700 dark:text-amber-400">Unverified Seller — Pay on Delivery</p>
-            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-              This seller hasn't been verified by SneakersHub. Payment is arranged directly with the seller on delivery — inspect your item before paying.
+            <h3 className="font-bold text-amber-700 dark:text-amber-400 mb-1">Unverified Seller</h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              This seller hasn't been verified. Payment is arranged directly with the seller on delivery — inspect your item before paying.
             </p>
           </div>
         </div>
-        <button onClick={() => setDismissed(true)}
-          className="w-5 h-5 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground flex-shrink-0 mt-0.5 transition-colors">
-          <X className="w-3 h-3" />
+        <button
+          onClick={() => setDismissed(true)}
+          className="w-8 h-8 rounded-lg hover:bg-amber-500/10 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <X className="w-4 h-4" />
         </button>
       </div>
-      <div className="pl-6 space-y-2">
-        <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">We recommend:</p>
-        <div className="grid grid-cols-1 gap-1.5">
+
+      <div className="pl-14 space-y-2">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Safety Tips:</p>
+        <div className="grid grid-cols-1 gap-2">
           {[
-            { icon: "💬", text: "Message the seller first to confirm availability" },
-            { icon: "📍", text: "Arrange to meet in a safe, public location" },
-            { icon: "🔍", text: "Inspect the item before handing over payment" },
-            { icon: "🤝", text: "Only pay cash on delivery — never upfront" },
-          ].map(({ icon, text }) => (
-            <div key={text} className="flex items-center gap-2">
-              <span className="text-xs">{icon}</span>
-              <p className="text-xs text-muted-foreground">{text}</p>
+            { icon: MessageCircle, text: "Message the seller first to confirm availability" },
+            { icon: MapPin, text: "Arrange to meet in a safe, public location" },
+            { icon: Package, text: "Inspect the item before handing over payment" },
+            { icon: CreditCard, text: "Only pay cash on delivery — never upfront" },
+          ].map(({ icon: Icon, text }) => (
+            <div key={text} className="flex items-center gap-3 text-sm text-muted-foreground">
+              <Icon className="w-4 h-4 text-amber-500 flex-shrink-0" />
+              <span>{text}</span>
             </div>
           ))}
         </div>
       </div>
+
       {sellerPhone && (
-        <a href={`https://wa.me/${sellerPhone.replace(/\s+/g, "").replace(/^\+/, "").replace(/^0/, "233")}`}
-          target="_blank" rel="noreferrer"
-          className="flex items-center justify-center gap-2 w-full py-2 rounded-lg bg-green-500/10 border border-green-500/20 text-xs font-semibold text-green-600 hover:bg-green-500/15 transition-colors">
-          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+        <a
+          href={`https://wa.me/${sellerPhone.replace(/\s+/g, "").replace(/^\+/, "").replace(/^0/, "233")}`}
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center justify-center gap-3 w-full py-3 rounded-xl bg-green-500/10 border border-green-500/20 text-sm font-semibold text-green-600 dark:text-green-400 hover:bg-green-500/15 transition-all group"
+        >
+          <svg className="w-4 h-4 transition-transform group-hover:scale-110" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
           </svg>
           Contact {sellerName} on WhatsApp
         </a>
@@ -145,35 +192,62 @@ const StandardSellerWarning = ({ sellerName, sellerPhone }: { sellerName: string
 
 const GuestPromptModal = ({ onClose }: { onClose: () => void }) => {
   const navigate = useNavigate();
+
   return (
-    <motion.div key="backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       onClick={onClose}
-      className="fixed inset-0 z-50 bg-black/50 supports-[backdrop-filter]:backdrop-blur-sm flex items-center justify-center px-4">
-      <motion.div key="modal" initial={{ opacity: 0, scale: 0.92, y: 16 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.92 }}
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center px-4"
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm">
-        <div className="flex items-center justify-between mb-4">
-          <p className="font-display font-bold text-base">Sign in to continue</p>
-          <button onClick={onClose} className="w-7 h-7 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground">
-            <X className="w-3.5 h-3.5" />
+        className="bg-card border border-border rounded-3xl p-8 w-full max-w-md shadow-2xl"
+      >
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="font-display text-xl font-bold">Welcome to SneakersHub</h2>
+          <button
+            onClick={onClose}
+            className="w-10 h-10 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all"
+          >
+            <X className="w-4 h-4" />
           </button>
         </div>
-        <p className="text-sm text-muted-foreground mb-5">You need an account to add items to your cart and place orders.</p>
-        <div className="flex flex-col gap-2">
-          <Button className="btn-primary rounded-full h-10 text-sm" onClick={() => navigate("/auth")}>
-            <LogIn className="w-4 h-4 mr-2" /> Sign In
-          </Button>
-          <Button variant="outline" className="rounded-full h-10 text-sm" onClick={() => navigate("/auth")}>
-            <UserPlus className="w-4 h-4 mr-2" /> Create Account
-          </Button>
+
+        <div className="space-y-6">
+          <p className="text-muted-foreground leading-relaxed">
+            Create an account to start shopping, save your favorite items, and track your orders.
+          </p>
+
+          <div className="space-y-3">
+            <Button
+              className="w-full h-12 rounded-xl bg-gradient-to-r from-primary to-primary-dark text-white font-semibold shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all"
+              onClick={() => navigate("/auth")}
+            >
+              <LogIn className="w-4 h-4 mr-2" /> Sign In
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full h-12 rounded-xl font-semibold"
+              onClick={() => navigate("/auth")}
+            >
+              <UserPlus className="w-4 h-4 mr-2" /> Create Account
+            </Button>
+          </div>
+
+          <p className="text-xs text-center text-muted-foreground">
+            By continuing, you agree to our Terms of Service and Privacy Policy.
+          </p>
         </div>
       </motion.div>
     </motion.div>
   );
 };
 
-// ── Share Button ──────────────────────────────────────────────────────────────
 const ShareButton = ({ listing }: { listing: any }) => {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -204,7 +278,7 @@ const ShareButton = ({ listing }: { listing: any }) => {
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      toast.success("Link copied!");
+      toast.success("Link copied to clipboard!");
       setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error("Could not copy link");
@@ -214,7 +288,7 @@ const ShareButton = ({ listing }: { listing: any }) => {
 
   const handleShare = () => {
     if (navigator.share) {
-      navigator.share({ title: listing.name, text, url }).catch(() => {});
+      navigator.share({ title: listing.name, text, url }).catch(() => { });
     } else {
       setOpen((v) => !v);
     }
@@ -222,51 +296,62 @@ const ShareButton = ({ listing }: { listing: any }) => {
 
   return (
     <div ref={ref} className="relative">
-      <button
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
         onClick={handleShare}
-        className="w-12 h-12 rounded-full border border-border flex items-center justify-center
-          text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-primary/5 transition-all"
+        className="w-12 h-12 rounded-xl border border-border bg-card flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/40 hover:shadow-lg transition-all"
         aria-label="Share listing"
       >
-        <Share2 className="w-4 h-4" />
-      </button>
+        <Share2 className="w-5 h-5" />
+      </motion.button>
 
       <AnimatePresence>
         {open && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.92, y: 8 }}
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.92, y: 8 }}
-            transition={{ duration: 0.15 }}
-            className="absolute right-0 top-14 z-50 bg-card border border-border rounded-2xl shadow-xl overflow-hidden w-52"
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            className="absolute right-0 top-14 z-50 bg-card border border-border rounded-2xl shadow-xl overflow-hidden w-56"
           >
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-4 pt-3 pb-2">
-              Share this listing
-            </p>
-            <button onClick={shareWhatsApp}
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-sm font-medium">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: "#25D366" }}>
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="white">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+            <div className="px-4 pt-4 pb-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Share via
+              </p>
+            </div>
+
+            <button
+              onClick={shareWhatsApp}
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors"
+            >
+              <div className="w-9 h-9 rounded-lg bg-[#25D366] flex items-center justify-center">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="white">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347" />
                 </svg>
               </div>
-              WhatsApp
+              <span className="text-sm font-medium">WhatsApp</span>
             </button>
-            <button onClick={shareTwitter}
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-sm font-medium">
-              <div className="w-8 h-8 rounded-full bg-black flex items-center justify-center flex-shrink-0">
+
+            <button
+              onClick={shareTwitter}
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors"
+            >
+              <div className="w-9 h-9 rounded-lg bg-black flex items-center justify-center">
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="white">
-                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622z" />
                 </svg>
               </div>
-              X (Twitter)
+              <span className="text-sm font-medium">X (Twitter)</span>
             </button>
-            <button onClick={copyLink}
-              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors text-sm font-medium border-t border-border">
-              <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                {copied ? <CheckCheck className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4 text-muted-foreground" />}
+
+            <button
+              onClick={copyLink}
+              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/50 transition-colors border-t border-border"
+            >
+              <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center">
+                {copied ? <CheckCheck className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
               </div>
-              {copied ? "Copied!" : "Copy link"}
+              <span className="text-sm font-medium">{copied ? "Copied!" : "Copy link"}</span>
             </button>
           </motion.div>
         )}
@@ -275,7 +360,6 @@ const ShareButton = ({ listing }: { listing: any }) => {
   );
 };
 
-// ── WhatsApp Order Button (OFFICIAL PRODUCTS ONLY) ────────────────────────────
 const WhatsAppOrderButton = ({
   listing, selectedSize, tier,
 }: {
@@ -306,20 +390,21 @@ const WhatsAppOrderButton = ({
   };
 
   return (
-    <button
+    <motion.button
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
       onClick={handleClick}
-      className="w-full h-12 rounded-full border text-sm font-semibold flex items-center justify-center gap-2 transition-all
-        border-violet-500/40 bg-violet-500/8 text-violet-500 hover:bg-violet-500/15"
+      className="w-full h-12 rounded-xl border-2 border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-semibold flex items-center justify-center gap-2 hover:bg-emerald-500/20 transition-all"
     >
-      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347" />
       </svg>
       Order via WhatsApp
-    </button>
+    </motion.button>
   );
 };
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -327,21 +412,18 @@ const ProductDetail = () => {
   const { listings, loading, incrementViews } = usePublicListings();
   const { getSellerStats, fetchReviews } = useRatings();
   const { addItem } = useCart();
-  const { user, isGuest, loading: authLoading, activeMode } = useAuth();
+  const { user, isGuest, loading: authLoading } = useAuth();
 
   const [selectedSize, setSelectedSize] = useState<string | number | null>(null);
   const [added, setAdded] = useState(false);
   const [showGuestModal, setShowGuestModal] = useState(false);
   const [showChat, setShowChat] = useState(false);
-
-  // ── Seller avatar fetched from profiles table ──────────────────────────────
   const [sellerAvatarUrl, setSellerAvatarUrl] = useState<string | null>(null);
 
   const listing = listings.find((l) => l.id === id);
   const related = listings.filter((l) => l.id !== id && l.category === listing?.category).slice(0, 8);
   const tier = listing ? getSellerTier(listing.sellerIsOfficial, listing.sellerVerified) : "standard";
 
-  // Calculate discounted price if discount percent exists
   const discountedPrice = listing?.discountPercent
     ? Math.round(listing.price * (1 - listing.discountPercent / 100))
     : null;
@@ -354,12 +436,10 @@ const ProductDetail = () => {
     if (listing?.sellerId) fetchReviews(listing.sellerId);
   }, [listing?.sellerId]);
 
-  // ✅ FIX: Reset selected image when product changes
   useEffect(() => {
     setSelectedImage(null);
   }, [id]);
 
-  // Fetch the seller's avatar_url from the profiles table
   useEffect(() => {
     if (!listing?.sellerId) return;
     supabase
@@ -383,7 +463,7 @@ const ProductDetail = () => {
     if (!user || isGuest) { setShowGuestModal(true); return; }
 
     if (listing?.sellerId === user.id) {
-      toast.error("You cannot buy your own item", { description: "This is your own listing", duration: 4000 });
+      toast.error("You cannot buy your own item", { description: "This is your own listing" });
       return;
     }
 
@@ -426,13 +506,14 @@ const ProductDetail = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <div className="section-padding max-w-6xl mx-auto pt-28 pb-20" style={{ paddingTop: `calc(112px + env(safe-area-inset-top, 0px))` }}>
+        <div className="section-padding max-w-6xl mx-auto pt-28 pb-20">
           <div className="grid md:grid-cols-2 gap-12">
-            <div className="rounded-2xl bg-card border border-border h-96 animate-pulse" />
+            <div className="rounded-3xl bg-card border border-border h-[500px] animate-pulse" />
             <div className="space-y-4">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-6 bg-card border border-border rounded-xl animate-pulse" style={{ width: `${80 - i * 10}%` }} />
-              ))}
+              <div className="h-8 bg-card border border-border rounded-xl animate-pulse w-3/4" />
+              <div className="h-6 bg-card border border-border rounded-xl animate-pulse w-1/2" />
+              <div className="h-20 bg-card border border-border rounded-xl animate-pulse" />
+              <div className="h-12 bg-card border border-border rounded-xl animate-pulse" />
             </div>
           </div>
         </div>
@@ -444,10 +525,15 @@ const ProductDetail = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Navbar />
-        <div className="text-center pt-28" style={{ paddingTop: `calc(112px + env(safe-area-inset-top, 0px))` }}>
-          <p className="font-display text-2xl font-bold mb-2">Listing not found</p>
-          <p className="text-muted-foreground mb-6">This listing may have been removed or sold.</p>
-          <Button className="btn-primary rounded-full" onClick={() => navigate("/shop")}>Back to Shop</Button>
+        <div className="text-center pt-28">
+          <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-muted flex items-center justify-center">
+            <Package className="w-12 h-12 text-muted-foreground" />
+          </div>
+          <h2 className="font-display text-3xl font-bold mb-2">Listing Not Found</h2>
+          <p className="text-muted-foreground mb-8">This listing may have been removed or sold.</p>
+          <Button className="btn-primary rounded-xl h-12 px-8" onClick={() => navigate("/shop")}>
+            Browse Shop
+          </Button>
         </div>
       </div>
     );
@@ -463,13 +549,16 @@ const ProductDetail = () => {
     ? listing.sizes.map(Number)
     : listing.sizes;
 
-  // Seller avatar initials fallback
   const sellerInitial = listing.sellerName?.[0]?.toUpperCase() ?? "S";
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <AnimatePresence>{showGuestModal && <GuestPromptModal onClose={() => setShowGuestModal(false)} />}</AnimatePresence>
+
+      <AnimatePresence>
+        {showGuestModal && <GuestPromptModal onClose={() => setShowGuestModal(false)} />}
+      </AnimatePresence>
+
       <AnimatePresence>
         {showChat && (
           <ChatModal
@@ -482,123 +571,200 @@ const ProductDetail = () => {
         )}
       </AnimatePresence>
 
-      <div className="section-padding max-w-6xl mx-auto pt-28 pb-20" style={{ paddingTop: `calc(112px + env(safe-area-inset-top, 0px))` }}>
-
-        {/* Back + Share row */}
-        <div className="flex items-center justify-between mb-8 pt-2">
-          <button onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors group text-sm">
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" /> Back
+      <div className="section-padding max-w-6xl mx-auto pt-28 pb-20">
+        {/* Breadcrumb Navigation */}
+        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
+          <button
+            onClick={() => navigate("/shop")}
+            className="hover:text-foreground transition-colors"
+          >
+            Shop
           </button>
+          <ChevronRight className="w-4 h-4" />
+          <span className="text-foreground font-medium truncate">{listing.name}</span>
+        </div>
+
+        {/* Header Actions */}
+        <div className="flex items-center justify-between mb-8">
+          <motion.button
+            whileHover={{ x: -4 }}
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors group"
+          >
+            <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+            <span className="font-medium">Back</span>
+          </motion.button>
           <ShareButton listing={listing} />
         </div>
 
-        <div className="grid md:grid-cols-2 gap-12 items-start">
+        <div className="grid lg:grid-cols-2 gap-12 items-start">
+          {/* Image Gallery Section */}
+          <div className="space-y-4">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-card to-card/50 border border-border aspect-square flex items-center justify-center group"
+            >
+              {activeImage ? (
+                <img
+                  src={detailImage(activeImage)}
+                  alt={listing.name}
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+              ) : (
+                <img src={fallbackSvg} alt={listing.category} className="w-24 h-24 opacity-40" />
+              )}
 
-          {/* ── Image + Thumbnails (wrapped together so thumbnails sit below hero) ── */}
-          <div className="flex flex-col gap-3">
-            <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }}
-              className="relative rounded-2xl overflow-hidden bg-card border aspect-square flex items-center justify-center"
-              style={{ borderColor: tier === "official" ? "rgba(109,40,217,0.3)" : tier === "verified" ? "rgba(34,197,94,0.2)" : undefined }}>
-              {activeImage
-                ? <img src={detailImage(activeImage)} alt={listing.name} className="w-full h-full object-cover" />
-                : <img src={fallbackSvg} alt={listing.category} className="w-20 h-20 text-muted-foreground" />
-              }
-              {tier === "official" && (
-                <div className="absolute top-4 left-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold"
-                  style={{ background: "linear-gradient(135deg, #3b0764, #1e1b4b)", color: "#a78bfa", border: "1px solid rgba(109,40,217,0.5)" }}>
-                  <Sparkles className="w-3 h-3" /> SneakersHub Official
-                </div>
-              )}
-              {tier === "verified" && !listing.boosted && (
-                <div className="absolute top-4 left-4 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold"
-                  style={{ background: "rgba(34,197,94,0.15)", color: "#16a34a", border: "1px solid rgba(34,197,94,0.3)" }}>
-                  <BadgeCheck className="w-3 h-3" /> Verified
-                </div>
-              )}
-              {listing.boosted && tier !== "official" && (
-                <div className="absolute top-4 left-4 flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold"
-                  style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)", color: "white" }}>
-                  ⚡ Featured
-                </div>
-              )}
-              {/* Discount badge on product detail image */}
-              {listing.discountPercent && (
-                <div className="absolute bottom-4 left-4 bg-red-500 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg">
-                  -{listing.discountPercent}% OFF
-                </div>
-              )}
+              {/* Badges Overlay */}
+              <div className="absolute top-4 left-4 flex flex-col gap-2">
+                {tier === "official" && (
+                  <motion.div
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    className="px-4 py-2 rounded-xl text-xs font-bold backdrop-blur-md shadow-xl"
+                    style={{
+                      background: "linear-gradient(135deg, #8b5cf6, #6366f1)",
+                      color: "white",
+                      border: "1px solid rgba(255,255,255,0.2)"
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4" />
+                      <span>SneakersHub Official</span>
+                    </div>
+                  </motion.div>
+                )}
+
+                {listing.discountPercent && (
+                  <motion.div
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: 0.1 }}
+                    className="px-4 py-2 rounded-xl bg-red-500 text-white text-sm font-bold backdrop-blur-md shadow-xl"
+                  >
+                    {listing.discountPercent}% OFF
+                  </motion.div>
+                )}
+              </div>
             </motion.div>
 
-            {/* ── Image thumbnails ── */}
+            {/* Thumbnails */}
             {uniqueImages.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-1">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="flex gap-3 overflow-x-auto pb-2"
+              >
                 {uniqueImages.map((img, i) => (
-                  <button key={i} onClick={() => setSelectedImage(img)}
-                    className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${
-                      activeImage === img ? "border-primary" : "border-border hover:border-primary/40"
-                    }`}>
+                  <motion.button
+                    key={i}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setSelectedImage(img)}
+                    className={`flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden border-2 transition-all ${activeImage === img
+                        ? "border-primary shadow-lg shadow-primary/25"
+                        : "border-border hover:border-primary/40"
+                      }`}
+                  >
                     <img src={img} alt={`View ${i + 1}`} className="w-full h-full object-cover" />
-                  </button>
+                  </motion.button>
                 ))}
-              </div>
+              </motion.div>
             )}
           </div>
 
-          {/* ── Info ── */}
-          <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+          {/* Product Info Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="space-y-6"
+          >
+            {/* Brand & Title */}
             <div>
-              <p className="text-primary font-display text-xs font-semibold uppercase tracking-[0.2em] mb-1">{listing.brand}</p>
-              <h1 className="font-display text-3xl md:text-4xl font-bold tracking-tight">{listing.name}</h1>
-              <p className="text-xs text-muted-foreground mt-1">{listing.category}</p>
-            </div>
-
-            {/* Price display with discount */}
-            {discountedPrice ? (
-              <div className="flex items-baseline gap-2 flex-wrap">
-                <p className="font-display text-3xl font-bold text-primary">GHS {discountedPrice.toLocaleString()}</p>
-                <p className="text-muted-foreground text-lg line-through">GHS {listing.price.toLocaleString()}</p>
-                {listing.discountPercent && (
-                  <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                    -{listing.discountPercent}%
-                  </span>
+              <div className="flex items-center gap-3 mb-2">
+                <Badge variant="outline" className="text-xs font-semibold">
+                  {listing.category}
+                </Badge>
+                {listing.isNew && (
+                  <Badge className="bg-primary text-primary-foreground text-xs font-semibold">
+                    New Arrival
+                  </Badge>
                 )}
               </div>
-            ) : (
-              <p className="font-display text-3xl font-bold text-primary">GHS {listing.price.toLocaleString()}</p>
-            )}
+              <h1 className="font-display text-3xl lg:text-4xl font-bold tracking-tight mb-2">
+                {listing.name}
+              </h1>
+              <p className="text-primary font-display text-sm font-semibold uppercase tracking-wider">
+                {listing.brand}
+              </p>
+            </div>
 
-            <p className="text-muted-foreground text-sm leading-relaxed">{listing.description}</p>
+            {/* Price Section */}
+            <div className="space-y-1">
+              {discountedPrice ? (
+                <div className="flex items-baseline gap-3 flex-wrap">
+                  <span className="font-display text-4xl font-bold text-primary">
+                    GHS {discountedPrice.toLocaleString()}
+                  </span>
+                  <span className="text-xl text-muted-foreground line-through">
+                    GHS {listing.price.toLocaleString()}
+                  </span>
+                  <Badge className="bg-red-500 text-white text-sm font-bold px-3 py-1">
+                    Save {listing.discountPercent}%
+                  </Badge>
+                </div>
+              ) : (
+                <span className="font-display text-4xl font-bold text-primary">
+                  GHS {listing.price.toLocaleString()}
+                </span>
+              )}
+            </div>
 
-            {/* Size selector */}
+            {/* Description */}
+            <div className="prose prose-sm dark:prose-invert">
+              <p className="text-muted-foreground leading-relaxed">
+                {listing.description}
+              </p>
+            </div>
+
+            {/* Size Selector */}
             {sizeLabel && parsedSizes.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-                  {sizeLabel}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                    {sizeLabel}
+                  </label>
                   {selectedSize && (
-                    <span className="text-primary ml-2">— Selected: {selectedSize}</span>
+                    <span className="text-sm text-primary font-medium">
+                      Selected: {selectedSize}
+                    </span>
                   )}
-                </p>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {parsedSizes.map((size) => (
-                    <button
+                    <motion.button
                       key={size}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                       onClick={() => setSelectedSize(size)}
-                      className={`min-w-[44px] h-11 px-3 rounded-xl border text-sm font-semibold transition-all
-                        ${selectedSize === size
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border hover:border-primary/50 text-foreground"
+                      className={`min-w-[52px] h-12 px-4 rounded-xl border-2 text-sm font-semibold transition-all ${selectedSize === size
+                          ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/25"
+                          : "border-border hover:border-primary/40 bg-card hover:bg-muted/50"
                         }`}
                     >
                       {size}
-                    </button>
+                    </motion.button>
                   ))}
                 </div>
               </div>
             )}
 
+            {/* Payment Info */}
             <PaymentBadge tier={tier} />
 
+            {/* Standard Seller Warning */}
             {tier === "standard" && user && !isGuest && !isSeller && (
               <StandardSellerWarning
                 sellerName={listing.sellerName}
@@ -606,64 +772,99 @@ const ProductDetail = () => {
               />
             )}
 
+            {/* Action Buttons */}
             {sellerBlocked ? (
-              <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                className="rounded-xl border border-border bg-muted/30 p-4 flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <ShoppingBag className="w-4 h-4 text-muted-foreground" />
-                </div>
-                <div>
-                  <p className="text-sm font-display font-semibold text-foreground mb-1">This is your listing</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    You can't purchase your own item. Head to your{" "}
-                    <Link to="/account?tab=listings" className="text-primary font-semibold hover:opacity-70 transition-opacity">listings page</Link>
-                    {" "}to manage it.
-                  </p>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-2xl border border-border bg-muted/30 p-6"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center">
+                    <Package className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-display font-semibold text-lg mb-1">This is your listing</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      You can't purchase your own item. Manage it from your dashboard.
+                    </p>
+                    <Button
+                      variant="outline"
+                      className="rounded-xl"
+                      onClick={() => navigate("/account?tab=listings")}
+                    >
+                      Manage Listings
+                    </Button>
+                  </div>
                 </div>
               </motion.div>
             ) : (
-              <div className="flex flex-col gap-3">
-                <Button onClick={handleAddToCart} disabled={authLoading}
-                  className={`w-full h-12 rounded-full font-display text-sm transition-all ${added ? "bg-green-500 hover:bg-green-500" : "btn-primary"}`}>
-                  {authLoading
-                    ? <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />Loading...</span>
-                    : added
-                      ? <><Check className="w-4 h-4 mr-2" /> Added!</>
-                      : <><ShoppingBag className="w-4 h-4 mr-2" /> Add to Cart</>
-                  }
+              <div className="space-y-3">
+                <Button
+                  onClick={handleAddToCart}
+                  disabled={authLoading}
+                  className={`w-full h-14 rounded-xl font-display text-base transition-all ${added
+                      ? "bg-green-500 hover:bg-green-600 text-white"
+                      : "bg-gradient-to-r from-primary to-primary-dark text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30"
+                    }`}
+                >
+                  {authLoading ? (
+                    <span className="flex items-center gap-3">
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Loading...
+                    </span>
+                  ) : added ? (
+                    <span className="flex items-center gap-2">
+                      <Check className="w-5 h-5" /> Added to Cart!
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <ShoppingBag className="w-5 h-5" /> Add to Cart
+                    </span>
+                  )}
                 </Button>
 
                 <WhatsAppOrderButton listing={listing} selectedSize={selectedSize} tier={tier} />
               </div>
             )}
 
+            {/* Message Seller Button */}
             {user && !isGuest && !isOwnListing && (
-              <button onClick={() => setShowChat(true)}
-                className="w-full h-12 rounded-full border border-border text-sm font-semibold
-                  hover:bg-primary/5 hover:border-primary/40 transition-all flex items-center justify-center gap-2 text-foreground">
-                <MessageCircle className="w-4 h-4" /> Message Seller
-              </button>
+              <Button
+                variant="outline"
+                onClick={() => setShowChat(true)}
+                className="w-full h-12 rounded-xl font-semibold"
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Message Seller
+              </Button>
             )}
 
-            {/* ── Seller card ── */}
-            <div className="rounded-2xl border border-border p-5 space-y-4">
+            {/* Seller Card - Enhanced */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              className="rounded-2xl border border-border bg-card p-6 space-y-4"
+            >
               <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Sold by</p>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-2 h-2 rounded-full bg-green-500" />
-                  <span className="text-xs text-muted-foreground">Active</span>
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                  Seller Information
+                </h3>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <span className="text-xs text-muted-foreground font-medium">Active now</span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                {/* Avatar — real photo, falls back to initials */}
-                <div className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden ${
-                  tier === "official"
-                    ? "bg-gradient-to-br from-violet-900 to-indigo-900 border border-violet-500/30"
+              <div className="flex items-start gap-4">
+                {/* Avatar */}
+                <div className={`w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden ${tier === "official"
+                    ? "bg-gradient-to-br from-violet-600 to-indigo-600 shadow-lg shadow-violet-500/25"
                     : "bg-primary/10"
-                }`}>
+                  }`}>
                   {tier === "official" ? (
-                    <Sparkles className="w-5 h-5" style={{ color: "#a78bfa" }} />
+                    <Sparkles className="w-6 h-6 text-white" />
                   ) : sellerAvatarUrl ? (
                     <img
                       src={sellerAvatarUrl}
@@ -671,90 +872,113 @@ const ProductDetail = () => {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <span className="font-display text-sm font-bold text-primary">{sellerInitial}</span>
+                    <span className="font-display text-xl font-bold text-primary">
+                      {sellerInitial}
+                    </span>
                   )}
                 </div>
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-semibold text-sm">{listing.sellerName}</p>
-                    <SellerBadge tier={tier} />
-                    {listing.boosted && tier !== "official" && (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
-                        ⚡ Featured
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <h4 className="font-display font-bold text-lg">{listing.sellerName}</h4>
+                    <SellerBadge tier={tier} size="sm" />
+                  </div>
+
+                  {count > 0 ? (
+                    <div className="flex items-center gap-1 mb-2">
+                      <div className="flex items-center">
+                        {[1, 2, 3, 4, 5].map((n) => (
+                          <Star
+                            key={n}
+                            className={`w-4 h-4 ${n <= Math.round(average)
+                                ? "text-amber-400 fill-amber-400"
+                                : "text-muted-foreground/30"
+                              }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm text-muted-foreground ml-2">
+                        {average.toFixed(1)} ({count} {count === 1 ? "review" : "reviews"})
                       </span>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground mb-2">No reviews yet</p>
+                  )}
+
+                  <div className="space-y-1.5">
+                    {(() => {
+                      const city = listing.city ?? listing.sellerCity;
+                      const region = listing.region ?? listing.sellerRegion;
+                      return (city || region) ? (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
+                          <span>{[city, region].filter(Boolean).join(", ")}</span>
+                        </div>
+                      ) : null;
+                    })()}
+
+                    {listing.sellerMemberSince && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Clock className="w-4 h-4 text-primary flex-shrink-0" />
+                        <span>Member since {listing.sellerMemberSince}</span>
+                      </div>
                     )}
                   </div>
-                  {count > 0 && (
-                    <div className="flex items-center gap-1 mt-0.5">
-                      {[1,2,3,4,5].map((n) => (
-                        <Star key={n} className={`w-3 h-3 ${n <= Math.round(average) ? "text-amber-400 fill-amber-400" : "text-muted-foreground/30"}`} />
-                      ))}
-                      <span className="text-xs text-muted-foreground ml-0.5">{average} ({count} {count === 1 ? "review" : "reviews"})</span>
-                    </div>
-                  )}
                 </div>
               </div>
 
-              <div className="border-t border-border pt-3 space-y-2">
-                {(() => {
-                  const city = listing.city ?? listing.sellerCity;
-                  const region = listing.region ?? listing.sellerRegion;
-                  return (city || region) ? (
-                    <p className="text-xs text-muted-foreground flex items-center gap-2">
-                      <MapPin className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-                      {[city, region].filter(Boolean).join(", ")}
-                    </p>
-                  ) : null;
-                })()}
-                {listing.sellerPhone && tier !== "official" && (
-                  <a href={`tel:${listing.sellerPhone}`}
-                    className="text-xs text-muted-foreground flex items-center gap-2 hover:text-primary transition-colors">
-                    <Phone className="w-3.5 h-3.5 text-primary flex-shrink-0" /> {listing.sellerPhone}
-                  </a>
-                )}
+              {/* Stats Grid */}
+              <div className="grid grid-cols-3 gap-3 pt-4 border-t border-border">
+                <div className="text-center p-3 rounded-xl bg-muted/30">
+                  <Award className="w-5 h-5 text-primary mx-auto mb-1" />
+                  <p className="font-display font-bold text-lg">{count}</p>
+                  <p className="text-xs text-muted-foreground">Reviews</p>
+                </div>
+                <div className="text-center p-3 rounded-xl bg-muted/30">
+                  <Truck className="w-5 h-5 text-primary mx-auto mb-1" />
+                  <p className="font-display font-bold text-sm">1-3 days</p>
+                  <p className="text-xs text-muted-foreground">Shipping</p>
+                </div>
+                <div className="text-center p-3 rounded-xl bg-muted/30">
+                  <ShieldCheck className="w-5 h-5 text-primary mx-auto mb-1" />
+                  <p className="font-display font-bold text-sm">
+                    {tier === "official" ? "Official" : tier === "verified" ? "Verified" : "Standard"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Status</p>
+                </div>
               </div>
-
-              {(() => {
-                const city = listing.city ?? listing.sellerCity;
-                const region = listing.region ?? listing.sellerRegion;
-                const locationLabel = [city, region].filter(Boolean).join(", ") || "Ghana";
-                return (
-                  <div className="grid grid-cols-3 gap-2 border-t border-border pt-3">
-                    <div className="text-center px-2 py-2 rounded-xl bg-muted/30">
-                      <p className="font-display font-bold text-sm">{count > 0 ? average : "—"}</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">Rating</p>
-                    </div>
-                    <div className="text-center px-2 py-2 rounded-xl bg-muted/30">
-                      <p className="font-display font-bold text-sm">{listing.sellerMemberSince}</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">Member since</p>
-                    </div>
-                    <div className="text-center px-2 py-2 rounded-xl bg-muted/30">
-                      <MapPin className="w-3 h-3 text-primary mx-auto mb-0.5" />
-                      <p className="font-display font-bold text-[11px] truncate">{locationLabel}</p>
-                      <p className="text-[11px] text-muted-foreground mt-0.5">Location</p>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
+            </motion.div>
           </motion.div>
         </div>
 
-        {/* Related listings */}
+        {/* Related Products Section */}
         {related.length > 0 && (
-          <div className="mt-20">
-            <div className="flex items-center justify-between mb-6 gap-4">
-              <h2 className="font-display text-2xl font-bold tracking-tight">More in {listing.category}</h2>
-              <Link to={`/shop?category=${encodeURIComponent(listing.category)}`} className="text-sm text-primary font-semibold hover:opacity-70 transition-opacity flex-shrink-0">
-                View all →
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mt-20"
+          >
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="font-display text-2xl lg:text-3xl font-bold tracking-tight mb-2">
+                  More from {listing.category}
+                </h2>
+                <p className="text-muted-foreground">You might also like these items</p>
+              </div>
+              <Link
+                to={`/shop?category=${encodeURIComponent(listing.category)}`}
+                className="text-primary font-semibold hover:opacity-70 transition-opacity flex items-center gap-1 group"
+              >
+                View all
+                <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
 
-            {/* Mobile: horizontal scroll */}
-            <div className="flex sm:hidden gap-4 overflow-x-auto pb-3 -mx-4 px-4 snap-x snap-mandatory">
+            {/* Mobile Horizontal Scroll */}
+            <div className="flex lg:hidden gap-4 overflow-x-auto pb-4 -mx-4 px-4 snap-x snap-mandatory">
               {related.map((l, i) => (
-                <div key={l.id} className="snap-start flex-shrink-0 w-[72vw] max-w-[260px]">
+                <div key={l.id} className="snap-start flex-shrink-0 w-[75vw] max-w-[280px]">
                   <SneakerCard sneaker={{
                     id: l.id, name: l.name, brand: l.brand, price: l.price,
                     image: l.image ?? "", category: l.category, sizes: l.sizes,
@@ -766,8 +990,8 @@ const ProductDetail = () => {
               ))}
             </div>
 
-            {/* Tablet+: grid */}
-            <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Desktop Grid */}
+            <div className="hidden lg:grid lg:grid-cols-4 gap-6">
               {related.map((l, i) => (
                 <SneakerCard key={l.id} sneaker={{
                   id: l.id, name: l.name, brand: l.brand, price: l.price,
@@ -778,9 +1002,10 @@ const ProductDetail = () => {
                 }} index={i} />
               ))}
             </div>
-          </div>
+          </motion.div>
         )}
       </div>
+
       <Footer />
     </div>
   );
