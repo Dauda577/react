@@ -47,6 +47,7 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
   const navigate = useNavigate();
 
   const saved = isSaved(sneaker.id);
+  const isOwnListing = !!user && !isGuest && sneaker.sellerId === user.id;
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [quickAdded, setQuickAdded] = useState(false);
@@ -311,21 +312,27 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
               {/* Desktop hover overlay — hidden on touch devices */}
               <div className="hidden md:block absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none group-hover:pointer-events-auto">
                 <div className="absolute bottom-3 left-3 right-3">
-                  <motion.button
-                    initial={{ y: 10, opacity: 0 }}
-                    whileInView={{ y: 0, opacity: 1 }}
-                    onClick={handleQuickAdd}
-                    className={`w-full py-2 px-3 rounded-xl font-medium text-xs flex items-center justify-center gap-1.5 transition-colors duration-200 shadow-lg ${quickAdded
-                      ? "bg-green-500 text-white"
-                      : "bg-white dark:bg-gray-900 text-gray-900 dark:text-white hover:bg-primary hover:text-white"
-                      }`}
-                  >
-                    {quickAdded ? (
-                      <><Check className="w-3.5 h-3.5" /> Added!</>
-                    ) : (
-                      <><ShoppingBag className="w-3.5 h-3.5" /> Quick Add</>
-                    )}
-                  </motion.button>
+                  {isOwnListing ? (
+                    <div className="w-full py-2 px-3 rounded-xl font-medium text-xs flex items-center justify-center gap-1.5 bg-white/20 text-white/80 backdrop-blur-sm shadow-lg cursor-default">
+                      Your Listing
+                    </div>
+                  ) : (
+                    <motion.button
+                      initial={{ y: 10, opacity: 0 }}
+                      whileInView={{ y: 0, opacity: 1 }}
+                      onClick={handleQuickAdd}
+                      className={`w-full py-2 px-3 rounded-xl font-medium text-xs flex items-center justify-center gap-1.5 transition-colors duration-200 shadow-lg ${quickAdded
+                        ? "bg-green-500 text-white"
+                        : "bg-white dark:bg-gray-900 text-gray-900 dark:text-white hover:bg-primary hover:text-white"
+                        }`}
+                    >
+                      {quickAdded ? (
+                        <><Check className="w-3.5 h-3.5" /> Added!</>
+                      ) : (
+                        <><ShoppingBag className="w-3.5 h-3.5" /> Quick Add</>
+                      )}
+                    </motion.button>
+                  )}
                 </div>
               </div>
 
@@ -404,20 +411,26 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
               </div>
 
               {/* Mobile Quick Add button — always visible, below price */}
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                onClick={handleQuickAdd}
-                className={`md:hidden mt-2.5 w-full py-2 rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5 transition-all duration-200 border ${quickAdded
-                  ? "bg-green-500 border-green-500 text-white"
-                  : "bg-primary/5 border-primary/20 text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary"
-                  }`}
-              >
-                {quickAdded ? (
-                  <><Check className="w-3.5 h-3.5" /> Added to cart!</>
-                ) : (
-                  <><ShoppingBag className="w-3.5 h-3.5" /> Quick Add</>
-                )}
-              </motion.button>
+              {isOwnListing ? (
+                <div className="md:hidden mt-2.5 w-full py-2 rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5 border border-border bg-muted/40 text-muted-foreground cursor-default">
+                  Your Listing
+                </div>
+              ) : (
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={handleQuickAdd}
+                  className={`md:hidden mt-2.5 w-full py-2 rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5 transition-all duration-200 border ${quickAdded
+                    ? "bg-green-500 border-green-500 text-white"
+                    : "bg-primary/5 border-primary/20 text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                    }`}
+                >
+                  {quickAdded ? (
+                    <><Check className="w-3.5 h-3.5" /> Added to cart!</>
+                  ) : (
+                    <><ShoppingBag className="w-3.5 h-3.5" /> Quick Add</>
+                  )}
+                </motion.button>
+              )}
             </div>
           </Link>
         </div>
