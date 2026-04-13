@@ -502,11 +502,20 @@ const ProductDetail = () => {
     setTimeout(() => setAdded(false), 2000);
   };
 
+  // PWA safe-area-aware top padding:
+  // On regular browsers env(safe-area-inset-top) is 0, so this equals the navbar height.
+  // On PWA / notched devices it adds the extra status-bar inset on top.
+  const navbarHeightMobile = "5rem";   // ~80px  (matches pt-20)
+  const navbarHeightDesktop = "6rem";  // ~96px  (matches pt-24, visually lg:pt-28 keeps extra breathing room)
+  const safeTopStyle: React.CSSProperties = {
+    paddingTop: `calc(env(safe-area-inset-top, 0px) + ${navbarHeightMobile})`,
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <div className="section-padding max-w-6xl mx-auto pt-20 lg:pt-28 pb-20">
+        <div className="section-padding max-w-6xl mx-auto lg:pt-28 pb-20" style={safeTopStyle}>
           <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
             <div className="rounded-3xl bg-card border border-border h-[300px] lg:h-[500px] animate-pulse" />
             <div className="space-y-3">
@@ -525,7 +534,7 @@ const ProductDetail = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Navbar />
-        <div className="text-center pt-20 px-4">
+        <div className="text-center px-4" style={safeTopStyle}>
           <div className="w-20 h-20 mx-auto mb-5 rounded-full bg-muted flex items-center justify-center">
             <Package className="w-10 h-10 text-muted-foreground" />
           </div>
@@ -571,7 +580,7 @@ const ProductDetail = () => {
         )}
       </AnimatePresence>
 
-      <div className="section-padding max-w-6xl mx-auto pt-20 lg:pt-28 pb-16">
+      <div className="section-padding max-w-6xl mx-auto lg:pt-28 pb-16" style={safeTopStyle}>
         {/* Breadcrumb Navigation */}
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-4">
           <button
