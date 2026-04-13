@@ -220,8 +220,8 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
                       whileTap={{ scale: 0.93 }}
                       onClick={(e) => handleSizeSelect(e, size)}
                       className={`min-w-[48px] h-11 px-3 rounded-xl border-2 text-sm font-semibold transition-all duration-150 ${selectedSize === size
-                          ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/25"
-                          : "border-border bg-card text-foreground hover:border-primary/40 hover:bg-muted/50"
+                        ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/25"
+                        : "border-border bg-card text-foreground hover:border-primary/40 hover:bg-muted/50"
                         }`}
                     >
                       {size}
@@ -236,8 +236,8 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
                   onClick={handleSizeConfirm}
                   disabled={!selectedSize}
                   className={`w-full h-12 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all duration-200 ${selectedSize
-                      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:opacity-90"
-                      : "bg-muted/50 text-muted-foreground cursor-not-allowed"
+                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:opacity-90"
+                    : "bg-muted/50 text-muted-foreground cursor-not-allowed"
                     }`}
                 >
                   <ShoppingBag className="w-4 h-4" />
@@ -264,8 +264,8 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
             whileTap={{ scale: 0.9 }}
             onClick={handleSave}
             className={`absolute top-3 right-3 z-20 w-8 h-8 rounded-xl flex items-center justify-center backdrop-blur-md transition-all duration-300 shadow-lg ${saved
-                ? "bg-gradient-to-br from-red-500 to-rose-600 text-white border-0 shadow-red-500/25"
-                : "bg-white/90 dark:bg-gray-900/90 border border-gray-200/50 dark:border-gray-700/50 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-800"
+              ? "bg-gradient-to-br from-red-500 to-rose-600 text-white border-0 shadow-red-500/25"
+              : "bg-white/90 dark:bg-gray-900/90 border border-gray-200/50 dark:border-gray-700/50 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-800"
               }`}
             aria-label={saved ? "Remove from saved" : "Save item"}
           >
@@ -287,8 +287,8 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
                     src={cardImage(sneaker.image)}
                     alt={sneaker.name}
                     className={`w-full h-full object-cover transition-all duration-700 ${imageLoaded
-                        ? "scale-100 group-hover:scale-110"
-                        : "scale-105 blur-sm"
+                      ? "scale-100 group-hover:scale-110"
+                      : "scale-105 blur-sm"
                       }`}
                     loading="lazy"
                     onLoad={() => setImageLoaded(true)}
@@ -316,8 +316,8 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
                     whileInView={{ y: 0, opacity: 1 }}
                     onClick={handleQuickAdd}
                     className={`w-full py-2 px-3 rounded-xl font-medium text-xs flex items-center justify-center gap-1.5 transition-colors duration-200 shadow-lg ${quickAdded
-                        ? "bg-green-500 text-white"
-                        : "bg-white dark:bg-gray-900 text-gray-900 dark:text-white hover:bg-primary hover:text-white"
+                      ? "bg-green-500 text-white"
+                      : "bg-white dark:bg-gray-900 text-gray-900 dark:text-white hover:bg-primary hover:text-white"
                       }`}
                   >
                     {quickAdded ? (
@@ -408,8 +408,8 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
                 whileTap={{ scale: 0.97 }}
                 onClick={handleQuickAdd}
                 className={`md:hidden mt-2.5 w-full py-2 rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5 transition-all duration-200 border ${quickAdded
-                    ? "bg-green-500 border-green-500 text-white"
-                    : "bg-primary/5 border-primary/20 text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                  ? "bg-green-500 border-green-500 text-white"
+                  : "bg-primary/5 border-primary/20 text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary"
                   }`}
               >
                 {quickAdded ? (
