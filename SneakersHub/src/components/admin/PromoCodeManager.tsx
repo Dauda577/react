@@ -274,11 +274,10 @@ export const PromoCodeManager = () => {
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`relative px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-              activeTab === tab
+            className={`relative px-4 py-2 rounded-lg text-sm font-semibold transition-all ${activeTab === tab
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"
-            }`}
+              }`}
           >
             {tab === "codes" ? "Promo Codes" : "Requests"}
             {tab === "requests" && pendingCount > 0 && (
@@ -556,13 +555,12 @@ export const PromoCodeManager = () => {
                           Requested {formatDate(req.created_at)}
                         </p>
                       </div>
-                      <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold border flex-shrink-0 ${
-                        req.status === "pending"
+                      <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold border flex-shrink-0 ${req.status === "pending"
                           ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
                           : req.status === "approved"
-                          ? "bg-green-500/10 text-green-600 border-green-500/20"
-                          : "bg-red-500/10 text-red-500 border-red-500/20"
-                      }`}>
+                            ? "bg-green-500/10 text-green-600 border-green-500/20"
+                            : "bg-red-500/10 text-red-500 border-red-500/20"
+                        }`}>
                         {req.status.charAt(0).toUpperCase() + req.status.slice(1)}
                       </span>
                     </div>
@@ -574,7 +572,7 @@ export const PromoCodeManager = () => {
                         <p className="font-bold">
                           {req.discount_type === "percentage"
                             ? `${req.discount_amount}%`
-                            : `GHS ${req.discount_amount}`}
+                            : `GH₵ ${req.discount_amount}`}
                         </p>
                       </div>
                       <div className="bg-muted/40 rounded-xl p-3">

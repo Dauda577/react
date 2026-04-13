@@ -32,7 +32,7 @@ serve(async (req) => {
     switch (type) {
       case "order.created":
         phoneNumber = record.buyer_phone;
-        message = `✅ Order confirmed! Your order #${record.id?.slice(-8)} for GHS ${record.total} has been placed. Track it in the SneakersHub app.`;
+        message = `✅ Order confirmed! Your order #${record.id?.slice(-8)} for GH₵ ${record.total} has been placed. Track it in the SneakersHub app.`;
         break;
         
       case "order.shipped":
@@ -57,7 +57,7 @@ serve(async (req) => {
         
       case "payout.released":
         phoneNumber = record.seller_phone;
-        message = `💰 GHS ${record.amount} has been paid out to your MoMo account for order #${record.order_id?.slice(-8)}. Thank you for selling on SneakersHub!`;
+        message = `💰 GH₵ ${record.amount} has been paid out to your MoMo account for order #${record.order_id?.slice(-8)}. Thank you for selling on SneakersHub!`;
         break;
         
       case "payout.missing_details":
@@ -91,7 +91,7 @@ serve(async (req) => {
 
         message = record.message || (
           type === "application.approved"
-            ? `🎉 Congratulations! Your seller application has been approved! Pay the GHS 50 verification fee to start selling. Tap here: https://sneakershub.site/account?tab=settings`
+            ? `🎉 Congratulations! Your seller application has been approved! Pay the GH₵ 50 verification fee to start selling. Tap here: https://sneakershub.site/account?tab=settings`
             : `Your seller application was not approved. You can re-apply anytime. Tap here: https://sneakershub.site/account`
         );
         break;
@@ -117,7 +117,7 @@ serve(async (req) => {
           console.log(`📞 Looked up phone for seller ${record.seller_id}:`, phoneNumber);
         }
 
-        message = `🛒 Great news! Someone just bought your listing "${record.listing_name?.substring(0, 30)}" for GHS ${record.total}. Check your orders at sneakershub.site/account`;
+        message = `🛒 Great news! Someone just bought your listing "${record.listing_name?.substring(0, 30)}" for GH₵ ${record.total}. Check your orders at sneakershub.site/account`;
         break;
       }
         

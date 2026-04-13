@@ -86,7 +86,7 @@ serve(async (req) => {
   if (event.event === "transfer.success") {
     const transferCode = event.data?.transfer_code;
     const amount       = event.data?.amount / 100; // convert from pesewas
-    console.log(`Transfer SUCCESS: ${transferCode} GHS ${amount}`);
+    console.log(`Transfer SUCCESS: ${transferCode} GH₵ ${amount}`);
 
     // Find the order with this transfer_code
     const { data: order } = await supabase
@@ -162,7 +162,7 @@ serve(async (req) => {
 
     // Alert admin
     await notifyAdmin(
-      `🚨 Transfer FAILED (Paystack confirmed): Order ${order.id.slice(0,8)} — GHS ${order.total} to ${seller?.name ?? "seller"} (${seller?.payout_method}). Attempt ${attempts}. Reason: ${failReason}. Fix at sneakershub.site/admin`
+      `🚨 Transfer FAILED (Paystack confirmed): Order ${order.id.slice(0,8)} — GH₵ ${order.total} to ${seller?.name ?? "seller"} (${seller?.payout_method}). Attempt ${attempts}. Reason: ${failReason}. Fix at sneakershub.site/admin`
     );
   }
 
@@ -186,7 +186,7 @@ serve(async (req) => {
       }).eq("id", order.id);
 
       await notifyAdmin(
-        `⚠️ Transfer REVERSED: Order ${order.id.slice(0,8)} — GHS ${order.total}. Payout marked failed. Review at /admin`
+        `⚠️ Transfer REVERSED: Order ${order.id.slice(0,8)} — GH₵ ${order.total}. Payout marked failed. Review at /admin`
       );
     }
   }

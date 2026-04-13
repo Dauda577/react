@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { 
-  CheckCircle, ShieldCheck, Zap, Star, ArrowRight, CreditCard, Clock, 
-  Users, Package, Award, Heart, TrendingUp, Sparkles, 
-  Store, Wallet, BadgeCheck, Phone 
+import {
+  CheckCircle, ShieldCheck, Zap, Star, ArrowRight, CreditCard, Clock,
+  Users, Package, Award, Heart, TrendingUp, Sparkles,
+  Store, Wallet, BadgeCheck, Phone
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -26,14 +26,14 @@ const About = () => {
     const { count: userCountData } = await supabase
       .from("profiles")
       .select("id", { count: "exact", head: true });
-    
+
     if (userCountData !== null) setUserCount(formatCount(userCountData));
 
     const { count: listingCountData } = await supabase
       .from("listings")
       .select("id", { count: "exact", head: true })
       .eq("status", "active");
-    
+
     if (listingCountData !== null) setListingCount(formatCount(listingCountData));
   };
 
@@ -42,16 +42,16 @@ const About = () => {
 
     const profilesChannel = supabase
       .channel('profiles-count')
-      .on('postgres_changes', 
-        { event: 'INSERT', schema: 'public', table: 'profiles' }, 
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'profiles' },
         () => fetchCounts()
       )
       .subscribe();
 
     const listingsChannel = supabase
       .channel('listings-count')
-      .on('postgres_changes', 
-        { event: 'INSERT', schema: 'public', table: 'listings' }, 
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'listings' },
         () => fetchCounts()
       )
       .on('postgres_changes',
@@ -100,7 +100,7 @@ const About = () => {
     },
     {
       icon: Wallet,
-      title: "One-Time GHS 50 Fee",
+      title: "One-Time GH₵ 50 Fee",
       desc: "Pay once via card or Mobile Money after approval. Your Paystack subaccount is created automatically.",
       color: "text-blue-500",
       bg: "bg-blue-500/10",
@@ -127,7 +127,7 @@ const About = () => {
       step: "03",
       icon: CreditCard,
       title: "One-Time Payment",
-      desc: "Pay the GHS 50 fee via card or Mobile Money to activate your verified seller account.",
+      desc: "Pay the GH₵ 50 fee via card or Mobile Money to activate your verified seller account.",
       color: "from-orange-500 to-red-500",
     },
     {
@@ -168,14 +168,14 @@ const About = () => {
               <Heart className="w-3.5 h-3.5 text-primary" />
               <span className="text-xs font-semibold text-primary uppercase tracking-wider">Our Story</span>
             </motion.div>
-            
+
             <h1 className="font-display text-5xl md:text-7xl font-bold tracking-tight mb-6">
               Passion for{" "}
               <span className="bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
                 Sneakers
               </span>
             </h1>
-            
+
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
               Where sneaker culture meets authenticity. We're building Africa's most trusted marketplace for premium footwear and fashion.
             </p>
@@ -275,7 +275,7 @@ const About = () => {
               <ShieldCheck className="w-3.5 h-3.5 text-green-500" />
               <span className="text-xs font-semibold text-green-600 uppercase tracking-wider">For Sellers</span>
             </motion.div>
-            
+
             <h2 className="font-display text-4xl md:text-5xl font-bold tracking-tight mb-4">
               Become a{" "}
               <span className="bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
@@ -283,7 +283,7 @@ const About = () => {
               </span>
             </h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Submit a quick application and pay a one-time GHS 50 fee once approved. 
+              Submit a quick application and pay a one-time GH₵ 50 fee once approved.
               Unlock Paystack split payments — buyers pay you directly at checkout.
             </p>
           </motion.div>
@@ -377,7 +377,7 @@ const About = () => {
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Wallet className="w-3.5 h-3.5 text-amber-500" />
-                GHS 50 one-time fee on approval
+                GH₵ 50 one-time fee on approval
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <Zap className="w-3.5 h-3.5 text-primary" />

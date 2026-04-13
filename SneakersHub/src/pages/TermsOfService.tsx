@@ -1,9 +1,9 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { 
-  Shield, Clock, Wallet, Users, Mail, AlertCircle, 
+import {
+  Shield, Clock, Wallet, Users, Mail, AlertCircle,
   CheckCircle, FileText, CreditCard, Truck, MessageCircle,
-  Home, ArrowLeft, BadgeCheck  
+  Home, ArrowLeft, BadgeCheck
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -15,10 +15,10 @@ const TermsOfService = () => {
       <Navbar />
 
       <div className="pt-24 section-padding max-w-4xl mx-auto pb-20" style={{ paddingTop: `calc(96px + env(safe-area-inset-top, 0px))` }}>
-        
+
         {/* Back Button */}
-        <Link 
-          to="/" 
+        <Link
+          to="/"
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors mb-6"
         >
           <ArrowLeft className="w-4 h-4" /> Back to Home
@@ -176,7 +176,7 @@ const TermsOfService = () => {
                   <p className="text-sm font-semibold text-green-600">Verification Program</p>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Verified sellers pay a one-time GHS 50 fee. Benefits include a verified badge, Paystack split payments (95% to seller, 5% to SneakersHub), and increased buyer trust.
+                  Verified sellers pay a one-time GH₵ 50 fee. Benefits include a verified badge, Paystack split payments (95% to seller, 5% to SneakersHub), and increased buyer trust.
                 </p>
               </div>
             </div>

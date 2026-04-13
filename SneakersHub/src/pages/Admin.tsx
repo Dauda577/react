@@ -5,7 +5,7 @@ import {
   ShieldAlert, TrendingUp, Package, Wallet, AlertTriangle,
   CheckCircle, Clock, RefreshCw, ChevronDown, ChevronUp,
   ArrowUpRight, DollarSign, BarChart2, X,
-  Filter, Search, Phone, MapPin, Users, Percent, BadgeCheck, Ticket,Send,
+  Filter, Search, Phone, MapPin, Users, Percent, BadgeCheck, Ticket, Send,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
@@ -48,15 +48,15 @@ const formatId = (id: string) => {
   return `#${num.toString().padStart(9, "0")}`;
 };
 
-const formatGHS = (n: number) =>
-  `GHS ${n.toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const formatGH₵ = (n: number) =>
+  `GH₵ ${n.toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const payoutColors: Record<string, string> = {
-  pending:       "bg-amber-500/10 text-amber-600 border-amber-500/20",
-  released:      "bg-green-500/10 text-green-600 border-green-500/20",
+  pending: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+  released: "bg-green-500/10 text-green-600 border-green-500/20",
   auto_released: "bg-blue-500/10 text-blue-600 border-blue-500/20",
-  disputed:      "bg-red-500/10 text-red-600 border-red-500/20",
-  refunded:      "bg-purple-500/10 text-purple-600 border-purple-500/20",
+  disputed: "bg-red-500/10 text-red-600 border-red-500/20",
+  refunded: "bg-purple-500/10 text-purple-600 border-purple-500/20",
 };
 
 // ── Stat card ─────────────────────────────────────────────────────────────────
@@ -222,10 +222,10 @@ const Admin = () => {
     }
   }, []);
 
-  const pendingApplications  = applications.filter(a => a.status === "pending");
+  const pendingApplications = applications.filter(a => a.status === "pending");
   const approvedApplications = applications.filter(a => a.status === "approved");
-  const pendingSellers       = sellers.filter(s => !s.verified && !s.is_official);
-  const verifiedSellers      = sellers.filter(s => s.verified || s.is_official);
+  const pendingSellers = sellers.filter(s => !s.verified && !s.is_official);
+  const verifiedSellers = sellers.filter(s => s.verified || s.is_official);
 
   // Auto-check Paystack statuses when sellers tab is active and there are verified sellers
   useEffect(() => {
@@ -268,7 +268,7 @@ const Admin = () => {
           record: {
             ...app,
             message: action === "approve"
-              ? `Congratulations! Your seller application has been approved. Pay the GHS 50 verification fee to start selling. Tap here: https://sneakershub.site/account?tab=settings`
+              ? `Congratulations! Your seller application has been approved. Pay the GH₵ 50 verification fee to start selling. Tap here: https://sneakershub.site/account?tab=settings`
               : `Your seller application was not approved. You can re-apply anytime. Tap here: https://sneakershub.site/account`,
           },
         }),
@@ -286,7 +286,7 @@ const Admin = () => {
           user_id: userId,
           title: action === "approve" ? "Application Approved!" : "Application Update",
           body: action === "approve"
-            ? `Your store "${app?.store_name}" is approved! Pay the GHS 50 fee to activate your seller account.`
+            ? `Your store "${app?.store_name}" is approved! Pay the GH₵ 50 fee to activate your seller account.`
             : `Your application for "${app?.store_name}" was not approved. You can re-apply.`,
           url: "/account?tab=settings",
         }),
@@ -337,12 +337,12 @@ const Admin = () => {
 
       setOrders((rawOrders ?? []).map((o: any) => ({
         ...o,
-        seller_name:           o.seller?.name ?? "[Deleted Account]",
-        seller_phone:          o.seller?.phone ?? null,
-        seller_is_official:    o.seller?.is_official ?? false,
-        paystack_reference:    o.paystack_reference ?? null,
-        dispute_reason:        o.dispute_reason ?? null,
-        transfer_attempts:     o.transfer_attempts ?? null,
+        seller_name: o.seller?.name ?? "[Deleted Account]",
+        seller_phone: o.seller?.phone ?? null,
+        seller_is_official: o.seller?.is_official ?? false,
+        paystack_reference: o.paystack_reference ?? null,
+        dispute_reason: o.dispute_reason ?? null,
+        transfer_attempts: o.transfer_attempts ?? null,
         transfer_failure_reason: o.transfer_failure_reason ?? null,
       })));
     } catch (err) {
@@ -387,21 +387,21 @@ const Admin = () => {
 
   // ── Computed stats ─────────────────────────────────────────────────────────
   const nonOfficialOrders = orders.filter(o => !o.seller_is_official);
-  const pendingOrders     = nonOfficialOrders.filter(o => o.payout_status === "pending");
-  const failedOrders      = orders.filter(o => o.payout_status === "transfer_failed");
-  const releasedOrders    = nonOfficialOrders.filter(o => o.payout_status === "released" || o.payout_status === "auto_released");
-  const officialOrders    = orders.filter(o => o.seller_is_official);
+  const pendingOrders = nonOfficialOrders.filter(o => o.payout_status === "pending");
+  const failedOrders = orders.filter(o => o.payout_status === "transfer_failed");
+  const releasedOrders = nonOfficialOrders.filter(o => o.payout_status === "released" || o.payout_status === "auto_released");
+  const officialOrders = orders.filter(o => o.seller_is_official);
 
-  const now        = new Date();
-  const weekAgo    = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
 
   const commission = {
-    total:      releasedOrders.reduce((s, o) => s + o.total * COMMISSION_RATE, 0),
+    total: releasedOrders.reduce((s, o) => s + o.total * COMMISSION_RATE, 0),
     this_month: releasedOrders.filter(o => new Date(o.placed_at) >= monthStart).reduce((s, o) => s + o.total * COMMISSION_RATE, 0),
-    this_week:  releasedOrders.filter(o => new Date(o.placed_at) >= weekAgo).reduce((s, o) => s + o.total * COMMISSION_RATE, 0),
-    today:      releasedOrders.filter(o => new Date(o.placed_at) >= todayStart).reduce((s, o) => s + o.total * COMMISSION_RATE, 0),
+    this_week: releasedOrders.filter(o => new Date(o.placed_at) >= weekAgo).reduce((s, o) => s + o.total * COMMISSION_RATE, 0),
+    today: releasedOrders.filter(o => new Date(o.placed_at) >= todayStart).reduce((s, o) => s + o.total * COMMISSION_RATE, 0),
   };
 
   // ── Filtered orders ────────────────────────────────────────────────────────
@@ -419,11 +419,11 @@ const Admin = () => {
   const payoutHistory = releasedOrders;
 
   const tabs = [
-    { id: "overview", label: "Overview",   icon: BarChart2 },
-    { id: "sellers",  label: "Sellers",    icon: ShieldAlert, badge: pendingApplications.length },
-    { id: "failed",   label: "Failed",     icon: AlertTriangle, badge: failedOrders.length },
-    { id: "orders",   label: "All Orders", icon: Package },
-    { id: "payouts",  label: "Payouts",    icon: Wallet },
+    { id: "overview", label: "Overview", icon: BarChart2 },
+    { id: "sellers", label: "Sellers", icon: ShieldAlert, badge: pendingApplications.length },
+    { id: "failed", label: "Failed", icon: AlertTriangle, badge: failedOrders.length },
+    { id: "orders", label: "All Orders", icon: Package },
+    { id: "payouts", label: "Payouts", icon: Wallet },
     { id: "promos", label: "Promo Codes", icon: Ticket },
     { id: "messaging", label: "Messaging", icon: Send },
   ] as const;
@@ -495,10 +495,10 @@ const Admin = () => {
                 <div>
                   <SectionHeader title="Commission Earnings (5%)" icon={TrendingUp} />
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    <StatCard label="All Time"   value={formatGHS(commission.total)}      icon={DollarSign}   accent="bg-primary/10 text-primary" />
-                    <StatCard label="This Month" value={formatGHS(commission.this_month)} icon={BarChart2}    accent="bg-purple-500/10 text-purple-600" />
-                    <StatCard label="This Week"  value={formatGHS(commission.this_week)}  icon={TrendingUp}   accent="bg-blue-500/10 text-blue-600" />
-                    <StatCard label="Today"      value={formatGHS(commission.today)}      icon={ArrowUpRight} accent="bg-green-500/10 text-green-600" />
+                    <StatCard label="All Time" value={formatGHS(commission.total)} icon={DollarSign} accent="bg-primary/10 text-primary" />
+                    <StatCard label="This Month" value={formatGHS(commission.this_month)} icon={BarChart2} accent="bg-purple-500/10 text-purple-600" />
+                    <StatCard label="This Week" value={formatGHS(commission.this_week)} icon={TrendingUp} accent="bg-blue-500/10 text-blue-600" />
+                    <StatCard label="Today" value={formatGHS(commission.today)} icon={ArrowUpRight} accent="bg-green-500/10 text-green-600" />
                   </div>
                 </div>
               </div>
@@ -693,7 +693,7 @@ const Admin = () => {
                           <div>
                             <p className="font-display font-bold text-sm">{order.seller_name}</p>
                             <p className="text-xs text-muted-foreground mt-0.5">
-                              {formatId(order.id)} · GHS {order.total} · {order.transfer_attempts ?? 1} attempt{(order.transfer_attempts ?? 1) > 1 ? "s" : ""}
+                              {formatId(order.id)} · GH₵ {order.total} · {order.transfer_attempts ?? 1} attempt{(order.transfer_attempts ?? 1) > 1 ? "s" : ""}
                             </p>
                             {order.transfer_failure_reason && (
                               <p className="text-xs text-orange-600 mt-1 font-medium">
@@ -948,7 +948,7 @@ const Admin = () => {
             )}
 
             {activeTab === "messaging" && <MessagingTab />}
-            
+
           </motion.div>
         </AnimatePresence>
       </section>

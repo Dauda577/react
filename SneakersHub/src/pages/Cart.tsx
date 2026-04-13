@@ -17,7 +17,7 @@ const Cart = () => {
   // Check for own items before checkout
   const handleCheckout = () => {
     const hasOwnItem = items.some(item => item.listing.sellerId === user?.id);
-    
+
     if (hasOwnItem) {
       toast.error("You cannot purchase your own items", {
         description: "Please remove your own listings from cart",
@@ -25,7 +25,7 @@ const Cart = () => {
       });
       return;
     }
-    
+
     navigate("/checkout");
   };
 
@@ -39,7 +39,7 @@ const Cart = () => {
       <Navbar />
 
       <div className="pt-24 section-padding max-w-6xl mx-auto min-h-[70vh]" style={{ paddingTop: `calc(96px + env(safe-area-inset-top, 0px))` }}>
-        
+
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -53,8 +53,8 @@ const Cart = () => {
             )}
           </h1>
           <p className="text-muted-foreground mt-2">
-            {totalItems > 0 
-              ? "Review your items before checkout" 
+            {totalItems > 0
+              ? "Review your items before checkout"
               : "Your cart is waiting to be filled"}
           </p>
         </motion.div>
@@ -96,14 +96,14 @@ const Cart = () => {
                   >
                     <div className="flex gap-4">
                       {/* Product Image */}
-                      <Link 
-                        to={`/product/${item.listing.id}`} 
+                      <Link
+                        to={`/product/${item.listing.id}`}
                         className="w-24 h-24 bg-gradient-to-br from-muted/50 to-muted rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden group-hover:scale-105 transition-transform duration-300"
                       >
-                        <img 
-                          src={thumbImage(item.listing.image)} 
-                          alt={item.listing.name} 
-                          className="w-full h-full object-contain p-2" 
+                        <img
+                          src={thumbImage(item.listing.image)}
+                          alt={item.listing.name}
+                          className="w-full h-full object-contain p-2"
                         />
                       </Link>
 
@@ -158,11 +158,11 @@ const Cart = () => {
                     {/* Price */}
                     <div className="absolute bottom-4 right-4">
                       <p className="font-display font-bold text-lg">
-                        GHS {(item.listing.price * item.quantity).toLocaleString()}
+                        GH₵ {(item.listing.price * item.quantity).toLocaleString()}
                       </p>
                       {item.quantity > 1 && (
                         <p className="text-xs text-muted-foreground text-right">
-                          GHS {item.listing.price.toLocaleString()} each
+                          GH₵ {item.listing.price.toLocaleString()} each
                         </p>
                       )}
                     </div>
@@ -180,16 +180,16 @@ const Cart = () => {
             >
               <div className="bg-card border border-border rounded-2xl p-6 space-y-6">
                 <h2 className="font-display text-xl font-bold">Order Summary</h2>
-                
+
                 {/* Items count */}
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal ({totalItems} {totalItems === 1 ? "item" : "items"})</span>
-                  <span className="font-medium">GHS {subtotal.toLocaleString()}</span>
+                  <span className="font-medium">GH₵ {subtotal.toLocaleString()}</span>
                 </div>
-                
+
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Estimated Tax</span>
-                  <span className="font-medium">GHS {estimatedTax.toLocaleString()}</span>
+                  <span className="font-medium">GH₵ {estimatedTax.toLocaleString()}</span>
                 </div>
 
                 {/* Delivery Info */}
@@ -209,7 +209,7 @@ const Cart = () => {
                   <div className="flex justify-between items-center">
                     <span className="font-display font-bold text-lg">Total</span>
                     <span className="font-display text-2xl font-bold text-primary">
-                      GHS {orderTotal.toLocaleString()}
+                      GH₵ {orderTotal.toLocaleString()}
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1 text-right">
@@ -229,8 +229,8 @@ const Cart = () => {
 
                 {/* Continue Shopping */}
                 <div className="text-center">
-                  <Link 
-                    to="/shop" 
+                  <Link
+                    to="/shop"
                     className="text-sm text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-1"
                   >
                     Continue Shopping

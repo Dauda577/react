@@ -88,7 +88,7 @@ function productCard(listing: any) {
             ${badge}
             <p style="margin:6px 0 2px;font-size:12px;font-weight:700;color:#09090b;font-family:sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${listing.name}</p>
             <p style="margin:0 0 4px;font-size:10px;color:#71717a;font-family:sans-serif;">${listing.brand}</p>
-            <p style="margin:0;font-size:13px;font-weight:800;color:#09090b;font-family:sans-serif;">GHS ${listing.price.toLocaleString()}</p>
+            <p style="margin:0;font-size:13px;font-weight:800;color:#09090b;font-family:sans-serif;">GH₵ ${listing.price.toLocaleString()}</p>
           </div>
         </div>
       </a>

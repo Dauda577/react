@@ -16,11 +16,11 @@ import { useListings } from "@/context/ListingContext";
 import { useRatings } from "@/context/RatingContext";
 import { useAuth } from "@/context/AuthContext";
 
-const GHS = (n: number) =>
-  n >= 1000 ? `GHS ${(n / 1000).toFixed(1)}k` : `GHS ${n}`;
+const GH₵ = (n: number) =>
+  n >= 1000 ? `GH₵ ${(n / 1000).toFixed(1)}k` : `GH₵ ${n}`;
 
-const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const COLORS = ["#6366f1","#8b5cf6","#a78bfa","#c4b5fd","#ddd6fe","#e9d5ff"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const COLORS = ["#6366f1", "#8b5cf6", "#a78bfa", "#c4b5fd", "#ddd6fe", "#e9d5ff"];
 const CHART_GRADIENTS = ["#6366f1", "#8b5cf6", "#a78bfa", "#c4b5fd"];
 
 const StatCard = ({
@@ -93,10 +93,10 @@ const SellerDashboard = () => {
   );
 
   const completedOrders = myOrders.filter((o) => o.status === "delivered").length;
-  const pendingOrders   = myOrders.filter((o) => o.status === "pending").length;
-  const activeListings  = listings.filter((l) => l.status === "active").length;
-  const soldListings    = listings.filter((l) => l.status === "sold").length;
-  const totalViews      = listings.reduce((sum, l) => sum + (l.views || 0), 0);
+  const pendingOrders = myOrders.filter((o) => o.status === "pending").length;
+  const activeListings = listings.filter((l) => l.status === "active").length;
+  const soldListings = listings.filter((l) => l.status === "sold").length;
+  const totalViews = listings.reduce((sum, l) => sum + (l.views || 0), 0);
 
   const revenueByMonth = useMemo(() => {
     const now = new Date();
@@ -167,37 +167,37 @@ const SellerDashboard = () => {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard 
-          icon={TrendingUp} 
-          label="Total Revenue" 
+        <StatCard
+          icon={TrendingUp}
+          label="Total Revenue"
           value={GHS(totalRevenue)}
-          sub={`${completedOrders} completed orders`} 
+          sub={`${completedOrders} completed orders`}
           trend={revTrend}
-          color="bg-emerald-500/10 text-emerald-500" 
+          color="bg-emerald-500/10 text-emerald-500"
           delay={0}
         />
-        <StatCard 
-          icon={ShoppingBag} 
-          label="Total Orders" 
+        <StatCard
+          icon={ShoppingBag}
+          label="Total Orders"
           value={myOrders.length.toString()}
-          sub={`${pendingOrders} pending`} 
-          color="bg-blue-500/10 text-blue-500" 
+          sub={`${pendingOrders} pending`}
+          color="bg-blue-500/10 text-blue-500"
           delay={1}
         />
-        <StatCard 
-          icon={DollarSign} 
-          label="Avg. Order Value" 
+        <StatCard
+          icon={DollarSign}
+          label="Avg. Order Value"
           value={GHS(avgOrderValue)}
-          sub="per transaction" 
-          color="bg-amber-500/10 text-amber-500" 
+          sub="per transaction"
+          color="bg-amber-500/10 text-amber-500"
           delay={2}
         />
-        <StatCard 
-          icon={Eye} 
-          label="Total Views" 
+        <StatCard
+          icon={Eye}
+          label="Total Views"
           value={totalViews.toLocaleString()}
-          sub={`${conversionRate}% conversion rate`} 
-          color="bg-purple-500/10 text-purple-500" 
+          sub={`${conversionRate}% conversion rate`}
+          color="bg-purple-500/10 text-purple-500"
           delay={3}
         />
       </div>
@@ -226,10 +226,10 @@ const SellerDashboard = () => {
               </div>
             </div>
             <div className="flex gap-1">
-              {[1,2,3,4,5].map((s) => (
-                <Star 
-                  key={s} 
-                  className={`w-5 h-5 ${s <= Math.round(safeAvg) ? "text-amber-500 fill-amber-500" : "text-border"}`} 
+              {[1, 2, 3, 4, 5].map((s) => (
+                <Star
+                  key={s}
+                  className={`w-5 h-5 ${s <= Math.round(safeAvg) ? "text-amber-500 fill-amber-500" : "text-border"}`}
                 />
               ))}
             </div>
@@ -272,12 +272,12 @@ const SellerDashboard = () => {
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                 <Tooltip content={<ChartTooltip />} />
-                <Area 
-                  type="monotone" 
-                  dataKey="Revenue" 
-                  stroke="#6366f1" 
+                <Area
+                  type="monotone"
+                  dataKey="Revenue"
+                  stroke="#6366f1"
                   strokeWidth={2}
-                  fill="url(#revGrad)" 
+                  fill="url(#revGrad)"
                   dot={{ fill: "#6366f1", strokeWidth: 2, r: 3 }}
                   activeDot={{ r: 5, strokeWidth: 2 }}
                 />
@@ -308,10 +308,10 @@ const SellerDashboard = () => {
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
                 <Tooltip content={<ChartTooltip />} />
-                <Bar 
-                  dataKey="Orders" 
-                  fill="#8b5cf6" 
-                  radius={[6, 6, 0, 0]} 
+                <Bar
+                  dataKey="Orders"
+                  fill="#8b5cf6"
+                  radius={[6, 6, 0, 0]}
                   barSize={40}
                 />
               </BarChart>
@@ -342,8 +342,8 @@ const SellerDashboard = () => {
               const maxViews = topListings[0]?.views || 1;
               const pct = Math.max(4, ((listing.views || 0) / maxViews) * 100);
               return (
-                <motion.div 
-                  key={listing.id} 
+                <motion.div
+                  key={listing.id}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.8 + i * 0.05 }}
@@ -351,10 +351,10 @@ const SellerDashboard = () => {
                 >
                   <div className="relative">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold
-                      ${i === 0 ? "bg-amber-500/20 text-amber-600" : 
+                      ${i === 0 ? "bg-amber-500/20 text-amber-600" :
                         i === 1 ? "bg-gray-400/20 text-gray-500" :
-                        i === 2 ? "bg-orange-500/20 text-orange-600" :
-                        "bg-muted text-muted-foreground"}`}>
+                          i === 2 ? "bg-orange-500/20 text-orange-600" :
+                            "bg-muted text-muted-foreground"}`}>
                       {i + 1}
                     </div>
                     {i === 0 && <Zap className="absolute -top-1 -right-1 w-3 h-3 text-amber-500" />}
@@ -370,7 +370,7 @@ const SellerDashboard = () => {
                     </p>
                     <div className="flex items-center gap-2 mt-1.5">
                       <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-                        <motion.div 
+                        <motion.div
                           className="h-full rounded-full bg-gradient-to-r from-primary to-purple-500"
                           initial={{ width: 0 }}
                           animate={{ width: `${pct}%` }}
@@ -381,10 +381,10 @@ const SellerDashboard = () => {
                     </div>
                   </div>
                   <span className={`text-[10px] font-semibold px-2.5 py-1 rounded-full flex-shrink-0
-                    ${listing.status === "sold" 
-                      ? "bg-green-500/10 text-green-600 border border-green-500/20" 
+                    ${listing.status === "sold"
+                      ? "bg-green-500/10 text-green-600 border border-green-500/20"
                       : "bg-primary/10 text-primary border border-primary/20"}`}>
-                    {listing.status === "sold" ? "Sold" : `GHS ${listing.price.toLocaleString()}`}
+                    {listing.status === "sold" ? "Sold" : `GH₵ ${listing.price.toLocaleString()}`}
                   </span>
                 </motion.div>
               );
@@ -414,13 +414,13 @@ const SellerDashboard = () => {
               </div>
               <div className="flex flex-col items-center">
                 <PieChart width={160} height={160}>
-                  <Pie 
-                    data={cityData} 
-                    cx={80} 
-                    cy={80} 
-                    innerRadius={45} 
+                  <Pie
+                    data={cityData}
+                    cx={80}
+                    cy={80}
+                    innerRadius={45}
                     outerRadius={70}
-                    dataKey="value" 
+                    dataKey="value"
                     paddingAngle={3}
                   >
                     {cityData.map((_, index) => (
@@ -461,13 +461,13 @@ const SellerDashboard = () => {
               </div>
               <div className="flex flex-col items-center">
                 <PieChart width={160} height={160}>
-                  <Pie 
-                    data={categoryData} 
-                    cx={80} 
-                    cy={80} 
-                    innerRadius={45} 
+                  <Pie
+                    data={categoryData}
+                    cx={80}
+                    cy={80}
+                    innerRadius={45}
                     outerRadius={70}
-                    dataKey="value" 
+                    dataKey="value"
                     paddingAngle={3}
                   >
                     {categoryData.map((_, index) => (

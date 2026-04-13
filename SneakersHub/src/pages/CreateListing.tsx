@@ -36,23 +36,23 @@ const categoryLabels = PRODUCT_CATEGORIES.map((c) => c.label);
 
 const getItemLabel = (category: string) => {
   if (category === "Sneakers") return "Sneaker";
-  if (category === "Watches")  return "Watch";
+  if (category === "Watches") return "Watch";
   if (["Tops", "Bottoms", "Outerwear", "Activewear"].includes(category)) return "Item";
-  if (category === "Bags")     return "Bag";
-  if (category === "Jewellery")return "Piece";
+  if (category === "Bags") return "Bag";
+  if (category === "Jewellery") return "Piece";
   return "Item";
 };
 
 const getNamePlaceholder = (category: string) => {
-  if (category === "Sneakers")   return "e.g. Air Jordan 1 Retro High OG";
-  if (category === "Watches")    return "e.g. Casio G-Shock GA-2100";
-  if (category === "Tops")       return "e.g. Oversized Graphic Tee";
-  if (category === "Bottoms")    return "e.g. Slim Fit Cargo Pants";
-  if (category === "Outerwear")  return "e.g. Puffer Jacket";
+  if (category === "Sneakers") return "e.g. Air Jordan 1 Retro High OG";
+  if (category === "Watches") return "e.g. Casio G-Shock GA-2100";
+  if (category === "Tops") return "e.g. Oversized Graphic Tee";
+  if (category === "Bottoms") return "e.g. Slim Fit Cargo Pants";
+  if (category === "Outerwear") return "e.g. Puffer Jacket";
   if (category === "Activewear") return "e.g. Compression Shorts";
-  if (category === "Bags")       return "e.g. Canvas Tote Bag";
-  if (category === "Jewellery")  return "e.g. Gold Chain Necklace";
-  if (category === "Accessories")return "e.g. Leather Belt";
+  if (category === "Bags") return "e.g. Canvas Tote Bag";
+  if (category === "Jewellery") return "e.g. Gold Chain Necklace";
+  if (category === "Accessories") return "e.g. Leather Belt";
   return "e.g. Item name";
 };
 
@@ -70,7 +70,7 @@ const getDescriptionPlaceholder = (category: string) => {
 
 const clothingSizes = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "3XL"];
 
-const usesSneakerSizes  = (cat: string) => cat === "Sneakers";
+const usesSneakerSizes = (cat: string) => cat === "Sneakers";
 const usesClothingSizes = (cat: string) =>
   ["Tops", "Bottoms", "Outerwear", "Activewear"].includes(cat);
 const noSizes = (cat: string) =>
@@ -193,8 +193,8 @@ const CreateListing = () => {
 
   const initialSelectedSizes = editing?.sizes && usesSneakerSizes(editing.category)
     ? (editing.sizes as (string | number)[])
-        .map((s) => Number(s))
-        .filter((s) => !Number.isNaN(s))
+      .map((s) => Number(s))
+      .filter((s) => !Number.isNaN(s))
     : [];
 
   const initialSelectedClothingSizes = editing?.sizes && usesClothingSizes(editing.category)
@@ -293,36 +293,36 @@ const CreateListing = () => {
       if (editing) {
         await updateListing(
           editing.id,
-          { 
-            name, 
-            brand, 
-            price: Number(price), 
-            category, 
-            description, 
-            sizes: sizesToSave, 
-            city: city || null, 
+          {
+            name,
+            brand,
+            price: Number(price),
+            category,
+            description,
+            sizes: sizesToSave,
+            city: city || null,
             region: region || null,
             discountPercent: discountPercent ? Number(discountPercent) : null,
           },
           imageFiles[0] ?? undefined,
           imageFiles.slice(1)
         );
-        
+
         // Refresh the public listing cache
         await refreshListing(editing.id);
-        
+
         toast.success("Listing updated!");
       } else {
         await addListing(
-          { 
-            name, 
-            brand, 
-            price: Number(price), 
-            category, 
-            description, 
-            sizes: sizesToSave, 
-            image: null, 
-            city: city || null, 
+          {
+            name,
+            brand,
+            price: Number(price),
+            category,
+            description,
+            sizes: sizesToSave,
+            image: null,
+            city: city || null,
             region: region || null,
             discountPercent: discountPercent ? Number(discountPercent) : null,
           },
@@ -339,10 +339,10 @@ const CreateListing = () => {
     }
   };
 
-  const itemLabel          = getItemLabel(form.category);
-  const showSneakerSizes   = usesSneakerSizes(form.category);
-  const showClothingSizes  = usesClothingSizes(form.category);
-  const showSizes          = showSneakerSizes || showClothingSizes;
+  const itemLabel = getItemLabel(form.category);
+  const showSneakerSizes = usesSneakerSizes(form.category);
+  const showClothingSizes = usesClothingSizes(form.category);
+  const showSizes = showSneakerSizes || showClothingSizes;
 
   // Calculate discounted price preview
   const discountedPricePreview = form.discountPercent && Number(form.discountPercent) > 0 && form.price
@@ -531,7 +531,7 @@ const CreateListing = () => {
                 </div>
                 {discountedPricePreview && (
                   <p className="text-xs text-green-500 mt-1">
-                    Discounted price: GHS {discountedPricePreview.toLocaleString()}
+                    Discounted price: GH₵ {discountedPricePreview.toLocaleString()}
                   </p>
                 )}
               </div>

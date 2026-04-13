@@ -199,20 +199,20 @@ const OrderConfirmation = () => {
 
   const getDeliveryStatusStep = (status: string) => {
     switch (status) {
-      case "pending":         return 0;
-      case "contacted":       return 1;
+      case "pending": return 0;
+      case "contacted": return 1;
       case "driver_assigned": return 2;
-      case "delivered":       return 3;
-      default:                return 0;
+      case "delivered": return 3;
+      default: return 0;
     }
   };
 
   const currentStep = getDeliveryStatusStep(deliveryStatus || "pending");
 
   // Seller pickup location — falls back gracefully
-  const sellerCity   = sellerProfile?.city   ?? null;
+  const sellerCity = sellerProfile?.city ?? null;
   const sellerRegion = sellerProfile?.region ?? null;
-  const sellerName   = sellerProfile?.name   ?? null;
+  const sellerName = sellerProfile?.name ?? null;
   const pickupLocation = [sellerCity, sellerRegion].filter(Boolean).join(", ") || null;
 
   return (
@@ -294,10 +294,10 @@ const OrderConfirmation = () => {
             ))}
           </div>
           <p className="text-xs text-muted-foreground mt-6 text-center">
-            {deliveryStatus === "pending"         && "We'll contact you soon to arrange delivery"}
-            {deliveryStatus === "contacted"       && "We've contacted you about delivery details"}
+            {deliveryStatus === "pending" && "We'll contact you soon to arrange delivery"}
+            {deliveryStatus === "contacted" && "We've contacted you about delivery details"}
             {deliveryStatus === "driver_assigned" && "Driver assigned - delivery in progress"}
-            {deliveryStatus === "delivered"       && "Order delivered successfully"}
+            {deliveryStatus === "delivered" && "Order delivered successfully"}
           </p>
         </motion.div>
 
@@ -413,7 +413,7 @@ const OrderConfirmation = () => {
             <div className="space-y-2.5 text-sm flex-1">
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span className="font-medium">GHS {subtotal}</span>
+                <span className="font-medium">GH₵ {subtotal}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Delivery</span>
@@ -421,13 +421,13 @@ const OrderConfirmation = () => {
                   {delivery === "pickup"
                     ? <span className="text-green-600 font-semibold">Free</span>
                     : deliveryFee
-                      ? `GHS ${deliveryFee}`
+                      ? `GH₵ ${deliveryFee}`
                       : <span className="text-muted-foreground italic text-xs">To be confirmed</span>}
                 </span>
               </div>
               <div className="flex justify-between items-center border-t border-border pt-2.5 mt-1">
                 <span className="font-display font-bold">Total Paid</span>
-                <span className="font-display font-bold text-lg">GHS {total}</span>
+                <span className="font-display font-bold text-lg">GH₵ {total}</span>
               </div>
             </div>
 
@@ -506,10 +506,10 @@ const OrderConfirmation = () => {
                   <p className="text-xs text-muted-foreground uppercase tracking-widest">{item.brand}</p>
                   <p className="text-sm font-medium truncate">{item.name}</p>
                   <p className="text-xs text-muted-foreground">
-  {item.size ? `Size ${item.size} · ` : ""}Qty {item.quantity}
-</p>
+                    {item.size ? `Size ${item.size} · ` : ""}Qty {item.quantity}
+                  </p>
                 </div>
-                <p className="font-display font-bold text-sm">GHS {item.price * item.quantity}</p>
+                <p className="font-display font-bold text-sm">GH₵ {item.price * item.quantity}</p>
               </div>
             ))}
           </div>

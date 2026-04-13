@@ -194,7 +194,7 @@ export default function Leaderboard() {
                                     {/* Sales */}
                                     <div className="flex-shrink-0 text-right">
                                         <p className="font-display font-bold text-sm text-primary">
-                                            GHS {seller.total_sales.toLocaleString()}
+                                            GH₵ {seller.total_sales.toLocaleString()}
                                         </p>
                                         <p className="text-[10px] text-muted-foreground">total sales</p>
                                     </div>

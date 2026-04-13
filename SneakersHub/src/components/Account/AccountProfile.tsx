@@ -14,7 +14,7 @@ import { toast } from "sonner";
 import { useOrders } from "@/context/OrderContext";
 import { useListings } from "@/context/ListingContext";
 import { supabase } from "@/lib/supabase";
-import ReferralCard from "./ReferralCard"; 
+import ReferralCard from "./ReferralCard";
 
 const ghanaRegions = [
   "Greater Accra", "Ashanti", "Western", "Central", "Eastern", "Volta",
@@ -367,7 +367,7 @@ const PromoRequestSheet = ({
                       <p className="text-sm font-bold">
                         {req.discount_type === "percentage"
                           ? `${req.discount_amount}% off`
-                          : `GHS ${req.discount_amount} off`}
+                          : `GH₵ ${req.discount_amount} off`}
                       </p>
                       <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold border ${req.status === "pending"
                         ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
@@ -514,7 +514,7 @@ const AccountProfile = memo(({
       {/* Stats — sellers only */}
       {isSeller && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <StatCard icon={TrendingUp} label="Total Sales" value={`GHS ${totalSales.toLocaleString()}`} accent="bg-green-500/10 text-green-500" />
+          <StatCard icon={TrendingUp} label="Total Sales" value={`GH₵ ${totalSales.toLocaleString()}`} accent="bg-green-500/10 text-green-500" />
           <StatCard icon={ShoppingBag} label="Orders" value={orderCount.toString()} accent="bg-blue-500/10 text-blue-500" />
           <StatCard icon={Star} label="Rating" value={count > 0 ? `${average.toFixed(1)} (${count})` : "No reviews"} accent="bg-amber-500/10 text-amber-500" />
           <StatCard icon={Store} label="Listings" value={`${activeListings}/${totalListings}`} accent="bg-purple-500/10 text-purple-500" />
@@ -752,7 +752,7 @@ const AccountProfile = memo(({
           </div>
           <div className="flex-1">
             <p className="font-display font-semibold text-base text-green-700 dark:text-green-400 mb-1">
-              Get Verified — GHS 50 one-time fee
+              Get Verified — GH₵ 50 one-time fee
             </p>
             <p className="text-sm text-muted-foreground leading-relaxed mb-3">
               Verified sellers get a ✅ badge, Paystack split payments, and significantly more sales.
@@ -774,7 +774,7 @@ const AccountProfile = memo(({
               >
                 {verificationLoading
                   ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Processing...</>
-                  : <><ShieldCheck className="w-4 h-4" /> Pay GHS 50 to Get Verified</>
+                  : <><ShieldCheck className="w-4 h-4" /> Pay GH₵ 50 to Get Verified</>
                 }
               </button>
               <button

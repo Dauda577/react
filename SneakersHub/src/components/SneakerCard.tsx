@@ -374,15 +374,15 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
                   {discountedPrice ? (
                     <>
                       <span className="text-base font-bold text-foreground leading-tight">
-                        GHS {discountedPrice.toLocaleString()}
+                        GH₵ {discountedPrice.toLocaleString()}
                       </span>
                       <span className="text-[11px] text-muted-foreground line-through">
-                        GHS {sneaker.price.toLocaleString()}
+                        GH₵ {sneaker.price.toLocaleString()}
                       </span>
                     </>
                   ) : (
                     <span className="text-base font-bold text-foreground leading-tight">
-                      GHS {sneaker.price.toLocaleString()}
+                      GH₵ {sneaker.price.toLocaleString()}
                     </span>
                   )}
                 </div>

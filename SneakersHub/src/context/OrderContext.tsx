@@ -251,7 +251,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     const deliveryMethod = (order.deliveryMethod ?? order.delivery ?? "delivery") as DeliveryMethod;
     const deliveryStatus = order.deliveryStatus ?? "pending";
     const deliveryLabel = order.deliveryInfo?.label ?? (deliveryMethod === "pickup" ? "Store Pickup" : "Delivery");
-    const deliveryEstimatedCost = order.deliveryInfo?.estimatedCost ?? (order.deliveryFee === 0 ? "Free" : `GHS ${order.deliveryFee}`);
+    const deliveryEstimatedCost = order.deliveryInfo?.estimatedCost ?? (order.deliveryFee === 0 ? "Free" : `GH₵ ${order.deliveryFee}`);
     const deliveryDays = order.deliveryInfo?.days ?? (deliveryMethod === "pickup" ? "Ready in 1-2 days" : "Contact to arrange");
 
     const [buyerFirstName, ...rest] = (order.buyerName ?? `${order.buyer?.firstName ?? ""} ${order.buyer?.lastName ?? ""}`.trim()).split(" ");
@@ -304,8 +304,8 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       subtotal: order.subtotal,
       delivery_fee: order.deliveryFee,
       total: order.total,
-      discount_amount: (order as any).discountAmount ?? null,  
-      promo_code: (order as any).promoCode ?? null,        
+      discount_amount: (order as any).discountAmount ?? null,
+      promo_code: (order as any).promoCode ?? null,
       delivery_method: deliveryMethod,
       delivery_status: deliveryStatus,
       delivery_label: deliveryLabel,
@@ -412,7 +412,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
             body: JSON.stringify({
               subscription: sub.subscription,
               title: "🛍️ New Order Received!",
-              body: `${deliveryMethod === "pickup" ? "Pickup" : "Delivery"} Order: GHS ${totalAmount} - ${itemNames.substring(0, 50)}${itemNames.length > 50 ? '...' : ''}`,
+              body: `${deliveryMethod === "pickup" ? "Pickup" : "Delivery"} Order: GH₵ ${totalAmount} - ${itemNames.substring(0, 50)}${itemNames.length > 50 ? '...' : ''}`,
               url: "/account?tab=orders",
               icon: "/icon-192.png",
               badge: "/badge-72.png",
@@ -447,11 +447,11 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     setOrders((prev) =>
       prev.map((o) => o.id === orderId
         ? {
-            ...o,
-            deliveryStatus: status,
-            deliveryFee: deliveryFee ?? o.deliveryFee,
-            deliveryLocation: location ?? (o as any).deliveryLocation
-          }
+          ...o,
+          deliveryStatus: status,
+          deliveryFee: deliveryFee ?? o.deliveryFee,
+          deliveryLocation: location ?? (o as any).deliveryLocation
+        }
         : o
       )
     );
@@ -489,8 +489,10 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
 
     setOrders((prev) =>
       prev.map((o) => o.id === orderId
-        ? { ...o, sellerConfirmed: true, status: newStatus as Order["status"],
-            payoutStatus: isOfficial ? "released" : "pending" }
+        ? {
+          ...o, sellerConfirmed: true, status: newStatus as Order["status"],
+          payoutStatus: isOfficial ? "released" : "pending"
+        }
         : o)
     );
 

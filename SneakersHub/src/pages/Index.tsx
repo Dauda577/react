@@ -94,7 +94,7 @@ const SearchDropdown = ({
                   <p className="text-xs text-muted-foreground">{item.brand}</p>
                 </div>
                 <p className="text-sm font-bold text-primary flex-shrink-0">
-                  GHS {item.price.toLocaleString()}
+                  GH₵ {item.price.toLocaleString()}
                 </p>
               </button>
             ))}
@@ -376,7 +376,7 @@ const Index = () => {
                     <Zap className="w-2.5 h-2.5 fill-current" /> Featured
                   </p>
                   <p className="text-xs font-bold text-foreground leading-tight truncate">{featured[0].name}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">GHS {featured[0].price.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">GH₵ {featured[0].price.toLocaleString()}</p>
                 </motion.div>
               )}
               {listings.length > 0 && (

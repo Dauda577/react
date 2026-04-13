@@ -12,16 +12,16 @@ interface Props {
 }
 
 const REGIONS = [
-  "Ashanti","Brong-Ahafo","Central","Eastern","Greater Accra",
-  "Northern","Upper East","Upper West","Volta","Western",
-  "Ahafo","Bono East","Oti","Savannah","North East","Western North",
+  "Ashanti", "Brong-Ahafo", "Central", "Eastern", "Greater Accra",
+  "Northern", "Upper East", "Upper West", "Volta", "Western",
+  "Ahafo", "Bono East", "Oti", "Savannah", "North East", "Western North",
 ];
 
 // ✅ FIXED: Detect network based on phone number prefix (handles 0 and 233 prefixes)
 const detectNetwork = (number: string): string | null => {
   let cleaned = number.replace(/\D/g, "");
   console.log("Detecting network for number:", cleaned);
-  
+
   // Remove leading 0 or 233 if present to get the core number
   if (cleaned.startsWith("233")) {
     cleaned = cleaned.slice(3);
@@ -29,12 +29,12 @@ const detectNetwork = (number: string): string | null => {
   if (cleaned.startsWith("0")) {
     cleaned = cleaned.slice(1);
   }
-  
+
   console.log("Normalized number:", cleaned);
-  
+
   // Get first 2 digits after normalization
   const prefix = cleaned.slice(0, 2);
-  
+
   // Telecel/Vodafone (formerly Vodafone) - starts with 50
   if (prefix === "50") {
     return "VOD";
@@ -47,7 +47,7 @@ const detectNetwork = (number: string): string | null => {
   if (prefix === "54" || prefix === "55" || prefix === "59" || prefix === "24") {
     return "MTN";
   }
-  
+
   console.log("No network detected for prefix:", prefix);
   return null;
 };
@@ -102,16 +102,16 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
 
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        
+
         if (!session) {
           console.error("No active session");
           setResolveError("Please log in again to verify your account");
           setResolving(false);
           return;
         }
-        
+
         console.log("Calling resolve-account for:", number, "network:", network);
-        
+
         const response = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resolve-account`,
           {
@@ -129,7 +129,7 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
         );
 
         console.log("Response status:", response.status);
-        
+
         if (!response.ok) {
           const text = await response.text();
           console.error("Response error:", text);
@@ -138,7 +138,7 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
           setResolving(false);
           return;
         }
-        
+
         let result;
         try {
           result = await response.json();
@@ -149,9 +149,9 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
           setResolving(false);
           return;
         }
-        
+
         console.log("Resolve result:", result);
-        
+
         if (result.success && result.account_name) {
           setResolvedName(result.account_name);
           setForm(f => ({ ...f, momo_name: result.account_name }));
@@ -203,7 +203,7 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
       setStep(4);
     } catch (e: any) {
       toast.error(e.message ?? "Failed to submit application");
-      
+
     } finally {
       setSubmitting(false);
     }
@@ -213,7 +213,7 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
     onClose();
     setTimeout(() => {
       setStep(0);
-      setForm({ store_name:"",store_description:"",momo_number:"",momo_name:"",city:"",region:"",instagram:"",twitter:"",whatsapp:"" });
+      setForm({ store_name: "", store_description: "", momo_number: "", momo_name: "", city: "", region: "", instagram: "", twitter: "", whatsapp: "" });
       setResolvedName(null);
       setResolveError(null);
       setDetectedNetwork(null);
@@ -269,7 +269,7 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
 
                 {/* Step 0 — Store info */}
                 {step === 0 && (
-                  <motion.div key="s0" initial={{ opacity:0,x:20 }} animate={{ opacity:1,x:0 }} exit={{ opacity:0,x:-20 }} className="space-y-5">
+                  <motion.div key="s0" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-5">
                     <div>
                       <h2 className="font-display font-bold text-xl">Your Store</h2>
                       <p className="text-sm text-muted-foreground mt-1">Tell buyers who you are and what you sell.</p>
@@ -301,7 +301,7 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
 
                 {/* Step 1 — Payment */}
                 {step === 1 && (
-                  <motion.div key="s1" initial={{ opacity:0,x:20 }} animate={{ opacity:1,x:0 }} exit={{ opacity:0,x:-20 }} className="space-y-5">
+                  <motion.div key="s1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-5">
                     <div>
                       <h2 className="font-display font-bold text-xl">Payment Details</h2>
                       <p className="text-sm text-muted-foreground mt-1">Your MoMo number for receiving payouts.</p>
@@ -313,7 +313,7 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
                           <span className="flex items-center px-3 rounded-l-xl border border-r-0 border-border bg-muted text-sm text-muted-foreground">+233</span>
                           <input
                             value={form.momo_number}
-                            onChange={e => set("momo_number", e.target.value.replace(/\D/g,""))}
+                            onChange={e => set("momo_number", e.target.value.replace(/\D/g, ""))}
                             placeholder="024 000 0000"
                             maxLength={10}
                             className="flex-1 px-4 py-3 rounded-r-xl border border-border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
@@ -327,7 +327,7 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
                           </p>
                         )}
                       </div>
-                      
+
                       <div>
                         <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Account Name</label>
                         <div className="relative mt-1.5">
@@ -349,7 +349,7 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
                             </div>
                           )}
                         </div>
-                        
+
                         {/* Resolve status messages */}
                         {resolveError && (
                           <p className="text-[11px] text-red-500 mt-1 flex items-center gap-1">
@@ -373,7 +373,7 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
                     </div>
                     <div className="rounded-xl bg-blue-500/10 border border-blue-500/20 p-3">
                       <p className="text-xs text-blue-600">
-                        💡 After admin approval, you'll pay a one-time <strong>GHS 50</strong> verification fee. Your sales proceeds go to this MoMo number.
+                        💡 After admin approval, you'll pay a one-time <strong>GH₵ 50</strong> verification fee. Your sales proceeds go to this MoMo number.
                       </p>
                     </div>
                   </motion.div>
@@ -381,7 +381,7 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
 
                 {/* Step 2 — Location */}
                 {step === 2 && (
-                  <motion.div key="s2" initial={{ opacity:0,x:20 }} animate={{ opacity:1,x:0 }} exit={{ opacity:0,x:-20 }} className="space-y-5">
+                  <motion.div key="s2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-5">
                     <div>
                       <h2 className="font-display font-bold text-xl">Your Location</h2>
                       <p className="text-sm text-muted-foreground mt-1">Helps buyers find sellers near them.</p>
@@ -413,7 +413,7 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
 
                 {/* Step 3 — Social + summary */}
                 {step === 3 && (
-                  <motion.div key="s3" initial={{ opacity:0,x:20 }} animate={{ opacity:1,x:0 }} exit={{ opacity:0,x:-20 }} className="space-y-5">
+                  <motion.div key="s3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-5">
                     <div>
                       <h2 className="font-display font-bold text-xl">Social Links</h2>
                       <p className="text-sm text-muted-foreground mt-1">Optional — builds trust with buyers.</p>
@@ -439,7 +439,7 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
                           <span className="flex items-center px-3 rounded-l-xl border border-r-0 border-border bg-muted text-sm text-muted-foreground">+233</span>
                           <input
                             value={form.whatsapp}
-                            onChange={e => set("whatsapp", e.target.value.replace(/\D/g,""))}
+                            onChange={e => set("whatsapp", e.target.value.replace(/\D/g, ""))}
                             placeholder="024 000 0000"
                             maxLength={10}
                             className="flex-1 px-4 py-3 rounded-r-xl border border-border bg-muted/30 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
@@ -476,11 +476,11 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
 
                 {/* Step 4 — Success */}
                 {step === 4 && (
-                  <motion.div key="s4" initial={{ opacity:0,scale:0.95 }} animate={{ opacity:1,scale:1 }}
+                  <motion.div key="s4" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
                     className="flex flex-col items-center text-center py-10 space-y-5">
                     <motion.div
-                      initial={{ scale:0 }} animate={{ scale:1 }}
-                      transition={{ type:"spring", delay:0.15 }}
+                      initial={{ scale: 0 }} animate={{ scale: 1 }}
+                      transition={{ type: "spring", delay: 0.15 }}
                       className="w-20 h-20 rounded-full bg-green-500/10 flex items-center justify-center"
                     >
                       <CheckCircle className="w-10 h-10 text-green-500" />
@@ -488,7 +488,7 @@ export default function BecomeSellerDrawer({ open, onClose }: Props) {
                     <div>
                       <h2 className="font-display font-bold text-2xl">Application Sent!</h2>
                       <p className="text-sm text-muted-foreground mt-2 max-w-xs leading-relaxed">
-                        We're reviewing your store details. Once approved, you'll receive a link to pay the GHS 50 verification fee and unlock your seller dashboard.
+                        We're reviewing your store details. Once approved, you'll receive a link to pay the GH₵ 50 verification fee and unlock your seller dashboard.
                       </p>
                     </div>
                     <div className="w-full rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 flex items-start gap-3 text-left">

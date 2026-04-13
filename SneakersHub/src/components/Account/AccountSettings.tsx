@@ -467,7 +467,7 @@ const SellerApplicationStatus = memo(({ userId, userEmail, onActivated }: {
               <div>
                 <p className="font-semibold text-sm">Application Approved!</p>
                 <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  Pay the GHS 50 one-time verification fee to activate your seller account.
+                  Pay the GH₵ 50 one-time verification fee to activate your seller account.
                 </p>
               </div>
             </div>
@@ -480,7 +480,7 @@ const SellerApplicationStatus = memo(({ userId, userEmail, onActivated }: {
               className="w-full py-3 rounded-xl bg-green-500 text-white font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2">
               {paying
                 ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Processing...</>
-                : <><ShieldCheck className="w-4 h-4" /> Pay GHS 50 &amp; Activate Account</>
+                : <><ShieldCheck className="w-4 h-4" /> Pay GH₵ 50 &amp; Activate Account</>
               }
             </button>
           </div>

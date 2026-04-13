@@ -97,7 +97,7 @@ serve(async (req) => {
             body: JSON.stringify({
               subscription: sub.subscription,
               title: "💰 Price Drop Alert!",
-              body: `${listingName} dropped from GHS ${oldPrice} to GHS ${new_price} — save GHS ${saved}!`,
+              body: `${listingName} dropped from GH₵ ${oldPrice} to GH₵ ${new_price} — save GH₵ ${saved}!`,
               url: `/product/${listing_id}`,
               icon: listingImage ?? "/icon-192.png",
               badge: "/badge-72.png",
@@ -111,7 +111,7 @@ serve(async (req) => {
       if (profile?.phone) {
         await sendSms(
           profile.phone,
-          `💰 Price Drop! ${listingName} you saved on SneakersHub dropped from GHS ${oldPrice} to GHS ${new_price}. Save GHS ${saved}! View it here: ${APP_URL}/product/${listing_id}`
+          `💰 Price Drop! ${listingName} you saved on SneakersHub dropped from GH₵ ${oldPrice} to GH₵ ${new_price}. Save GH₵ ${saved}! View it here: ${APP_URL}/product/${listing_id}`
         );
       }
 

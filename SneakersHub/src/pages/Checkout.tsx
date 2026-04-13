@@ -540,7 +540,7 @@ export default function Checkout() {
                   )}
                 </p>
               </div>
-              <span className="text-sm font-bold">GHS {groupTotal}</span>
+              <span className="text-sm font-bold">GH₵ {groupTotal}</span>
             </div>
 
             {/* Order items */}
@@ -555,7 +555,7 @@ export default function Checkout() {
                       {item.size !== "one-size" ? `Size ${item.size} · ` : ""}Qty {item.quantity}
                     </p>
                   </div>
-                  <span className="text-sm font-bold">GHS {item.listing.price * item.quantity}</span>
+                  <span className="text-sm font-bold">GH₵ {item.listing.price * item.quantity}</span>
                 </div>
               ))}
             </div>
@@ -773,12 +773,12 @@ export default function Checkout() {
               <div className="border-t border-border pt-4 space-y-2.5">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span className="font-medium">GHS {groupTotal}</span>
+                  <span className="font-medium">GH₵ {groupTotal}</span>
                 </div>
                 {appliedPromo && (
                   <div className="flex justify-between text-sm text-green-600">
                     <span>Discount ({appliedPromo.discountPercent}% off)</span>
-                    <span>- GHS {promoDiscount}</span>
+                    <span>- GH₵ {promoDiscount}</span>
                   </div>
                 )}
                 {deliveryMethod === "pickup" && (
@@ -797,7 +797,7 @@ export default function Checkout() {
                   <span className="font-display font-bold">Total to pay now</span>
                   <div className="text-right">
                     <span className="font-display font-bold text-lg">
-                      GHS {finalTotal}
+                      GH₵ {finalTotal}
                     </span>
                     {deliveryMethod === "delivery" && (
                       <p className="text-[10px] text-muted-foreground">+ delivery fee after order</p>
@@ -817,7 +817,7 @@ export default function Checkout() {
                 <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                   className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full" />
               ) : requiresPayment ? (
-                <><ShieldCheck className="w-5 h-5" /> Pay GHS {finalTotal}</>
+                <><ShieldCheck className="w-5 h-5" /> Pay GH₵ {finalTotal}</>
               ) : (
                 <><ArrowRight className="w-5 h-5" /> Place Order — Pay on Delivery</>
               )}
@@ -826,7 +826,7 @@ export default function Checkout() {
             {requiresPayment && (
               <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
                 <Lock className="w-3 h-3" />
-                <span>Secured by Paystack · GHS {finalTotal} will be charged</span>
+                <span>Secured by Paystack · GH₵ {finalTotal} will be charged</span>
               </div>
             )}
 

@@ -46,7 +46,7 @@ const getSizeLabel = (cat: string) => {
 const getFallbackSvg = (cat: string) => CATEGORY_SVGS[cat] ?? "/categoryicons/other.svg";
 
 const getShareText = (listing: any) =>
-  `Check out this ${listing.name} on SneakersHub — GHS ${listing.price.toLocaleString()}`;
+  `Check out this ${listing.name} on SneakersHub — GH₵ ${listing.price.toLocaleString()}`;
 
 // ─── Enhanced Sub-components ──────────────────────────────────────────────────
 
@@ -383,7 +383,7 @@ const WhatsAppOrderButton = ({
       `*${listing.name}*\n` +
       `Brand: ${listing.brand}\n` +
       `${sizeLabel}\n` +
-      `Price: GHS ${listing.price.toLocaleString()}\n\n` +
+      `Price: GH₵ ${listing.price.toLocaleString()}\n\n` +
       `Listing: ${productUrl}`;
 
     window.open(`https://wa.me/${OFFICIAL_WA}?text=${encodeURIComponent(message)}`, "_blank");
@@ -715,10 +715,10 @@ const ProductDetail = () => {
               {discountedPrice ? (
                 <div className="flex items-baseline gap-2.5 flex-wrap">
                   <span className="font-display text-2xl lg:text-3xl font-bold text-primary">
-                    GHS {discountedPrice.toLocaleString()}
+                    GH₵ {discountedPrice.toLocaleString()}
                   </span>
                   <span className="text-base lg:text-xl text-muted-foreground line-through">
-                    GHS {listing.price.toLocaleString()}
+                    GH₵ {listing.price.toLocaleString()}
                   </span>
                   <Badge className="bg-red-500 text-white text-xs font-bold px-2.5 py-0.5">
                     Save {listing.discountPercent}%
@@ -726,7 +726,7 @@ const ProductDetail = () => {
                 </div>
               ) : (
                 <span className="font-display text-2xl lg:text-4xl font-bold text-primary">
-                  GHS {listing.price.toLocaleString()}
+                  GH₵ {listing.price.toLocaleString()}
                 </span>
               )}
             </div>

@@ -88,17 +88,17 @@ const AccountSaved = memo(({ saved, toggleSaved }: Props) => {
                 <p className="font-medium text-sm truncate">{item.name}</p>
                 <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                   <p className="font-display font-bold text-sm text-primary">
-                    GHS {item.price.toLocaleString()}
+                    GH₵ {item.price.toLocaleString()}
                   </p>
                   {/* 👇 Price drop badge */}
                   {item.savedPrice && item.price < item.savedPrice && (
                     <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-green-500/10 border border-green-500/20 text-[10px] font-bold text-green-600">
-                      ↓ GHS {Math.round(item.savedPrice - item.price)} off
+                      ↓ GH₵ {Math.round(item.savedPrice - item.price)} off
                     </span>
                   )}
                   {item.savedPrice && item.price < item.savedPrice && (
                     <p className="text-[10px] text-muted-foreground line-through">
-                      GHS {item.savedPrice.toLocaleString()}
+                      GH₵ {item.savedPrice.toLocaleString()}
                     </p>
                   )}
                 </div>
