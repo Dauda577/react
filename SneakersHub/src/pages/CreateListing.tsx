@@ -268,10 +268,16 @@ const CreateListing = () => {
   const [loading, setLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Fields that should be stored and displayed in uppercase for consistency
+  const UPPERCASE_FIELDS = new Set(["name", "city"]);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const value = UPPERCASE_FIELDS.has(e.target.name)
+      ? e.target.value.toUpperCase()
+      : e.target.value;
+    setForm((prev) => ({ ...prev, [e.target.name]: value }));
   };
 
   const toggleSneakerSize = (size: number) => {
@@ -505,7 +511,7 @@ const CreateListing = () => {
                   value={form.name}
                   onChange={handleChange}
                   placeholder={getNamePlaceholder(form.category)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
+                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground uppercase
                     placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
                 />
               </div>
@@ -542,14 +548,14 @@ const CreateListing = () => {
                   >
                     <input
                       value={customBrand}
-                      onChange={(e) => setCustomBrand(e.target.value)}
-                      placeholder="Type the brand name..."
-                      className="w-full px-4 py-2.5 rounded-xl border border-primary/40 bg-background text-sm text-foreground
+                      onChange={(e) => setCustomBrand(e.target.value.toUpperCase())}
+                      placeholder="TYPE THE BRAND NAME..."
+                      className="w-full px-4 py-2.5 rounded-xl border border-primary/40 bg-background text-sm text-foreground uppercase
                         placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
                       autoFocus
                     />
                     <p className="text-[11px] text-muted-foreground mt-1">
-                      This will be displayed as-is on your listing.
+                      This will be displayed in uppercase on your listing.
                     </p>
                   </motion.div>
                 )}
@@ -612,7 +618,7 @@ const CreateListing = () => {
                     value={form.city}
                     onChange={handleChange}
                     placeholder="e.g. Kumasi"
-                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground
+                    className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm text-foreground uppercase
                       placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
                   />
                 </div>

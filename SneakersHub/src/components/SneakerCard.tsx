@@ -39,8 +39,7 @@ interface SneakerCardProps {
   index: number;
 }
 
-// FIX 1: "OTHER" brand label — never show raw category as brand.
-// If brand is missing or meaningless, show the seller name or nothing.
+// Never show raw "Other" or category name as brand label.
 const resolveBrandLabel = (brand: string, category: string, sellerName?: string): string | null => {
   const normalized = brand?.trim().toUpperCase();
   if (!normalized || normalized === "OTHER" || normalized === category.toUpperCase()) {
@@ -74,7 +73,6 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
   const isClothing = ["Tops", "Bottoms", "Outerwear", "Activewear"].includes(sneaker.category);
   const needsSize = (isSneakerCat || isClothing) && sneaker.sizes.length > 1;
 
-  // FIX 1 applied
   const brandLabel = resolveBrandLabel(sneaker.brand, sneaker.category, sneaker.sellerName);
 
   const handleSave = (e: React.MouseEvent) => {
@@ -106,7 +104,6 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
       toast.error("You cannot buy your own item", { description: "This is your own listing" });
       return;
     }
-
     const finalPrice = discountedPrice ?? sneaker.price;
     addItem(
       {
@@ -137,7 +134,6 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-
     if (!user || isGuest) {
       toast.error("Sign in to add items to your cart", {
         description: "Create a free account to start shopping",
@@ -145,12 +141,10 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
       });
       return;
     }
-
     if (sneaker.sellerId === user.id) {
       toast.error("You cannot buy your own item", { description: "This is your own listing" });
       return;
     }
-
     if (needsSize) {
       setShowSizePicker(true);
       setSelectedSize(null);
@@ -193,7 +187,6 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
               className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
               onClick={closePicker}
             />
-
             <motion.div
               initial={{ opacity: 0, y: "100%" }}
               animate={{ opacity: 1, y: 0 }}
@@ -205,7 +198,6 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
               <div className="flex justify-center pt-3 pb-1">
                 <div className="w-10 h-1 rounded-full bg-border" />
               </div>
-
               <div className="flex items-center justify-between px-5 py-3 border-b border-border/50">
                 <div className="flex-1 min-w-0 pr-3">
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-0.5">
@@ -220,7 +212,6 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
                   <X className="w-4 h-4" />
                 </button>
               </div>
-
               <div className="px-5 py-4">
                 <div className="flex flex-wrap gap-2">
                   {sneaker.sizes.map((size) => (
@@ -238,7 +229,6 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
                   ))}
                 </div>
               </div>
-
               <div className="px-5 pb-6">
                 <button
                   onClick={handleSizeConfirm}
@@ -264,7 +254,13 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
         transition={{ duration: 0.3, delay: index * 0.05 }}
         className="group relative h-full"
       >
-        <div className="relative h-full rounded-2xl bg-card border border-border/50 overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:border-border hover:-translate-y-1">
+        {/*
+          LAYOUT: Card is flex-col. Image is fixed aspect-square (flex-shrink-0).
+          Content section is flex-col + flex-grow to fill remaining height.
+          Inside content, title has mb-auto which pushes price row to the bottom.
+          This ensures price sits at the same vertical position on every card.
+        */}
+        <div className="relative h-full flex flex-col rounded-2xl bg-card border border-border/50 overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:border-border hover:-translate-y-1">
 
           {/* Save Button */}
           <motion.button
@@ -283,8 +279,9 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
             />
           </motion.button>
 
-          <Link to={`/product/${sneaker.id}`} className="block h-full">
-            {/* FIX 3: Image container — enforced aspect ratio prevents bleed/crop inconsistency */}
+          <Link to={`/product/${sneaker.id}`} className="flex flex-col flex-grow">
+
+            {/* Image — fixed aspect ratio, never bleeds */}
             <div className="relative w-full aspect-square bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 overflow-hidden flex-shrink-0">
               {!imageError && sneaker.image ? (
                 <>
@@ -337,8 +334,7 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
                 </div>
               )}
 
-              {/* FIX 4: Badges — OFFICIAL only appears once (top-left).
-                  Removed the duplicate bottom-right OFFICIAL pill entirely. */}
+              {/* Badges — OFFICIAL only here, never duplicated in content below */}
               <div className="absolute top-3 left-3 flex flex-col gap-1 z-10">
                 {sneaker.sellerIsOfficial && (
                   <Badge className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-0 shadow-lg shadow-purple-500/25 px-2 py-1 text-[9px] font-semibold tracking-wider flex items-center gap-1 backdrop-blur-sm">
@@ -365,19 +361,26 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
               </div>
             </div>
 
-            {/* Content Section */}
-            <div className="p-3.5">
-              {/* FIX 1: Brand label — hides "OTHER", falls back to seller name */}
+            {/*
+              Content — flex-col + flex-grow fills remaining card height.
+              h3 has mb-auto: pushes price row to the bottom of the card.
+              Price is always visually aligned across the entire grid row.
+            */}
+            <div className="p-3.5 flex flex-col flex-grow">
+
+              {/* Brand label */}
               {brandLabel && (
                 <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 line-clamp-1">
                   {brandLabel}
                 </p>
               )}
-              <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors duration-200 text-sm leading-snug line-clamp-2 mb-2.5">
+
+              {/* Title — mb-auto pushes price to bottom */}
+              <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors duration-200 text-sm leading-snug line-clamp-2 mb-auto pb-2.5">
                 {sneaker.name}
               </h3>
 
-              {/* FIX 2: Price layout — flex-row keeps GH₵ and number on same line always */}
+              {/* Price row — always at bottom of card */}
               <div className="flex items-center justify-between gap-2">
                 <div className="flex flex-col min-w-0">
                   {discountedPrice ? (
@@ -396,7 +399,7 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
                   )}
                 </div>
 
-                {/* FIX 4: Only show VERIFIED badge here (not OFFICIAL — it's already top-left) */}
+                {/* VERIFIED badge — only for non-official verified sellers */}
                 {sneaker.sellerVerified && !sneaker.sellerIsOfficial && (
                   <div className="flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500/10 rounded-md border border-emerald-500/20 flex-shrink-0">
                     <BadgeCheck className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
@@ -407,7 +410,7 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
                 )}
               </div>
 
-              {/* Mobile Quick Add button */}
+              {/* Mobile Quick Add */}
               {!isOwnListing && (
                 <motion.button
                   whileTap={{ scale: 0.97 }}
