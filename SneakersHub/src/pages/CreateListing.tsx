@@ -27,63 +27,58 @@ const ghanaRegions = [
 const sneakerSizes = [36, 37, 38, 39, 40, 41, 42, 43, 44, 45];
 const clothingSizes = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "3XL"];
 
-// ─── Brand lists by category ──────────────────────────────────────────────────
-// "Other / Custom" is intentionally excluded — handled via free-text fallback.
+// ─── Brand lists by category — sorted alphabetically ─────────────────────────
 
 const BRANDS_BY_CATEGORY: Record<string, string[]> = {
   Sneakers: [
-    "Nike", "Adidas", "Jordan", "New Balance", "Puma", "Reebok",
-    "Converse", "Vans", "ASICS", "Skechers", "Fila", "Under Armour",
-    "Timberland", "Salomon", "On Running", "Hoka", "Brooks", "Merrell",
-    "STRIDE", "AERO", "LEGACY", "NOMAD",
+    "Adidas", "AERO", "ASICS", "Brooks", "Converse", "Fila", "Hoka",
+    "Jordan", "LEGACY", "Merrell", "New Balance", "Nike", "NOMAD",
+    "On Running", "Puma", "Reebok", "Salomon", "Skechers", "STRIDE",
+    "Timberland", "Under Armour", "Vans",
   ],
   Tops: [
-    "Nike", "Adidas", "Puma", "Under Armour", "H&M", "Zara", "Polo Ralph Lauren",
-    "Tommy Hilfiger", "Calvin Klein", "Lacoste", "Carhartt", "Champion",
-    "Supreme", "Off-White", "Stone Island", "Palm Angels", "Essentials",
-    "Gallery Dept", "Represent", "Stüssy",
+    "Adidas", "Calvin Klein", "Carhartt", "Champion", "Essentials",
+    "Gallery Dept", "H&M", "Lacoste", "Nike", "Off-White", "Palm Angels",
+    "Polo Ralph Lauren", "Puma", "Represent", "Stone Island", "Stüssy",
+    "Supreme", "Tommy Hilfiger", "Under Armour", "Zara",
   ],
   Bottoms: [
-    "Nike", "Adidas", "Puma", "H&M", "Zara", "Levi's", "Wrangler",
-    "Tommy Hilfiger", "Calvin Klein", "Carhartt", "Champion",
-    "Off-White", "Palm Angels", "Essentials", "Represent",
+    "Adidas", "Calvin Klein", "Carhartt", "Champion", "Essentials",
+    "H&M", "Levi's", "Nike", "Off-White", "Palm Angels", "Puma",
+    "Represent", "Tommy Hilfiger", "Wrangler", "Zara",
   ],
   Outerwear: [
-    "Nike", "Adidas", "Puma", "The North Face", "Columbia", "Patagonia",
-    "H&M", "Zara", "Stone Island", "Carhartt", "Champion",
-    "Off-White", "Palm Angels", "Essentials",
+    "Adidas", "Carhartt", "Champion", "Columbia", "Essentials", "H&M",
+    "Nike", "Off-White", "Palm Angels", "Patagonia", "Puma",
+    "Stone Island", "The North Face", "Zara",
   ],
   Activewear: [
-    "Nike", "Adidas", "Puma", "Under Armour", "Gymshark", "Lululemon",
-    "Fila", "Reebok", "Champion", "2XU", "ASICS",
+    "2XU", "Adidas", "ASICS", "Champion", "Fila", "Gymshark",
+    "Lululemon", "Nike", "Puma", "Reebok", "Under Armour",
   ],
   Watches: [
-    "Casio", "G-Shock", "Seiko", "Citizen", "Fossil", "Guess",
-    "Daniel Wellington", "Timex", "Swatch", "Tissot", "Orient",
-    "Armani Exchange", "Michael Kors", "MVMT", "Garmin", "Fitbit",
-    "Samsung", "Apple",
+    "Apple", "Armani Exchange", "Casio", "Citizen", "Daniel Wellington",
+    "Fitbit", "Fossil", "G-Shock", "Garmin", "Guess", "Michael Kors",
+    "MVMT", "Orient", "Samsung", "Seiko", "Swatch", "Timex", "Tissot",
   ],
   Bags: [
-    "Nike", "Adidas", "Puma", "The North Face", "Herschel",
-    "Jansport", "Eastpak", "Samsonite", "Gucci", "Louis Vuitton",
-    "Michael Kors", "Coach", "Tumi", "Fjällräven",
+    "Adidas", "Coach", "Eastpak", "Fjällräven", "Gucci", "Herschel",
+    "Jansport", "Louis Vuitton", "Michael Kors", "Nike", "Puma",
+    "Samsonite", "The North Face", "Tumi",
   ],
   Jewellery: [
-    "Pandora", "Swarovski", "Cartier", "Tiffany & Co.", "Guess",
-    "Michael Kors", "Fossil", "Calvin Klein", "Tommy Hilfiger",
-    "Local / Handmade",
+    "Calvin Klein", "Cartier", "Fossil", "Guess", "Local / Handmade",
+    "Michael Kors", "Pandora", "Swarovski", "Tiffany & Co.", "Tommy Hilfiger",
   ],
   Accessories: [
-    "Nike", "Adidas", "Gucci", "Versace", "Ray-Ban", "Oakley",
-    "Polo Ralph Lauren", "Tommy Hilfiger", "Calvin Klein",
-    "Fossil", "Guess",
+    "Adidas", "Calvin Klein", "Fossil", "Gucci", "Guess", "Nike",
+    "Oakley", "Polo Ralph Lauren", "Ray-Ban", "Tommy Hilfiger", "Versace",
   ],
 };
 
-// Fallback for categories not in the map
 const DEFAULT_BRANDS = [
-  "Nike", "Adidas", "Puma", "H&M", "Zara",
-  "Tommy Hilfiger", "Calvin Klein", "Lacoste",
+  "Adidas", "Calvin Klein", "H&M", "Lacoste",
+  "Nike", "Puma", "Tommy Hilfiger", "Zara",
 ];
 
 const getBrandsForCategory = (category: string): string[] =>
@@ -136,26 +131,18 @@ const usesClothingSizes = (cat: string) =>
 async function compressImage(file: File): Promise<File> {
   const MAX_PX = 800;
   const QUALITY = 0.8;
-
   return new Promise((resolve) => {
     const img = document.createElement("img");
     const objectUrl = URL.createObjectURL(file);
-
     img.onload = () => {
       URL.revokeObjectURL(objectUrl);
       let { width, height } = img;
       if (width > MAX_PX || height > MAX_PX) {
-        if (width >= height) {
-          height = Math.round((height / width) * MAX_PX);
-          width = MAX_PX;
-        } else {
-          width = Math.round((width / height) * MAX_PX);
-          height = MAX_PX;
-        }
+        if (width >= height) { height = Math.round((height / width) * MAX_PX); width = MAX_PX; }
+        else { width = Math.round((width / height) * MAX_PX); height = MAX_PX; }
       }
       const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
+      canvas.width = width; canvas.height = height;
       const ctx = canvas.getContext("2d");
       if (!ctx) { resolve(file); return; }
       ctx.drawImage(img, 0, 0, width, height);
@@ -164,8 +151,7 @@ async function compressImage(file: File): Promise<File> {
           if (!blob) { resolve(file); return; }
           resolve(new File([blob], file.name.replace(/\.[^.]+$/, ".webp"), { type: "image/webp" }));
         },
-        "image/webp",
-        QUALITY
+        "image/webp", QUALITY
       );
     };
     img.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(file); };
@@ -186,14 +172,11 @@ const CreateListing = () => {
   const editing = location.state?.listing as Listing | undefined;
   const { user } = useAuth();
 
-  // ── Determine if the editing listing's brand is a known brand or custom ──
   const editingBrands = editing ? getBrandsForCategory(editing.category) : [];
-  const editingBrandIsCustom =
-    editing?.brand && !editingBrands.includes(editing.brand);
+  const editingBrandIsCustom = editing?.brand && !editingBrands.includes(editing.brand);
 
   const [form, setForm] = useState({
     name: editing?.name ?? "",
-    // If editing with a custom brand, store sentinel so dropdown shows "Other"
     brand: editingBrandIsCustom ? CUSTOM_BRAND_SENTINEL : (editing?.brand ?? ""),
     price: editing?.price?.toString() ?? "",
     category: editing?.category ?? categoryLabels[0],
@@ -203,12 +186,10 @@ const CreateListing = () => {
     discountPercent: editing?.discountPercent?.toString() ?? "",
   });
 
-  // Free-text brand when user picks "Other / Enter brand name"
   const [customBrand, setCustomBrand] = useState<string>(
     editingBrandIsCustom ? (editing?.brand ?? "") : ""
   );
 
-  // When category changes, reset brand selection to first option for new category
   const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newCategory = e.target.value;
     const newBrands = getBrandsForCategory(newCategory);
@@ -243,13 +224,12 @@ const CreateListing = () => {
       });
   }, [user?.id]);
 
-  // Initialise brand dropdown default when not editing
   useEffect(() => {
     if (!editing) {
       const brands = getBrandsForCategory(form.category);
       setForm((prev) => ({ ...prev, brand: brands[0] ?? CUSTOM_BRAND_SENTINEL }));
     }
-  }, []); // runs once on mount
+  }, []);
 
   const initialSelectedSizes = editing?.sizes && usesSneakerSizes(editing.category)
     ? (editing.sizes as (string | number)[]).map((s) => Number(s)).filter((s) => !Number.isNaN(s))
@@ -261,14 +241,12 @@ const CreateListing = () => {
 
   const [selectedSizes, setSelectedSizes] = useState<number[]>(initialSelectedSizes);
   const [selectedClothingSizes, setSelectedClothingSizes] = useState<string[]>(initialSelectedClothingSizes);
-
   const [images, setImages] = useState<string[]>(editing?.image ? [editing.image] : []);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const MAX_IMAGES = 5;
   const [loading, setLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Fields that should be stored and displayed in uppercase for consistency
   const UPPERCASE_FIELDS = new Set(["name", "city"]);
 
   const handleChange = (
@@ -307,12 +285,8 @@ const CreateListing = () => {
     setImageFiles((prev) => [...prev, ...compressed].slice(0, MAX_IMAGES));
   };
 
-  // ── Resolve final brand value before saving ──
-  // If sentinel, use trimmed customBrand; otherwise use form.brand directly.
   const resolvedBrand = (): string => {
-    if (form.brand === CUSTOM_BRAND_SENTINEL) {
-      return customBrand.trim();
-    }
+    if (form.brand === CUSTOM_BRAND_SENTINEL) return customBrand.trim();
     return form.brand;
   };
 
@@ -325,52 +299,30 @@ const CreateListing = () => {
       toast.error(!region ? "Please select your region" : "Please fill in all fields");
       return;
     }
-
-    if (usesSneakerSizes(category) && selectedSizes.length === 0) {
-      toast.error("Select at least one size"); return;
-    }
-    if (usesClothingSizes(category) && selectedClothingSizes.length === 0) {
-      toast.error("Select at least one size"); return;
-    }
-    if (isNaN(Number(price)) || Number(price) <= 0) {
-      toast.error("Enter a valid price"); return;
-    }
+    if (usesSneakerSizes(category) && selectedSizes.length === 0) { toast.error("Select at least one size"); return; }
+    if (usesClothingSizes(category) && selectedClothingSizes.length === 0) { toast.error("Select at least one size"); return; }
+    if (isNaN(Number(price)) || Number(price) <= 0) { toast.error("Enter a valid price"); return; }
 
     const uniqueSneakerSizes = Array.from(new Set(selectedSizes.map(Number))).sort((a, b) => a - b);
     const uniqueClothingSizes = Array.from(new Set(selectedClothingSizes.map(String)));
-
     const sizesToSave = usesSneakerSizes(category)
       ? uniqueSneakerSizes.map(String)
-      : usesClothingSizes(category)
-        ? uniqueClothingSizes
-        : [];
+      : usesClothingSizes(category) ? uniqueClothingSizes : [];
 
     setLoading(true);
     try {
       if (editing) {
         await updateListing(
           editing.id,
-          {
-            name, brand, price: Number(price), category, description,
-            sizes: sizesToSave,
-            city: city || null, region: region || null,
-            discountPercent: discountPercent ? Number(discountPercent) : null,
-          },
-          imageFiles[0] ?? undefined,
-          imageFiles.slice(1)
+          { name, brand, price: Number(price), category, description, sizes: sizesToSave, city: city || null, region: region || null, discountPercent: discountPercent ? Number(discountPercent) : null },
+          imageFiles[0] ?? undefined, imageFiles.slice(1)
         );
         await refreshListing(editing.id);
         toast.success("Listing updated!");
       } else {
         await addListing(
-          {
-            name, brand, price: Number(price), category, description,
-            sizes: sizesToSave, image: null,
-            city: city || null, region: region || null,
-            discountPercent: discountPercent ? Number(discountPercent) : null,
-          },
-          imageFiles[0] ?? undefined,
-          imageFiles.slice(1)
+          { name, brand, price: Number(price), category, description, sizes: sizesToSave, image: null, city: city || null, region: region || null, discountPercent: discountPercent ? Number(discountPercent) : null },
+          imageFiles[0] ?? undefined, imageFiles.slice(1)
         );
         toast.success("Listing published!");
       }
@@ -429,7 +381,6 @@ const CreateListing = () => {
               <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-4">
                 <Image className="inline w-3.5 h-3.5 mr-1.5" /> Photo
               </p>
-
               <div className="grid grid-cols-3 gap-2">
                 {images.map((img, idx) => (
                   <div key={idx} className="relative aspect-square rounded-xl overflow-hidden bg-secondary border border-border">
@@ -492,9 +443,7 @@ const CreateListing = () => {
                       focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit] appearance-none cursor-pointer"
                   >
                     {PRODUCT_CATEGORIES.map((c) => (
-                      <option key={c.label} value={c.label}>
-                        {c.emoji}  {c.label}
-                      </option>
+                      <option key={c.label} value={c.label}>{c.emoji}  {c.label}</option>
                     ))}
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
@@ -516,7 +465,7 @@ const CreateListing = () => {
                 />
               </div>
 
-              {/* Brand — dropdown + optional free-text */}
+              {/* Brand */}
               <div>
                 <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
                   Brand
@@ -537,7 +486,6 @@ const CreateListing = () => {
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                 </div>
 
-                {/* Free-text input — only shown when "Other" is selected */}
                 {isCustomBrand && (
                   <motion.div
                     initial={{ opacity: 0, height: 0 }}
@@ -581,7 +529,7 @@ const CreateListing = () => {
                 </div>
               </div>
 
-              {/* Discount Percent */}
+              {/* Discount */}
               <div>
                 <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">
                   Discount % <span className="text-muted-foreground font-normal normal-case">(optional)</span>
