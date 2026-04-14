@@ -39,6 +39,16 @@ interface SneakerCardProps {
   index: number;
 }
 
+// FIX 1: "OTHER" brand label — never show raw category as brand.
+// If brand is missing or meaningless, show the seller name or nothing.
+const resolveBrandLabel = (brand: string, category: string, sellerName?: string): string | null => {
+  const normalized = brand?.trim().toUpperCase();
+  if (!normalized || normalized === "OTHER" || normalized === category.toUpperCase()) {
+    return sellerName?.trim() || null;
+  }
+  return brand.trim();
+};
+
 const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
   const { toggleSaved, isSaved } = useSaved();
   const { addItem } = useCart();
@@ -48,7 +58,6 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
 
   const saved = isSaved(sneaker.id);
   const isOwnListing = !!user && !isGuest && sneaker.sellerId === user.id;
-  console.log("isOwnListing debug:", { userId: user?.id, sellerId: sneaker.sellerId, isOwnListing });
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [quickAdded, setQuickAdded] = useState(false);
@@ -64,6 +73,9 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
   const isSneakerCat = sneaker.category === "Sneakers";
   const isClothing = ["Tops", "Bottoms", "Outerwear", "Activewear"].includes(sneaker.category);
   const needsSize = (isSneakerCat || isClothing) && sneaker.sizes.length > 1;
+
+  // FIX 1 applied
+  const brandLabel = resolveBrandLabel(sneaker.brand, sneaker.category, sneaker.sellerName);
 
   const handleSave = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -169,11 +181,10 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
 
   return (
     <>
-      {/* ── Size Picker Bottom Sheet (portal-style, outside card) ── */}
+      {/* ── Size Picker Bottom Sheet ── */}
       <AnimatePresence>
         {showSizePicker && (
           <>
-            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -183,7 +194,6 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
               onClick={closePicker}
             />
 
-            {/* Sheet */}
             <motion.div
               initial={{ opacity: 0, y: "100%" }}
               animate={{ opacity: 1, y: 0 }}
@@ -192,12 +202,10 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
               className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border rounded-t-3xl shadow-2xl pb-safe"
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
             >
-              {/* Handle bar */}
               <div className="flex justify-center pt-3 pb-1">
                 <div className="w-10 h-1 rounded-full bg-border" />
               </div>
 
-              {/* Header */}
               <div className="flex items-center justify-between px-5 py-3 border-b border-border/50">
                 <div className="flex-1 min-w-0 pr-3">
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-0.5">
@@ -213,7 +221,6 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
                 </button>
               </div>
 
-              {/* Size grid */}
               <div className="px-5 py-4">
                 <div className="flex flex-wrap gap-2">
                   {sneaker.sizes.map((size) => (
@@ -222,8 +229,8 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
                       whileTap={{ scale: 0.93 }}
                       onClick={(e) => handleSizeSelect(e, size)}
                       className={`min-w-[48px] h-11 px-3 rounded-xl border-2 text-sm font-semibold transition-all duration-150 ${selectedSize === size
-                        ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/25"
-                        : "border-border bg-card text-foreground hover:border-primary/40 hover:bg-muted/50"
+                          ? "border-primary bg-primary text-primary-foreground shadow-lg shadow-primary/25"
+                          : "border-border bg-card text-foreground hover:border-primary/40 hover:bg-muted/50"
                         }`}
                     >
                       {size}
@@ -232,14 +239,13 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
                 </div>
               </div>
 
-              {/* Confirm button */}
               <div className="px-5 pb-6">
                 <button
                   onClick={handleSizeConfirm}
                   disabled={!selectedSize}
                   className={`w-full h-12 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all duration-200 ${selectedSize
-                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:opacity-90"
-                    : "bg-muted/50 text-muted-foreground cursor-not-allowed"
+                      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:opacity-90"
+                      : "bg-muted/50 text-muted-foreground cursor-not-allowed"
                     }`}
                 >
                   <ShoppingBag className="w-4 h-4" />
@@ -266,8 +272,8 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
             whileTap={{ scale: 0.9 }}
             onClick={handleSave}
             className={`absolute top-3 right-3 z-20 w-8 h-8 rounded-xl flex items-center justify-center backdrop-blur-md transition-all duration-300 shadow-lg ${saved
-              ? "bg-gradient-to-br from-red-500 to-rose-600 text-white border-0 shadow-red-500/25"
-              : "bg-white/90 dark:bg-gray-900/90 border border-gray-200/50 dark:border-gray-700/50 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-800"
+                ? "bg-gradient-to-br from-red-500 to-rose-600 text-white border-0 shadow-red-500/25"
+                : "bg-white/90 dark:bg-gray-900/90 border border-gray-200/50 dark:border-gray-700/50 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-800"
               }`}
             aria-label={saved ? "Remove from saved" : "Save item"}
           >
@@ -278,8 +284,8 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
           </motion.button>
 
           <Link to={`/product/${sneaker.id}`} className="block h-full">
-            {/* Image Container */}
-            <div className="relative aspect-square bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 overflow-hidden">
+            {/* FIX 3: Image container — enforced aspect ratio prevents bleed/crop inconsistency */}
+            <div className="relative w-full aspect-square bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 overflow-hidden flex-shrink-0">
               {!imageError && sneaker.image ? (
                 <>
                   {!imageLoaded && (
@@ -288,9 +294,7 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
                   <img
                     src={cardImage(sneaker.image)}
                     alt={sneaker.name}
-                    className={`w-full h-full object-cover transition-all duration-700 ${imageLoaded
-                      ? "scale-100 group-hover:scale-110"
-                      : "scale-105 blur-sm"
+                    className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ${imageLoaded ? "scale-100 group-hover:scale-110" : "scale-105 blur-sm"
                       }`}
                     loading="lazy"
                     onLoad={() => setImageLoaded(true)}
@@ -301,7 +305,7 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
                   />
                 </>
               ) : (
-                <div className="w-full h-full flex items-center justify-center p-6">
+                <div className="absolute inset-0 flex items-center justify-center p-6">
                   <img
                     src={fallbackSvg}
                     alt={sneaker.category}
@@ -310,7 +314,7 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
                 </div>
               )}
 
-              {/* Desktop hover overlay — hidden on touch devices */}
+              {/* Desktop hover overlay */}
               {!isOwnListing && (
                 <div className="hidden md:block absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none group-hover:pointer-events-auto">
                   <div className="absolute bottom-3 left-3 right-3">
@@ -319,8 +323,8 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
                       whileInView={{ y: 0, opacity: 1 }}
                       onClick={handleQuickAdd}
                       className={`w-full py-2 px-3 rounded-xl font-medium text-xs flex items-center justify-center gap-1.5 transition-colors duration-200 shadow-lg ${quickAdded
-                        ? "bg-green-500 text-white"
-                        : "bg-white dark:bg-gray-900 text-gray-900 dark:text-white hover:bg-primary hover:text-white"
+                          ? "bg-green-500 text-white"
+                          : "bg-white dark:bg-gray-900 text-gray-900 dark:text-white hover:bg-primary hover:text-white"
                         }`}
                     >
                       {quickAdded ? (
@@ -333,7 +337,8 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
                 </div>
               )}
 
-              {/* Badges Container */}
+              {/* FIX 4: Badges — OFFICIAL only appears once (top-left).
+                  Removed the duplicate bottom-right OFFICIAL pill entirely. */}
               <div className="absolute top-3 left-3 flex flex-col gap-1 z-10">
                 {sneaker.sellerIsOfficial && (
                   <Badge className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-0 shadow-lg shadow-purple-500/25 px-2 py-1 text-[9px] font-semibold tracking-wider flex items-center gap-1 backdrop-blur-sm">
@@ -362,59 +367,54 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
 
             {/* Content Section */}
             <div className="p-3.5">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 line-clamp-1">
-                {sneaker.brand}
-              </p>
+              {/* FIX 1: Brand label — hides "OTHER", falls back to seller name */}
+              {brandLabel && (
+                <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 line-clamp-1">
+                  {brandLabel}
+                </p>
+              )}
               <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors duration-200 text-sm leading-snug line-clamp-2 mb-2.5">
                 {sneaker.name}
               </h3>
 
-              <div className="flex items-end justify-between gap-2">
-                <div className="flex flex-col">
+              {/* FIX 2: Price layout — flex-row keeps GH₵ and number on same line always */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-col min-w-0">
                   {discountedPrice ? (
-                    <>
-                      <span className="text-base font-bold text-foreground leading-tight">
+                    <div className="flex items-baseline gap-1.5 flex-wrap">
+                      <span className="text-base font-bold text-foreground leading-tight whitespace-nowrap">
                         GH₵ {discountedPrice.toLocaleString()}
                       </span>
-                      <span className="text-[11px] text-muted-foreground line-through">
+                      <span className="text-[11px] text-muted-foreground line-through whitespace-nowrap">
                         GH₵ {sneaker.price.toLocaleString()}
                       </span>
-                    </>
+                    </div>
                   ) : (
-                    <span className="text-base font-bold text-foreground leading-tight">
+                    <span className="text-base font-bold text-foreground leading-tight whitespace-nowrap">
                       GH₵ {sneaker.price.toLocaleString()}
                     </span>
                   )}
                 </div>
 
-                <div className="flex flex-col items-end gap-1">
-                  {sneaker.sellerIsOfficial && (
-                    <div className="flex items-center gap-1 px-1.5 py-0.5 bg-purple-500/10 rounded-md border border-purple-500/20">
-                      <Sparkles className="w-2.5 h-2.5 text-purple-500" />
-                      <span className="text-[9px] font-bold text-purple-600 dark:text-purple-400 tracking-wide">
-                        OFFICIAL
-                      </span>
-                    </div>
-                  )}
-                  {sneaker.sellerVerified && !sneaker.sellerIsOfficial && (
-                    <div className="flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500/10 rounded-md border border-emerald-500/20">
-                      <BadgeCheck className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
-                      <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 tracking-wide">
-                        VERIFIED
-                      </span>
-                    </div>
-                  )}
-                </div>
+                {/* FIX 4: Only show VERIFIED badge here (not OFFICIAL — it's already top-left) */}
+                {sneaker.sellerVerified && !sneaker.sellerIsOfficial && (
+                  <div className="flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500/10 rounded-md border border-emerald-500/20 flex-shrink-0">
+                    <BadgeCheck className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
+                    <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 tracking-wide">
+                      VERIFIED
+                    </span>
+                  </div>
+                )}
               </div>
 
-              {/* Mobile Quick Add button — always visible, below price */}
+              {/* Mobile Quick Add button */}
               {!isOwnListing && (
                 <motion.button
                   whileTap={{ scale: 0.97 }}
                   onClick={handleQuickAdd}
                   className={`md:hidden mt-2.5 w-full py-2 rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5 transition-all duration-200 border ${quickAdded
-                    ? "bg-green-500 border-green-500 text-white"
-                    : "bg-primary/5 border-primary/20 text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary"
+                      ? "bg-green-500 border-green-500 text-white"
+                      : "bg-primary/5 border-primary/20 text-primary hover:bg-primary hover:text-primary-foreground hover:border-primary"
                     }`}
                 >
                   {quickAdded ? (
