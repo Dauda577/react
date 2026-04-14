@@ -127,7 +127,7 @@ const Admin = () => {
       const isPaid = !!refundOrder.paystack_reference;
 
       if (isPaid) {
-        const { error } = await supabase.functions.invoke("refund-order", {
+        const { data, error } = await supabase.functions.invoke("refund-order", {
           body: {
             order_id: refundOrder.id,
             paystack_reference: refundOrder.paystack_reference,
@@ -136,7 +136,11 @@ const Admin = () => {
             seller_phone: refundOrder.seller_phone,
           },
         });
-        if (error) throw error;
+        // data.error carries the friendly message from the updated edge function
+        if (data?.error || error) {
+          toast.error(data?.error ?? error?.message ?? "Refund failed");
+          return;
+        }
         toast.success("Refund issued — buyer will receive funds within 5–10 business days");
       } else {
         const { error } = await supabase
@@ -151,7 +155,7 @@ const Admin = () => {
       setRefundReason("");
       fetchData();
     } catch (err: any) {
-      toast.error(err.message ?? "Refund failed");
+      toast.error(err?.message ?? "An unexpected error occurred")
     } finally {
       setRefundLoading(false);
     }
