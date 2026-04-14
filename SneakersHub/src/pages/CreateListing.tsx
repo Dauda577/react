@@ -326,7 +326,7 @@ const CreateListing = () => {
         );
         toast.success("Listing published!");
       }
-      navigate("/account");
+      navigate(editing ? "/account" : "/listings");
     } catch (err: any) {
       toast.error(err.message ?? "Something went wrong");
     } finally {

@@ -26,6 +26,7 @@ import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import SafariNotifPrompt from "./components/SafariNotifPrompt";
 import TermsOfService from "@/pages/TermsOfService";
+import SearchPage from "./pages/SearchPage";
 
 const Shop = lazy(() => import("./pages/Shop"));
 const Featured = lazy(() => import("./pages/Featured"));
@@ -125,6 +126,7 @@ const App = () => (
                             <ScrollToTop />
                             <Suspense fallback={<Spinner />}>
                               <Routes>
+                                <Route path="/search" element={<SearchPage />} />
                                 <Route path="/" element={<Index />} />
                                 <Route path="/shop" element={<Shop />} />
                                 <Route path="/featured" element={<Featured />} />

@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ShoppingBag, Menu, X, Bell, Zap, Store, Search, User, Heart } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useOrders } from "@/context/OrderContext";
@@ -7,7 +7,6 @@ import { useAuth } from "@/context/AuthContext";
 import { useState, useEffect } from "react";
 import BecomeSellerDrawer from "@/components/Becomesellerdrawer";
 
-// Quick-access category shortcuts shown in the mobile menu
 const QUICK_CATEGORIES = [
   { label: "Sneakers", svg: "/categoryicons/sneakers.svg", color: "from-blue-500/20 to-blue-600/20" },
   { label: "Watches", svg: "/categoryicons/watches.svg", color: "from-purple-500/20 to-purple-600/20" },
@@ -18,6 +17,7 @@ const QUICK_CATEGORIES = [
 
 const Navbar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { totalItems } = useCart();
   const { orders } = useOrders();
   const { totalUnread } = useMessages();
@@ -25,20 +25,15 @@ const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sellerDrawerOpen, setSellerDrawerOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const canSell = user?.isSeller ?? user?.role === "seller";
 
-  // Orders badge count — includes both seller AND buyer orders for sellers
   const incompleteOrdersCount = canSell
     ? orders.filter(o =>
       (o.sellerId === user?.id && !(o.sellerConfirmed && o.buyerConfirmed)) ||
@@ -50,17 +45,9 @@ const Navbar = () => {
   const showMessageBadge = !!user && totalUnread > 0;
   const totalBellCount = (showOrderBadge ? incompleteOrdersCount : 0) + (showMessageBadge ? totalUnread : 0);
   const showBell = totalBellCount > 0;
-
   const showBecomeSeller = !!user && !user.isSeller && user.sellerAppStatus === "none";
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      window.location.href = `/shop?search=${encodeURIComponent(searchQuery)}`;
-      setSearchOpen(false);
-      setSearchQuery("");
-    }
-  };
+  const isSearchActive = location.pathname === "/search";
 
   const links = [
     { to: "/", label: "Home", icon: null },
@@ -83,10 +70,7 @@ const Navbar = () => {
           <div className="flex items-center justify-between h-16">
 
             {/* Brand Logo */}
-            <Link
-              to="/"
-              className="group relative flex items-center gap-1"
-            >
+            <Link to="/" className="group relative flex items-center gap-1">
               <span className="font-display text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                 Sneakers
               </span>
@@ -125,13 +109,16 @@ const Navbar = () => {
             {/* Right-side Actions */}
             <div className="flex items-center gap-2">
 
-              {/* Search Button */}
+              {/* Search — navigates to /search page */}
               <button
-                onClick={() => setSearchOpen(!searchOpen)}
-                className="p-2 rounded-full hover:bg-muted/50 transition-colors"
+                onClick={() => navigate("/search")}
+                className={`p-2 rounded-full transition-colors ${isSearchActive
+                    ? "bg-primary/10 text-primary"
+                    : "hover:bg-muted/50 text-muted-foreground hover:text-foreground"
+                  }`}
                 aria-label="Search"
               >
-                <Search className="w-5 h-5 text-muted-foreground" />
+                <Search className="w-5 h-5" />
               </button>
 
               {/* Bell Notifications */}
@@ -162,7 +149,7 @@ const Navbar = () => {
               <Link
                 to="/cart"
                 className="relative p-2 rounded-full hover:bg-muted/50 transition-colors group"
-                aria-label={`Shopping cart${totalItems > 0 ? `, ${totalItems} item${totalItems !== 1 ? 's' : ''}` : ''}`}
+                aria-label={`Shopping cart${totalItems > 0 ? `, ${totalItems} item${totalItems !== 1 ? "s" : ""}` : ""}`}
               >
                 <ShoppingBag className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
                 {totalItems > 0 && (
@@ -182,31 +169,6 @@ const Navbar = () => {
               </button>
             </div>
           </div>
-
-          {/* Search Bar Dropdown */}
-          {searchOpen && (
-            <div className="py-4 border-t border-border">
-              <form onSubmit={handleSearch}>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search for sneakers, watches, clothing..."
-                    className="w-full pl-10 pr-12 py-3 rounded-xl border border-border bg-muted/30 text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all"
-                    autoFocus
-                  />
-                  <button
-                    type="submit"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors"
-                  >
-                    Search
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
         </div>
 
         {/* Mobile Menu */}
@@ -270,7 +232,7 @@ const Navbar = () => {
                 </button>
               )}
 
-              {/* User Info Section */}
+              {/* User Info */}
               {user && (
                 <div className="border-t border-border pt-4 mt-2">
                   <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/30">
