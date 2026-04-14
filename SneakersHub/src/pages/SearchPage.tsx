@@ -1,142 +1,62 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, ArrowLeft, SlidersHorizontal } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { Search, X, ArrowLeft } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import SneakerCard from "@/components/SneakerCard";
 import { PRODUCT_CATEGORIES } from "@/data/sneakers";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface SearchResult {
-    id: string;
-    name: string;
-    brand: string;
-    price: number;
-    image: string | null;
-    category: string;
-    sizes: number[];
-    description: string;
-    isBoosted?: boolean;
-    sellerVerified?: boolean;
-    sellerIsOfficial?: boolean;
-    isNew?: boolean;
-    discountPercent?: number | null;
-    sellerId?: string;
-    sellerName?: string;
-    sellerSubaccountCode?: string | null;
-    sellerCity?: string | null;
-    sellerRegion?: string | null;
-    shippingCost?: number;
-    handlingTime?: string;
-}
-
-// ─── Component ────────────────────────────────────────────────────────────────
+import { usePublicListings } from "@/context/PublicListingsContext";
 
 const SearchPage = () => {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const inputRef = useRef<HTMLInputElement>(null);
+    const { listings } = usePublicListings();
 
     const initialQuery = searchParams.get("q") ?? "";
     const initialCategory = searchParams.get("category") ?? "All";
 
     const [query, setQuery] = useState(initialQuery);
     const [activeCategory, setActiveCategory] = useState(initialCategory);
-    const [results, setResults] = useState<SearchResult[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [searched, setSearched] = useState(!!initialQuery);
+    const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
 
     // Autofocus on mount
     useEffect(() => {
         setTimeout(() => inputRef.current?.focus(), 100);
     }, []);
 
-    // Run search whenever query or category changes (debounced)
-    const runSearch = useCallback(async (q: string, category: string) => {
-        const trimmed = q.trim();
-        if (!trimmed) {
-            setResults([]);
-            setSearched(false);
-            return;
-        }
-
-        setLoading(true);
-        setSearched(true);
-
-        try {
-            let dbQuery = supabase
-                .from("listings")
-                .select(`
-          id, name, brand, price, image, category, sizes, description,
-          is_boosted, discount_percent, is_new, seller_id,
-          profiles!listings_seller_id_fkey (
-            name, verified, is_official, subaccount_code, city, region, shipping_cost, handling_time
-          )
-        `)
-                .eq("status", "active")
-                .or(`name.ilike.%${trimmed}%,brand.ilike.%${trimmed}%,description.ilike.%${trimmed}%`)
-                .order("is_boosted", { ascending: false })
-                .order("created_at", { ascending: false })
-                .limit(40);
-
-            if (category !== "All") {
-                dbQuery = dbQuery.eq("category", category);
-            }
-
-            const { data, error } = await dbQuery;
-            if (error) throw error;
-
-            const mapped: SearchResult[] = (data ?? []).map((row: any) => ({
-                id: row.id,
-                name: row.name,
-                brand: row.brand,
-                price: row.price,
-                image: row.image,
-                category: row.category,
-                sizes: row.sizes ?? [],
-                description: row.description ?? "",
-                isBoosted: row.is_boosted ?? false,
-                discountPercent: row.discount_percent ?? null,
-                isNew: row.is_new ?? false,
-                sellerId: row.seller_id,
-                sellerName: row.profiles?.name ?? "",
-                sellerVerified: row.profiles?.verified ?? false,
-                sellerIsOfficial: row.profiles?.is_official ?? false,
-                sellerSubaccountCode: row.profiles?.subaccount_code ?? null,
-                sellerCity: row.profiles?.city ?? null,
-                sellerRegion: row.profiles?.region ?? null,
-                shippingCost: row.profiles?.shipping_cost ?? 0,
-                handlingTime: row.profiles?.handling_time ?? "Ships in 1-3 days",
-            }));
-
-            setResults(mapped);
-        } catch (err) {
-            console.error("Search error:", err);
-            setResults([]);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    // Debounce search
+    // Debounce the query for snappy feel without hammering on every keystroke
     useEffect(() => {
         const timer = setTimeout(() => {
-            runSearch(query, activeCategory);
+            setDebouncedQuery(query);
             // Keep URL in sync
             const params: Record<string, string> = {};
             if (query.trim()) params.q = query.trim();
             if (activeCategory !== "All") params.category = activeCategory;
             setSearchParams(params, { replace: true });
-        }, 350);
+        }, 250);
         return () => clearTimeout(timer);
-    }, [query, activeCategory, runSearch]);
+    }, [query, activeCategory]);
+
+    // Filter in-memory from the already-loaded public listings context
+    const results = useMemo(() => {
+        const trimmed = debouncedQuery.trim().toLowerCase();
+        if (!trimmed) return [];
+
+        return listings.filter((l) => {
+            const matchesCategory = activeCategory === "All" || l.category === activeCategory;
+            const matchesQuery =
+                l.name.toLowerCase().includes(trimmed) ||
+                l.brand.toLowerCase().includes(trimmed) ||
+                (l.description ?? "").toLowerCase().includes(trimmed);
+            return matchesCategory && matchesQuery;
+        });
+    }, [debouncedQuery, activeCategory, listings]);
+
+    const hasSearched = debouncedQuery.trim().length > 0;
 
     const clearQuery = () => {
         setQuery("");
-        setResults([]);
-        setSearched(false);
         inputRef.current?.focus();
     };
 
@@ -158,7 +78,6 @@ const SearchPage = () => {
                     className="mb-5"
                 >
                     <div className="relative flex items-center gap-3">
-                        {/* Back button on mobile */}
                         <button
                             onClick={() => navigate(-1)}
                             className="md:hidden flex-shrink-0 p-2 rounded-full hover:bg-muted/50 transition-colors text-muted-foreground"
@@ -216,31 +135,8 @@ const SearchPage = () => {
                 {/* Results */}
                 <AnimatePresence mode="wait">
 
-                    {/* Loading skeleton */}
-                    {loading && (
-                        <motion.div
-                            key="loading"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="grid grid-cols-2 sm:grid-cols-3 gap-3"
-                        >
-                            {Array.from({ length: 6 }).map((_, i) => (
-                                <div key={i} className="rounded-2xl bg-card border border-border overflow-hidden">
-                                    <div className="aspect-square bg-muted animate-pulse" />
-                                    <div className="p-3.5 space-y-2">
-                                        <div className="h-2.5 bg-muted animate-pulse rounded-full w-1/3" />
-                                        <div className="h-3 bg-muted animate-pulse rounded-full w-3/4" />
-                                        <div className="h-3 bg-muted animate-pulse rounded-full w-1/2" />
-                                        <div className="h-4 bg-muted animate-pulse rounded-full w-2/5 mt-1" />
-                                    </div>
-                                </div>
-                            ))}
-                        </motion.div>
-                    )}
-
                     {/* Results grid */}
-                    {!loading && searched && results.length > 0 && (
+                    {hasSearched && results.length > 0 && (
                         <motion.div
                             key="results"
                             initial={{ opacity: 0, y: 8 }}
@@ -250,21 +146,40 @@ const SearchPage = () => {
                         >
                             <p className="text-xs text-muted-foreground mb-4">
                                 {results.length} result{results.length !== 1 ? "s" : ""} for{" "}
-                                <span className="font-semibold text-foreground">"{query.trim()}"</span>
+                                <span className="font-semibold text-foreground">"{debouncedQuery.trim()}"</span>
                                 {activeCategory !== "All" && (
                                     <> in <span className="font-semibold text-foreground">{activeCategory}</span></>
                                 )}
                             </p>
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                {results.map((item, i) => (
-                                    <SneakerCard key={item.id} sneaker={item} index={i} />
+                                {results.map((l, i) => (
+                                    <SneakerCard
+                                        key={l.id}
+                                        index={i}
+                                        sneaker={{
+                                            id: l.id,
+                                            name: l.name,
+                                            brand: l.brand,
+                                            price: l.price,
+                                            image: l.image ?? "",
+                                            category: l.category,
+                                            sizes: l.sizes,
+                                            description: l.description ?? "",
+                                            isBoosted: l.boosted,
+                                            sellerVerified: l.sellerVerified,
+                                            sellerIsOfficial: l.sellerIsOfficial,
+                                            discountPercent: l.discountPercent,
+                                            sellerId: l.sellerId,
+                                            sellerName: l.sellerName,
+                                        }}
+                                    />
                                 ))}
                             </div>
                         </motion.div>
                     )}
 
                     {/* No results */}
-                    {!loading && searched && results.length === 0 && (
+                    {hasSearched && results.length === 0 && (
                         <motion.div
                             key="empty"
                             initial={{ opacity: 0, y: 8 }}
@@ -288,8 +203,8 @@ const SearchPage = () => {
                         </motion.div>
                     )}
 
-                    {/* Empty state — nothing typed yet */}
-                    {!loading && !searched && (
+                    {/* Idle state */}
+                    {!hasSearched && (
                         <motion.div
                             key="idle"
                             initial={{ opacity: 0 }}
