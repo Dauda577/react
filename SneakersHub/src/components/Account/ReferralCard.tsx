@@ -60,7 +60,7 @@ export const ReferralCard = () => {
                     .from("profiles")
                     .select("referral_code, referral_count")
                     .eq("id", user!.id)
-                    .single(),
+                    .maybeSingle(), 
                 supabase
                     .from("referral_rewards")
                     .select("*")

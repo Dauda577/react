@@ -10,7 +10,9 @@ import { useTheme } from "@/hooks/useTheme";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { fadeUp } from "../Account/accountHelpers";
-import BecomeSellerDrawer from "@/components/Becomesellerdrawer";
+
+// Lazy load the drawer component
+const BecomeSellerDrawer = React.lazy(() => import("@/components/Becomesellerdrawer"));
 
 const isSafari = () =>
   typeof navigator !== "undefined" &&
@@ -23,9 +25,13 @@ const isStandalone = () =>
   (window.matchMedia("(display-mode: standalone)").matches ||
     (window.navigator as any).standalone === true);
 
-// Cache for profile data
+// Cache for profile data with longer TTL
 const profileCache: Record<string, { data: any; timestamp: number }> = {};
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
+// Cache for seller application status
+const sellerStatusCache: Record<string, { status: string | null; appData: any; timestamp: number }> = {};
+const SELLER_STATUS_TTL = 2 * 60 * 1000; // 2 minutes
 
 // Detect network based on phone number prefix
 const detectNetwork = (number: string): string | null => {
@@ -48,7 +54,7 @@ const getNetworkName = (number: string) => {
   return null;
 };
 
-// ── Notification settings block ───────────────────────────────────────────────
+// ── Notification settings block (unchanged) ───────────────────────────────────
 const NotificationSettings = memo(({
   pushSupported, pushPermission, requestPermission,
 }: {
@@ -116,7 +122,7 @@ const NotificationSettings = memo(({
 
 NotificationSettings.displayName = "NotificationSettings";
 
-// ── Payout change confirmation modal ─────────────────────────────────────────
+// ── Payout change confirmation modal (unchanged) ─────────────────────────────
 const PayoutConfirmModal = memo(({
   open, oldNumber, oldName, newNumber, newName, onConfirm, onCancel,
 }: {
@@ -201,7 +207,7 @@ const PayoutConfirmModal = memo(({
 
 PayoutConfirmModal.displayName = "PayoutConfirmModal";
 
-// ── Delete Account Confirmation Modal ─────────────────────────────────────────
+// ── Delete Account Confirmation Modal (unchanged) ────────────────────────────
 const DeleteAccountModal = memo(({
   open,
   onConfirm,
@@ -283,7 +289,7 @@ const DeleteAccountModal = memo(({
 
 DeleteAccountModal.displayName = "DeleteAccountModal";
 
-// ── Seller application status card ────────────────────────────────────────────
+// ── OPTIMIZED Seller application status card ─────────────────────────────────
 const SellerApplicationStatus = memo(({ userId, userEmail, onActivated }: {
   userId?: string;
   userEmail?: string;
@@ -295,24 +301,68 @@ const SellerApplicationStatus = memo(({ userId, userEmail, onActivated }: {
   const [paying, setPaying] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const fetchedRef = useRef(false);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    if (!userId || fetchedRef.current) {
-      if (!userId) setLoading(false);
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!userId) {
+      setLoading(false);
       return;
     }
 
+    // Check cache first
+    const cached = sellerStatusCache[userId];
+    if (cached && Date.now() - cached.timestamp < SELLER_STATUS_TTL) {
+      setAppData(cached.appData);
+      setStatus(cached.status);
+      setLoading(false);
+      fetchedRef.current = true;
+      return;
+    }
+
+    // Prevent duplicate fetches
+    if (fetchedRef.current) return;
     fetchedRef.current = true;
 
-    supabase.from("seller_applications")
+    // Use Promise.race to timeout slow requests
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Request timeout")), 3000)
+    );
+
+    const fetchPromise = supabase
+      .from("seller_applications")
       .select("status, store_name, momo_number, momo_name")
       .eq("user_id", userId)
       .order("submitted_at", { ascending: false })
       .limit(1)
-      .maybeSingle()
-      .then(({ data }) => {
+      .maybeSingle();
+
+    Promise.race([fetchPromise, timeoutPromise])
+      .then((result: any) => {
+        if (!mountedRef.current) return;
+        const data = result?.data;
+        const newStatus = data?.status ?? null;
+
+        // Update cache
+        sellerStatusCache[userId] = {
+          status: newStatus,
+          appData: data,
+          timestamp: Date.now()
+        };
+
         setAppData(data);
-        setStatus(data?.status ?? null);
+        setStatus(newStatus);
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (!mountedRef.current) return;
+        console.warn("Seller status fetch failed or timed out:", err);
+        // Don't show error to user, just default to null status
+        setStatus(null);
         setLoading(false);
       });
   }, [userId]);
@@ -384,6 +434,8 @@ const SellerApplicationStatus = memo(({ userId, userEmail, onActivated }: {
               );
               const result = await res.json();
               if (result.success) {
+                // Clear cache after successful payment
+                delete sellerStatusCache[userId];
                 await supabase.from("seller_applications").update({ status: "paid" }).eq("user_id", userId);
                 await supabase.from("profiles").update({ role: "seller", is_seller: true, verified: true }).eq("id", userId);
                 setStatus("paid");
@@ -412,16 +464,17 @@ const SellerApplicationStatus = memo(({ userId, userEmail, onActivated }: {
     }
   }, [userId, userEmail, appData, onActivated, ensurePaystackScript]);
 
+  // Optimized loading state - only show skeleton on initial load
   if (loading) {
     return (
-      <div className="rounded-2xl border border-border overflow-hidden animate-pulse">
+      <div className="rounded-2xl border border-border overflow-hidden">
         <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border bg-muted/20">
-          <div className="w-4 h-4 bg-muted rounded" />
-          <div className="h-4 w-32 bg-muted rounded" />
+          <Store className="w-4 h-4 text-primary/50" />
+          <div className="h-4 w-32 bg-muted animate-pulse rounded" />
         </div>
         <div className="px-5 py-5 space-y-4">
-          <div className="h-16 bg-muted rounded-xl" />
-          <div className="h-10 bg-muted rounded-xl" />
+          <div className="h-16 bg-muted/50 animate-pulse rounded-xl" />
+          <div className="h-10 bg-muted/50 animate-pulse rounded-xl" />
         </div>
       </div>
     );
@@ -514,7 +567,17 @@ const SellerApplicationStatus = memo(({ userId, userEmail, onActivated }: {
           </div>
         )}
       </div>
-      <BecomeSellerDrawer open={drawerOpen} onClose={() => { setDrawerOpen(false); setStatus("pending"); }} />
+      <React.Suspense fallback={null}>
+        <BecomeSellerDrawer
+          open={drawerOpen}
+          onClose={() => {
+            setDrawerOpen(false);
+            // Clear cache when drawer closes so status refreshes
+            if (userId) delete sellerStatusCache[userId];
+            setStatus("pending");
+          }}
+        />
+      </React.Suspense>
     </div>
   );
 });
@@ -548,7 +611,7 @@ const AccountSettings = memo(({
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false); // Start as false, only set true if needed
 
   // Payout state
   const [savedPayout, setSavedPayout] = useState({ method: "", number: "", name: "" });
@@ -565,12 +628,9 @@ const AccountSettings = memo(({
 
   const resolveTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Load saved payout details with cache
+  // Load saved payout details with cache - only run if canSell
   useEffect(() => {
-    if (!user?.id) {
-      setProfileLoading(false);
-      return;
-    }
+    if (!user?.id || !canSell) return;
 
     // Check cache first
     const cached = profileCache[user.id];
@@ -582,26 +642,38 @@ const AccountSettings = memo(({
         setPayoutForm({ ...loaded, bankCode: "" });
         setResolvedName(data.payout_name ?? null);
       }
-      setProfileLoading(false);
       return;
     }
 
-    supabase.from("profiles")
+    setProfileLoading(true);
+
+    // Use Promise.race for timeout
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Timeout")), 2000)
+    );
+
+    const fetchPromise = supabase.from("profiles")
       .select("payout_method, payout_number, payout_name")
-      .eq("id", user.id).single()
-      .then(({ data }) => {
+      .eq("id", user.id).single();
+
+    Promise.race([fetchPromise, timeoutPromise])
+      .then((result: any) => {
+        const data = result?.data;
         if (data) {
           profileCache[user.id] = { data, timestamp: Date.now() };
-        }
-        if (data?.payout_method) {
-          const loaded = { method: data.payout_method, number: data.payout_number ?? "", name: data.payout_name ?? "" };
-          setSavedPayout(loaded);
-          setPayoutForm({ ...loaded, bankCode: "" });
-          setResolvedName(data.payout_name ?? null);
+          if (data.payout_method) {
+            const loaded = { method: data.payout_method, number: data.payout_number ?? "", name: data.payout_name ?? "" };
+            setSavedPayout(loaded);
+            setPayoutForm({ ...loaded, bankCode: "" });
+            setResolvedName(data.payout_name ?? null);
+          }
         }
         setProfileLoading(false);
+      })
+      .catch(() => {
+        setProfileLoading(false);
       });
-  }, [user?.id]);
+  }, [user?.id, canSell]);
 
   // Auto-resolve account name + auto-select network when MoMo number changes
   useEffect(() => {
@@ -790,38 +862,6 @@ const AccountSettings = memo(({
     onDeleteAccount();
   }, [onDeleteAccount]);
 
-  // Show skeleton while loading profile data
-  if (profileLoading && canSell && !isOfficial) {
-    return (
-      <div className="space-y-6 max-w-lg">
-        {!canSell && (
-          <SellerApplicationStatus
-            userId={user?.id}
-            userEmail={user?.email}
-          />
-        )}
-        <div className="rounded-2xl border border-border overflow-hidden animate-pulse">
-          <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border bg-muted/20">
-            <div className="w-4 h-4 bg-muted rounded" />
-            <div className="h-4 w-24 bg-muted rounded" />
-          </div>
-          <div className="divide-y divide-border">
-            <div className="px-5 py-4 h-16" />
-            <div className="px-5 py-4 h-16" />
-            <div className="px-5 py-4 h-16" />
-          </div>
-        </div>
-        <div className="rounded-2xl border border-border overflow-hidden animate-pulse">
-          <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border bg-muted/20">
-            <div className="w-4 h-4 bg-muted rounded" />
-            <div className="h-4 w-24 bg-muted rounded" />
-          </div>
-          <div className="p-5 h-32" />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6 max-w-lg">
       <PayoutConfirmModal
@@ -840,6 +880,7 @@ const AccountSettings = memo(({
         onCancel={() => setShowDeleteModal(false)}
       />
 
+      {/* Seller application - always rendered, loading handled internally */}
       {!canSell && (
         <SellerApplicationStatus
           userId={user?.id}

@@ -171,7 +171,7 @@ const Account = () => {
       .from("profiles")
       .select("name, phone, city, region, verified, is_official, subaccount_code, payout_method, payout_number, payout_name, listing_count, role, avatar_url")
       .eq("id", user.id)
-      .single()
+      .maybeSingle() 
       .then(async ({ data }) => {
         if (!data) return;
         try { sessionStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch { /* ignore */ }
