@@ -108,7 +108,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       ]);
       if (error || !data) return null;
       const profile = data as any;
-      if (!profile.role) return null;
+      const role = profile.role ?? "buyer";
       const isSeller = profile.role === "seller" || profile.is_seller === true;
       const isBuyer = profile.role === "buyer" || profile.is_seller === true;
       const sellerAppStatus: User["sellerAppStatus"] = isSeller ? "none" : ((app?.status ?? "none") as User["sellerAppStatus"]);
@@ -263,29 +263,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       console.log("Auth user created successfully:", data.user.id);
 
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .upsert({
-          id: data.user.id,
-          name,
-          email,
-          phone: phone || null,
-          role,
-          is_seller: role === "seller",
-          listing_count: 0,
-          commission_rate: 5,
-          verified: false,
-          is_official: false,
-          created_at: new Date().toISOString(),
-        }, {
-          onConflict: "id",
-          ignoreDuplicates: false,
-        });
-
-      if (profileError) throw new Error(profileError.message);
-
       console.log("Profile created successfully");
 
       const newUser: User = {
@@ -343,10 +320,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     console.log("📝 Upserting profile:", profileData);
 
-    const { error } = await supabase.from("profiles").upsert(profileData, {
-      onConflict: "id",
-      ignoreDuplicates: false,
-    });
+    const { error } = await supabase
+      .from("profiles")
+      .update({ phone, role, is_seller: role === "seller", avatar_url: avatarUrl ?? null })
+      .eq("id", id);
 
     if (error) {
       console.error("❌ Profile upsert error:", error);
