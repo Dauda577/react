@@ -258,12 +258,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         options: { data: { name, role, phone } },
       });
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        const errorMessage = error.message.toLowerCase();
+        if (errorMessage.includes("already registered") ||
+          errorMessage.includes("already exists") ||
+          errorMessage.includes("duplicate key") ||
+          errorMessage.includes("user already registered")) {
+          // Create a custom error with a flag to indicate it's a duplicate email error
+          const duplicateError = new Error("An account with this email already exists. Try signing in instead.");
+          (duplicateError as any).isDuplicateEmail = true;
+          (duplicateError as any).email = email;
+          throw duplicateError;
+        }
+        throw new Error(error.message);
+      }
+
       if (!data.user) throw new Error("Signup failed - no user created");
 
       console.log("Auth user created successfully:", data.user.id);
-
-      console.log("Profile created successfully");
 
       const newUser: User = {
         id: data.user.id, name, email, role,
@@ -277,7 +289,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       console.log("Signup complete, user set");
 
-      return newUser; // Return the new user object
+      return newUser;
     } catch (err: any) {
       console.error("Signup error caught in catch:", err);
       throw err;

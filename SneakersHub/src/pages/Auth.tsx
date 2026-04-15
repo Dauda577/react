@@ -8,7 +8,6 @@ import { toast } from "sonner";
 import InstallPrompt from "@/components/InstallPrompt";
 import { supabase } from "@/lib/supabase";
 
-
 type Mode = "login" | "signup" | "forgot";
 
 const GoogleIcon = () => (
@@ -40,7 +39,7 @@ const Auth = () => {
     if (ref) {
       const code = ref.toUpperCase();
       setForm(prev => ({ ...prev, referralCode: code }));
-      sessionStorage.setItem("pending_referral_code", code); // 👈 persist across redirect
+      sessionStorage.setItem("pending_referral_code", code);
       setMode("signup");
     }
   }, []);
@@ -106,7 +105,22 @@ const Auth = () => {
         // Don't redirect immediately - they need to confirm email
       }
     } catch (err: any) {
-      toast.error(err.message ?? "Something went wrong. Please try again.");
+      // Enhanced error handling for duplicate emails
+      if (err.isDuplicateEmail) {
+        toast.error(err.message, {
+          duration: 8000,
+          action: {
+            label: "Sign In",
+            onClick: () => {
+              setMode("login");
+              // Pre-fill the email field
+              setForm(prev => ({ ...prev, email: err.email || form.email }));
+            }
+          }
+        });
+      } else {
+        toast.error(err.message ?? "Something went wrong. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -223,11 +237,10 @@ const Auth = () => {
                           } else if (data.error === "Referral already used") {
                             toast.info("You've already used a referral code before.");
                           }
-                          // Other errors like invalid code are silently ignored — signup still succeeds
                         }
                       } catch { /* silent */ }
                       finally {
-                        sessionStorage.removeItem("pending_referral_code"); // 👈 clean up
+                        sessionStorage.removeItem("pending_referral_code");
                       }
                     }
                   }
