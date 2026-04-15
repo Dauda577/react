@@ -264,7 +264,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           errorMessage.includes("already exists") ||
           errorMessage.includes("duplicate key") ||
           errorMessage.includes("user already registered")) {
-          // Create a custom error with a flag to indicate it's a duplicate email error
           const duplicateError = new Error("An account with this email already exists. Try signing in instead.");
           (duplicateError as any).isDuplicateEmail = true;
           (duplicateError as any).email = email;
@@ -314,28 +313,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     console.log("📝 Assigning role with:", { id, email, name, role, phone });
 
-    const profileData = {
-      id,
-      name,
-      email,
-      phone: phone || null,
-      role,
-      is_seller: role === "seller",
-      listing_count: 0,
-      commission_rate: 5,
-      verified: false,
-      is_official: false,
-      avatar_url: avatarUrl ?? null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-
-    console.log("📝 Upserting profile:", profileData);
-
+    // FIX: use upsert instead of update so the row is created if it doesn't exist yet,
+    // and all fields (including phone) are always persisted on first OAuth sign-up.
     const { error } = await supabase
       .from("profiles")
-      .update({ phone, role, is_seller: role === "seller", avatar_url: avatarUrl ?? null })
-      .eq("id", id);
+      .upsert({
+        id,
+        name,
+        email,
+        phone: phone || null,
+        role,
+        is_seller: role === "seller",
+        avatar_url: avatarUrl ?? null,
+        listing_count: 0,
+        commission_rate: 5,
+        verified: false,
+        is_official: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "id" });
 
     if (error) {
       console.error("❌ Profile upsert error:", error);
