@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { CATEGORY_SVGS } from "@/data/sneakers";
 import { useSound } from "@/hooks/useSound";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useCallback, useMemo, memo } from "react";
 
 interface SneakerCardSneaker {
   id: string;
@@ -39,7 +39,7 @@ interface SneakerCardProps {
   index: number;
 }
 
-// Never show raw "Other" or category name as brand label.
+// Memoized helper functions
 const resolveBrandLabel = (brand: string, category: string, sellerName?: string): string | null => {
   const normalized = brand?.trim().toUpperCase();
   if (!normalized || normalized === "OTHER" || normalized === category.toUpperCase()) {
@@ -48,34 +48,70 @@ const resolveBrandLabel = (brand: string, category: string, sellerName?: string)
   return brand.trim();
 };
 
-const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
+// Animation variants for better performance
+const cardAnimation = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  transition: (index: number) => ({ duration: 0.3, delay: Math.min(index, 8) * 0.03 }) // Cap delay
+};
+
+const overlayAnimation = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit: { opacity: 0 },
+  transition: { duration: 0.2 }
+};
+
+const sheetAnimation = {
+  initial: { opacity: 0, y: "100%" },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: "100%" },
+  transition: { type: "spring" as const, damping: 28, stiffness: 300 }
+};
+
+const SneakerCard = memo(({ sneaker, index }: SneakerCardProps) => {
   const { toggleSaved, isSaved } = useSaved();
   const { addItem } = useCart();
   const { user, isGuest } = useAuth();
   const { play } = useSound();
   const navigate = useNavigate();
 
-  const saved = isSaved(sneaker.id);
-  const isOwnListing = !!user && !isGuest && sneaker.sellerId === user.id;
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [quickAdded, setQuickAdded] = useState(false);
   const [showSizePicker, setShowSizePicker] = useState(false);
   const [selectedSize, setSelectedSize] = useState<number | string | null>(null);
 
-  const discountedPrice = sneaker.discountPercent
-    ? Math.round(sneaker.price * (1 - sneaker.discountPercent / 100))
-    : null;
+  // Memoized computed values
+  const saved = useMemo(() => isSaved(sneaker.id), [isSaved, sneaker.id]);
+  const isOwnListing = useMemo(() =>
+    !!user && !isGuest && sneaker.sellerId === user.id,
+    [user, isGuest, sneaker.sellerId]
+  );
 
-  const fallbackSvg = CATEGORY_SVGS[sneaker.category] ?? "/categoryicons/other.svg";
+  const discountedPrice = useMemo(() =>
+    sneaker.discountPercent
+      ? Math.round(sneaker.price * (1 - sneaker.discountPercent / 100))
+      : null,
+    [sneaker.price, sneaker.discountPercent]
+  );
+
+  const fallbackSvg = useMemo(() =>
+    CATEGORY_SVGS[sneaker.category] ?? "/categoryicons/other.svg",
+    [sneaker.category]
+  );
 
   const isSneakerCat = sneaker.category === "Sneakers";
   const isClothing = ["Tops", "Bottoms", "Outerwear", "Activewear"].includes(sneaker.category);
   const needsSize = (isSneakerCat || isClothing) && sneaker.sizes.length > 1;
 
-  const brandLabel = resolveBrandLabel(sneaker.brand, sneaker.category, sneaker.sellerName);
+  const brandLabel = useMemo(() =>
+    resolveBrandLabel(sneaker.brand, sneaker.category, sneaker.sellerName),
+    [sneaker.brand, sneaker.category, sneaker.sellerName]
+  );
 
-  const handleSave = (e: React.MouseEvent) => {
+  // Memoized callbacks
+  const handleSave = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     play(saved ? "unsave" : "save");
@@ -97,9 +133,9 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
       icon: saved ? "💔" : "❤️",
       duration: 2000,
     });
-  };
+  }, [play, saved, toggleSaved, sneaker]);
 
-  const commitAddToCart = (size: number | string) => {
+  const commitAddToCart = useCallback((size: number | string) => {
     if (sneaker.sellerId === user?.id) {
       toast.error("You cannot buy your own item", { description: "This is your own listing" });
       return;
@@ -129,9 +165,9 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
     setQuickAdded(true);
     toast.success(`${sneaker.name} added to cart!`, { icon: "🛍️", duration: 2000 });
     setTimeout(() => setQuickAdded(false), 2000);
-  };
+  }, [user, discountedPrice, sneaker, addItem]);
 
-  const handleQuickAdd = (e: React.MouseEvent) => {
+  const handleQuickAdd = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (!user || isGuest) {
@@ -151,47 +187,47 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
     } else {
       commitAddToCart(sneaker.sizes[0] ?? "one-size");
     }
-  };
+  }, [user, isGuest, sneaker.sellerId, needsSize, commitAddToCart, navigate, sneaker.sizes]);
 
-  const handleSizeSelect = (e: React.MouseEvent, size: number | string) => {
+  const handleSizeSelect = useCallback((e: React.MouseEvent, size: number | string) => {
     e.preventDefault();
     e.stopPropagation();
     setSelectedSize(size);
-  };
+  }, []);
 
-  const handleSizeConfirm = (e: React.MouseEvent) => {
+  const handleSizeConfirm = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (!selectedSize) return;
     commitAddToCart(selectedSize);
-  };
+  }, [selectedSize, commitAddToCart]);
 
-  const closePicker = (e: React.MouseEvent) => {
+  const closePicker = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setShowSizePicker(false);
     setSelectedSize(null);
-  };
+  }, []);
+
+  const handleImageLoad = useCallback(() => setImageLoaded(true), []);
+  const handleImageError = useCallback(() => {
+    setImageError(true);
+    console.error("Image failed to load:", sneaker.image);
+  }, [sneaker.image]);
 
   return (
     <>
-      {/* ── Size Picker Bottom Sheet ── */}
+      {/* Size Picker Bottom Sheet - Only render when needed */}
       <AnimatePresence>
         {showSizePicker && (
           <>
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
+              {...overlayAnimation}
               className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
               onClick={closePicker}
             />
             <motion.div
-              initial={{ opacity: 0, y: "100%" }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: "100%" }}
-              transition={{ type: "spring", damping: 28, stiffness: 300 }}
+              {...sheetAnimation}
               className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border rounded-t-3xl shadow-2xl pb-safe"
               onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
             >
@@ -247,19 +283,13 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
         )}
       </AnimatePresence>
 
-      {/* ── Card ── */}
+      {/* Card */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: index * 0.05 }}
+        {...cardAnimation}
+        transition={cardAnimation.transition(index)}
         className="group relative h-full"
+        layoutId={sneaker.id} // Better than layout prop for performance
       >
-        {/*
-          LAYOUT: Card is flex-col. Image is fixed aspect-square (flex-shrink-0).
-          Content section is flex-col + flex-grow to fill remaining height.
-          Inside content, title has mb-auto which pushes price row to the bottom.
-          This ensures price sits at the same vertical position on every card.
-        */}
         <div className="relative h-full flex flex-col rounded-2xl bg-card border border-border/50 overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:border-border hover:-translate-y-1">
 
           {/* Save Button */}
@@ -281,7 +311,7 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
 
           <Link to={`/product/${sneaker.id}`} className="flex flex-col flex-grow">
 
-            {/* Image — fixed aspect ratio, never bleeds */}
+            {/* Image */}
             <div className="relative w-full aspect-square bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 overflow-hidden flex-shrink-0">
               {!imageError && sneaker.image ? (
                 <>
@@ -294,11 +324,9 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
                     className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ${imageLoaded ? "scale-100 group-hover:scale-110" : "scale-105 blur-sm"
                       }`}
                     loading="lazy"
-                    onLoad={() => setImageLoaded(true)}
-                    onError={() => {
-                      setImageError(true);
-                      console.error("Image failed to load:", sneaker.image);
-                    }}
+                    decoding="async"
+                    onLoad={handleImageLoad}
+                    onError={handleImageError}
                   />
                 </>
               ) : (
@@ -307,11 +335,12 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
                     src={fallbackSvg}
                     alt={sneaker.category}
                     className="w-14 h-14 opacity-40 transition-opacity group-hover:opacity-60"
+                    loading="lazy"
                   />
                 </div>
               )}
 
-              {/* Desktop hover overlay */}
+              {/* Desktop hover overlay - Only render if not own listing */}
               {!isOwnListing && (
                 <div className="hidden md:block absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none group-hover:pointer-events-auto">
                   <div className="absolute bottom-3 left-3 right-3">
@@ -334,7 +363,7 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
                 </div>
               )}
 
-              {/* Badges — OFFICIAL only here, never duplicated in content below */}
+              {/* Badges */}
               <div className="absolute top-3 left-3 flex flex-col gap-1 z-10">
                 {sneaker.sellerIsOfficial && (
                   <Badge className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-0 shadow-lg shadow-purple-500/25 px-2 py-1 text-[9px] font-semibold tracking-wider flex items-center gap-1 backdrop-blur-sm">
@@ -361,26 +390,19 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
               </div>
             </div>
 
-            {/*
-              Content — flex-col + flex-grow fills remaining card height.
-              h3 has mb-auto: pushes price row to the bottom of the card.
-              Price is always visually aligned across the entire grid row.
-            */}
+            {/* Content */}
             <div className="p-3.5 flex flex-col flex-grow">
-
-              {/* Brand label */}
               {brandLabel && (
                 <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 line-clamp-1">
                   {brandLabel}
                 </p>
               )}
 
-              {/* Title — mb-auto pushes price to bottom */}
               <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors duration-200 text-sm leading-snug line-clamp-2 mb-auto pb-2.5">
                 {sneaker.name}
               </h3>
 
-              {/* Price row — always at bottom of card */}
+              {/* Price row */}
               <div className="flex items-center justify-between gap-2">
                 <div className="flex flex-col min-w-0">
                   {discountedPrice ? (
@@ -399,7 +421,6 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
                   )}
                 </div>
 
-                {/* VERIFIED badge — only for non-official verified sellers */}
                 {sneaker.sellerVerified && !sneaker.sellerIsOfficial && (
                   <div className="flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500/10 rounded-md border border-emerald-500/20 flex-shrink-0">
                     <BadgeCheck className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
@@ -433,6 +454,8 @@ const SneakerCard = ({ sneaker, index }: SneakerCardProps) => {
       </motion.div>
     </>
   );
-};
+});
+
+SneakerCard.displayName = 'SneakerCard';
 
 export default SneakerCard;

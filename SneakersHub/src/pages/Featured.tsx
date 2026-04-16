@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Zap, Package, Search, X } from "lucide-react";
 import Navbar from "@/components/Navbar";
@@ -12,7 +12,43 @@ const PAGE_SIZE = 30;
 const Featured = () => {
   const { listings, loading } = usePublicListings();
   const [search, setSearch] = useState("");
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [visibleCount, setVisibleCount] = useState(() => {
+    const saved = sessionStorage.getItem("featured_visibleCount");
+    return saved ? parseInt(saved, 10) : PAGE_SIZE;
+  });
+  const prevSearch = useRef("");
+
+  // Persist visibleCount so back-navigation restores it
+  useEffect(() => {
+    sessionStorage.setItem("featured_visibleCount", String(visibleCount));
+  }, [visibleCount]);
+
+  // Reset pagination only when search actually changes
+  useEffect(() => {
+    if (prevSearch.current !== search) {
+      prevSearch.current = search;
+      setVisibleCount(PAGE_SIZE);
+    }
+  }, [search]);
+
+  // Restore scroll position after listings load
+  useEffect(() => {
+    if (loading) return;
+    const saved = sessionStorage.getItem("featured_scrollY");
+    if (saved) {
+      window.scrollTo(0, parseInt(saved, 10));
+      sessionStorage.removeItem("featured_scrollY");
+    }
+  }, [loading]);
+
+  // Save scroll position before navigating away
+  useEffect(() => {
+    const handleUnload = () => {
+      sessionStorage.setItem("featured_scrollY", String(window.scrollY));
+    };
+    window.addEventListener("pagehide", handleUnload);
+    return () => window.removeEventListener("pagehide", handleUnload);
+  }, []);
 
   const now = Date.now();
   const isActiveBoost = (l: (typeof listings)[0]) => {
@@ -32,11 +68,6 @@ const Featured = () => {
   const featured = allFeatured.slice(0, visibleCount);
   const hasMore = allFeatured.length > visibleCount;
 
-  // Reset pagination when search changes
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [search]);
-
   const toCardShape = (l: typeof listings[0]) => ({
     id: l.id,
     name: l.name,
@@ -50,7 +81,7 @@ const Featured = () => {
     sellerVerified: l.sellerVerified,
     sellerIsOfficial: l.sellerIsOfficial,
     discountPercent: l.discountPercent,
-    sellerId: l.sellerId, 
+    sellerId: l.sellerId,
   });
 
   return (
@@ -128,12 +159,8 @@ const Featured = () => {
               </AnimatePresence>
             </motion.div>
 
-            {/* Load more */}
             {hasMore && (
-              <motion.div
-                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                className="text-center mt-10"
-              >
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center mt-10">
                 <Button
                   variant="outline"
                   className="rounded-full px-8"
