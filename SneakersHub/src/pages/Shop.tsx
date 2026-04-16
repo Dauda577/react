@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, Package, ChevronLeft, ChevronRight } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
@@ -7,9 +7,7 @@ import Footer from "@/components/Footer";
 import SneakerCard from "@/components/SneakerCard";
 import { usePublicListings } from "@/context/PublicListingsContext";
 import { Button } from "@/components/ui/button";
-import { PRODUCT_CATEGORIES, CATEGORY_EMOJI, CATEGORY_SVGS } from "@/data/sneakers";
-
-// ─── Config ────────────────────────────────────────────────────────────────
+import { PRODUCT_CATEGORIES, CATEGORY_SVGS } from "@/data/sneakers";
 
 const PAGE_SIZE = 30;
 
@@ -23,46 +21,88 @@ const GROUPED_PILLS: { label: string; svg: string; groupStart?: string }[] = [
 ];
 
 const sortOptions = [
-  { label: "Newest",             value: "newest"     },
-  { label: "Price: Low to High", value: "price_asc"  },
+  { label: "Newest", value: "newest" },
+  { label: "Price: Low to High", value: "price_asc" },
   { label: "Price: High to Low", value: "price_desc" },
-  { label: "Featured",           value: "featured"   },
+  { label: "Featured", value: "featured" },
 ];
 
 const categoryHeading = (cat: string) => (cat === "All" ? "All Items" : cat);
-
-// ─── Component ─────────────────────────────────────────────────────────────
 
 const Shop = () => {
   const { listings, loading } = usePublicListings();
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState("");
-  const [sort, setSort] = useState("newest");
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [sort, setSort] = useState(() => sessionStorage.getItem("shop_sort") ?? "newest");
+  const [visibleCount, setVisibleCount] = useState(() => {
+    const saved = sessionStorage.getItem("shop_visibleCount");
+    return saved ? parseInt(saved, 10) : PAGE_SIZE;
+  });
 
-  // Scroll ref for the pill row
   const pillsRef = useRef<HTMLDivElement>(null);
+  const prevFilters = useRef({ search: "", category: searchParams.get("category") ?? "All", sort });
 
-  // Category driven by URL
+  // Persist visibleCount and sort
+  useEffect(() => {
+    sessionStorage.setItem("shop_visibleCount", String(visibleCount));
+  }, [visibleCount]);
+
+  useEffect(() => {
+    sessionStorage.setItem("shop_sort", sort);
+  }, [sort]);
+
+  // Restore scroll after listings load
+  useEffect(() => {
+    if (loading) return;
+    const saved = sessionStorage.getItem("shop_scrollY");
+    if (saved) {
+      window.scrollTo(0, parseInt(saved, 10));
+      sessionStorage.removeItem("shop_scrollY");
+    }
+  }, [loading]);
+
+  // Save scroll before navigating away
+  useEffect(() => {
+    const handleUnload = () => {
+      sessionStorage.setItem("shop_scrollY", String(window.scrollY));
+    };
+    window.addEventListener("pagehide", handleUnload);
+    return () => window.removeEventListener("pagehide", handleUnload);
+  }, []);
+
   const category = searchParams.get("category") ?? "All";
+
   const setCategory = (cat: string) => {
     const next = new URLSearchParams(searchParams);
     if (cat === "All") next.delete("category");
     else next.set("category", cat);
     setSearchParams(next, { replace: true });
-    // Reset pagination whenever category changes
     setVisibleCount(PAGE_SIZE);
   };
 
-  // Reset pagination on search/sort change too
   const handleSearch = (val: string) => {
     setSearch(val);
     setVisibleCount(PAGE_SIZE);
   };
+
   const handleSort = (val: string) => {
     setSort(val);
     setVisibleCount(PAGE_SIZE);
   };
+
+  // Reset pagination only when filters actually change (not on back-navigation mount)
+  useEffect(() => {
+    const prev = prevFilters.current;
+    const changed =
+      prev.search !== search ||
+      prev.category !== category ||
+      prev.sort !== sort;
+
+    if (changed) {
+      prevFilters.current = { search, category, sort };
+      // Don't reset on mount — only on genuine filter changes after mount
+    }
+  }, [search, category, sort]);
 
   const now = new Date();
   const isActiveBoost = (l: (typeof listings)[0]) =>
@@ -85,13 +125,11 @@ const Shop = () => {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
 
-  // Slice to current page
   const visible = filtered.slice(0, visibleCount);
   const hasMore = visibleCount < filtered.length;
 
   const emptySvg = CATEGORY_SVGS[category] ?? "/categoryicons/all.svg";
 
-  // Pill row scroll helpers
   const scrollPills = (dir: "left" | "right") => {
     pillsRef.current?.scrollBy({ left: dir === "right" ? 200 : -200, behavior: "smooth" });
   };
@@ -101,10 +139,9 @@ const Shop = () => {
       <Navbar />
 
       <div
-         className="section-padding max-w-7xl mx-auto pb-20"
+        className="section-padding max-w-7xl mx-auto pb-20"
         style={{ paddingTop: `calc(88px + env(safe-area-inset-top, 0px))` }}
       >
-        {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
           <p className="text-primary font-display text-xs font-semibold uppercase tracking-[0.3em] mb-2">Browse</p>
           <h1 className="font-display text-4xl md:text-5xl font-bold tracking-tight">
@@ -113,15 +150,12 @@ const Shop = () => {
           <p className="text-muted-foreground mt-2 text-sm">
             {loading
               ? "Loading..."
-              : `${filtered.length} ${filtered.length === 1 ? "listing" : "listings"} available`
-            }
+              : `${filtered.length} ${filtered.length === 1 ? "listing" : "listings"} available`}
           </p>
         </motion.div>
 
-        {/* ── Category pills ── */}
-        {/* Wrapper positions the chevron buttons and contains the scroll area */}
+        {/* Category pills */}
         <div className="relative mb-5 group">
-          {/* Left chevron — only on desktop */}
           <button
             onClick={() => scrollPills("left")}
             className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 z-10
@@ -133,7 +167,6 @@ const Shop = () => {
             <ChevronLeft className="w-4 h-4" />
           </button>
 
-          {/* Scrollable pill row — scrollbar hidden on all sizes */}
           <div
             ref={pillsRef}
             className="flex gap-2 overflow-x-auto pb-3 no-scrollbar items-center scroll-smooth"
@@ -161,7 +194,6 @@ const Shop = () => {
             })}
           </div>
 
-          {/* Right chevron — only on desktop */}
           <button
             onClick={() => scrollPills("right")}
             className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-10
@@ -217,15 +249,13 @@ const Shop = () => {
             <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
               {search
                 ? <Package className="w-7 h-7 text-primary" />
-                : <img src={emptySvg} alt={category} className="w-7 h-7 text-primary" />
-              }
+                : <img src={emptySvg} alt={category} className="w-7 h-7 text-primary" />}
             </div>
             <p className="font-display font-bold text-lg mb-1">No listings found</p>
             <p className="text-sm text-muted-foreground mb-4">
               {search
                 ? `No results for "${search}"`
-                : `No ${category === "All" ? "" : category + " "}items listed yet.`
-              }
+                : `No ${category === "All" ? "" : category + " "}items listed yet.`}
             </p>
             {(search || category !== "All") && (
               <Button
@@ -239,19 +269,10 @@ const Shop = () => {
           </div>
         ) : (
           <>
-            <motion.div layout className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
-              <AnimatePresence>
-                {visible.map((l, i) => (
-                  <motion.div
-                    key={l.id}
-                    layout
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ delay: Math.min(i, 8) * 0.04 }}
-                    className="w-full h-full"
-                  >
+                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
+                  {visible.map((l, i) => (
                     <SneakerCard
+                      key={l.id}
                       sneaker={{
                         id: l.id, name: l.name, brand: l.brand, price: l.price,
                         image: l.image ?? "", category: l.category, sizes: l.sizes,
@@ -262,38 +283,34 @@ const Shop = () => {
                       }}
                       index={i}
                     />
+                  ))}
+                </div>
+
+                {hasMore && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex flex-col items-center gap-2 mt-10"
+                  >
+                    <p className="text-xs text-muted-foreground">
+                      Showing {visible.length} of {filtered.length} listings
+                    </p>
+                    <Button
+                      variant="outline"
+                      className="rounded-full px-8 h-11 text-sm font-semibold border-border hover:border-primary/50 hover:bg-primary/5 transition-all"
+                      onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                    >
+                      Load more
+                    </Button>
                   </motion.div>
-                ))}
-              </AnimatePresence>
-            </motion.div>
+                )}
 
-            {/* Load more */}
-            {hasMore && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col items-center gap-2 mt-10"
-              >
-                <p className="text-xs text-muted-foreground">
-                  Showing {visible.length} of {filtered.length} listings
-                </p>
-                <Button
-                  variant="outline"
-                  className="rounded-full px-8 h-11 text-sm font-semibold border-border hover:border-primary/50 hover:bg-primary/5 transition-all"
-                  onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
-                >
-                  Load more
-                </Button>
-              </motion.div>
-            )}
-
-            {/* All loaded indicator */}
-            {!hasMore && filtered.length > PAGE_SIZE && (
-              <p className="text-center text-xs text-muted-foreground mt-10">
-                All {filtered.length} listings shown
-              </p>
-            )}
-          </>
+                {!hasMore && filtered.length > PAGE_SIZE && (
+                  <p className="text-center text-xs text-muted-foreground mt-10">
+                    All {filtered.length} listings shown
+                  </p>
+                )}
+              </>
         )}
       </div>
       <Footer />

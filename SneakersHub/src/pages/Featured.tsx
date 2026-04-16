@@ -147,30 +147,24 @@ const Featured = () => {
           </motion.div>
         ) : (
           <>
-            <motion.div layout className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
-              <AnimatePresence>
-                {featured.map((l, i) => (
-                  <motion.div key={l.id} layout initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                    transition={{ delay: i < PAGE_SIZE ? i * 0.04 : 0 }}>
-                    <SneakerCard sneaker={toCardShape(l)} index={i} />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </motion.div>
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
+                  {featured.map((l, i) => (
+                    <SneakerCard key={l.id} sneaker={toCardShape(l)} index={i} />
+                  ))}
+                </div>
 
-            {hasMore && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center mt-10">
-                <Button
-                  variant="outline"
-                  className="rounded-full px-8"
-                  onClick={() => setVisibleCount(v => v + PAGE_SIZE)}
-                >
-                  Load More ({allFeatured.length - visibleCount} remaining)
-                </Button>
-              </motion.div>
-            )}
-          </>
+                {hasMore && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center mt-10">
+                    <Button
+                      variant="outline"
+                      className="rounded-full px-8"
+                      onClick={() => setVisibleCount(v => v + PAGE_SIZE)}
+                    >
+                      Load More ({allFeatured.length - visibleCount} remaining)
+                    </Button>
+                  </motion.div>
+                )}
+              </>
         )}
       </div>
 

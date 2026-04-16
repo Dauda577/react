@@ -285,11 +285,12 @@ const SneakerCard = memo(({ sneaker, index }: SneakerCardProps) => {
 
       {/* Card */}
       <motion.div
-        {...cardAnimation}
-        transition={cardAnimation.transition(index)}
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2, delay: Math.min(index, 6) * 0.03 }}
         className="group relative h-full"
-        layoutId={sneaker.id} // Better than layout prop for performance
       >
+        
         <div className="relative h-full flex flex-col rounded-2xl bg-card border border-border/50 overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:border-border hover:-translate-y-1">
 
           {/* Save Button */}
