@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
@@ -61,7 +62,7 @@ const FAQModal = ({ onClose }: { onClose: () => void }) => {
                 className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-muted/30 transition-colors gap-4"
               >
                 <span className="text-sm font-medium group-hover:text-primary transition-colors">{faq.q}</span>
-                <ChevronDown className={`w-4 h-4 text-muted-foreground flex-shrink-0 transition-transform duration-200 ${open === i ? "rotate-180 text-primary" : ""}`} />
+                <ChevronDown className={`w - 4 h - 4 text - muted - foreground flex - shrink - 0 transition - transform duration - 200 ${ open === i ? "rotate-180 text-primary" : "" } `} />
               </button>
               <AnimatePresence>
                 {open === i && (
@@ -210,6 +211,7 @@ const Footer = () => {
                   { to: "/shop", label: "Shop" },
                   { to: "/featured", label: "Featured" },
                   { to: "/about", label: "About Us" },
+                  { to: "/seller-policy", label: "Seller Policy" },
                 ].map((link) => (
                   <li key={link.to}>
                     <Link to={link.to} className="text-sm text-muted-foreground hover:text-primary transition-colors flex items-center gap-1.5 group">
@@ -296,6 +298,7 @@ const Footer = () => {
             <div className="flex items-center gap-4">
               <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
               <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
+              <Link to="/seller-policy" className="hover:text-foreground transition-colors">Seller Policy</Link>
               <button onClick={() => setShowFAQ(true)} className="hover:text-foreground transition-colors">FAQ</button>
             </div>
           </div>

@@ -17,6 +17,7 @@ import ScrollToTop from "@/components/ScrollToTop";
 import InstallPrompt from "@/components/InstallPrompt";
 import Spinner from "@/components/Spinner";
 import NetworkBanner from "@/components/NetworkBanner";
+import SellerPolicy from "@/pages/SellerPolicy"; // 👈 add this
 
 import Index from "./pages/Index";
 import Privacy from "@/pages/Privacy";
@@ -132,6 +133,7 @@ const App = () => (
                                 <Route path="/featured" element={<Featured />} />
                                 <Route path="/product/:id" element={<ProductDetail />} />
                                 <Route path="/cart" element={<Cart />} />
+                                <Route path="/seller-policy" element={<SellerPolicy />} />
                                 <Route path="/checkout" element={<Checkout />} />
                                 <Route path="/order-confirmation" element={<OrderConfirmation />} />
                                 <Route path="/about" element={<About />} />
