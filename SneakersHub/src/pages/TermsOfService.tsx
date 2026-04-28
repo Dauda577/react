@@ -7,7 +7,6 @@ import {
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Button } from "@/components/ui/button";
 
 const TermsOfService = () => {
   return (
@@ -89,6 +88,7 @@ const TermsOfService = () => {
 
         {/* Terms Sections */}
         <div className="space-y-8">
+
           {/* Section 1 */}
           <section id="section-1" className="scroll-mt-24">
             <h2 className="font-display text-xl font-bold mb-3 flex items-center gap-2">
@@ -155,7 +155,7 @@ const TermsOfService = () => {
             </div>
           </section>
 
-          {/* Section 5 */}
+          {/* Section 5 — UPDATED with Seller Policy reference */}
           <section id="section-5" className="scroll-mt-24">
             <h2 className="font-display text-xl font-bold mb-3 flex items-center gap-2">
               <span className="text-primary">5.</span> Selling on SneakersHub
@@ -170,6 +170,25 @@ const TermsOfService = () => {
                 <li>Mark orders as "dispatched" only when actually shipped</li>
                 <li>Accept responsibility for item authenticity and condition</li>
               </ul>
+
+              {/* Seller Policy callout — NEW */}
+              <div className="mt-4 p-4 rounded-xl bg-blue-500/5 border border-blue-500/20">
+                <div className="flex items-start gap-2">
+                  <FileText className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm">
+                    All sellers are subject to our{" "}
+                    <Link
+                      to="/seller-policy"
+                      className="text-primary underline underline-offset-2 hover:opacity-80 transition-opacity font-medium"
+                    >
+                      Seller Policy
+                    </Link>
+                    , which governs listing authenticity, brand disclaimers, prohibited items, and
+                    enforcement actions. Please read it carefully before listing.
+                  </p>
+                </div>
+              </div>
+
               <div className="mt-4 p-4 rounded-xl bg-green-500/5 border border-green-500/20">
                 <div className="flex items-center gap-2 mb-2">
                   <BadgeCheck className="w-4 h-4 text-green-500" />
@@ -290,14 +309,29 @@ const TermsOfService = () => {
             </p>
           </section>
 
-          {/* Section 12 */}
+          {/* Section 12 — UPDATED with brand disclaimer + Seller Policy reference */}
           <section id="section-12" className="scroll-mt-24">
             <h2 className="font-display text-xl font-bold mb-3 flex items-center gap-2">
               <span className="text-primary">12.</span> Disclaimers
             </h2>
-            <p className="text-muted-foreground leading-relaxed">
+            <p className="text-muted-foreground leading-relaxed mb-3">
               SneakersHub is a marketplace connecting buyers and sellers. We do not guarantee the quality, safety, or legality of items listed. We are not responsible for transactions between users. Our role is limited to facilitating the platform and, for verified sellers, payment processing.
             </p>
+            <div className="p-4 rounded-xl bg-muted/40 border border-border">
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Brand names and trademarks such as Nike®, Adidas®, Timberland®, and others appearing
+                on this platform are the property of their respective owners. Their presence reflects
+                secondary market resale by independent sellers and does not imply any affiliation,
+                sponsorship, or endorsement of SneakersHub by those brands. For full details, see our{" "}
+                <Link
+                  to="/seller-policy"
+                  className="text-primary underline underline-offset-2 hover:opacity-80 transition-opacity font-medium"
+                >
+                  Seller Policy
+                </Link>
+                .
+              </p>
+            </div>
           </section>
 
           {/* Section 13 */}
@@ -355,6 +389,7 @@ const TermsOfService = () => {
               </div>
             </div>
           </section>
+
         </div>
 
         {/* Acceptance Footer */}
@@ -363,6 +398,7 @@ const TermsOfService = () => {
           <p className="text-sm font-semibold mb-1">By using SneakersHub, you acknowledge that you have read, understood, and agree to these Terms of Service.</p>
           <p className="text-xs text-muted-foreground">Last updated: {new Date().toLocaleDateString('en-GH', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
         </div>
+
       </div>
 
       <Footer />
