@@ -3,11 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
   Store, Plus, Eye, Tag, Pencil, Trash2, Zap, Sparkles,
-  AlertTriangle, Wallet, X, Camera, Type, DollarSign, Ruler, Search,
+  X, Camera, Type, DollarSign, Ruler, Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useListings, boostDaysLeft, isBoostActive, type Listing } from "@/context/ListingContext";
-import { CATEGORY_SVGS } from "@/data/sneakers";
 import { itemVariant, fadeUp } from "../Account/accountHelpers";
 import { toast } from "sonner";
 
@@ -15,7 +14,6 @@ const BoostModal = lazy(() => import("@/components/BoostModal"));
 
 const FIRST_LISTING_BANNER_KEY = "sneakershub-first-listing-dismissed";
 
-// ── First listing banner ──────────────────────────────────────────────────────
 const FirstListingBanner = ({ onDismiss, onStart }: { onDismiss: () => void; onStart: () => void }) => (
   <motion.div {...fadeUp}
     className="rounded-2xl border border-primary/30 bg-primary/5 p-5 mb-6 relative overflow-hidden">
@@ -99,17 +97,15 @@ interface Props {
   isVerified: boolean;
   isOfficial: boolean;
   totalListingsCreated: number;
-  hasMissingPayoutDetails: boolean;
   showFirstListingBanner: boolean;
   setShowFirstListingBanner: (v: boolean) => void;
-  onSetTab: (tab: string) => void;
   boostingListing: Listing | null;
   setBoostingListing: (l: Listing | null) => void;
 }
 
 const AccountListings = memo(({
-  listings, isVerified, isOfficial, totalListingsCreated, hasMissingPayoutDetails,
-  showFirstListingBanner, setShowFirstListingBanner, onSetTab,
+  listings, isVerified, isOfficial, totalListingsCreated,
+  showFirstListingBanner, setShowFirstListingBanner,
   boostingListing, setBoostingListing,
 }: Props) => {
   const navigate = useNavigate();
@@ -142,26 +138,6 @@ const AccountListings = memo(({
         )}
       </AnimatePresence>
 
-      {/* Missing payout details warning */}
-      {isVerified && hasMissingPayoutDetails && !isOfficial && (
-        <motion.div {...fadeUp}
-          className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 mb-5 flex items-start gap-3">
-          <div className="w-8 h-8 rounded-xl bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-            <AlertTriangle className="w-4 h-4 text-amber-500" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-semibold text-amber-700 dark:text-amber-400">Add payout details to receive payments</p>
-            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-              Buyers pay via Paystack. Add your MoMo or bank details so your earnings can be paid out correctly.
-            </p>
-            <button onClick={() => onSetTab("settings")}
-              className="inline-flex items-center gap-1.5 mt-2.5 text-xs font-semibold text-amber-600 hover:opacity-70 transition-opacity">
-              <Wallet className="w-3 h-3" /> Add payout details in Settings →
-            </button>
-          </div>
-        </motion.div>
-      )}
-
       {/* Header */}
       <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
         <div>
@@ -173,9 +149,7 @@ const AccountListings = memo(({
             <p className="text-xs text-muted-foreground mt-1">
               {totalListingsCreated}/20 listings used
               {totalListingsCreated >= 20 && (
-                <span className="text-amber-500 font-semibold ml-1">
-                  · <button onClick={() => onSetTab("settings")} className="underline underline-offset-2">Get verified</button> to list more
-                </span>
+                <span className="text-amber-500 font-semibold ml-1">· Limit reached</span>
               )}
             </p>
           )}
@@ -212,91 +186,96 @@ const AccountListings = memo(({
 
       <div className="space-y-3">
         <AnimatePresence>
-          {filteredListings.map((listing, i) => {
-            const fallbackSvg = CATEGORY_SVGS[listing.category] ?? "/categoryicons/other.svg";
-            return (
-              <motion.div key={listing.id} {...itemVariant(i)}
-                className={`rounded-2xl border p-4 transition-colors group
-                  ${listing.status === "sold" ? "border-border opacity-60" : "border-border hover:border-primary/30 hover:bg-primary/5"}`}>
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0 overflow-hidden">
-                    {listing.image
-                      ? <img src={listing.image} alt={listing.name} className="w-full h-full object-contain p-1" />
-                      : <img src={fallbackSvg} alt={listing.category} className="w-6 h-6 text-muted-foreground" />
-                    }
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-display font-semibold text-sm truncate">{listing.name}</p>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide
-                        ${listing.status === "active"
-                          ? "bg-green-500/10 text-green-600 border border-green-500/20"
-                          : "bg-muted text-muted-foreground border border-border"}`}>
-                        {listing.status === "active" ? "Active" : "Sold"}
-                      </span>
-                      {listing.status === "active" && isBoostActive(listing) && (
-                        <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-amber-500/10 text-amber-600 border border-amber-500/20">
-                          <Zap className="w-2.5 h-2.5" /> {listing.boostExpiresAt ? "Featured" : "Official · Always Featured"}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">{listing.brand} · {listing.category}</p>
-                    <div className="flex items-center gap-3 mt-1 flex-wrap">
-                      <span className="flex items-center gap-1 text-xs text-muted-foreground"><Eye className="w-3 h-3" /> {listing.views} views</span>
-                      <span className="flex items-center gap-1 text-xs text-muted-foreground"><Tag className="w-3 h-3" /> Sizes: {listing.sizes.join(", ")}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(listing.createdAt).toLocaleDateString("en-GH", { day: "numeric", month: "short", year: "numeric" })}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="font-display font-bold text-base flex-shrink-0">GHS {listing.price}</p>
+          {filteredListings.map((listing, i) => (
+            <motion.div key={listing.id} {...itemVariant(i)}
+              className={`rounded-2xl border p-4 transition-colors group
+                ${listing.status === "sold" ? "border-border opacity-60" : "border-border hover:border-primary/30 hover:bg-primary/5"}`}>
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  {listing.image
+                    ? <img src={listing.image} alt={listing.name} className="w-full h-full object-contain p-1" />
+                    : <img src="/categoryicons/other.svg" alt={listing.category} className="w-6 h-6 text-muted-foreground" />
+                  }
                 </div>
-
-                {/* Actions */}
-                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50 flex-wrap">
-                  <button onClick={() => navigate("/listings/new", { state: { listing } })}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-primary/10 hover:border-primary/30 transition-colors text-muted-foreground hover:text-foreground">
-                    <Pencil className="w-3 h-3" /> Edit
-                  </button>
-
-                  {listing.status === "active" && !isBoostActive(listing) && (
-                    <button onClick={() => setBoostingListing(listing)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/5 text-xs font-medium hover:bg-amber-500/15 transition-colors text-amber-600 dark:text-amber-400">
-                      <Zap className="w-3 h-3" /> {listing.boostExpiresAt ? "Re-boost" : "Boost"} · GHS 5
-                    </button>
-                  )}
-
-                  {listing.status === "active" && isBoostActive(listing) && listing.boostExpiresAt && (
-                    <div className="flex items-center gap-2">
-                      <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs font-semibold text-amber-600 dark:text-amber-400">
-                        <Zap className="w-3 h-3 fill-current" />
-                        {boostDaysLeft(listing) === 0 ? "Expires today" : boostDaysLeft(listing) === 1 ? "1 day left" : `${boostDaysLeft(listing)} days left`}
-                      </span>
-                      {boostDaysLeft(listing) <= 3 && (
-                        <button onClick={() => setBoostingListing(listing)}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-amber-500/40 text-[10px] font-semibold text-amber-600 hover:bg-amber-500/15 transition-colors">
-                          Extend
-                        </button>
-                      )}
-                    </div>
-                  )}
-
-                  {listing.status === "active" && isBoostActive(listing) && !listing.boostExpiresAt && (
-                    <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
-                      style={{ background: "rgba(109,40,217,0.1)", border: "1px solid rgba(109,40,217,0.25)", color: "#a78bfa" }}>
-                      <Sparkles className="w-3 h-3" /> Official · Always Featured
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-display font-semibold text-sm truncate">{listing.name}</p>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide
+                      ${listing.status === "active"
+                        ? "bg-green-500/10 text-green-600 border border-green-500/20"
+                        : "bg-muted text-muted-foreground border border-border"}`}>
+                      {listing.status === "active" ? "Active" : "Sold"}
                     </span>
-                  )}
-
-                  <button
-                    onClick={() => { deleteListing(listing.id); toast.success("Listing removed"); }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-red-500/10 hover:border-red-500/30 transition-colors text-muted-foreground hover:text-red-500 ml-auto">
-                    <Trash2 className="w-3 h-3" /> Delete
-                  </button>
+                    {listing.status === "active" && isBoostActive(listing) && (
+                      <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                        <Zap className="w-2.5 h-2.5" /> {listing.boostExpiresAt ? "Featured" : "Official · Always Featured"}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">{listing.brand} · {listing.category}</p>
+                  <div className="flex items-center gap-3 mt-1 flex-wrap">
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground"><Eye className="w-3 h-3" /> {listing.views} views</span>
+                    {listing.sizes?.length > 0 && (
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground"><Tag className="w-3 h-3" /> Sizes: {listing.sizes.join(", ")}</span>
+                    )}
+                    {listing.condition && (
+                      <span className="text-xs text-muted-foreground">{listing.condition}</span>
+                    )}
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(listing.createdAt).toLocaleDateString("en-GH", { day: "numeric", month: "short", year: "numeric" })}
+                    </span>
+                  </div>
                 </div>
-              </motion.div>
-            );
-          })}
+                <div className="text-right flex-shrink-0">
+                  <p className="font-display font-bold text-base">GHS {listing.price}</p>
+                  {listing.negotiable && <p className="text-[10px] text-muted-foreground">Negotiable</p>}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50 flex-wrap">
+                <button onClick={() => navigate("/listings/new", { state: { listing } })}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-primary/10 hover:border-primary/30 transition-colors text-muted-foreground hover:text-foreground">
+                  <Pencil className="w-3 h-3" /> Edit
+                </button>
+
+                {listing.status === "active" && !isBoostActive(listing) && (
+                  <button onClick={() => setBoostingListing(listing)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/5 text-xs font-medium hover:bg-amber-500/15 transition-colors text-amber-600 dark:text-amber-400">
+                    <Zap className="w-3 h-3" /> {listing.boostExpiresAt ? "Re-boost" : "Boost"} · GHS 5
+                  </button>
+                )}
+
+                {listing.status === "active" && isBoostActive(listing) && listing.boostExpiresAt && (
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                      <Zap className="w-3 h-3 fill-current" />
+                      {boostDaysLeft(listing) === 0 ? "Expires today" : boostDaysLeft(listing) === 1 ? "1 day left" : `${boostDaysLeft(listing)} days left`}
+                    </span>
+                    {boostDaysLeft(listing) <= 3 && (
+                      <button onClick={() => setBoostingListing(listing)}
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-amber-500/40 text-[10px] font-semibold text-amber-600 hover:bg-amber-500/15 transition-colors">
+                        Extend
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {listing.status === "active" && isBoostActive(listing) && !listing.boostExpiresAt && (
+                  <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
+                    style={{ background: "rgba(109,40,217,0.1)", border: "1px solid rgba(109,40,217,0.25)", color: "#a78bfa" }}>
+                    <Sparkles className="w-3 h-3" /> Official · Always Featured
+                  </span>
+                )}
+
+                <button
+                  onClick={() => { deleteListing(listing.id); toast.success("Listing removed"); }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium hover:bg-red-500/10 hover:border-red-500/30 transition-colors text-muted-foreground hover:text-red-500 ml-auto">
+                  <Trash2 className="w-3 h-3" /> Delete
+                </button>
+              </div>
+            </motion.div>
+          ))}
         </AnimatePresence>
       </div>
 

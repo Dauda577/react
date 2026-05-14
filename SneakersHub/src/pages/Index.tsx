@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Search, Zap, X, ShieldCheck, Truck, Wallet, Star, MessageCircle } from "lucide-react";
-import SneakerCard from "@/components/SneakerCard";
+import SneakerCard from "@/components/ListingCard";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";

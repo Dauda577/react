@@ -14,7 +14,7 @@ import { usePublicListings } from "@/context/PublicListingsContext";
 import { useRatings } from "@/context/RatingContext";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import SneakerCard from "@/components/SneakerCard";
+import SneakerCard from "@/components/ListingCard";
 import ChatModal from "@/components/ChatModal";
 import SizeGuideModal from "@/components/SizeGuideModal";
 import { Button } from "@/components/ui/button";

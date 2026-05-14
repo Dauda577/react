@@ -1,23 +1,18 @@
-import { lazy, Suspense, Component, ReactNode, useEffect } from "react"; // Add useEffect
+import { lazy, Suspense, Component, ReactNode } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { CartProvider } from "@/context/CartContext";
 import { SavedProvider } from "@/context/SavedContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
-import { OrderProvider } from "@/context/OrderContext";
 import { ListingProvider } from "@/context/ListingContext";
-import { RatingProvider } from "@/context/RatingContext";
 import { PublicListingsProvider } from "@/context/PublicListingsContext";
-import { MessageProvider } from "@/context/MessageContext";
-import { PushProvider } from "@/context/PushContext";
-import { useTheme } from "@/hooks/useTheme"; // Import useTheme
+import { useTheme } from "@/hooks/useTheme";
 import ScrollToTop from "@/components/ScrollToTop";
 import InstallPrompt from "@/components/InstallPrompt";
 import Spinner from "@/components/Spinner";
 import NetworkBanner from "@/components/NetworkBanner";
-import SellerPolicy from "@/pages/SellerPolicy"; // 👈 add this
+import SafariNotifPrompt from "@/components/SafariNotifPrompt";
 
 import Index from "./pages/Index";
 import Privacy from "@/pages/Privacy";
@@ -25,24 +20,17 @@ import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
-import SafariNotifPrompt from "./components/SafariNotifPrompt";
 import TermsOfService from "@/pages/TermsOfService";
 import SearchPage from "./pages/SearchPage";
 
 const Shop = lazy(() => import("./pages/Shop"));
-const Featured = lazy(() => import("./pages/Featured"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
-const Cart = lazy(() => import("./pages/Cart"));
-const Checkout = lazy(() => import("./pages/Checkout"));
-const OrderConfirmation = lazy(() => import("./pages/OrderConfirmation"));
 const About = lazy(() => import("./pages/About"));
 const Account = lazy(() => import("./pages/Account"));
 const CreateListing = lazy(() => import("./pages/CreateListing"));
 const Admin = lazy(() => import("./pages/Admin"));
-const Unsubscribe = lazy(() => import("./pages/Unsubscribe"));
-const Leaderboard = lazy(() => import("./pages/Leaderboard")); // 👈 add this
 
-class ErrorBoundary extends Component<
+class ErrorBoundary extends Component
   { children: ReactNode },
   { hasError: boolean; error: string }
 > {
@@ -73,7 +61,7 @@ class ErrorBoundary extends Component<
   }
 }
 
-const ProtectedRoute = ({ children, allowGuest = false }: { children: React.ReactNode; allowGuest?: boolean }) => {
+const ProtectedRoute = ({ children, allowGuest = false }: { children: ReactNode; allowGuest?: boolean }) => {
   const { user, isGuest, loading } = useAuth();
   if (loading) return <Spinner />;
   if (user) return <>{children}</>;
@@ -81,91 +69,59 @@ const ProtectedRoute = ({ children, allowGuest = false }: { children: React.Reac
   return <Navigate to="/auth" replace />;
 };
 
-const GuestRoute = ({ children }: { children: React.ReactNode }) => {
+const GuestRoute = ({ children }: { children: ReactNode }) => {
   const { user, loading } = useAuth();
   if (loading) return null;
   return user ? <Navigate to="/" replace /> : <>{children}</>;
 };
 
-// Create a ThemeWrapper component to use the theme hook
-const ThemeWrapper = ({ children }: { children: React.ReactNode }) => {
-  const { theme } = useTheme(); // This ensures theme is applied at root level
+const ThemeWrapper = ({ children }: { children: ReactNode }) => {
+  const { theme } = useTheme();
   return <>{children}</>;
 };
-
-// Add this before the App component
-const safeAreaTop = parseInt(
-  getComputedStyle(document.documentElement)
-    .getPropertyValue("--sat") || "0"
-) || 60;
 
 const App = () => (
   <ErrorBoundary>
     <TooltipProvider>
       <AuthProvider>
-        <OrderProvider>
-          <RatingProvider>
-            <PublicListingsProvider>
-              <ListingProvider>
-                <SavedProvider>
-                  <CartProvider>
-                    <MessageProvider>
-                      <PushProvider>
-                        <ThemeWrapper> {/* Add ThemeWrapper here */}
-                          <NetworkBanner /> {/* 👈 add this */}
-                          <Toaster />
-                          <Sonner
-                            position="top-center"
-                            offset="16px"
-                            style={{
-                              top: `calc(env(safe-area-inset-top, 60px) + 16px)`,
-                            }}
-                          />
-                          <InstallPrompt />
-                          <SafariNotifPrompt />
-                          <BrowserRouter>
-                            <ScrollToTop />
-                            <Suspense fallback={<Spinner />}>
-                              <Routes>
-                                <Route path="/search" element={<SearchPage />} />
-                                <Route path="/" element={<Index />} />
-                                <Route path="/shop" element={<Shop />} />
-                                <Route path="/featured" element={<Featured />} />
-                                <Route path="/product/:id" element={<ProductDetail />} />
-                                <Route path="/cart" element={<Cart />} />
-                                <Route path="/seller-policy" element={<SellerPolicy />} />
-                                <Route path="/checkout" element={<Checkout />} />
-                                <Route path="/order-confirmation" element={<OrderConfirmation />} />
-                                <Route path="/about" element={<About />} />
-                                <Route path="/leaderboard" element={<Leaderboard />} /> {/* 👈 add this */}
-                                <Route path="/auth" element={
-                                  <GuestRoute><Auth /></GuestRoute>
-                                } />
-                                <Route path="/account" element={
-                                  <ProtectedRoute allowGuest><Account /></ProtectedRoute>
-                                } />
-                                <Route path="/listings/new" element={
-                                  <ProtectedRoute><CreateListing /></ProtectedRoute>
-                                } />
-                                <Route path="/privacy" element={<Privacy />} />
-                                <Route path="/auth/callback" element={<AuthCallback />} />
-                                <Route path="/reset-password" element={<ResetPassword />} />
-                                <Route path="/admin" element={<Admin />} />
-                                <Route path="/unsubscribe" element={<Unsubscribe />} />
-                                <Route path="/terms" element={<TermsOfService />} />
-                                <Route path="*" element={<NotFound />} />
-                              </Routes>
-                            </Suspense>
-                          </BrowserRouter>
-                        </ThemeWrapper>
-                      </PushProvider>
-                    </MessageProvider>
-                  </CartProvider>
-                </SavedProvider>
-              </ListingProvider>
-            </PublicListingsProvider>
-          </RatingProvider>
-        </OrderProvider>
+        <PublicListingsProvider>
+          <ListingProvider>
+            <SavedProvider>
+              <ThemeWrapper>
+                <NetworkBanner />
+                <Toaster />
+                <Sonner
+                  position="top-center"
+                  offset="16px"
+                  style={{ top: `calc(env(safe-area-inset-top, 60px) + 16px)` }}
+                />
+                <InstallPrompt />
+                <SafariNotifPrompt />
+                <BrowserRouter>
+                  <ScrollToTop />
+                  <Suspense fallback={<Spinner />}>
+                    <Routes>
+                      <Route path="/" element={<Index />} />
+                      <Route path="/shop" element={<Shop />} />
+                      <Route path="/product/:id" element={<ProductDetail />} />
+                      <Route path="/search" element={<SearchPage />} />
+                      <Route path="/about" element={<About />} />
+                      <Route path="/privacy" element={<Privacy />} />
+                      <Route path="/terms" element={<TermsOfService />} />
+                      <Route path="/auth" element={<GuestRoute><Auth /></GuestRoute>} />
+                      <Route path="/auth/callback" element={<AuthCallback />} />
+                      <Route path="/reset-password" element={<ResetPassword />} />
+                      <Route path="/account" element={<ProtectedRoute allowGuest><Account /></ProtectedRoute>} />
+                      <Route path="/listings/new" element={<ProtectedRoute><CreateListing /></ProtectedRoute>} />
+                      <Route path="/admin" element={<Admin />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </Suspense>
+                </BrowserRouter>
+              </ThemeWrapper>
+            </SavedProvider>
+          </ListingProvider>
+        </PublicListingsProvider>
       </AuthProvider>
     </TooltipProvider>
   </ErrorBoundary>

@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, ArrowLeft } from "lucide-react";
 import Navbar from "@/components/Navbar";
-import SneakerCard from "@/components/SneakerCard";
+import SneakerCard from "@/components/ListingCard";
 import { PRODUCT_CATEGORIES } from "@/data/sneakers";
 import { usePublicListings } from "@/context/PublicListingsContext";
 

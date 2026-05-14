@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { supabase, ListingRow } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { triggerSMS } from "@/lib/sms";
 
 export type Listing = {
   id: string;
@@ -20,10 +19,12 @@ export type Listing = {
   createdAt: string;
   city: string | null;
   region: string | null;
-  shippingCost: number;
-  handlingTime: string;
   images: string[];
-  discountPercent: number | null;
+  condition: string | null;
+  negotiable: boolean;
+  deliveryAvailable: boolean;
+  whatsapp: string | null;
+  phone: string | null;
 };
 
 type ListingContextType = {
@@ -51,11 +52,7 @@ const rowToListing = (r: ListingRow): Listing => ({
   price: r.price,
   category: r.category,
   sizes: Array.isArray(r.sizes)
-    ? (r.category === "Sneakers"
-      ? (r.sizes as (string | number)[])
-        .map((s) => Number(s))
-        .filter((n) => !Number.isNaN(n))
-      : (r.sizes as (string | number)[]).map((s) => String(s)))
+    ? (r.sizes as (string | number)[]).map((s) => Number(s)).filter((n) => !Number.isNaN(n))
     : [],
   description: r.description ?? "",
   image: r.image_url,
@@ -66,32 +63,26 @@ const rowToListing = (r: ListingRow): Listing => ({
   createdAt: r.created_at,
   city: (r as any).city ?? null,
   region: (r as any).region ?? null,
-  shippingCost: (r as any).shipping_cost ?? 0,
-  handlingTime: (r as any).handling_time ?? "Ships in 1-3 days",
   images: (r as any).images ?? [],
-  discountPercent: (r as any).discount_percent ?? null,
+  condition: (r as any).condition ?? null,
+  negotiable: (r as any).negotiable ?? false,
+  deliveryAvailable: (r as any).delivery_available ?? false,
+  whatsapp: (r as any).whatsapp ?? null,
+  phone: (r as any).phone ?? null,
 });
 
 export const isBoostActive = (listing: Listing): boolean => {
   if (!listing.boosted) return false;
-  // Official listings: boosted=true with no expiry — always active
   if (!listing.boostExpiresAt) return true;
   return new Date(listing.boostExpiresAt) > new Date();
 };
 
 export const boostDaysLeft = (listing: Listing): number => {
-  // No expiry = official listing, always featured
   if (!listing.boostExpiresAt) return 0;
   const diff = new Date(listing.boostExpiresAt).getTime() - Date.now();
   return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
 };
 
-/**
- * Compresses and resizes an image to WebP before uploading.
- * - Max 1200px wide (preserves aspect ratio)
- * - 85% quality WebP
- * - Typically reduces a 4MB photo to ~200-400KB with no visible quality loss
- */
 const compressImage = (file: File): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -113,7 +104,7 @@ const compressImage = (file: File): Promise<Blob> => {
       canvas.toBlob(
         (blob) => blob ? resolve(blob) : reject(new Error("Compression failed")),
         "image/webp",
-        0.75 // 75% quality — good balance of size vs quality
+        0.75
       );
     };
     img.onerror = () => reject(new Error("Image load failed"));
@@ -121,7 +112,6 @@ const compressImage = (file: File): Promise<Blob> => {
   });
 };
 
-// ✅ FIXED: uploadImage now accepts a unique path for each image
 const uploadImage = async (file: File, path: string): Promise<string | null> => {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
   try {
@@ -130,12 +120,8 @@ const uploadImage = async (file: File, path: string): Promise<string | null> => 
       upsert: true,
       contentType: "image/webp",
     });
-    if (error) {
-      console.error("Image upload error:", error.message);
-      return null;
-    }
-    const url = `${supabaseUrl}/storage/v1/object/public/listings/${path}`;
-    return url;
+    if (error) { console.error("Image upload error:", error.message); return null; }
+    return `${supabaseUrl}/storage/v1/object/public/listings/${path}`;
   } catch (err) {
     console.error("Image upload exception:", err);
     return null;
@@ -152,7 +138,7 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     const { data, error } = await supabase
       .from("listings")
-      .select("id, seller_id, name, brand, price, category, sizes, description, image_url, images, status, boosted, boost_expires_at, views, created_at, city, region, shipping_cost, handling_time, discount_percent")
+      .select("id, seller_id, name, brand, price, category, sizes, description, image_url, images, status, boosted, boost_expires_at, views, created_at, city, region, condition, negotiable, delivery_available, whatsapp, phone")
       .eq("seller_id", user.id)
       .order("created_at", { ascending: false });
     if (!error && data) setListings((data as ListingRow[]).map(rowToListing));
@@ -161,51 +147,28 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => { fetchListings(); }, [user?.id]);
 
-  // ── Realtime: in-place updates ────────────────────────────────────────────
   useEffect(() => {
     if (!user?.id) return;
-
     const channel = supabase
       .channel(`seller-listings-realtime:${user.id}`)
-      .on("postgres_changes", {
-        event: "INSERT",
-        schema: "public",
-        table: "listings",
-        filter: `seller_id=eq.${user.id}`,
-      }, (payload) => {
-        const newListing = rowToListing(payload.new as ListingRow);
-        setListings((prev) => {
-          if (prev.some((l) => l.id === newListing.id)) return prev;
-          return [newListing, ...prev];
-        });
-      })
-      .on("postgres_changes", {
-        event: "UPDATE",
-        schema: "public",
-        table: "listings",
-        filter: `seller_id=eq.${user.id}`,
-      }, (payload) => {
-        const updated = rowToListing(payload.new as ListingRow);
-        setListings((prev) =>
-          prev.map((l) => (l.id === updated.id ? updated : l))
-        );
-      })
-      .on("postgres_changes", {
-        event: "DELETE",
-        schema: "public",
-        table: "listings",
-        filter: `seller_id=eq.${user.id}`,
-      }, (payload) => {
-        setListings((prev) => prev.filter((l) => l.id !== payload.old.id));
-      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "listings", filter: `seller_id=eq.${user.id}` },
+        (payload) => {
+          const newListing = rowToListing(payload.new as ListingRow);
+          setListings((prev) => prev.some((l) => l.id === newListing.id) ? prev : [newListing, ...prev]);
+        })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "listings", filter: `seller_id=eq.${user.id}` },
+        (payload) => {
+          const updated = rowToListing(payload.new as ListingRow);
+          setListings((prev) => prev.map((l) => l.id === updated.id ? updated : l));
+        })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "listings", filter: `seller_id=eq.${user.id}` },
+        (payload) => setListings((prev) => prev.filter((l) => l.id !== payload.old.id)))
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, [user?.id]);
 
   const boostedListings = listings.filter((l) => l.status === "active" && isBoostActive(l));
 
-  // ✅ FIXED: addListing with unique image paths and discountPercent
   const addListing = async (
     listing: Omit<Listing, "id" | "sellerId" | "views" | "createdAt" | "status" | "boosted" | "boostExpiresAt">,
     imageFile?: File,
@@ -213,43 +176,31 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
   ) => {
     if (!user) throw new Error("Not authenticated");
 
-    // ── Listing limit: unverified sellers max 2, verified unlimited ──
-    const UNVERIFIED_MAX = 20;
     const { data: profile } = await supabase
       .from("profiles")
-      .select("verified, is_official, phone")
+      .select("verified, is_official")
       .eq("id", user.id)
       .single();
 
     const isVerified = profile?.verified === true || profile?.is_official === true;
-    const sellerPhone = profile?.phone;
 
     if (!isVerified) {
-      // Use listing_count on profiles — a counter that only ever increments,
-      // never decrements on delete, so sellers can't bypass limit by deleting
       const { data: countData } = await supabase
         .from("profiles")
         .select("listing_count")
         .eq("id", user.id)
         .single();
-
-      const totalCreated = countData?.listing_count ?? 0;
-
-      if (totalCreated >= UNVERIFIED_MAX) {
-        throw new Error(
-          `Unverified sellers can create up to ${UNVERIFIED_MAX} listings. Get verified to list unlimited sneakers.`
-        );
+      if ((countData?.listing_count ?? 0) >= 20) {
+        throw new Error("Unverified sellers can create up to 20 listings. Get verified to list unlimited items.");
       }
     }
 
-    // Fetch seller's default city/region from profile
     const { data: sellerProfile } = await supabase
       .from("profiles")
       .select("city, region")
       .eq("id", user.id)
       .single();
 
-    // Increment the permanent listing counter on the profile (never decremented)
     await supabase.rpc("increment_listing_count", { seller_id: user.id });
 
     const { data, error } = await supabase.from("listings").insert({
@@ -262,47 +213,31 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
       description: listing.description,
       city: listing.city ?? sellerProfile?.city ?? null,
       region: listing.region ?? sellerProfile?.region ?? null,
-      shipping_cost: (listing as any).shippingCost ?? 0,
-      handling_time: (listing as any).handlingTime ?? "Ships in 1-3 days",
-      discount_percent: (listing as any).discountPercent ?? null,
+      condition: listing.condition ?? null,
+      negotiable: listing.negotiable ?? false,
+      delivery_available: listing.deliveryAvailable ?? false,
+      whatsapp: listing.whatsapp ?? null,
+      phone: listing.phone ?? null,
     }).select().single();
 
     if (error) throw new Error(error.message);
 
-    // ✅ FIXED: Add seller's phone number to SMS trigger
-    triggerSMS({
-      type: "listing.created",
-      record: {
-        ...data,
-        seller_phone: sellerPhone,
-        listing_name: data.name
-      }
-    }).catch(() => { });
-
-    // Upload images — use unique paths for each image
     if (imageFile && data) {
       const timestamp = Date.now();
       const allFiles = [imageFile, ...(extraImages ?? [])];
-      const uploadPromises = allFiles.map(async (file, index) => {
-        const uniquePath = `${data.id}/${timestamp}-${index}.webp`;
-        return await uploadImage(file, uniquePath);
-      });
-      const urls = await Promise.all(uploadPromises);
+      const urls = await Promise.all(
+        allFiles.map((file, index) => uploadImage(file, `${data.id}/${timestamp}-${index}.webp`))
+      );
       const validUrls = urls.filter(Boolean) as string[];
-      const coverUrl = validUrls[0] ?? null;
-      if (coverUrl) {
-        await supabase.from("listings").update({
-          image_url: coverUrl,
-          images: validUrls,
-        }).eq("id", data.id);
+      if (validUrls.length > 0) {
+        await supabase.from("listings").update({ image_url: validUrls[0], images: validUrls }).eq("id", data.id);
         setListings((prev) =>
-          prev.map((l) => l.id === data.id ? { ...l, image: coverUrl, images: validUrls } : l)
+          prev.map((l) => l.id === data.id ? { ...l, image: validUrls[0], images: validUrls } : l)
         );
       }
     }
   };
 
-  // ✅ FIXED: updateListing with proper image handling and discountPercent
   const updateListing = async (id: string, updates: Partial<Listing>, imageFile?: File, extraImages?: File[]) => {
     const dbUpdates: any = {};
     if (updates.city !== undefined) dbUpdates.city = updates.city;
@@ -314,79 +249,36 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
     if (updates.sizes !== undefined) dbUpdates.sizes = updates.sizes;
     if (updates.description !== undefined) dbUpdates.description = updates.description;
     if (updates.status !== undefined) dbUpdates.status = updates.status;
-    if ((updates as any).shippingCost !== undefined) dbUpdates.shipping_cost = (updates as any).shippingCost;
-    if ((updates as any).handlingTime !== undefined) dbUpdates.handling_time = (updates as any).handlingTime;
     if (updates.boosted !== undefined) dbUpdates.boosted = updates.boosted;
     if (updates.boostExpiresAt !== undefined) dbUpdates.boost_expires_at = updates.boostExpiresAt;
-    if (updates.discountPercent !== undefined) dbUpdates.discount_percent = updates.discountPercent;
+    if (updates.condition !== undefined) dbUpdates.condition = updates.condition;
+    if (updates.negotiable !== undefined) dbUpdates.negotiable = updates.negotiable;
+    if (updates.deliveryAvailable !== undefined) dbUpdates.delivery_available = updates.deliveryAvailable;
+    if (updates.whatsapp !== undefined) dbUpdates.whatsapp = updates.whatsapp;
+    if (updates.phone !== undefined) dbUpdates.phone = updates.phone;
 
-    // ✅ FIXED: Handle image uploads with unique paths
     if (imageFile || (extraImages && extraImages.length > 0)) {
       const timestamp = Date.now();
-      const allFiles: File[] = [];
-      if (imageFile) allFiles.push(imageFile);
-      if (extraImages && extraImages.length > 0) allFiles.push(...extraImages);
-
-      // Upload each file with a unique path
-      const uploadPromises = allFiles.map(async (file, index) => {
-        const uniquePath = `${id}/${timestamp}-${index}.webp`;
-        return await uploadImage(file, uniquePath);
-      });
-
-      const urls = await Promise.all(uploadPromises);
+      const allFiles = [...(imageFile ? [imageFile] : []), ...(extraImages ?? [])];
+      const urls = await Promise.all(
+        allFiles.map((file, index) => uploadImage(file, `${id}/${timestamp}-${index}.webp`))
+      );
       const validUrls = urls.filter(Boolean) as string[];
-
       if (validUrls.length > 0) {
-        dbUpdates.image_url = validUrls[0]; // First image is cover
-        dbUpdates.images = validUrls;       // All images including cover
+        dbUpdates.image_url = validUrls[0];
+        dbUpdates.images = validUrls;
       }
     }
 
-    // Optimistic update
-    setListings((prev) =>
-      prev.map((l) => l.id === id ? { ...l, ...updates } : l)
-    );
-
+    setListings((prev) => prev.map((l) => l.id === id ? { ...l, ...updates } : l));
     const { error } = await supabase.from("listings").update(dbUpdates).eq("id", id);
-    if (error) {
-      // Revert on failure
-      await fetchListings();
-      throw new Error(error.message);
-    }
-
-    // After supabase update succeeds, check if price dropped
-    if (updates.price !== undefined) {
-      const existing = listings.find(l => l.id === id);
-      if (existing && updates.price < existing.price) {
-        // Fire price drop alert — don't await, non-blocking
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/price-drop-alert`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${session?.access_token}`,
-              "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
-            },
-            body: JSON.stringify({
-              listing_id: id,
-              new_price: updates.price,
-            }),
-          }).catch(() => { }); // silent fail — non-critical
-        });
-      }
-    }
+    if (error) { await fetchListings(); throw new Error(error.message); }
   };
 
   const deleteListing = async (id: string) => {
-    // Optimistic removal
     setListings((prev) => prev.filter((l) => l.id !== id));
     const { error } = await supabase.from("listings").delete().eq("id", id);
-    if (error) {
-      await fetchListings();
-      throw new Error(error.message);
-    }
-    // Remove from all buyers' carts
-    supabase.from("carts").delete().eq("sneaker_id", id).then(() => { });
+    if (error) { await fetchListings(); throw new Error(error.message); }
   };
 
   const markSold = (id: string) => updateListing(id, { status: "sold" });

@@ -2,19 +2,16 @@ import { createContext, useContext, useState, useEffect, useRef, ReactNode } fro
 import { supabase } from "@/lib/supabase";
 
 export type PublicListing = {
-  [x: string]: string | number | Date;
   id: string;
   sellerId: string;
   sellerName: string;
   sellerPhone: string | null;
+  sellerWhatsapp: string | null;
   sellerCity: string | null;
   sellerRegion: string | null;
   sellerVerified: boolean;
   sellerIsOfficial: boolean;
-  sellerSubaccountCode: string | null;
   sellerMemberSince: string;
-  shippingCost: number;
-  handlingTime: string;
   images: string[];
   city: string | null;
   region: string | null;
@@ -29,7 +26,11 @@ export type PublicListing = {
   boostExpiresAt: string | null;
   views: number;
   createdAt: string;
-  discountPercent: number | null;
+  condition: string | null;
+  negotiable: boolean;
+  deliveryAvailable: boolean;
+  whatsapp: string | null;
+  phone: string | null;
 };
 
 type PublicListingsContextType = {
@@ -43,7 +44,7 @@ type PublicListingsContextType = {
 const PublicListingsContext = createContext<PublicListingsContextType | null>(null);
 
 let listingsCache: PublicListing[] | null = null;
-// Expose cache reset globally so verification flow can force a refresh
+
 if (typeof window !== "undefined") {
   Object.defineProperty(window, "__listingsCache", {
     set: (v) => { listingsCache = v; },
@@ -51,6 +52,70 @@ if (typeof window !== "undefined") {
     configurable: true,
   });
 }
+
+const SELECT_QUERY = `
+  id, seller_id, name, brand, price, category, sizes,
+  description, image_url, images, boosted, boost_expires_at,
+  views, created_at, city, region, condition, negotiable, delivery_available, whatsapp, phone,
+  profiles ( name, phone, city, region, verified, is_official, created_at )
+`;
+
+const mapRow = (row: any): PublicListing => {
+  const p = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+  return {
+    id: row.id,
+    sellerId: row.seller_id,
+    sellerName: p?.name ?? "Seller",
+    sellerPhone: p?.phone ?? null,
+    sellerWhatsapp: row.whatsapp ?? null,
+    sellerCity: p?.city ?? null,
+    sellerRegion: p?.region ?? null,
+    city: row.city ?? null,
+    region: row.region ?? null,
+    sellerVerified: p?.verified ?? false,
+    sellerIsOfficial: p?.is_official ?? false,
+    sellerMemberSince: p?.created_at
+      ? new Date(p.created_at).getFullYear().toString()
+      : new Date(row.created_at).getFullYear().toString(),
+    images: row.images ?? [],
+    name: row.name,
+    brand: row.brand,
+    price: row.price,
+    category: row.category,
+    sizes: row.sizes,
+    description: row.description ?? "",
+    image: row.image_url,
+    boosted: row.boosted,
+    boostExpiresAt: row.boost_expires_at,
+    views: row.views,
+    createdAt: row.created_at,
+    condition: row.condition ?? null,
+    negotiable: row.negotiable ?? false,
+    deliveryAvailable: row.delivery_available ?? false,
+    whatsapp: row.whatsapp ?? null,
+    phone: row.phone ?? null,
+  };
+};
+
+const sortListings = (listings: PublicListing[]): PublicListing[] => {
+  const now = Date.now();
+  const isActiveBoost = (l: PublicListing) => {
+    if (!l.boosted) return false;
+    if (!l.boostExpiresAt) return true;
+    return new Date(l.boostExpiresAt).getTime() > now;
+  };
+  return [...listings].sort((a, b) => {
+    const aActive = isActiveBoost(a) ? 1 : 0;
+    const bActive = isActiveBoost(b) ? 1 : 0;
+    if (bActive !== aActive) return bActive - aActive;
+    if (aActive && bActive) {
+      const aExp = a.boostExpiresAt ? new Date(a.boostExpiresAt).getTime() : Infinity;
+      const bExp = b.boostExpiresAt ? new Date(b.boostExpiresAt).getTime() : Infinity;
+      return bExp - aExp;
+    }
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+};
 
 export const PublicListingsProvider = ({ children }: { children: ReactNode }) => {
   const [listings, setListings] = useState<PublicListing[]>(listingsCache ?? []);
@@ -64,80 +129,14 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
 
     const { data, error } = await supabase
       .from("listings")
-      .select(`
-        id, seller_id, name, brand, price, category, sizes,
-        description, image_url, images, boosted, boost_expires_at,
-        views, created_at, city, region, shipping_cost, discount_percent, handling_time,
-        profiles (
-  name, phone, city, region, verified, is_official, subaccount_code, created_at
-)
-      `)
+      .select(SELECT_QUERY)
       .eq("status", "active")
-      .order("boosted", { ascending: false })
       .order("created_at", { ascending: false });
 
     if (!error && data) {
-      const mapped: PublicListing[] = data.map((row: any) => {
-        const p = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
-        return {
-          id: row.id,
-          sellerId: row.seller_id,
-          sellerName: p?.name ?? "Seller",
-          sellerPhone: p?.phone ?? null,
-          sellerCity: p?.city ?? null,
-          sellerRegion: p?.region ?? null,
-          city: row.city ?? null,
-          region: row.region ?? null,
-          sellerVerified: p?.verified ?? false,
-          sellerIsOfficial: p?.is_official ?? false,
-          sellerSubaccountCode: p?.subaccount_code ?? null,
-          sellerMemberSince: p?.created_at
-            ? new Date(p.created_at).getFullYear().toString()
-            : new Date(row.created_at).getFullYear().toString(),
-          shippingCost: row.shipping_cost ?? 0,
-          handlingTime: row.handling_time ?? "Ships in 1-3 days",
-          images: row.images ?? [],
-          name: row.name,
-          brand: row.brand,
-          price: row.price,
-          category: row.category,
-          sizes: row.sizes,
-          description: row.description ?? "",
-          image: row.image_url,
-          boosted: row.boosted,
-          boostExpiresAt: row.boost_expires_at,
-          views: row.views,
-          createdAt: row.created_at,
-          discountPercent: row.discount_percent ?? null,
-        };
-      });
-
-      listingsCache = mapped;
-
-      // Filter out expired boosts client-side and sort:
-      // 1. Active boosts first, newest boost_expires_at first (most recently boosted)
-      // 2. Then unboosted, newest created_at first
-      const now = Date.now();
-      const isActiveBoost = (l: PublicListing) => {
-        if (!l.boosted) return false;
-        if (!l.boostExpiresAt) return true; // official — no expiry
-        return new Date(l.boostExpiresAt).getTime() > now;
-      };
-
-      const sorted = [...mapped].sort((a, b) => {
-        const aActive = isActiveBoost(a) ? 1 : 0;
-        const bActive = isActiveBoost(b) ? 1 : 0;
-        if (bActive !== aActive) return bActive - aActive;
-        // Both boosted — newest boost expiry first (most recently boosted)
-        if (aActive && bActive) {
-          const aExp = a.boostExpiresAt ? new Date(a.boostExpiresAt).getTime() : Infinity;
-          const bExp = b.boostExpiresAt ? new Date(b.boostExpiresAt).getTime() : Infinity;
-          return bExp - aExp;
-        }
-        // Both unboosted — newest listing first
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      });
-
+      const mapped = data.map(mapRow);
+      const sorted = sortListings(mapped);
+      listingsCache = sorted;
       setListings(sorted);
     }
 
@@ -145,59 +144,17 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
     isFetching.current = false;
   };
 
-  // Function to refresh a single listing
   const refreshListing = async (id: string) => {
     const { data, error } = await supabase
       .from("listings")
-      .select(`
-        id, seller_id, name, brand, price, category, sizes,
-        description, image_url, images, boosted, boost_expires_at,
-        views, created_at, city, region, shipping_cost, discount_percent, handling_time,
-        profiles (
-  name, phone, city, region, verified, is_official, subaccount_code, created_at
-)
-      `)
+      .select(SELECT_QUERY)
       .eq("id", id)
       .single();
 
     if (!error && data) {
-      const p = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
-      const refreshedListing: PublicListing = {
-        id: data.id,
-        sellerId: data.seller_id,
-        sellerName: p?.name ?? "Seller",
-        sellerPhone: p?.phone ?? null,
-        sellerCity: p?.city ?? null,
-        sellerRegion: p?.region ?? null,
-        city: data.city ?? null,
-        region: data.region ?? null,
-        sellerVerified: p?.verified ?? false,
-        sellerIsOfficial: p?.is_official ?? false,
-        sellerSubaccountCode: p?.subaccount_code ?? null,
-        sellerMemberSince: p?.created_at
-          ? new Date(p.created_at).getFullYear().toString()
-          : new Date(data.created_at).getFullYear().toString(),
-        shippingCost: data.shipping_cost ?? 0,
-        handlingTime: data.handling_time ?? "Ships in 1-3 days",
-        images: data.images ?? [],
-        name: data.name,
-        brand: data.brand,
-        price: data.price,
-        category: data.category,
-        sizes: data.sizes,
-        description: data.description ?? "",
-        image: data.image_url,
-        boosted: data.boosted,
-        boostExpiresAt: data.boost_expires_at,
-        views: data.views,
-        createdAt: data.created_at,
-        discountPercent: data.discount_percent ?? null,
-      };
-
+      const refreshed = mapRow(data);
       setListings((prev) => {
-        const updated = prev.map((l) =>
-          l.id === id ? refreshedListing : l
-        );
+        const updated = prev.map((l) => l.id === id ? refreshed : l);
         listingsCache = updated;
         return updated;
       });
@@ -208,144 +165,41 @@ export const PublicListingsProvider = ({ children }: { children: ReactNode }) =>
     await supabase.rpc("increment_listing_views", { listing_id: id });
   };
 
-  useEffect(() => {
-    if (!listingsCache) fetchListings();
-  }, []);
+  useEffect(() => { if (!listingsCache) fetchListings(); }, []);
 
   useEffect(() => {
     const channel = supabase
       .channel("listings-realtime")
-      // For INSERT: fetch full listing data to get seller info
-      .on("postgres_changes", 
-        { event: "INSERT", schema: "public", table: "listings" },
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "listings" },
         async (payload) => {
-          // Fetch the complete listing with seller data
-          const { data, error } = await supabase
-            .from("listings")
-            .select(`
-              id, seller_id, name, brand, price, category, sizes,
-              description, image_url, images, boosted, boost_expires_at,
-              views, created_at, city, region, shipping_cost, discount_percent, handling_time,
-              profiles (
-  name, phone, city, region, verified, is_official, subaccount_code, created_at
-)
-            `)
-            .eq("id", payload.new.id)
-            .single();
-          
+          const { data, error } = await supabase.from("listings").select(SELECT_QUERY).eq("id", payload.new.id).single();
           if (!error && data) {
-            const p = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
-            const newListing: PublicListing = {
-              id: data.id,
-              sellerId: data.seller_id,
-              sellerName: p?.name ?? "Seller",
-              sellerPhone: p?.phone ?? null,
-              sellerCity: p?.city ?? null,
-              sellerRegion: p?.region ?? null,
-              city: data.city ?? null,
-              region: data.region ?? null,
-              sellerVerified: p?.verified ?? false,
-              sellerIsOfficial: p?.is_official ?? false,
-              sellerSubaccountCode: p?.subaccount_code ?? null,
-              sellerMemberSince: p?.created_at
-                ? new Date(p.created_at).getFullYear().toString()
-                : new Date(data.created_at).getFullYear().toString(),
-              shippingCost: data.shipping_cost ?? 0,
-              handlingTime: data.handling_time ?? "Ships in 1-3 days",
-              images: data.images ?? [],
-              name: data.name,
-              brand: data.brand,
-              price: data.price,
-              category: data.category,
-              sizes: data.sizes,
-              description: data.description ?? "",
-              image: data.image_url,
-              boosted: data.boosted,
-              boostExpiresAt: data.boost_expires_at,
-              views: data.views,
-              createdAt: data.created_at,
-              discountPercent: data.discount_percent ?? null,
-            };
-
             setListings((prev) => {
-              const updated = [newListing, ...prev];
+              const updated = [mapRow(data), ...prev];
               listingsCache = updated;
               return updated;
             });
           }
-        }
-      )
-      .on("postgres_changes", 
-        { event: "UPDATE", schema: "public", table: "listings" },
+        })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "listings" },
         async (payload) => {
-          // Fetch the complete updated listing with all fields including images
-          const { data, error } = await supabase
-            .from("listings")
-            .select(`
-              id, seller_id, name, brand, price, category, sizes,
-              description, image_url, images, boosted, boost_expires_at,
-              views, created_at, city, region, shipping_cost, discount_percent, handling_time,
-              profiles (
-  name, phone, city, region, verified, is_official, subaccount_code, created_at
-)
-            `)
-            .eq("id", payload.new.id)
-            .single();
-          
+          const { data, error } = await supabase.from("listings").select(SELECT_QUERY).eq("id", payload.new.id).single();
           if (!error && data) {
-            const p = Array.isArray(data.profiles) ? data.profiles[0] : data.profiles;
-            const updatedListing: PublicListing = {
-              id: data.id,
-              sellerId: data.seller_id,
-              sellerName: p?.name ?? "Seller",
-              sellerPhone: p?.phone ?? null,
-              sellerCity: p?.city ?? null,
-              sellerRegion: p?.region ?? null,
-              city: data.city ?? null,
-              region: data.region ?? null,
-              sellerVerified: p?.verified ?? false,
-              sellerIsOfficial: p?.is_official ?? false,
-              sellerSubaccountCode: p?.subaccount_code ?? null,
-              sellerMemberSince: p?.created_at
-                ? new Date(p.created_at).getFullYear().toString()
-                : new Date(data.created_at).getFullYear().toString(),
-              shippingCost: data.shipping_cost ?? 0,
-              handlingTime: data.handling_time ?? "Ships in 1-3 days",
-              images: data.images ?? [],
-              name: data.name,
-              brand: data.brand,
-              price: data.price,
-              category: data.category,
-              sizes: data.sizes,
-              description: data.description ?? "",
-              image: data.image_url,
-              boosted: data.boosted,
-              boostExpiresAt: data.boost_expires_at,
-              views: data.views,
-              createdAt: data.created_at,
-              discountPercent: data.discount_percent ?? null,
-            };
-
             setListings((prev) => {
-              const updated = prev.map((l) =>
-                l.id === payload.new.id ? updatedListing : l
-              );
+              const updated = prev.map((l) => l.id === payload.new.id ? mapRow(data) : l);
               listingsCache = updated;
               return updated;
             });
           }
-        }
-      )
-      .on("postgres_changes", 
-        { event: "DELETE", schema: "public", table: "listings" },
+        })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "listings" },
         (payload) => {
           setListings((prev) => {
             const updated = prev.filter((l) => l.id !== payload.old.id);
             listingsCache = updated;
             return updated;
           });
-        }
-      )
+        })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };

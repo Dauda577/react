@@ -4,7 +4,7 @@ import { Search, X, Package, ChevronLeft, ChevronRight } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import SneakerCard from "@/components/SneakerCard";
+import SneakerCard from "@/components/ListingCard";
 import { usePublicListings } from "@/context/PublicListingsContext";
 import { Button } from "@/components/ui/button";
 import { PRODUCT_CATEGORIES, CATEGORY_SVGS } from "@/data/sneakers";

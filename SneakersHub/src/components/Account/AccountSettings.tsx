@@ -1,18 +1,14 @@
-import React, { memo, useState, useEffect, useCallback, useRef } from "react";
+import React, { memo, useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Bell, Shield, Lock, Trash, ChevronRight, Wallet,
-  CheckCircle, AlertTriangle, Share, Moon, Sun, Store, Clock, X,
-  ShieldCheck, Smartphone, Banknote, AlertCircle, Loader2,
+  Bell, Shield, Lock, Trash, ChevronRight,
+  CheckCircle, Share, Moon, Sun, X, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "@/hooks/useTheme";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { fadeUp } from "../Account/accountHelpers";
-
-// Lazy load the drawer component
-const BecomeSellerDrawer = React.lazy(() => import("@/components/Becomesellerdrawer"));
 
 const isSafari = () =>
   typeof navigator !== "undefined" &&
@@ -25,36 +21,6 @@ const isStandalone = () =>
   (window.matchMedia("(display-mode: standalone)").matches ||
     (window.navigator as any).standalone === true);
 
-// Cache for profile data with longer TTL
-const profileCache: Record<string, { data: any; timestamp: number }> = {};
-const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
-
-// Cache for seller application status
-const sellerStatusCache: Record<string, { status: string | null; appData: any; timestamp: number }> = {};
-const SELLER_STATUS_TTL = 2 * 60 * 1000; // 2 minutes
-
-// Detect network based on phone number prefix
-const detectNetwork = (number: string): string | null => {
-  const cleaned = number.replace(/\D/g, "");
-  let normalized = cleaned;
-  if (normalized.startsWith("233")) normalized = normalized.slice(3);
-  if (normalized.startsWith("0")) normalized = normalized.slice(1);
-  const prefix = normalized.slice(0, 2);
-  if (prefix === "50") return "VOD";
-  if (prefix === "26" || prefix === "27") return "ATL";
-  if (["54", "55", "59", "24"].includes(prefix)) return "MTN";
-  return null;
-};
-
-const getNetworkName = (number: string) => {
-  const network = detectNetwork(number);
-  if (network === "VOD") return "Telecel Cash";
-  if (network === "ATL") return "AirtelTigo Money";
-  if (network === "MTN") return "MTN MoMo";
-  return null;
-};
-
-// ── Notification settings block (unchanged) ───────────────────────────────────
 const NotificationSettings = memo(({
   pushSupported, pushPermission, requestPermission,
 }: {
@@ -86,7 +52,7 @@ const NotificationSettings = memo(({
     <div className="px-5 py-4 flex items-center justify-between gap-4 bg-primary/5 border-b border-border">
       <div>
         <p className="text-sm font-semibold text-primary">Enable Push Notifications</p>
-        <p className="text-xs text-muted-foreground mt-0.5">Get notified about orders and messages</p>
+        <p className="text-xs text-muted-foreground mt-0.5">Get notified about new messages and boosts</p>
       </div>
       <button
         onClick={async () => {
@@ -122,96 +88,8 @@ const NotificationSettings = memo(({
 
 NotificationSettings.displayName = "NotificationSettings";
 
-// ── Payout change confirmation modal (unchanged) ─────────────────────────────
-const PayoutConfirmModal = memo(({
-  open, oldNumber, oldName, newNumber, newName, onConfirm, onCancel,
-}: {
-  open: boolean;
-  oldNumber: string;
-  oldName: string;
-  newNumber: string;
-  newName: string;
-  onConfirm: () => void;
-  onCancel: () => void;
-}) => (
-  <AnimatePresence>
-    {open && (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm"
-        onClick={onCancel}
-      >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95, y: 12 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: 12 }}
-          transition={{ type: "spring", damping: 28, stiffness: 320 }}
-          className="w-full max-w-sm bg-background border border-border rounded-2xl shadow-2xl p-6 space-y-5"
-          onClick={e => e.stopPropagation()}
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-              <AlertTriangle className="w-5 h-5 text-amber-500" />
-            </div>
-            <div>
-              <p className="font-display font-bold text-base">Update Payout Account?</p>
-              <p className="text-xs text-muted-foreground mt-0.5">This will change where your sales are sent</p>
-            </div>
-          </div>
-
-          <div className="space-y-2 text-xs">
-            <div className="rounded-xl border border-border bg-muted/30 p-3 space-y-1">
-              <p className="text-muted-foreground font-semibold uppercase tracking-wider text-[10px]">Current</p>
-              <p className="font-medium text-foreground">{oldName || "—"}</p>
-              <p className="text-muted-foreground">
-                {oldNumber ? `+233${oldNumber.replace(/^0/, "").replace(/^233/, "")}` : "—"}
-              </p>
-            </div>
-            <div className="flex justify-center">
-              <ChevronRight className="w-4 h-4 text-muted-foreground rotate-90" />
-            </div>
-            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 space-y-1">
-              <p className="text-amber-600 font-semibold uppercase tracking-wider text-[10px]">New</p>
-              <p className="font-medium text-foreground">{newName || "—"}</p>
-              <p className="text-muted-foreground">
-                {newNumber ? `+233${newNumber.replace(/^0/, "").replace(/^233/, "")}` : "—"}
-              </p>
-            </div>
-          </div>
-
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Future payouts will go to the new account. This will also update your Paystack subaccount immediately.
-          </p>
-
-          <div className="flex gap-2">
-            <button
-              onClick={onCancel}
-              className="flex-1 py-2.5 rounded-xl border border-border text-sm font-semibold hover:bg-muted/40 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={onConfirm}
-              className="flex-1 py-2.5 rounded-xl bg-amber-500 text-white text-sm font-bold hover:bg-amber-600 transition-colors"
-            >
-              Yes, Update
-            </button>
-          </div>
-        </motion.div>
-      </motion.div>
-    )}
-  </AnimatePresence>
-));
-
-PayoutConfirmModal.displayName = "PayoutConfirmModal";
-
-// ── Delete Account Confirmation Modal (unchanged) ────────────────────────────
 const DeleteAccountModal = memo(({
-  open,
-  onConfirm,
-  onCancel,
+  open, onConfirm, onCancel,
 }: {
   open: boolean;
   onConfirm: () => void;
@@ -220,9 +98,7 @@ const DeleteAccountModal = memo(({
   <AnimatePresence>
     {open && (
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/60 backdrop-blur-sm"
         onClick={onCancel}
       >
@@ -251,8 +127,6 @@ const DeleteAccountModal = memo(({
                 "Your profile and personal information",
                 "All your active and past listings",
                 "Your saved items and preferences",
-                "Access to all your order history",
-                "Your messages and conversations",
               ].map(item => (
                 <div key={item} className="flex items-start gap-2">
                   <X className="w-3 h-3 text-red-400 mt-0.5 flex-shrink-0" />
@@ -268,16 +142,12 @@ const DeleteAccountModal = memo(({
           </p>
 
           <div className="flex gap-2">
-            <button
-              onClick={onCancel}
-              className="flex-1 py-2.5 rounded-xl border border-border text-sm font-semibold hover:bg-muted/40 transition-colors"
-            >
+            <button onClick={onCancel}
+              className="flex-1 py-2.5 rounded-xl border border-border text-sm font-semibold hover:bg-muted/40 transition-colors">
               Cancel
             </button>
-            <button
-              onClick={onConfirm}
-              className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors"
-            >
+            <button onClick={onConfirm}
+              className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition-colors">
               Yes, delete forever
             </button>
           </div>
@@ -289,308 +159,8 @@ const DeleteAccountModal = memo(({
 
 DeleteAccountModal.displayName = "DeleteAccountModal";
 
-// ── OPTIMIZED Seller application status card ─────────────────────────────────
-const SellerApplicationStatus = memo(({ userId, userEmail, onActivated }: {
-  userId?: string;
-  userEmail?: string;
-  onActivated?: () => void;
-}) => {
-  const [status, setStatus] = useState<string | null>(null);
-  const [appData, setAppData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [paying, setPaying] = useState(false);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const fetchedRef = useRef(false);
-  const mountedRef = useRef(true);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => { mountedRef.current = false; };
-  }, []);
-
-  useEffect(() => {
-    if (!userId) {
-      setLoading(false);
-      return;
-    }
-
-    // Check cache first
-    const cached = sellerStatusCache[userId];
-    if (cached && Date.now() - cached.timestamp < SELLER_STATUS_TTL) {
-      setAppData(cached.appData);
-      setStatus(cached.status);
-      setLoading(false);
-      fetchedRef.current = true;
-      return;
-    }
-
-    // Prevent duplicate fetches
-    if (fetchedRef.current) return;
-    fetchedRef.current = true;
-
-    // Use Promise.race to timeout slow requests
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Request timeout")), 3000)
-    );
-
-    const fetchPromise = supabase
-      .from("seller_applications")
-      .select("status, store_name, momo_number, momo_name")
-      .eq("user_id", userId)
-      .order("submitted_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    Promise.race([fetchPromise, timeoutPromise])
-      .then((result: any) => {
-        if (!mountedRef.current) return;
-        const data = result?.data;
-        const newStatus = data?.status ?? null;
-
-        // Update cache
-        sellerStatusCache[userId] = {
-          status: newStatus,
-          appData: data,
-          timestamp: Date.now()
-        };
-
-        setAppData(data);
-        setStatus(newStatus);
-        setLoading(false);
-      })
-      .catch((err) => {
-        if (!mountedRef.current) return;
-        console.warn("Seller status fetch failed or timed out:", err);
-        // Don't show error to user, just default to null status
-        setStatus(null);
-        setLoading(false);
-      });
-  }, [userId]);
-
-  const ensurePaystackScript = useCallback((): Promise<void> =>
-    new Promise((resolve, reject) => {
-      if ((window as any).PaystackPop) { resolve(); return; }
-      const existing = document.querySelector('script[src*="paystack"]');
-      let attempts = 0;
-      const poll = setInterval(() => {
-        if ((window as any).PaystackPop) { clearInterval(poll); resolve(); return; }
-        if (++attempts > 20) { clearInterval(poll); reject(new Error("Paystack SDK not available")); }
-      }, 300);
-      if (!existing) {
-        const script = document.createElement("script");
-        script.src = "https://js.paystack.co/v1/inline.js";
-        script.async = true;
-        document.head.appendChild(script);
-      }
-    }), []);
-
-  const handlePay = useCallback(async () => {
-    if (!userId || !userEmail || !appData) return;
-    setPaying(true);
-    try {
-      const existing = document.querySelectorAll('div[id^="paystack-iframe-container"]');
-      existing.forEach(el => el.remove());
-      document.body.classList.remove("paystack-open");
-      await ensurePaystackScript();
-      const PaystackPop = (window as any).PaystackPop;
-      if (!PaystackPop) throw new Error("Payment SDK not available");
-      const ref = `verify_${Date.now()}_${userId.slice(0, 6)}`;
-      if (window.innerWidth < 768) {
-        document.body.style.overflow = "hidden";
-        document.body.classList.add("paystack-open");
-      }
-      const handler = PaystackPop.setup({
-        key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
-        email: userEmail,
-        amount: 5000,
-        currency: "GHS",
-        ref,
-        channels: ["card", "mobile_money"],
-        metadata: { custom_fields: [{ display_name: "Purpose", variable_name: "purpose", value: "seller_verification" }] },
-        callback: (response: { reference: string }) => {
-          document.body.style.overflow = "";
-          document.body.classList.remove("paystack-open");
-          const ref = response.reference;
-          setTimeout(async () => {
-            try {
-              const { data: { session } } = await supabase.auth.getSession();
-              const num = appData.momo_number?.replace(/\D/g, "").replace(/^0/, "").replace(/^233/, "");
-              const settlementBank = num?.startsWith("50") ? "VOD" : (num?.startsWith("26") || num?.startsWith("27")) ? "ATL" : "MTN";
-              const res = await fetch(
-                `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-subaccount`,
-                {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${session?.access_token}`,
-                    "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
-                  },
-                  body: JSON.stringify({
-                    seller_id: userId, paystack_reference: ref,
-                    settlement_bank: settlementBank, account_number: appData.momo_number,
-                    account_name: appData.momo_name, percentage_charge: 5,
-                  }),
-                }
-              );
-              const result = await res.json();
-              if (result.success) {
-                // Clear cache after successful payment
-                delete sellerStatusCache[userId];
-                await supabase.from("seller_applications").update({ status: "paid" }).eq("user_id", userId);
-                await supabase.from("profiles").update({ role: "seller", is_seller: true, verified: true }).eq("id", userId);
-                setStatus("paid");
-                toast.success("You're now a verified seller! Refresh to access your seller dashboard.", { duration: 8000 });
-                onActivated?.();
-                setTimeout(() => window.location.reload(), 2000);
-              } else throw new Error(result.error ?? "Verification failed");
-            } catch (err: any) {
-              toast.error(err.message ?? `Payment went through but setup failed. Contact support with ref: ${ref}`, { duration: 10000 });
-            } finally { setPaying(false); }
-          }, 0);
-        },
-        onClose: () => {
-          document.body.style.overflow = "";
-          document.body.classList.remove("paystack-open");
-          setPaying(false);
-          toast("Payment cancelled — tap the button again when you're ready.");
-        },
-      });
-      setTimeout(() => handler.openIframe(), 300);
-    } catch (err: any) {
-      document.body.style.overflow = "";
-      document.body.classList.remove("paystack-open");
-      toast.error(err.message ?? "Could not start payment");
-      setPaying(false);
-    }
-  }, [userId, userEmail, appData, onActivated, ensurePaystackScript]);
-
-  // Optimized loading state - only show skeleton on initial load
-  if (loading) {
-    return (
-      <div className="rounded-2xl border border-border overflow-hidden">
-        <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border bg-muted/20">
-          <Store className="w-4 h-4 text-primary/50" />
-          <div className="h-4 w-32 bg-muted animate-pulse rounded" />
-        </div>
-        <div className="px-5 py-5 space-y-4">
-          <div className="h-16 bg-muted/50 animate-pulse rounded-xl" />
-          <div className="h-10 bg-muted/50 animate-pulse rounded-xl" />
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-2xl border border-border overflow-hidden">
-      <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border bg-muted/20">
-        <Store className="w-4 h-4 text-primary" />
-        <p className="font-display font-semibold text-sm">Sell on SneakersHub</p>
-      </div>
-      <div className="px-5 py-5 space-y-4">
-        {status === null && (
-          <>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Turn your collection into cash. Apply to become a seller — our team reviews applications within 24 hours.
-            </p>
-            <button onClick={() => setDrawerOpen(true)}
-              className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground font-display font-semibold text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2">
-              <Store className="w-4 h-4" /> Apply to Sell
-            </button>
-          </>
-        )}
-        {status === "pending" && (
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
-              <Clock className="w-4 h-4 text-amber-500" />
-            </div>
-            <div>
-              <p className="font-semibold text-sm">Application Under Review</p>
-              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                Our team is reviewing your store details. You'll be notified by SMS once approved — usually within 24 hours.
-              </p>
-            </div>
-          </div>
-        )}
-        {status === "approved" && (
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-                <CheckCircle className="w-4 h-4 text-green-500" />
-              </div>
-              <div>
-                <p className="font-semibold text-sm">Application Approved!</p>
-                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                  Pay the GH₵ 50 one-time verification fee to activate your seller account.
-                </p>
-              </div>
-            </div>
-            <div className="rounded-xl bg-green-500/5 border border-green-500/20 p-3 text-xs text-green-700 space-y-1">
-              <p>Sales go directly to: <strong>+233{appData?.momo_number} ({appData?.momo_name})</strong></p>
-              <p>One-time fee, no monthly charges</p>
-              <p>Verified badge on all your listings</p>
-            </div>
-            <button onClick={handlePay} disabled={paying}
-              className="w-full py-3 rounded-xl bg-green-500 text-white font-bold text-sm hover:opacity-90 transition-opacity disabled:opacity-60 flex items-center justify-center gap-2">
-              {paying
-                ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Processing...</>
-                : <><ShieldCheck className="w-4 h-4" /> Pay GH₵ 50 &amp; Activate Account</>
-              }
-            </button>
-          </div>
-        )}
-        {status === "rejected" && (
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-full bg-red-500/10 flex items-center justify-center shrink-0">
-              <X className="w-4 h-4 text-red-500" />
-            </div>
-            <div className="flex-1">
-              <p className="font-semibold text-sm">Application Not Approved</p>
-              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                Unfortunately your application wasn't approved. You're welcome to re-apply with more details.
-              </p>
-              <button onClick={() => setDrawerOpen(true)}
-                className="mt-3 w-full py-2 rounded-xl border border-border text-sm font-semibold hover:bg-muted/30 transition-colors">
-                Re-apply
-              </button>
-            </div>
-          </div>
-        )}
-        {status === "paid" && (
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
-              <CheckCircle className="w-4 h-4 text-green-500" />
-            </div>
-            <div>
-              <p className="font-semibold text-sm">Setting up your account...</p>
-              <p className="text-xs text-muted-foreground mt-1">Payment received. Refreshing your dashboard...</p>
-            </div>
-          </div>
-        )}
-      </div>
-      <React.Suspense fallback={null}>
-        <BecomeSellerDrawer
-          open={drawerOpen}
-          onClose={() => {
-            setDrawerOpen(false);
-            // Clear cache when drawer closes so status refreshes
-            if (userId) delete sellerStatusCache[userId];
-            setStatus("pending");
-          }}
-        />
-      </React.Suspense>
-    </div>
-  );
-});
-
-SellerApplicationStatus.displayName = "SellerApplicationStatus";
-
 interface Props {
   user: any;
-  canSell: boolean;
-  isOfficial: boolean;
-  isVerified: boolean;
-  subaccountCode: string | null;
-  hasMissingPayoutDetails: boolean;
   pushSupported: boolean;
   pushPermission: NotificationPermission;
   requestPermission: () => Promise<boolean>;
@@ -598,172 +168,16 @@ interface Props {
 }
 
 const AccountSettings = memo(({
-  user, canSell, isOfficial, isVerified, subaccountCode,
-  hasMissingPayoutDetails, pushSupported, pushPermission, requestPermission,
-  onDeleteAccount,
+  user, pushSupported, pushPermission, requestPermission, onDeleteAccount,
 }: Props) => {
   const { theme, toggleTheme } = useTheme();
 
-  const [notifOrders, setNotifOrders] = useState(() => localStorage.getItem("notif_orders") !== "false");
-  const [notifMessages, setNotifMessages] = useState(() => localStorage.getItem("notif_messages") !== "false");
+  const [notifListings, setNotifListings] = useState(() => localStorage.getItem("notif_listings") !== "false");
   const [notifPromotions, setNotifPromotions] = useState(() => localStorage.getItem("notif_promotions") === "true");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [profileLoading, setProfileLoading] = useState(false); // Start as false, only set true if needed
-
-  // Payout state
-  const [savedPayout, setSavedPayout] = useState({ method: "", number: "", name: "" });
-  const [payoutForm, setPayoutForm] = useState({ method: "", number: "", name: "", bankCode: "" });
-  const [payoutSaved, setPayoutSaved] = useState(false);
-  const [showPayoutConfirm, setShowPayoutConfirm] = useState(false);
-
-  // Auto-resolve state
-  const [resolving, setResolving] = useState(false);
-  const [resolvedName, setResolvedName] = useState<string | null>(null);
-  const [resolveError, setResolveError] = useState<string | null>(null);
-  const [detectedNetwork, setDetectedNetwork] = useState<string | null>(null);
-  const [autoDetectedMethod, setAutoDetectedMethod] = useState<string | null>(null);
-
-  const resolveTimeoutRef = useRef<NodeJS.Timeout>();
-
-  // Load saved payout details with cache - only run if canSell
-  useEffect(() => {
-    if (!user?.id || !canSell) return;
-
-    // Check cache first
-    const cached = profileCache[user.id];
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      const data = cached.data;
-      if (data?.payout_method) {
-        const loaded = { method: data.payout_method, number: data.payout_number ?? "", name: data.payout_name ?? "" };
-        setSavedPayout(loaded);
-        setPayoutForm({ ...loaded, bankCode: "" });
-        setResolvedName(data.payout_name ?? null);
-      }
-      return;
-    }
-
-    setProfileLoading(true);
-
-    // Use Promise.race for timeout
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Timeout")), 2000)
-    );
-
-    const fetchPromise = supabase.from("profiles")
-      .select("payout_method, payout_number, payout_name")
-      .eq("id", user.id).single();
-
-    Promise.race([fetchPromise, timeoutPromise])
-      .then((result: any) => {
-        const data = result?.data;
-        if (data) {
-          profileCache[user.id] = { data, timestamp: Date.now() };
-          if (data.payout_method) {
-            const loaded = { method: data.payout_method, number: data.payout_number ?? "", name: data.payout_name ?? "" };
-            setSavedPayout(loaded);
-            setPayoutForm({ ...loaded, bankCode: "" });
-            setResolvedName(data.payout_name ?? null);
-          }
-        }
-        setProfileLoading(false);
-      })
-      .catch(() => {
-        setProfileLoading(false);
-      });
-  }, [user?.id, canSell]);
-
-  // Auto-resolve account name + auto-select network when MoMo number changes
-  useEffect(() => {
-    const resolveAccountName = async () => {
-      const number = payoutForm.number.trim();
-
-      if (number.length < 9) {
-        setResolvedName(null);
-        setResolveError(null);
-        setDetectedNetwork(null);
-        setAutoDetectedMethod(null);
-        setPayoutForm(f => ({ ...f, name: "" }));
-        return;
-      }
-
-      const network = detectNetwork(number);
-      if (!network) {
-        setResolveError("Could not detect network. Please check your number.");
-        setResolvedName(null);
-        setDetectedNetwork(null);
-        setAutoDetectedMethod(null);
-        setPayoutForm(f => ({ ...f, name: "" }));
-        return;
-      }
-
-      // Auto-select payout method
-      const methodMap: Record<string, string> = {
-        "VOD": "momo_telecel",
-        "ATL": "momo_airteltigo",
-        "MTN": "momo_mtn",
-      };
-      const detectedMethod = methodMap[network];
-      setAutoDetectedMethod(detectedMethod);
-      setPayoutForm(f => ({ ...f, method: detectedMethod }));
-      setDetectedNetwork(getNetworkName(number));
-      setResolving(true);
-      setResolveError(null);
-
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          setResolveError("Please log in again to verify your account");
-          setResolving(false);
-          return;
-        }
-
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/resolve-account`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${session.access_token}`,
-              "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
-            },
-            body: JSON.stringify({ account_number: number, bank_code: network }),
-          }
-        );
-
-        if (!response.ok) {
-          setResolveError(`Server error: ${response.status}`);
-          setResolvedName(null);
-          setPayoutForm(f => ({ ...f, name: "" }));
-          setResolving(false);
-          return;
-        }
-
-        const result = await response.json();
-        if (result.success && result.account_name) {
-          setResolvedName(result.account_name);
-          setPayoutForm(f => ({ ...f, name: result.account_name }));
-          setResolveError(null);
-        } else {
-          setPayoutForm(f => ({ ...f, name: "" }));
-        }
-      } catch {
-        setResolveError("Network error. Please try again.");
-        setResolvedName(null);
-        setPayoutForm(f => ({ ...f, name: "" }));
-      } finally {
-        setResolving(false);
-      }
-    };
-
-    if (resolveTimeoutRef.current) clearTimeout(resolveTimeoutRef.current);
-    resolveTimeoutRef.current = setTimeout(resolveAccountName, 800);
-    return () => {
-      if (resolveTimeoutRef.current) clearTimeout(resolveTimeoutRef.current);
-    };
-  }, [payoutForm.number]);
 
   const toggleNotif = useCallback((key: string, value: boolean, set: (v: boolean) => void) => {
     set(value);
@@ -785,78 +199,6 @@ const AccountSettings = memo(({
     }
   }, [newPassword, confirmPassword]);
 
-  const handleSavePayoutIntent = useCallback(() => {
-    if (!payoutForm.method || !payoutForm.number || !payoutForm.name) {
-      toast.error("Please fill in all payout details");
-      return;
-    }
-    if (isVerified && subaccountCode && savedPayout.number) {
-      setShowPayoutConfirm(true);
-      return;
-    }
-    executeSavePayout();
-  }, [payoutForm, isVerified, subaccountCode, savedPayout.number]);
-
-  const executeSavePayout = useCallback(async () => {
-    setShowPayoutConfirm(false);
-    try {
-      const { error } = await supabase.from("profiles").update({
-        payout_method: payoutForm.method,
-        payout_number: payoutForm.number,
-        payout_name: payoutForm.name,
-        payout_bank_code: payoutForm.bankCode || null,
-      }).eq("id", user!.id);
-      if (error) throw error;
-
-      // Clear cache after update
-      if (user?.id) delete profileCache[user.id];
-
-      if (isVerified && subaccountCode) {
-        try {
-          const settlementBank = payoutForm.method === "momo_telecel" ? "VOD"
-            : payoutForm.method === "momo_airteltigo" ? "ATL" : "MTN";
-          let num = payoutForm.number.replace(/\s+/g, "");
-          if (num.startsWith("233")) num = "0" + num.slice(3);
-          if (!num.startsWith("0")) num = "0" + num;
-          const { data: { session } } = await supabase.auth.getSession();
-
-          const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-subaccount`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${session?.access_token}`,
-              "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
-            },
-            body: JSON.stringify({
-              seller_id: user!.id, subaccount_code: subaccountCode,
-              settlement_bank: settlementBank, account_number: num,
-            }),
-          });
-
-          const subResult = await res.json();
-          const finalName = subResult.resolved_name ?? payoutForm.name;
-
-          toast.success("Payout details updated — Paystack subaccount synced!");
-          setSavedPayout({ method: payoutForm.method, number: payoutForm.number, name: finalName });
-          setPayoutForm(p => ({ ...p, name: finalName }));
-          setResolvedName(finalName);
-        } catch (err) {
-          console.error("Paystack sync error:", err);
-          toast.success("Payout details saved! (Paystack sync failed — contact support)");
-          setSavedPayout({ method: payoutForm.method, number: payoutForm.number, name: payoutForm.name });
-        }
-      } else {
-        toast.success("Payout details saved!");
-        setSavedPayout({ method: payoutForm.method, number: payoutForm.number, name: payoutForm.name });
-      }
-
-      setPayoutSaved(true);
-      setTimeout(() => setPayoutSaved(false), 3000);
-    } catch (err: any) {
-      toast.error(err.message ?? "Failed to save payout details");
-    }
-  }, [payoutForm, user, isVerified, subaccountCode]);
-
   const handleDeleteConfirm = useCallback(() => {
     setShowDeleteModal(false);
     onDeleteAccount();
@@ -864,30 +206,11 @@ const AccountSettings = memo(({
 
   return (
     <div className="space-y-6 max-w-lg">
-      <PayoutConfirmModal
-        open={showPayoutConfirm}
-        oldNumber={savedPayout.number}
-        oldName={savedPayout.name}
-        newNumber={payoutForm.number}
-        newName={payoutForm.name}
-        onConfirm={executeSavePayout}
-        onCancel={() => setShowPayoutConfirm(false)}
-      />
-
       <DeleteAccountModal
         open={showDeleteModal}
         onConfirm={handleDeleteConfirm}
         onCancel={() => setShowDeleteModal(false)}
       />
-
-      {/* Seller application - always rendered, loading handled internally */}
-      {!canSell && (
-        <SellerApplicationStatus
-          userId={user?.id}
-          userEmail={user?.email}
-          onActivated={() => window.location.reload()}
-        />
-      )}
 
       {/* Notifications */}
       <div className="rounded-2xl border border-border overflow-hidden">
@@ -902,9 +225,8 @@ const AccountSettings = memo(({
             requestPermission={requestPermission}
           />
           {[
-            { label: "Order updates", sub: "Confirmations, dispatch and delivery", key: "notif_orders", value: notifOrders, set: setNotifOrders },
-            { label: "Messages", sub: "Replies from buyers or sellers", key: "notif_messages", value: notifMessages, set: setNotifMessages },
-            { label: "Promotions", sub: "Deals, new arrivals and boosts", key: "notif_promotions", value: notifPromotions, set: setNotifPromotions },
+            { label: "New listings", sub: "Items matching your saved searches", key: "notif_listings", value: notifListings, set: setNotifListings },
+            { label: "Promotions", sub: "Deals and featured listings", key: "notif_promotions", value: notifPromotions, set: setNotifPromotions },
           ].map(({ label, sub, key, value, set }) => (
             <div key={label} className="flex items-center justify-between px-5 py-4 gap-4">
               <div>
@@ -961,126 +283,6 @@ const AccountSettings = memo(({
         </div>
       </div>
 
-      {/* Payout details — sellers only, not official */}
-      {canSell && !isOfficial && (
-        <div className="rounded-2xl border border-border overflow-hidden">
-          <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border bg-muted/20">
-            <Wallet className="w-4 h-4 text-primary" />
-            <p className="font-display font-semibold text-sm">Payout Details</p>
-          </div>
-          <div className="p-5 space-y-4">
-            {isVerified && hasMissingPayoutDetails && (
-              <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
-                <p className="text-xs font-semibold text-amber-600">Required — add these to receive your payouts.</p>
-              </div>
-            )}
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              {isVerified && subaccountCode
-                ? <>95% of every sale goes directly to your MoMo/bank via Paystack split. <span className="font-semibold text-foreground">SneakersHub keeps 5%</span> automatically.</>
-                : <>Add your payout details below. <span className="font-semibold text-foreground">SneakersHub takes 5% commission</span> per sale.</>
-              }
-              {!isVerified && <span className="block mt-1 text-[11px]">Only applies when you become a verified seller.</span>}
-            </p>
-
-            {/* Payout method buttons */}
-            <div>
-              <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-2">Payout Method</label>
-              <div className="grid grid-cols-3 gap-2">
-                {([
-                  { value: "momo_mtn", label: "MTN MoMo", icon: Smartphone },
-                  { value: "momo_telecel", label: "Telecel Cash", icon: Smartphone },
-                  { value: "momo_airteltigo", label: "AirtelTigo", icon: Smartphone },
-                ] as const).map(({ value, label, icon: Icon }) => (
-                  <button
-                    key={value}
-                    onClick={() => {
-                      setPayoutForm(p => ({ ...p, method: value, bankCode: "" }));
-                      setAutoDetectedMethod(null);
-                    }}
-                    className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-center transition-all text-xs font-semibold relative
-                      ${payoutForm.method === value ? "border-primary bg-primary/5 text-foreground" : "border-border text-muted-foreground hover:border-primary/40"}`}
-                  >
-                    <Icon className={`w-4 h-4 ${payoutForm.method === value ? "text-primary" : ""}`} />
-                    {label}
-                    {autoDetectedMethod === value && (
-                      <span className="text-[9px] text-green-600 font-bold flex items-center gap-0.5 leading-none">
-                        <CheckCircle className="w-2.5 h-2.5" /> Auto-detected
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-
-              {detectedNetwork && autoDetectedMethod && (
-                <p className="text-[11px] text-green-600 flex items-center gap-1 mt-2">
-                  <CheckCircle className="w-3 h-3" />
-                  {detectedNetwork} detected and selected automatically
-                </p>
-              )}
-            </div>
-
-            {/* MoMo Number */}
-            <div>
-              <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">MoMo Number *</label>
-              <div className="relative">
-                <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
-                <input
-                  value={payoutForm.number}
-                  onChange={e => setPayoutForm(p => ({ ...p, number: e.target.value.replace(/\D/g, "") }))}
-                  placeholder="0244 000 000"
-                  maxLength={10}
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 transition-all font-[inherit]"
-                />
-              </div>
-            </div>
-
-            {/* Account Name (auto-resolved) */}
-            <div>
-              <label className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground block mb-1.5">Account Name</label>
-              <div className="relative">
-                <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground/50" />
-                <input
-                  value={payoutForm.name}
-                  placeholder={resolving ? "Verifying account..." : "Auto-verified from MoMo number"}
-                  disabled
-                  className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-border bg-muted/50 text-sm text-muted-foreground cursor-not-allowed"
-                />
-                {resolving && (
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                  </div>
-                )}
-                {resolvedName && !resolveError && !resolving && (
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                  </div>
-                )}
-              </div>
-              {resolveError && (
-                <p className="text-[11px] text-red-500 mt-1 flex items-center gap-1">
-                  <AlertTriangle className="w-3 h-3" /> {resolveError}
-                </p>
-              )}
-              {resolvedName && !resolveError && !resolving && (
-                <p className="text-[11px] text-green-600 mt-1 flex items-center gap-1">
-                  <CheckCircle className="w-3 h-3" /> Verified account: {resolvedName}
-                </p>
-              )}
-              {!resolvedName && !resolveError && payoutForm.number.length >= 9 && !resolving && (
-                <p className="text-[11px] text-amber-600 mt-1 flex items-center gap-1">
-                  <AlertCircle className="w-3 h-3" /> Verifying account name...
-                </p>
-              )}
-            </div>
-
-            <Button className="btn-primary rounded-full h-9 px-5 text-sm w-full" onClick={handleSavePayoutIntent}>
-              {payoutSaved ? <><CheckCircle className="w-3.5 h-3.5 mr-1.5" /> Saved!</> : "Save Payout Details"}
-            </Button>
-          </div>
-        </div>
-      )}
-
       {/* Privacy & Security */}
       <div className="rounded-2xl border border-border overflow-hidden">
         <div className="flex items-center gap-2.5 px-5 py-4 border-b border-border bg-muted/20">
@@ -1126,7 +328,7 @@ const AccountSettings = memo(({
         </div>
       </div>
 
-      <p className="text-center text-xs text-muted-foreground pb-4">SneakersHub v1.0 · Made in Ghana</p>
+      <p className="text-center text-xs text-muted-foreground pb-4">Made in Ghana 🇬🇭</p>
     </div>
   );
 });
