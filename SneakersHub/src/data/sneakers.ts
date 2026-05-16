@@ -1,0 +1,16 @@
+export const PRODUCT_CATEGORIES = [
+  { label: "Sneakers",     emoji: "👟" },
+  { label: "Phones",       emoji: "📱" },
+  { label: "Clothes",      emoji: "👕" },
+  { label: "Electronics",  emoji: "💻" },
+  { label: "Watches",      emoji: "⌚" },
+  { label: "Bags",         emoji: "👜" },
+  { label: "Furniture",    emoji: "🪑" },
+  { label: "Accessories",  emoji: "🕶️" },
+  { label: "Tops",         emoji: "👔" },
+  { label: "Bottoms",      emoji: "👖" },
+  { label: "Outerwear",    emoji: "🧥" },
+  { label: "Activewear",   emoji: "🩳" },
+  { label: "Jewellery",    emoji: "💍" },
+  { label: "Other",        emoji: "📦" },
+];

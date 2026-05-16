@@ -30,7 +30,7 @@ const Account = lazy(() => import("./pages/Account"));
 const CreateListing = lazy(() => import("./pages/CreateListing"));
 const Admin = lazy(() => import("./pages/Admin"));
 
-class ErrorBoundary extends Component
+class ErrorBoundary extends Component<
   { children: ReactNode },
   { hasError: boolean; error: string }
 > {
