@@ -72,7 +72,7 @@ const Navbar = () => {
                   ${location.pathname === link.to
                     ? "text-primary bg-primary/10"
                     : link.special
-                      ? "text-amber-500 hover:bg-amber-500/10"
+                      ? "text-amber-700 hover:bg-amber-500/10 dark:text-amber-500"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
               >
@@ -142,7 +142,7 @@ const Navbar = () => {
                   ${location.pathname === link.to
                     ? "bg-primary/10 text-primary"
                     : link.special
-                      ? "text-amber-500 hover:bg-amber-500/10"
+                      ? "text-amber-700 hover:bg-amber-500/10 dark:text-amber-500"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
               >
@@ -171,7 +171,7 @@ const Navbar = () => {
                     to={`/shop?category=${c.label}`}
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-r ${c.color} border border-border/50 text-sm font-medium text-foreground hover:scale-[1.02] transition-all`}
                   >
-                    <img src={c.svg} alt={c.label} className="w-5 h-5" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                    <img src={c.svg} alt="" className="w-5 h-5" onError={(e) => { e.currentTarget.style.display = "none"; }} />
                     {c.label}
                   </Link>
                 ))}

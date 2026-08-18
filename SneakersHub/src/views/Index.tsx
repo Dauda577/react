@@ -288,7 +288,7 @@ const Index = () => {
                 to={`/shop?category=${c.label}`}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-xs font-medium text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/5 transition-all"
               >
-                <img src={c.svg} alt={c.label} className="w-4 h-4" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                <img src={c.svg} alt="" className="w-4 h-4" onError={(e) => { e.currentTarget.style.display = "none"; }} />
                 {c.label}
               </Link>
             ))}
