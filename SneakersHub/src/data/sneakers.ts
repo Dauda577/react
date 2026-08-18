@@ -14,3 +14,7 @@ export const PRODUCT_CATEGORIES = [
   { label: "Jewellery",    emoji: "💍" },
   { label: "Other",        emoji: "📦" },
 ];
+
+export const CATEGORY_SVGS: Record<string, string> = Object.fromEntries(
+  PRODUCT_CATEGORIES.map((c) => [c.label, `/categoryicons/${c.label.toLowerCase()}.svg`])
+);

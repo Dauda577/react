@@ -1,0 +1,9 @@
+node_modules
+dist
+.env
+.env.local
+.vercel
+.env*
+
+src/**/*.js
+src/**/*.js.map

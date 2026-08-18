@@ -1,0 +1,4 @@
+{
+  "buildCommand": "echo \"[sneakershub-api] no build needed: Vercel bundles api/ functions\"",
+  "installCommand": "npm ci"
+}
