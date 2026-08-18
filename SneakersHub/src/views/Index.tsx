@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "@/lib/router";
@@ -90,12 +91,13 @@ const SearchDropdown = ({
                 onClick={() => { navigate(`/listing/${item.id}`); onClose(); }}
                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-muted/60 transition-colors text-left"
               >
-                <div className="w-12 h-12 rounded-xl bg-muted flex-shrink-0 overflow-hidden border border-border">
-                  <img
+                <div className="relative w-12 h-12 rounded-xl bg-muted flex-shrink-0 overflow-hidden border border-border">
+                  <Image
                     src={item.image || FALLBACK_IMG}
                     alt={item.title}
-                    className="w-full h-full object-cover"
-                    onError={(e) => { e.currentTarget.src = FALLBACK_IMG; }}
+                    fill
+                    sizes="48px"
+                    className="object-cover"
                   />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -286,7 +288,7 @@ const Index = () => {
                 to={`/shop?category=${c.label}`}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border bg-card text-xs font-medium text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/5 transition-all"
               >
-                <img src={c.svg} alt={c.label} className="w-4 h-4" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                <img src={c.svg} alt="" className="w-4 h-4" onError={(e) => { e.currentTarget.style.display = "none"; }} />
                 {c.label}
               </Link>
             ))}
@@ -339,13 +341,14 @@ const Index = () => {
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.3 + i * 0.1, duration: 0.5 }}
-                    className="rounded-2xl overflow-hidden border border-border bg-muted"
+                    className="relative rounded-2xl overflow-hidden border border-border bg-muted"
                   >
-                    <img
+                    <Image
                       src={l.image ?? FALLBACK_IMG}
                       alt={l.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => { e.currentTarget.src = FALLBACK_IMG; }}
+                      fill
+                      sizes="(max-width: 640px) 50vw, 25vw"
+                      className="object-cover"
                     />
                   </motion.div>
                 ))}

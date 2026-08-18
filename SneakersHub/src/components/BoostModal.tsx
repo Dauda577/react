@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Zap, CheckCircle, Star, CreditCard } from "lucide-react";
@@ -146,9 +147,9 @@ const BoostModal = ({ listing, onClose }: Props) => {
               </div>
 
               <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50 border border-border mb-5">
-                <div className="w-12 h-12 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <div className="relative w-12 h-12 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0 overflow-hidden">
                   {listing.image
-                    ? <img src={listing.image} alt={listing.name} className="w-full h-full object-contain p-1" />
+                    ? <Image src={listing.image} alt={listing.name} fill sizes="48px" className="object-contain p-1" />
                     : <span className="text-xl">👟</span>
                   }
                 </div>

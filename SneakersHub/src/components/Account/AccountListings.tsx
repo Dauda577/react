@@ -2,6 +2,7 @@
 
 import React, { memo, lazy, Suspense, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 import { useNavigate } from "@/lib/router";
 import {
   Store, Plus, Eye, Tag, Pencil, Trash2, Zap, Sparkles,
@@ -193,9 +194,9 @@ const AccountListings = memo(({
               className={`rounded-2xl border p-4 transition-colors group
                 ${listing.status === "sold" ? "border-border opacity-60" : "border-border hover:border-primary/30 hover:bg-primary/5"}`}>
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <div className="relative w-16 h-16 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0 overflow-hidden">
                   {listing.image
-                    ? <img src={listing.image} alt={listing.name} className="w-full h-full object-contain p-1" />
+                    ? <Image src={listing.image} alt={listing.name} fill sizes="64px" className="object-contain p-1" />
                     : <img src="/categoryicons/other.svg" alt={listing.category} className="w-6 h-6 text-muted-foreground" />
                   }
                 </div>
