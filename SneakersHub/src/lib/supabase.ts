@@ -1,17 +1,11 @@
-import { createClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 import { envVar } from "@/lib/env";
 
 const supabaseUrl = envVar("url");
 const supabaseAnonKey = envVar("anonKey");
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    storageKey: "sneakershub-auth",
-    storage: typeof window !== "undefined" ? window.localStorage : undefined,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-  },
+export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey, {
+  cookieOptions: { name: "sneakershub-auth-token" },
   realtime: {
     params: {
       eventsPerSecond: 10,
