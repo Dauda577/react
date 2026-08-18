@@ -8,34 +8,32 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { useState, useCallback, useMemo, memo } from "react";
 
-interface Listing {
+interface CardShape {
   id: string;
   name: string;
   brand: string;
   price: number;
-  image: string | null;
+  image: string;
   category: string;
   description: string;
+  sizes?: number[];
+  sellerId?: string;
+  sellerName?: string | null;
+  sellerVerified?: boolean;
+  sellerIsOfficial?: boolean;
+  isBoosted?: boolean;
+  discountPercent?: number | null;
   condition?: string | null;
   negotiable?: boolean;
   deliveryAvailable?: boolean;
-  isBoosted?: boolean;
-  sellerVerified?: boolean;
-  sellerIsOfficial?: boolean;
-  sellerId?: string;
-  sellerName?: string;
-  sellerCity?: string | null;
-  sellerRegion?: string | null;
-  whatsapp?: string | null;
-  phone?: string | null;
 }
 
 interface ListingCardProps {
-  listing: Listing;
+  sneaker: CardShape;
   index: number;
 }
 
-const resolveBrandLabel = (brand: string, category: string, sellerName?: string): string | null => {
+const resolveBrandLabel = (brand: string, category: string, sellerName?: string | null): string | null => {
   const normalized = brand?.trim().toUpperCase();
   if (!normalized || normalized === "OTHER" || normalized === category.toUpperCase()) {
     return sellerName?.trim() || null;
@@ -43,7 +41,7 @@ const resolveBrandLabel = (brand: string, category: string, sellerName?: string)
   return brand.trim();
 };
 
-const ListingCard = memo(({ listing, index }: ListingCardProps) => {
+const ListingCard = memo(({ sneaker: listing, index }: ListingCardProps) => {
   const { toggleSaved, isSaved } = useSaved();
   const { user, isGuest } = useAuth();
 
@@ -70,8 +68,10 @@ const ListingCard = memo(({ listing, index }: ListingCardProps) => {
       name: listing.name,
       brand: listing.brand,
       price: listing.price,
+      savedPrice: listing.price,
       image: listing.image,
       category: listing.category,
+      sizes: [],
       description: listing.description,
       sellerVerified: listing.sellerVerified ?? false,
       sellerIsOfficial: listing.sellerIsOfficial ?? false,

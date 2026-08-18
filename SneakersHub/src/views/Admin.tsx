@@ -95,7 +95,7 @@ const Admin = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"overview" | "sellers" | "failed" | "orders" | "payouts" | "promos">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "sellers" | "failed" | "orders" | "payouts" | "promos" | "messaging">("overview");
   const [sellers, setSellers] = useState<any[]>([]);
   const [applications, setApplications] = useState<any[]>([]);
   const [appActionLoading, setAppActionLoading] = useState<Record<string, boolean>>({});

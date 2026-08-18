@@ -78,7 +78,7 @@ const Account = () => {
   const [totalListingsCreated, setTotalListingsCreated] = useState(0);
   const [profileForm, setProfileForm] = useState({
     name: user?.name ?? "Guest",
-    phone: "", city: "", region: "",
+    phone: "", city: "", region: "", bio: "",
   });
 
   const [boostingListing, setBoostingListing] = useState<Listing | null>(null);
@@ -310,6 +310,7 @@ const Account = () => {
               {activeTab === "profile" && (
                 <AccountProfile
                   user={user} isGuest={isGuest}
+                  role={user?.role ?? "buyer"} verificationLoading={false}
                   isVerified={isVerified} isOfficial={isOfficial}
                   editMode={editMode} setEditMode={setEditMode}
                   profileForm={profileForm} setProfileForm={setProfileForm}
@@ -344,8 +345,6 @@ const Account = () => {
                   ? <GuestAuthBanner action="access settings" />
                   : <AccountSettings
                     user={user}
-                    isOfficial={isOfficial}
-                    isVerified={isVerified}
                     onDeleteAccount={handleDeleteAccount}
                   />
               )}

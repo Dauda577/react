@@ -137,7 +137,6 @@ const Index = () => {
           const q = query.toLowerCase();
           return (
             l.name?.toLowerCase().includes(q) ||
-            l.title?.toLowerCase().includes(q) ||
             l.category?.toLowerCase().includes(q) ||
             l.description?.toLowerCase().includes(q)
           );
@@ -145,7 +144,7 @@ const Index = () => {
         .slice(0, 6)
         .map((l) => ({
           id: l.id,
-          title: l.title ?? l.name,
+          title: l.name,
           category: l.category ?? "",
           price: l.price,
           image: l.image ?? "",
@@ -199,7 +198,7 @@ const Index = () => {
 
   const toCardShape = (l: typeof listings[0], isBoosted = false) => ({
     id: l.id,
-    name: l.title ?? l.name,
+    name: l.name,
     brand: l.category ?? "",
     price: l.price,
     image: l.image ?? "",
@@ -342,7 +341,7 @@ const Index = () => {
                   >
                     <img
                       src={l.image ?? FALLBACK_IMG}
-                      alt={l.title ?? l.name}
+                      alt={l.name}
                       className="w-full h-full object-cover"
                       onError={(e) => { e.currentTarget.src = FALLBACK_IMG; }}
                     />
@@ -378,7 +377,7 @@ const Index = () => {
                   <p className="text-[10px] font-semibold text-primary uppercase tracking-wide mb-0.5 flex items-center gap-1">
                     <Zap className="w-2.5 h-2.5 fill-current" /> Boosted
                   </p>
-                  <p className="text-xs font-bold text-foreground leading-tight truncate">{featured[0].title ?? featured[0].name}</p>
+                  <p className="text-xs font-bold text-foreground leading-tight truncate">{featured[0].name}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">GH₵ {featured[0].price.toLocaleString()}</p>
                 </motion.div>
               )}

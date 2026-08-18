@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import type { ComponentType } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import { X, ChevronDown, Mail, MapPin, Clock, Instagram, Twitter, Heart } from "lucide-react";
@@ -24,8 +25,8 @@ const WhatsAppIcon = () => (
   </svg>
 );
 
-const TikTokIcon = () => (
-  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+const TikTokIcon = ({ className = "w-4 h-4" }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
     <path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-5.2 1.74 2.89 2.89 0 012.31-4.64 2.93 2.93 0 01.88.13V9.4a6.84 6.84 0 00-1-.05A6.33 6.33 0 005 20.1a6.34 6.34 0 0010.86-4.43v-7a8.16 8.16 0 004.77 1.52v-3.4a4.85 4.85 0 01-1-.1z"/>
   </svg>
 );
@@ -159,7 +160,7 @@ const Footer = () => {
   const [showContact, setShowContact] = useState(false);
   const currentYear = new Date().getFullYear();
 
-  const socialLinks = [
+  const socialLinks: { icon: ComponentType<{ className?: string }>; href: string; label: string }[] = [
     { icon: Instagram, href: "https://www.instagram.com/sneakershub567?igsh=eXd2eng4anN3ZDIz&utm_source=qr", label: "Instagram" },
     { icon: Twitter, href: "https://twitter.com", label: "Twitter" },
     { icon: TikTokIcon, href: "https://www.tiktok.com/@.boy_spyce?is_from_webapp=1&sender_device=pc", label: "TikTok" },
@@ -186,18 +187,21 @@ const Footer = () => {
                 Premium sneakers for those who demand the best. Curated collections from top brands across Africa.
               </p>
               <div className="flex items-center gap-3">
-                {socialLinks.map((social) => (
-                  <a
-                    key={social.label}
-                    href={social.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all hover:scale-110"
-                    aria-label={social.label}
-                  >
-                    {typeof social.icon === 'function' ? <social.icon /> : <social.icon className="w-4 h-4" />}
-                  </a>
-                ))}
+                {socialLinks.map((social) => {
+                  const Icon = social.icon;
+                  return (
+                    <a
+                      key={social.label}
+                      href={social.href}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all hover:scale-110"
+                      aria-label={social.label}
+                    >
+                      <Icon className="w-4 h-4" />
+                    </a>
+                  );
+                })}
               </div>
             </div>
 

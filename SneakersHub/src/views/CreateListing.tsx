@@ -113,7 +113,7 @@ const CreateListing = () => {
   const editing = location.state?.listing as Listing | undefined;
 
   const [form, setForm] = useState({
-    title:       editing?.title ?? editing?.name ?? "",
+    title:       editing?.name ?? "",
     brand:       editing?.brand ?? "",
     price:       editing?.price?.toString() ?? "",
     category:    editing?.category ?? categoryLabels[0],
@@ -123,7 +123,7 @@ const CreateListing = () => {
     phone:       editing?.phone ?? "",
     condition:   editing?.condition ?? "good",
     negotiable:  editing?.negotiable ?? false,
-    delivery:    editing?.delivery ?? false,
+    delivery:    editing?.deliveryAvailable ?? false,
   });
 
   const handleChange = (
@@ -222,18 +222,20 @@ const CreateListing = () => {
       // support both title and name fields during migration
       title:       title.trim(),
       name:        title.trim(),
-      brand:       brand.trim() || null,
+      brand:       (brand.trim() || null) as string,
       price:       Number(price),
       category,
       description: description.trim(),
-      sizes:       sizesToSave,
+      sizes:       sizesToSave as unknown as number[],
       city:        form.city.trim() || null,
       region:      region || null,
       phone:       phone.trim(),
       condition,
       negotiable:  form.negotiable,
-      delivery:    form.delivery,
+      deliveryAvailable: form.delivery,
       image:       null,
+      images:      [],
+      whatsapp:    null,
     };
 
     setLoading(true);

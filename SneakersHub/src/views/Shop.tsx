@@ -13,10 +13,9 @@ const PAGE_SIZE = 30;
 
 const GROUPED_PILLS: { label: string; svg: string; groupStart?: string }[] = [
   { label: "All", svg: "/categoryicons/all.svg" },
-  ...PRODUCT_CATEGORIES.map((c, i, arr) => ({
+  ...PRODUCT_CATEGORIES.map((c) => ({
     label: c.label,
-    svg: c.svg,
-    groupStart: i === 0 || c.group !== arr[i - 1].group ? c.group : undefined,
+    svg: CATEGORY_SVGS[c.label],
   })),
 ];
 
@@ -106,7 +105,7 @@ const Shop = () => {
 
   const now = new Date();
   const isActiveBoost = (l: (typeof listings)[0]) =>
-    !!l.boostedUntil && new Date(l.boostedUntil) > now;
+    !!(l.boosted && l.boostExpiresAt && new Date(l.boostExpiresAt) > now);
 
   const filtered = listings
     .filter((l) => {
@@ -278,7 +277,6 @@ const Shop = () => {
                         image: l.image ?? "", category: l.category, sizes: l.sizes,
                         description: l.description, isBoosted: l.boosted,
                         sellerVerified: l.sellerVerified, sellerIsOfficial: l.sellerIsOfficial,
-                        discountPercent: l.discountPercent,
                         sellerId: l.sellerId,
                       }}
                       index={i}

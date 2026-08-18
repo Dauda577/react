@@ -41,7 +41,7 @@ const SearchPage = () => {
     return listings.filter((l) => {
       const matchesCategory = activeCategory === "All" || l.category === activeCategory;
       const matchesQuery =
-        (l.title ?? l.name ?? "").toLowerCase().includes(trimmed) ||
+        (l.name ?? "").toLowerCase().includes(trimmed) ||
         (l.brand ?? "").toLowerCase().includes(trimmed) ||
         (l.description ?? "").toLowerCase().includes(trimmed) ||
         (l.category ?? "").toLowerCase().includes(trimmed);
@@ -148,7 +148,7 @@ const SearchPage = () => {
                     index={i}
                     sneaker={{
                       id: l.id,
-                      name: l.title ?? l.name,
+                      name: l.name,
                       brand: l.category ?? "",
                       price: l.price,
                       image: l.image ?? "",

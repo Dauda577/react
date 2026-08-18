@@ -90,15 +90,13 @@ const InstallPrompt = ({ triggerAfterAuth = false }: { triggerAfterAuth?: boolea
             <div className="px-4 pb-4 space-y-2">
               <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-border bg-background">
                 <div className="flex items-center gap-2.5">
-                  {installState === "installed"
-                    ? <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                    : <Download className="w-4 h-4 text-primary flex-shrink-0" />}
+                  <Download className="w-4 h-4 text-primary flex-shrink-0" />
                   <div>
                     <p className="text-xs font-semibold">
-                      {installState === "installed" ? "Installed ✓" : "Add to home screen"}
+                      Add to home screen
                     </p>
                     <p className="text-[10px] text-muted-foreground">
-                      {installState === "installed" ? "Added to your home screen" : "Works offline, launches instantly"}
+                      Works offline, launches instantly
                     </p>
                   </div>
                 </div>

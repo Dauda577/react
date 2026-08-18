@@ -161,14 +161,24 @@ DeleteAccountModal.displayName = "DeleteAccountModal";
 
 interface Props {
   user: any;
-  pushSupported: boolean;
-  pushPermission: NotificationPermission;
-  requestPermission: () => Promise<boolean>;
+  pushSupported?: boolean;
+  pushPermission?: NotificationPermission;
+  requestPermission?: () => Promise<boolean>;
   onDeleteAccount: () => void;
 }
 
 const AccountSettings = memo(({
-  user, pushSupported, pushPermission, requestPermission, onDeleteAccount,
+  user,
+  pushSupported = typeof window !== "undefined" && "Notification" in window,
+  pushPermission = typeof window !== "undefined" && "Notification" in window
+    ? window.Notification.permission
+    : "denied",
+  requestPermission = async () => {
+    if (typeof window === "undefined" || !("Notification" in window)) return false;
+    const result = await window.Notification.requestPermission();
+    return result === "granted";
+  },
+  onDeleteAccount,
 }: Props) => {
   const { theme, toggleTheme } = useTheme();
 
