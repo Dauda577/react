@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Link } from "@/lib/router";
+import { Link, useNavigate } from "@/lib/router";
 import {
   ArrowRight, Search, X, MapPin, Phone, Tag,
+  BadgeCheck, Package, LayoutGrid,
+  MessageCircle, BadgePercent, ShieldCheck,
 } from "lucide-react";
 import SneakerCard from "@/components/ListingCard";
 import Navbar from "@/components/Navbar";
@@ -16,14 +18,32 @@ import { useAuth } from "@/context/AuthContext";
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const CATEGORIES = [
-  { label: "Sneakers",     svg: "/categoryicons/sneakers.svg" },
-  { label: "Phones",       svg: "/categoryicons/phones.svg" },
-  { label: "Clothes",      svg: "/categoryicons/tops.svg" },
-  { label: "Bags",         svg: "/categoryicons/bags.svg" },
-  { label: "Electronics",  svg: "/categoryicons/electronics.svg" },
-  { label: "Accessories",  svg: "/categoryicons/accessories.svg" },
-  { label: "Watches",      svg: "/categoryicons/watches.svg" },
-  { label: "Furniture",    svg: "/categoryicons/furniture.svg" },
+  { label: "Sneakers",     svg: "/categoryicons/sneakers.svg",     color: "from-blue-500/20 to-blue-600/20" },
+  { label: "Phones",       svg: "/categoryicons/phones.svg",       color: "from-green-500/20 to-green-600/20" },
+  { label: "Clothes",      svg: "/categoryicons/tops.svg",         color: "from-pink-500/20 to-pink-600/20" },
+  { label: "Bags",         svg: "/categoryicons/bags.svg",         color: "from-amber-500/20 to-amber-600/20" },
+  { label: "Electronics",  svg: "/categoryicons/electronics.svg",  color: "from-violet-500/20 to-violet-600/20" },
+  { label: "Accessories",  svg: "/categoryicons/accessories.svg",  color: "from-emerald-500/20 to-emerald-600/20" },
+  { label: "Watches",      svg: "/categoryicons/watches.svg",      color: "from-sky-500/20 to-sky-600/20" },
+  { label: "Furniture",    svg: "/categoryicons/furniture.svg",    color: "from-orange-500/20 to-orange-600/20" },
+];
+
+const TRUST_ITEMS = [
+  {
+    icon: MessageCircle,
+    title: "Direct contact",
+    sub: "Reach sellers on WhatsApp or call — no middleman.",
+  },
+  {
+    icon: BadgePercent,
+    title: "No fees",
+    sub: "Free to list and free to buy. Always.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Verified & official",
+    sub: "Trusted seller badges on every card.",
+  },
 ];
 
 const HOW_IT_WORKS = [
@@ -52,7 +72,9 @@ const Index = () => {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [visible, setVisible] = useState(24);
   const inputRef = useRef<HTMLInputElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     setVisible(24);
@@ -88,6 +110,21 @@ const Index = () => {
       return bTime - aTime;
     });
 
+  // Live marketplace stats (Alibaba "verified manufacturers" band)
+  const stats = useMemo(() => {
+    const verified = new Set(
+      listings
+        .filter((l) => l.sellerVerified || l.sellerIsOfficial)
+        .map((l) => l.sellerId),
+    ).size;
+    const categories = new Set(listings.map((l) => l.category)).size;
+    return [
+      { icon: BadgeCheck, value: `${verified}+`, label: "Verified sellers" },
+      { icon: Package, value: listings.length.toLocaleString(), label: "Live listings" },
+      { icon: LayoutGrid, value: categories, label: "Categories" },
+    ];
+  }, [listings]);
+
   const toCardShape = (l: typeof listings[0], isBoosted = false) => ({
     id: l.id,
     name: l.name,
@@ -99,6 +136,9 @@ const Index = () => {
     description: l.description,
     isBoosted,
     sellerId: l.sellerId,
+    sellerName: l.sellerName,
+    sellerVerified: l.sellerVerified,
+    sellerIsOfficial: l.sellerIsOfficial,
   });
 
   const handleClear = () => {
@@ -109,6 +149,17 @@ const Index = () => {
   const handleReset = () => {
     setQuery("");
     setActiveCategory(null);
+    gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (query.trim()) navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+  };
+
+  const selectCategory = (label: string | null) => {
+    setActiveCategory((prev) => (prev === label ? null : label));
+    gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const postHref = user ? "/sell" : "/auth";
@@ -117,59 +168,115 @@ const Index = () => {
     <div className="min-h-screen bg-background overflow-x-hidden w-full">
       <Navbar />
 
-      {/* ── Search + category filter ── */}
+      {/* ── Search (Alibaba focal search) ── */}
       <section
         className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
         style={{ paddingTop: `calc(64px + env(safe-area-inset-top, 0px))` }}
       >
-        <div className="flex items-center gap-2 bg-muted rounded-full px-4 py-3 border border-border focus-within:border-primary transition-colors max-w-xl">
-          <Search className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+        <form
+          onSubmit={handleSubmit}
+          className="flex items-center gap-3 bg-card rounded-full px-5 py-3.5 border border-border shadow-lg shadow-primary/5 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all max-w-2xl mx-auto"
+        >
+          <Search className="w-5 h-5 text-muted-foreground flex-shrink-0" />
           <input
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search products…"
-            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+            placeholder="What are you looking for?"
+            className="flex-1 bg-transparent text-base text-foreground placeholder:text-muted-foreground outline-none"
           />
           {query && (
-            <button onClick={handleClear} className="text-muted-foreground hover:text-foreground transition-colors">
-              <X className="w-3.5 h-3.5" />
+            <button type="button" onClick={handleClear} className="text-muted-foreground hover:text-foreground transition-colors">
+              <X className="w-4 h-4" />
             </button>
           )}
-        </div>
+        </form>
+      </section>
 
-        <div className="flex flex-wrap gap-2 mt-3">
-          <button
-            onClick={() => setActiveCategory(null)}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-medium transition-all ${
-              !activeCategory
-                ? "bg-primary text-primary-foreground border-primary"
-                : "border-border bg-card text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/5"
-            }`}
-          >
-            All
-          </button>
-          {CATEGORIES.map((c) => (
-            <button
-              key={c.label}
-              onClick={() => setActiveCategory(activeCategory === c.label ? null : c.label)}
-              className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border text-xs font-medium transition-all ${
-                activeCategory === c.label
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "border-border bg-card text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/5"
-              }`}
+      {/* ── Categories for you (icon tiles) ── */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground text-center mb-4">
+          Categories for you
+        </p>
+        <div className="grid grid-cols-4 sm:grid-cols-8 gap-3 sm:gap-4">
+          {CATEGORIES.map((c) => {
+            const active = activeCategory === c.label;
+            return (
+              <button
+                key={c.label}
+                onClick={() => selectCategory(c.label)}
+                className="flex flex-col items-center gap-2 group"
+              >
+                <span
+                  className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br ${c.color} border flex items-center justify-center transition-all duration-300 group-hover:scale-105 group-hover:border-primary/50 ${
+                    active ? "border-primary ring-2 ring-primary/30" : "border-border/60"
+                  }`}
+                >
+                  <img
+                    src={c.svg}
+                    alt=""
+                    className="w-8 h-8 sm:w-9 sm:h-9"
+                    onError={(e) => { e.currentTarget.style.display = "none"; }}
+                  />
+                </span>
+                <span
+                  className={`text-[11px] sm:text-xs font-medium transition-colors ${
+                    active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+                  }`}
+                >
+                  {c.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ── Marketplace stats band ── */}
+      <section className="mt-10 border-y border-border bg-muted/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="grid grid-cols-3 divide-x divide-border">
+            {stats.map(({ icon: Icon, value, label }) => (
+              <div key={label} className="flex flex-col items-center gap-1 px-2">
+                <Icon className="w-4 h-4 text-primary mb-1" />
+                <span className="font-display text-xl sm:text-2xl font-bold text-foreground leading-none">
+                  {value}
+                </span>
+                <span className="text-[10px] sm:text-xs text-muted-foreground text-center">
+                  {label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Trust strip ── */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {TRUST_ITEMS.map(({ icon: Icon, title, sub }) => (
+            <div
+              key={title}
+              className="flex items-start gap-3 rounded-2xl bg-card border border-border/60 p-4"
             >
-              <img src={c.svg} alt="" className="w-4 h-4" onError={(e) => { e.currentTarget.style.display = "none"; }} />
-              {c.label}
-            </button>
+              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <Icon className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-foreground mb-0.5">{title}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">{sub}</p>
+              </div>
+            </div>
           ))}
         </div>
       </section>
 
       {/* ── Dense product grid ── */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <section ref={gridRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 scroll-mt-24">
         <div className="flex items-center justify-between mb-3 sm:mb-4">
-          <h1 className="font-display text-lg sm:text-xl font-bold tracking-tight">All Products</h1>
+          <h1 className="font-display text-lg sm:text-xl font-bold tracking-tight">
+            {activeCategory ? activeCategory : "All Products"}
+          </h1>
           <p className="text-xs text-muted-foreground">
             {loading ? "Loading…" : `${filtered.length} ${filtered.length === 1 ? "item" : "items"}`}
           </p>
