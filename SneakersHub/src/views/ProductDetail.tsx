@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useParams, Link, useNavigate } from "@/lib/router";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -272,10 +273,13 @@ const ProductDetail = () => {
               className="relative rounded-2xl lg:rounded-3xl overflow-hidden bg-muted border border-border aspect-square flex items-center justify-center group"
             >
               {activeImage ? (
-                <img
+                <Image
                   src={activeImage}
                   alt={title}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  fill
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  className="object-cover transition-transform duration-700 group-hover:scale-105"
                 />
               ) : (
                 <Package className="w-16 h-16 text-muted-foreground/40" />
@@ -296,11 +300,11 @@ const ProductDetail = () => {
                   <button
                     key={i}
                     onClick={() => setSelectedImage(img)}
-                    className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${
+                    className={`relative flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${
                       activeImage === img ? "border-primary" : "border-border hover:border-primary/40"
                     }`}
                   >
-                    <img src={img} alt={`View ${i + 1}`} className="w-full h-full object-cover" />
+                    <Image src={img} alt={`View ${i + 1}`} fill sizes="64px" className="object-cover" />
                   </button>
                 ))}
               </div>
@@ -417,9 +421,9 @@ const ProductDetail = () => {
                 Posted by
               </p>
               <div className="flex items-center gap-3">
-                <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <div className="relative w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
                   {sellerAvatarUrl ? (
-                    <img src={sellerAvatarUrl} alt={listing.sellerName} className="w-full h-full object-cover" />
+                    <Image src={sellerAvatarUrl} alt={listing.sellerName} fill sizes="44px" className="object-cover" />
                   ) : (
                     <span className="font-display text-base font-bold text-primary">{sellerInitial}</span>
                   )}

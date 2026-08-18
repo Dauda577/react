@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "@/lib/router";
@@ -225,9 +226,9 @@ const Account = () => {
 
           <motion.div {...fadeUp} className="flex items-center gap-5 pb-8">
             <div className="relative flex-shrink-0">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+              <div className="relative w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
                 {avatarUrl
-                  ? <img src={avatarUrl} alt={user?.name ?? "avatar"} className="w-full h-full object-cover" />
+                  ? <Image src={avatarUrl} alt={user?.name ?? "avatar"} fill sizes="64px" className="object-cover" />
                   : <span className="font-display text-xl font-bold text-primary">{initials}</span>
                 }
               </div>

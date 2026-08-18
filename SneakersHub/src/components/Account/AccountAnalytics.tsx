@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { memo } from "react";
 import { useListings, isBoostActive, boostDaysLeft } from "@/context/ListingContext";
 import { Link } from "@/lib/router";
@@ -48,11 +49,15 @@ const AccountAnalytics = memo(() => {
                   className="flex items-center gap-3 p-3 hover:bg-muted/50 transition-colors"
                 >
                   {listing.images?.[0] ? (
-                    <img
-                      src={listing.images[0]}
-                      alt={listing.name}
-                      className="w-10 h-10 rounded-md object-cover flex-shrink-0"
-                    />
+                    <div className="relative w-10 h-10 rounded-md overflow-hidden flex-shrink-0">
+                      <Image
+                        src={listing.images[0]}
+                        alt={listing.name}
+                        fill
+                        sizes="40px"
+                        className="object-cover"
+                      />
+                    </div>
                   ) : (
                     <div className="w-10 h-10 rounded-md bg-muted flex-shrink-0" />
                   )}

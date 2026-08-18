@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import React, { memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "@/lib/router";
@@ -75,9 +76,9 @@ const AccountSaved = memo(({ saved, toggleSaved }: Props) => {
           {saved.map((item, i) => (
             <motion.div key={item.id} {...itemVariant(i)}
               className="flex items-center gap-4 px-5 py-4 rounded-2xl border border-border hover:bg-primary/5 transition-colors group">
-              <div className="w-14 h-14 rounded-xl bg-secondary overflow-hidden flex-shrink-0">
+              <div className="relative w-14 h-14 rounded-xl bg-secondary overflow-hidden flex-shrink-0">
                 {item.image
-                  ? <img src={item.image} alt={item.name} className="w-full h-full object-contain p-1" />
+                  ? <Image src={item.image} alt={item.name} fill sizes="56px" className="object-contain p-1" />
                   : <div className="w-full h-full bg-primary/10 flex items-center justify-center text-lg">🛍️</div>
                 }
               </div>

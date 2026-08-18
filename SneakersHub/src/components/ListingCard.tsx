@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { Link } from "@/lib/router";
 import { Badge } from "@/components/ui/badge";
 import { Heart, Zap, Sparkles, BadgeCheck } from "lucide-react";
@@ -123,14 +124,14 @@ const ListingCard = memo(({ sneaker: listing, index }: ListingCardProps) => {
                 {!imageLoaded && (
                   <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800 animate-pulse" />
                 )}
-                <img
+                <Image
                   src={cardImage(listing.image)}
                   alt={listing.name}
-                  className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ${
+                  fill
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                  className={`object-cover transition-all duration-700 ${
                     imageLoaded ? "scale-100 group-hover:scale-110" : "scale-105 blur-sm"
                   }`}
-                  loading="lazy"
-                  decoding="async"
                   onLoad={handleImageLoad}
                   onError={handleImageError}
                 />
