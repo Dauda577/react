@@ -1,6 +1,8 @@
+"use client";
+
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@/lib/router";
 import {
   ShieldAlert, TrendingUp, Package, Wallet, AlertTriangle,
   CheckCircle, Clock, RefreshCw, ChevronDown, ChevronUp,
@@ -10,6 +12,7 @@ import {
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
+import { envVar } from "@/lib/env";
 import { toast } from "sonner";
 import { PromoCodeManager } from "@/components/admin/PromoCodeManager";
 import { MessagingTab } from "@/components/admin/MessagingTab";
@@ -200,11 +203,11 @@ const Admin = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-subaccount-status`,
+        `${envVar("url")}/functions/v1/check-subaccount-status`,
         {
           headers: {
             Authorization: `Bearer ${session?.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+            apikey: envVar("anonKey"),
           },
         }
       );
@@ -259,13 +262,13 @@ const Admin = () => {
       }
 
       const { data: { session } } = await supabase.auth.getSession();
-      const smsUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-sms`;
+      const smsUrl = `${envVar("url")}/functions/v1/send-sms`;
       fetch(smsUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${session?.access_token}`,
-          "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+          "apikey": envVar("anonKey"),
         },
         body: JSON.stringify({
           type: action === "approve" ? "application.approved" : "application.rejected",
@@ -278,13 +281,13 @@ const Admin = () => {
         }),
       }).catch(console.error);
 
-      const pushUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-push`;
+      const pushUrl = `${envVar("url")}/functions/v1/send-push`;
       fetch(pushUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${session?.access_token}`,
-          "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY,
+          "apikey": envVar("anonKey"),
         },
         body: JSON.stringify({
           user_id: userId,
@@ -328,11 +331,11 @@ const Admin = () => {
     try {
       const { data: session } = await supabase.auth.getSession();
       const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-data`,
+        `${envVar("url")}/functions/v1/admin-data`,
         {
           headers: {
             Authorization: `Bearer ${session.session?.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+            apikey: envVar("anonKey"),
           },
         }
       );

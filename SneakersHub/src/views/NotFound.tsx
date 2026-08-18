@@ -1,4 +1,6 @@
-import { useLocation, useNavigate } from "react-router-dom";
+"use client";
+
+import { useLocation, useNavigate } from "@/lib/router";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Home, Search } from "lucide-react";

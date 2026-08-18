@@ -1,5 +1,7 @@
+"use client";
+
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "@/lib/router";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, ArrowLeft } from "lucide-react";
 import Navbar from "@/components/Navbar";

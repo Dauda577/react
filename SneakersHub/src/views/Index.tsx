@@ -1,6 +1,8 @@
+"use client";
+
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "@/lib/router";
 import {
   ArrowRight, Search, Zap, X, MapPin, Phone, Tag, TrendingUp,
 } from "lucide-react";

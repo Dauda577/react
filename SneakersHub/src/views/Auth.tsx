@@ -1,12 +1,15 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@/lib/router";
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight, CheckCircle, AlertCircle, Phone, Gift } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import InstallPrompt from "@/components/InstallPrompt";
 import { supabase } from "@/lib/supabase";
+import { envVar } from "@/lib/env";
 
 type Mode = "login" | "signup" | "forgot";
 
@@ -75,7 +78,7 @@ const Auth = () => {
         if (form.referralCode.trim() && newUser?.id) {
           try {
             const res = await fetch(
-              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/handle-referral`,
+              `${envVar("url")}/functions/v1/handle-referral`,
               {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -218,7 +221,7 @@ const Auth = () => {
                     if (session?.user?.id) {
                       try {
                         const res = await fetch(
-                          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/handle-referral`,
+                          `${envVar("url")}/functions/v1/handle-referral`,
                           {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },

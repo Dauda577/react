@@ -1,6 +1,8 @@
+"use client";
+
 import React, { memo, lazy, Suspense, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@/lib/router";
 import {
   Store, Plus, Eye, Tag, Pencil, Trash2, Zap, Sparkles,
   X, Camera, Type, DollarSign, Ruler, Search,

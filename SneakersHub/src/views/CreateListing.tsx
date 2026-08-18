@@ -1,6 +1,8 @@
+"use client";
+
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "@/lib/router";
 import {
   ArrowLeft, Upload, X, CheckCircle, Tag,
   ChevronDown, FileText, Image, Phone, Truck, BadgeCheck,

@@ -1,7 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
+import { envVar } from "@/lib/env";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+const supabaseUrl = envVar("url");
+const supabaseAnonKey = envVar("anonKey");
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {

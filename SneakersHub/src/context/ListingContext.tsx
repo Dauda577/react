@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 import { supabase, ListingRow } from "@/lib/supabase";
+import { envVar } from "@/lib/env";
 import { useAuth } from "@/context/AuthContext";
 
 export type Listing = {
@@ -113,7 +114,7 @@ const compressImage = (file: File): Promise<Blob> => {
 };
 
 const uploadImage = async (file: File, path: string): Promise<string | null> => {
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+  const supabaseUrl = envVar("url");
   try {
     const compressedBlob = await compressImage(file);
     const { error } = await supabase.storage.from("listings").upload(path, compressedBlob, {

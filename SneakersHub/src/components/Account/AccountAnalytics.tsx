@@ -1,6 +1,8 @@
+"use client";
+
 import { memo } from "react";
 import { useListings, isBoostActive, boostDaysLeft } from "@/context/ListingContext";
-import { Link } from "react-router-dom";
+import { Link } from "@/lib/router";
 
 const AccountAnalytics = memo(() => {
   const { listings, loading } = useListings();

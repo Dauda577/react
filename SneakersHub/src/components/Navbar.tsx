@@ -1,4 +1,6 @@
-import { Link, useLocation, useNavigate } from "react-router-dom";
+"use client";
+
+import { Link, useLocation, useNavigate } from "@/lib/router";
 import { Menu, X, Zap, Search, User, PlusCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useState, useEffect } from "react";

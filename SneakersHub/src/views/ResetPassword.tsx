@@ -1,6 +1,8 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "@/lib/router";
 import { Lock, Eye, EyeOff, CheckCircle, AlertCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";

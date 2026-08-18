@@ -1,7 +1,9 @@
+"use client";
+
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, Package, ChevronLeft, ChevronRight } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams } from "@/lib/router";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import SneakerCard from "@/components/ListingCard";

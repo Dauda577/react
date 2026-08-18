@@ -1,4 +1,6 @@
-import { Link } from "react-router-dom";
+"use client";
+
+import { Link } from "@/lib/router";
 import { Badge } from "@/components/ui/badge";
 import { Heart, Zap, Sparkles, BadgeCheck } from "lucide-react";
 import { useSaved } from "@/context/SavedContext";

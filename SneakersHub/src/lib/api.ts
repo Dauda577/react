@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
+import { envVar } from "@/lib/env";
 
-const BASE_URL = (import.meta.env.VITE_API_URL as string) || "http://localhost:8787";
+const BASE_URL = envVar("apiUrl") || "http://localhost:8787";
 
 export const API_BASE = BASE_URL;
 

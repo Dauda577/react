@@ -1,8 +1,10 @@
+"use client";
+
 
 import { useState } from "react";
 import type { ComponentType } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link } from "@/lib/router";
 import { X, ChevronDown, Mail, MapPin, Clock, Instagram, Twitter, Heart } from "lucide-react";
 
 const WHATSAPP = "https://wa.me/233256221777";

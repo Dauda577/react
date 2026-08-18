@@ -1,6 +1,8 @@
+"use client";
+
 import React, { memo, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@/lib/router";
 import {
   User, MapPin, Store, Star, Pencil, CheckCircle, ArrowRight,
   LogOut, ShieldCheck, BadgeCheck, ChevronDown, Sparkles, Mail, Phone,

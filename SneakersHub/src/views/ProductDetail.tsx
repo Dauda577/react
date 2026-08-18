@@ -1,4 +1,6 @@
-import { useParams, Link, useNavigate } from "react-router-dom";
+"use client";
+
+import { useParams, Link, useNavigate } from "@/lib/router";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {

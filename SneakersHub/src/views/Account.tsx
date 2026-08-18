@@ -1,6 +1,8 @@
+"use client";
+
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "@/lib/router";
 import {
   User, LayoutGrid, Heart, Settings,
   MapPin, Store, BadgeCheck, Sparkles, BarChart2,

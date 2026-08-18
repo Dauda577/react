@@ -1,6 +1,8 @@
+"use client";
+
 import React, { memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link } from "@/lib/router";
 import { Heart, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { itemVariant } from "../Account/accountHelpers";

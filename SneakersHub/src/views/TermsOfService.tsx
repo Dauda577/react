@@ -1,4 +1,6 @@
-import { Link } from "react-router-dom";
+"use client";
+
+import { Link } from "@/lib/router";
 import { motion } from "framer-motion";
 import {
   Shield, Clock, Wallet, Users, Mail, AlertCircle,

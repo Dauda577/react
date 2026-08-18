@@ -1,4 +1,6 @@
-import { useNavigate } from "react-router-dom";
+"use client";
+
+import { useNavigate } from "@/lib/router";
 import { ShieldAlert } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
