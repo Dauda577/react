@@ -161,7 +161,7 @@ const BoostModal = ({ listing, onClose }: Props) => {
 
               <div className="space-y-2.5 mb-6">
                 {[
-                  { icon: Star, text: "Featured on the homepage for 7 days" },
+                  { icon: Star, text: `Featured on the homepage for ${BOOST_DURATION} days` },
                   { icon: Zap, text: `"Featured" badge on your listing` },
                   { icon: CheckCircle, text: "First in all search results" },
                   { icon: CheckCircle, text: "Higher visibility to all buyers" },

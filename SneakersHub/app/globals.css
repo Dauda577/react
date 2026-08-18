@@ -200,6 +200,16 @@
   .btn-outline-hero:hover {
     @apply border-primary text-primary;
   }
+
+  .form-label {
+    @apply block text-sm font-semibold text-foreground mb-2;
+  }
+
+  .input-base {
+    @apply w-full h-11 px-4 rounded-xl border border-border bg-card text-sm text-foreground
+      placeholder:text-muted-foreground focus:outline-none focus:border-primary
+      focus:ring-1 focus:ring-primary/20 transition-all;
+  }
 }
 
 /* Custom scrollbar */

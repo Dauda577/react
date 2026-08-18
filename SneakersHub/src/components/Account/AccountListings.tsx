@@ -265,8 +265,7 @@ const AccountListings = memo(({
                 )}
 
                 {listing.status === "active" && isBoostActive(listing) && !listing.boostExpiresAt && (
-                  <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
-                    style={{ background: "rgba(109,40,217,0.1)", border: "1px solid rgba(109,40,217,0.25)", color: "#a78bfa" }}>
+                  <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-violet-500/10 border border-violet-500/25 text-violet-600 dark:text-violet-300">
                     <Sparkles className="w-3 h-3" /> Official · Always Featured
                   </span>
                 )}

@@ -458,7 +458,7 @@ const CreateListing = () => {
                 onChange={handleChange}
                 rows={4}
                 placeholder={getDescriptionPlaceholder(form.category)}
-                className="input-base resize-none"
+                className="input-base resize-none h-auto min-h-32 py-3"
               />
             </div>
           </motion.div>

@@ -3,10 +3,13 @@
 import Image from "next/image";
 import { memo } from "react";
 import { useListings, isBoostActive, boostDaysLeft } from "@/context/ListingContext";
-import { Link } from "@/lib/router";
+import { Link, useNavigate } from "@/lib/router";
+import { Store, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const AccountAnalytics = memo(() => {
   const { listings, loading } = useListings();
+  const navigate = useNavigate();
 
   if (loading) return <p className="text-sm text-muted-foreground p-4">Loading...</p>;
 
@@ -24,7 +27,7 @@ const AccountAnalytics = memo(() => {
           { label: "Sold", value: sold },
           { label: "Boosted", value: boosted },
         ].map(({ label, value }) => (
-          <div key={label} className="bg-muted rounded-lg p-4">
+          <div key={label} className="rounded-2xl border border-border bg-card p-4">
             <p className="text-xs text-muted-foreground mb-1">{label}</p>
             <p className="text-2xl font-medium">{value}</p>
           </div>
@@ -37,7 +40,18 @@ const AccountAnalytics = memo(() => {
         </p>
         <div className="rounded-xl border divide-y divide-border">
           {listings.length === 0 ? (
-            <p className="text-sm text-muted-foreground p-4">No listings yet.</p>
+            <div className="text-center py-12 px-4">
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                <Store className="w-5 h-5 text-primary" />
+              </div>
+              <p className="font-display font-bold text-base mb-1">No listings yet</p>
+              <p className="text-xs text-muted-foreground max-w-[240px] mx-auto mb-5">
+                Your listings and their performance will show up here once you publish your first item.
+              </p>
+              <Button className="btn-primary rounded-full h-9 px-5 text-sm" onClick={() => navigate("/listings/new")}>
+                <Plus className="w-3.5 h-3.5 mr-1.5" /> Create a Listing
+              </Button>
+            </div>
           ) : (
             listings.map((listing) => {
               const active = isBoostActive(listing);

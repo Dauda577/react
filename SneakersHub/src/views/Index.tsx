@@ -308,16 +308,6 @@ const Index = () => {
               Browse all →
             </Link>
           </div>
-
-          {/* How it works — inline badges */}
-          <div className="flex flex-wrap gap-3 pt-1">
-            {HOW_IT_WORKS.map(({ icon: Icon, label }) => (
-              <div key={label} className="flex items-center gap-2 bg-muted/60 border border-border rounded-xl px-3 py-2">
-                <Icon className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-                <p className="text-[11px] font-semibold text-foreground leading-none">{label}</p>
-              </div>
-            ))}
-          </div>
         </Animate>
 
         {/* Right — desktop hero visual */}

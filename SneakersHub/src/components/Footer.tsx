@@ -12,11 +12,11 @@ const PHONE = "tel:+233256221777";
 const EMAIL = "mailto:support@sneakershub.com";
 
 const faqs = [
-  { q: "How do I buy a sneaker?", a: "Browse the shop, select a listing, choose your size and tap 'Buy Now'. Complete checkout with your delivery details." },
+  { q: "How do I buy a sneaker?", a: "Browse the shop and open a listing. Choose your size, then tap WhatsApp or Call to arrange the purchase directly with the seller." },
   { q: "How do I sell on SneakersHub?", a: "Create a seller account, then go to Account → Listings → New Listing. Fill in your sneaker details, upload a photo and publish." },
-  { q: "How does delivery work?", a: "Sellers and buyers coordinate delivery directly. You can choose from available delivery methods at checkout." },
-  { q: "Is my payment secure?", a: "Yes. Payments are processed securely via Paystack, a trusted payment provider across Africa." },
-  { q: "Can I return a sneaker?", a: "Returns are handled between buyer and seller. We recommend confirming receipt only after you're satisfied with your order." },
+  { q: "How does delivery work?", a: "Sellers and buyers coordinate delivery directly. Confirm the delivery method and details with the seller before you pay." },
+  { q: "Is my payment secure?", a: "We don't process payments on the platform. Arrange payment directly with the seller, and prefer in-person meetups so you can verify the item first." },
+  { q: "Can I return a sneaker?", a: "Returns are handled directly between buyer and seller. Confirm the item's condition with the seller before you complete the deal." },
   { q: "How do I contact support?", a: "Reach us on WhatsApp or call us directly using the links in the footer. We're available Mon–Sat, 8am–8pm." },
 ];
 
@@ -65,7 +65,7 @@ const FAQModal = ({ onClose }: { onClose: () => void }) => {
                 className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-muted/30 transition-colors gap-4"
               >
                 <span className="text-sm font-medium group-hover:text-primary transition-colors">{faq.q}</span>
-                <ChevronDown className={`w - 4 h - 4 text - muted - foreground flex - shrink - 0 transition - transform duration - 200 ${ open === i ? "rotate-180 text-primary" : "" } `} />
+                <ChevronDown className={`w-4 h-4 text-muted-foreground flex-shrink-0 transition-transform duration-200 ${open === i ? "rotate-180 text-primary" : ""}`} />
               </button>
               <AnimatePresence>
                 {open === i && (

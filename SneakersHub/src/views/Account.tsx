@@ -249,8 +249,7 @@ const Account = () => {
                 {!isGuest && profileLoaded && (
                   <>
                     {isOfficial && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border"
-                        style={{ background: "linear-gradient(135deg,#3b0764,#1e1b4b)", color: "#a78bfa", borderColor: "#6d28d9" }}>
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border border-violet-500/40 bg-gradient-to-r from-violet-700 to-indigo-800 text-violet-200">
                         <Sparkles className="w-3 h-3" /> Official
                       </span>
                     )}

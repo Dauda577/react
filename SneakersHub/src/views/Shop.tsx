@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, Package, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, X, Package, ChevronLeft, ChevronRight, ChevronDown, Check } from "lucide-react";
 import { useSearchParams } from "@/lib/router";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -41,7 +41,23 @@ const Shop = () => {
   });
 
   const pillsRef = useRef<HTMLDivElement>(null);
+  const sortRef = useRef<HTMLDivElement>(null);
+  const [sortOpen, setSortOpen] = useState(false);
   const prevFilters = useRef({ search: "", category: searchParams.get("category") ?? "All", sort });
+
+  // Close sort dropdown on outside click
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) setSortOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setSortOpen(false); };
+    document.addEventListener("mousedown", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, []);
 
   // Persist visibleCount and sort
   useEffect(() => {
@@ -111,10 +127,13 @@ const Shop = () => {
 
   const filtered = listings
     .filter((l) => {
+      if (sort === "featured" && !isActiveBoost(l)) return false;
       const matchesCategory = category === "All" || l.category === category;
+      const q = search.toLowerCase();
       const matchesSearch =
-        l.name.toLowerCase().includes(search.toLowerCase()) ||
-        l.brand.toLowerCase().includes(search.toLowerCase());
+        l.name.toLowerCase().includes(q) ||
+        l.brand.toLowerCase().includes(q) ||
+        (l.description ?? "").toLowerCase().includes(q);
       return matchesCategory && matchesSearch;
     })
     .sort((a, b) => {
@@ -227,15 +246,52 @@ const Shop = () => {
               </button>
             )}
           </div>
-          <select
-            value={sort}
-            onChange={(e) => handleSort(e.target.value)}
-            className="h-11 px-4 rounded-full border border-border bg-card text-sm text-foreground focus:outline-none focus:border-primary transition-all cursor-pointer"
-          >
-            {sortOptions.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
+          <div className="relative" ref={sortRef}>
+            <button
+              onClick={() => setSortOpen((o) => !o)}
+              aria-haspopup="listbox"
+              aria-expanded={sortOpen}
+              className="h-11 px-4 rounded-full border border-border bg-card text-sm text-foreground
+                focus:outline-none focus:border-primary transition-all cursor-pointer flex items-center gap-2 whitespace-nowrap"
+            >
+              {sortOptions.find((o) => o.value === sort)?.label ?? "Newest"}
+              <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform ${sortOpen ? "rotate-180" : ""}`} />
+            </button>
+            <AnimatePresence>
+              {sortOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 6, scale: 0.98 }}
+                  transition={{ duration: 0.15 }}
+                  role="listbox"
+                  className="absolute right-0 top-full mt-2 z-20 min-w-[190px] rounded-xl border border-border bg-card shadow-2xl overflow-hidden"
+                >
+                  {sortOptions.map((o) => (
+                    <button
+                      key={o.value}
+                      role="option"
+                      aria-selected={sort === o.value}
+                      onClick={() => { handleSort(o.value); setSortOpen(false); }}
+                      className={`w-full px-4 py-2.5 text-left text-sm flex items-center justify-between gap-2 transition-colors
+                        ${sort === o.value
+                          ? "text-primary font-medium bg-primary/5"
+                          : "text-foreground hover:bg-secondary"
+                        }`}
+                    >
+                      {o.label}
+                      {sort === o.value && <Check className="w-3.5 h-3.5" />}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+          {!loading && filtered.length > 0 && (
+            <p className="text-sm text-muted-foreground ml-auto flex items-center self-center whitespace-nowrap">
+              Showing {visible.length} of {filtered.length}
+            </p>
+          )}
         </div>
 
         {/* Grid */}
@@ -262,7 +318,7 @@ const Shop = () => {
               <Button
                 variant="outline"
                 className="rounded-full text-sm"
-                onClick={() => { handleSearch(""); setCategory("All"); }}
+                onClick={() => { handleSearch(""); setCategory("All"); handleSort("newest"); }}
               >
                 Clear filters
               </Button>
@@ -286,15 +342,12 @@ const Shop = () => {
                   ))}
                 </div>
 
-                {hasMore && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex flex-col items-center gap-2 mt-10"
-                  >
-                    <p className="text-xs text-muted-foreground">
-                      Showing {visible.length} of {filtered.length} listings
-                    </p>
+{hasMore && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex flex-col items-center gap-2 mt-10"
+                    >
                     <Button
                       variant="outline"
                       className="rounded-full px-8 h-11 text-sm font-semibold border-border hover:border-primary/50 hover:bg-primary/5 transition-all"

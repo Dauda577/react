@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
+import "@/styles/safari-fixes.css";
 import RegisterServiceWorker from "./register-service-worker";
 
 const inter = Inter({

@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, MapPin, X, Package, BadgeCheck,
   Share2, Copy, CheckCheck, ChevronRight, Phone,
-  MessageCircle, Truck, Tag, Zap,
+  MessageCircle, Truck, Tag, Zap, Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { usePublicListings } from "@/context/PublicListingsContext";
@@ -127,23 +127,31 @@ const ContactButtons = ({ phone, title }: { phone: string; title: string }) => {
   const waMessage = `Hi, I saw your listing for *${title}* — is it still available?`;
 
   return (
-    <div className="grid grid-cols-2 gap-2">
-      <a
-        href={`https://wa.me/${formatted}?text=${encodeURIComponent(waMessage)}`}
-        target="_blank"
-        rel="noreferrer"
-        className="flex items-center justify-center gap-2 h-11 rounded-xl bg-[#25D366] text-white text-sm font-semibold hover:opacity-90 transition-opacity"
-      >
-        <MessageCircle className="w-4 h-4" />
-        WhatsApp
-      </a>
-      <a
-        href={`tel:${phone}`}
-        className="flex items-center justify-center gap-2 h-11 rounded-xl border border-border bg-card text-sm font-semibold text-foreground hover:bg-muted/50 transition-colors"
-      >
-        <Phone className="w-4 h-4" />
-        Call
-      </a>
+    <div className="space-y-2">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        Contact seller
+      </p>
+      <div className="grid grid-cols-2 gap-2">
+        <a
+          href={`https://wa.me/${formatted}?text=${encodeURIComponent(waMessage)}`}
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center justify-center gap-2 h-11 rounded-xl bg-[#25D366] text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+        >
+          <MessageCircle className="w-4 h-4" />
+          WhatsApp
+        </a>
+        <a
+          href={`tel:${phone}`}
+          className="flex items-center justify-center gap-2 h-11 rounded-xl border border-border bg-card text-sm font-semibold text-foreground hover:bg-muted/50 transition-colors"
+        >
+          <Phone className="w-4 h-4" />
+          Call
+        </a>
+      </div>
+      <p className="text-[11px] text-muted-foreground leading-relaxed">
+        Prefer in-person meetups and verify the item before you pay.
+      </p>
     </div>
   );
 };
@@ -164,6 +172,9 @@ const ProductDetail = () => {
   const related = listings
     .filter((l) => l.id !== id && l.category === listing?.category)
     .slice(0, 8);
+  const sameSeller = listing?.sellerId
+    ? listings.filter((l) => l.id !== id && l.sellerId === listing.sellerId).slice(0, 4)
+    : [];
 
   useEffect(() => { if (id) incrementViews?.(id); }, [id]);
   useEffect(() => { setSelectedImage(null); }, [id]);
@@ -182,6 +193,7 @@ const ProductDetail = () => {
     ? [...new Set([(listing as any).images ?? [], listing.image].flat().filter(Boolean) as string[])]
     : [];
   const activeImage = selectedImage ?? allImages[0] ?? null;
+  const activeIdx = activeImage ? Math.max(0, allImages.indexOf(activeImage)) : 0;
 
   const safeTopStyle: React.CSSProperties = {
     paddingTop: `calc(env(safe-area-inset-top, 0px) + 5rem)`,
@@ -291,6 +303,13 @@ const ProductDetail = () => {
                   <Zap className="w-2.5 h-2.5 fill-current" /> Featured
                 </div>
               )}
+
+              {/* Image counter */}
+              {allImages.length > 1 && (
+                <div className="absolute top-3 right-3 rounded-full bg-background/80 backdrop-blur-sm border border-border px-2.5 py-1 text-[11px] font-semibold text-foreground">
+                  {activeIdx + 1} / {allImages.length}
+                </div>
+              )}
             </motion.div>
 
             {/* Thumbnails */}
@@ -304,7 +323,7 @@ const ProductDetail = () => {
                       activeImage === img ? "border-primary" : "border-border hover:border-primary/40"
                     }`}
                   >
-                    <Image src={img} alt={`View ${i + 1}`} fill sizes="64px" className="object-cover" />
+                    <Image src={img} alt={`Thumbnail ${i + 1} of ${allImages.length}`} fill sizes="64px" className="object-cover" />
                   </button>
                 ))}
               </div>
@@ -429,7 +448,19 @@ const ProductDetail = () => {
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate">{listing.sellerName}</p>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <p className="font-semibold text-sm truncate">{listing.sellerName}</p>
+                    {(listing as any).sellerIsOfficial && (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-violet-200 bg-gradient-to-r from-violet-700 to-indigo-800 border border-violet-500/40 rounded-full px-1.5 py-0.5">
+                        <Sparkles className="w-3 h-3" /> Official
+                      </span>
+                    )}
+                    {(listing as any).sellerVerified && (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-green-600 bg-green-500/10 border border-green-500/20 rounded-full px-1.5 py-0.5">
+                        <BadgeCheck className="w-3 h-3" /> Verified
+                      </span>
+                    )}
+                  </div>
                   {(() => {
                     const city = (listing as any).city ?? (listing as any).sellerCity;
                     const region = (listing as any).region ?? (listing as any).sellerRegion;
@@ -445,6 +476,35 @@ const ProductDetail = () => {
             </div>
           </motion.div>
         </div>
+
+        {/* More from this seller */}
+        {sameSeller.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="mt-14 lg:mt-20"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="font-display text-lg lg:text-2xl font-bold tracking-tight mb-1">
+                  More from {listing.sellerName}
+                </h2>
+                <p className="text-xs text-muted-foreground">Other items listed by this seller</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+              {sameSeller.map((l, i) => (
+                <SneakerCard key={l.id} sneaker={{
+                  id: l.id, name: (l as any).title ?? l.name, brand: l.category ?? "",
+                  price: l.price, image: l.image ?? "", category: l.category,
+                  sizes: l.sizes, description: l.description, isBoosted: l.boosted,
+                  sellerId: l.sellerId,
+                }} index={i} />
+              ))}
+            </div>
+          </motion.div>
+        )}
 
         {/* Related Listings */}
         {related.length > 0 && (

@@ -111,7 +111,7 @@ const AccountProfile = memo(({
       {isSeller && (
         <div className="grid grid-cols-2 gap-3">
           <StatCard icon={TrendingUp} label="Active Listings" value={activeListings.toString()} accent="bg-green-500/10 text-green-500" />
-          <StatCard icon={Store} label="Total Listings" value={totalListings.toString()} accent="bg-purple-500/10 text-purple-500" />
+          <StatCard icon={Store} label="Total Listings" value={totalListings.toString()} accent="bg-violet-500/10 text-violet-500" />
         </div>
       )}
 
@@ -311,15 +311,14 @@ const AccountProfile = memo(({
 
       {isSeller && isOfficial && (
         <motion.div {...fadeUp}
-          className="flex items-start gap-4 p-5 rounded-2xl border"
-          style={{ borderColor: "#6d28d9", background: "linear-gradient(135deg, rgba(59,7,100,0.08), rgba(30,27,75,0.08))" }}
+          className="flex items-start gap-4 p-5 rounded-2xl border border-violet-500/25"
+          style={{ background: "linear-gradient(135deg, rgba(59,7,100,0.08), rgba(30,27,75,0.08))" }}
         >
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: "rgba(109,40,217,0.15)" }}>
-            <Sparkles className="w-5 h-5" style={{ color: "#a78bfa" }} />
+          <div className="w-10 h-10 rounded-xl bg-violet-500/15 flex items-center justify-center flex-shrink-0">
+            <Sparkles className="w-5 h-5 text-violet-500 dark:text-violet-400" />
           </div>
           <div>
-            <p className="font-display font-semibold text-base" style={{ color: "#a78bfa" }}>Official Seller ✨</p>
+            <p className="font-display font-semibold text-base text-violet-600 dark:text-violet-300">Official Seller ✨</p>
             <p className="text-sm text-muted-foreground mt-1">
               Your store is recognised as an official brand. Your listings are permanently boosted and appear at the top.
             </p>
