@@ -1,0 +1,3218 @@
+[
+ {
+  "main": "Phones & Tablets",
+  "mainId": "phones-tablets",
+  "sub": "Mobile Phones",
+  "subId": "mobile-phones",
+  "mini": "Smartphones",
+  "miniId": "smartphones"
+ },
+ {
+  "main": "Phones & Tablets",
+  "mainId": "phones-tablets",
+  "sub": "Mobile Phones",
+  "subId": "mobile-phones",
+  "mini": "iOS Phones",
+  "miniId": "ios-phones"
+ },
+ {
+  "main": "Phones & Tablets",
+  "mainId": "phones-tablets",
+  "sub": "Mobile Phones",
+  "subId": "mobile-phones",
+  "mini": "Android Phones",
+  "miniId": "android-phones"
+ },
+ {
+  "main": "Phones & Tablets",
+  "mainId": "phones-tablets",
+  "sub": "Mobile Phones",
+  "subId": "mobile-phones",
+  "mini": "Basic & Feature Phones",
+  "miniId": "basic-phones"
+ },
+ {
+  "main": "Phones & Tablets",
+  "mainId": "phones-tablets",
+  "sub": "Mobile Phones",
+  "subId": "mobile-phones",
+  "mini": "Refurbished & Used",
+  "miniId": "refurbished-phones"
+ },
+ {
+  "main": "Phones & Tablets",
+  "mainId": "phones-tablets",
+  "sub": "Tablets",
+  "subId": "tablets",
+  "mini": "iPads",
+  "miniId": "ipads"
+ },
+ {
+  "main": "Phones & Tablets",
+  "mainId": "phones-tablets",
+  "sub": "Tablets",
+  "subId": "tablets",
+  "mini": "Android Tablets",
+  "miniId": "android-tablets"
+ },
+ {
+  "main": "Phones & Tablets",
+  "mainId": "phones-tablets",
+  "sub": "Tablets",
+  "subId": "tablets",
+  "mini": "Kids' Tablets",
+  "miniId": "kids-tablets"
+ },
+ {
+  "main": "Phones & Tablets",
+  "mainId": "phones-tablets",
+  "sub": "Tablets",
+  "subId": "tablets",
+  "mini": "Refurbished & Used",
+  "miniId": "used-tablets"
+ },
+ {
+  "main": "Phones & Tablets",
+  "mainId": "phones-tablets",
+  "sub": "Tablets",
+  "subId": "tablets",
+  "mini": "Tablet Accessories",
+  "miniId": "tablet-accessories"
+ },
+ {
+  "main": "Phones & Tablets",
+  "mainId": "phones-tablets",
+  "sub": "Phone Accessories",
+  "subId": "phone-accessories",
+  "mini": "Cases & Covers",
+  "miniId": "cases-covers"
+ },
+ {
+  "main": "Phones & Tablets",
+  "mainId": "phones-tablets",
+  "sub": "Phone Accessories",
+  "subId": "phone-accessories",
+  "mini": "Screen Protectors",
+  "miniId": "screen-protectors"
+ },
+ {
+  "main": "Phones & Tablets",
+  "mainId": "phones-tablets",
+  "sub": "Phone Accessories",
+  "subId": "phone-accessories",
+  "mini": "Chargers & Cables",
+  "miniId": "chargers-cables"
+ },
+ {
+  "main": "Phones & Tablets",
+  "mainId": "phones-tablets",
+  "sub": "Phone Accessories",
+  "subId": "phone-accessories",
+  "mini": "Power Banks",
+  "miniId": "power-banks"
+ },
+ {
+  "main": "Phones & Tablets",
+  "mainId": "phones-tablets",
+  "sub": "Phone Accessories",
+  "subId": "phone-accessories",
+  "mini": "Earbuds & Headsets",
+  "miniId": "earbuds-headsets"
+ },
+ {
+  "main": "Phones & Tablets",
+  "mainId": "phones-tablets",
+  "sub": "Phone Accessories",
+  "subId": "phone-accessories",
+  "mini": "Memory Cards & Storage",
+  "miniId": "memory-cards"
+ },
+ {
+  "main": "Phones & Tablets",
+  "mainId": "phones-tablets",
+  "sub": "Phone Accessories",
+  "subId": "phone-accessories",
+  "mini": "Phone Stands & Holders",
+  "miniId": "stands-holders"
+ },
+ {
+  "main": "Phones & Tablets",
+  "mainId": "phones-tablets",
+  "sub": "Phone Parts",
+  "subId": "phone-parts",
+  "mini": "Screens",
+  "miniId": "screens"
+ },
+ {
+  "main": "Phones & Tablets",
+  "mainId": "phones-tablets",
+  "sub": "Phone Parts",
+  "subId": "phone-parts",
+  "mini": "Batteries",
+  "miniId": "batteries"
+ },
+ {
+  "main": "Phones & Tablets",
+  "mainId": "phones-tablets",
+  "sub": "Phone Parts",
+  "subId": "phone-parts",
+  "mini": "Charging Ports",
+  "miniId": "charging-ports"
+ },
+ {
+  "main": "Phones & Tablets",
+  "mainId": "phones-tablets",
+  "sub": "Phone Parts",
+  "subId": "phone-parts",
+  "mini": "Back Panels & Housings",
+  "miniId": "back-panels"
+ },
+ {
+  "main": "Phones & Tablets",
+  "mainId": "phones-tablets",
+  "sub": "Phone Parts",
+  "subId": "phone-parts",
+  "mini": "Motherboards",
+  "miniId": "motherboards"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "TVs & Video",
+  "subId": "tvs-video",
+  "mini": "Smart TVs",
+  "miniId": "smart-tvs"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "TVs & Video",
+  "subId": "tvs-video",
+  "mini": "LED & LCD TVs",
+  "miniId": "led-tvs"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "TVs & Video",
+  "subId": "tvs-video",
+  "mini": "Projectors",
+  "miniId": "projectors"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "TVs & Video",
+  "subId": "tvs-video",
+  "mini": "TV Stands & Mounts",
+  "miniId": "tv-stands"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "TVs & Video",
+  "subId": "tvs-video",
+  "mini": "DVD & Blu-ray Players",
+  "miniId": "dvd-players"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Audio & Speakers",
+  "subId": "audio-speakers",
+  "mini": "Bluetooth Speakers",
+  "miniId": "bluetooth-speakers"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Audio & Speakers",
+  "subId": "audio-speakers",
+  "mini": "Soundbars & Home Theatre",
+  "miniId": "soundbars"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Audio & Speakers",
+  "subId": "audio-speakers",
+  "mini": "Headphones & Earphones",
+  "miniId": "headphones"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Audio & Speakers",
+  "subId": "audio-speakers",
+  "mini": "Hi-Fi & Turntables",
+  "miniId": "hi-fi"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Audio & Speakers",
+  "subId": "audio-speakers",
+  "mini": "Microphones & Recording",
+  "miniId": "microphones"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Cameras & Drones",
+  "subId": "cameras-drones",
+  "mini": "DSLR & Mirrorless",
+  "miniId": "dslr-mirrorless"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Cameras & Drones",
+  "subId": "cameras-drones",
+  "mini": "Point & Shoot",
+  "miniId": "point-shoot"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Cameras & Drones",
+  "subId": "cameras-drones",
+  "mini": "Lenses & Accessories",
+  "miniId": "lenses"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Cameras & Drones",
+  "subId": "cameras-drones",
+  "mini": "Camera Bags & Tripods",
+  "miniId": "tripods"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Cameras & Drones",
+  "subId": "cameras-drones",
+  "mini": "Drones & Accessories",
+  "miniId": "drones"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Cameras & Drones",
+  "subId": "cameras-drones",
+  "mini": "Action Cameras",
+  "miniId": "action-cameras"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Gaming",
+  "subId": "gaming",
+  "mini": "Consoles",
+  "miniId": "consoles"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Gaming",
+  "subId": "gaming",
+  "mini": "Games",
+  "miniId": "games"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Gaming",
+  "subId": "gaming",
+  "mini": "Controllers",
+  "miniId": "controllers"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Gaming",
+  "subId": "gaming",
+  "mini": "Gaming PCs & Laptops",
+  "miniId": "gaming-pcs"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Gaming",
+  "subId": "gaming",
+  "mini": "VR Headsets",
+  "miniId": "vr"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Gaming",
+  "subId": "gaming",
+  "mini": "Gaming Accessories",
+  "miniId": "gaming-accessories"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Wearables",
+  "subId": "wearables",
+  "mini": "Smartwatches",
+  "miniId": "smartwatches"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Wearables",
+  "subId": "wearables",
+  "mini": "Fitness Trackers",
+  "miniId": "fitness-trackers"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Wearables",
+  "subId": "wearables",
+  "mini": "Smart Bands",
+  "miniId": "smart-bands"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Wearables",
+  "subId": "wearables",
+  "mini": "Accessories",
+  "miniId": "wearable-accessories"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Computers & Laptops",
+  "subId": "computers",
+  "mini": "Laptops",
+  "miniId": "laptops"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Computers & Laptops",
+  "subId": "computers",
+  "mini": "MacBooks",
+  "miniId": "macbooks"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Computers & Laptops",
+  "subId": "computers",
+  "mini": "Desktops & All-in-Ones",
+  "miniId": "desktops"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Computers & Laptops",
+  "subId": "computers",
+  "mini": "Monitors",
+  "miniId": "monitors"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Computers & Laptops",
+  "subId": "computers",
+  "mini": "Refurbished & Used",
+  "miniId": "used-computers"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Computer Accessories",
+  "subId": "computer-accessories",
+  "mini": "Keyboards & Mice",
+  "miniId": "keyboards-mice"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Computer Accessories",
+  "subId": "computer-accessories",
+  "mini": "Webcams & Headsets",
+  "miniId": "webcams-headsets"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Computer Accessories",
+  "subId": "computer-accessories",
+  "mini": "USB Hubs & Docks",
+  "miniId": "hubs-docks"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Computer Accessories",
+  "subId": "computer-accessories",
+  "mini": "Laptop Stands & Bags",
+  "miniId": "laptop-bags"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Computer Accessories",
+  "subId": "computer-accessories",
+  "mini": "SSD & Hard Drives",
+  "miniId": "storage"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Computer Accessories",
+  "subId": "computer-accessories",
+  "mini": "RAM & Components",
+  "miniId": "components"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Networking & Smart Home",
+  "subId": "networking-smart-home",
+  "mini": "Routers & Modems",
+  "miniId": "routers"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Networking & Smart Home",
+  "subId": "networking-smart-home",
+  "mini": "Wi-Fi Extenders",
+  "miniId": "wi-fi"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Networking & Smart Home",
+  "subId": "networking-smart-home",
+  "mini": "Smart Speakers",
+  "miniId": "smart-speakers"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Networking & Smart Home",
+  "subId": "networking-smart-home",
+  "mini": "Security Cameras & CCTV",
+  "miniId": "security-cameras"
+ },
+ {
+  "main": "Electronics",
+  "mainId": "electronics",
+  "sub": "Networking & Smart Home",
+  "subId": "networking-smart-home",
+  "mini": "Smart Home Devices",
+  "miniId": "smart-home"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Women's Clothing",
+  "subId": "womens-clothing",
+  "mini": "Dresses & Jumpsuits",
+  "miniId": "dresses"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Women's Clothing",
+  "subId": "womens-clothing",
+  "mini": "Tops & Tees",
+  "miniId": "tops-tees"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Women's Clothing",
+  "subId": "womens-clothing",
+  "mini": "Jeans & Bottoms",
+  "miniId": "jeans-bottoms"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Women's Clothing",
+  "subId": "womens-clothing",
+  "mini": "Skirts & Shorts",
+  "miniId": "skirts"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Women's Clothing",
+  "subId": "womens-clothing",
+  "mini": "Outerwear & Jackets",
+  "miniId": "outerwear"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Women's Clothing",
+  "subId": "womens-clothing",
+  "mini": "Sleepwear & Loungewear",
+  "miniId": "sleepwear"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Women's Clothing",
+  "subId": "womens-clothing",
+  "mini": "Underwear & Lingerie",
+  "miniId": "underwear"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Women's Clothing",
+  "subId": "womens-clothing",
+  "mini": "Maternity",
+  "miniId": "maternity"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Men's Clothing",
+  "subId": "mens-clothing",
+  "mini": "Shirts",
+  "miniId": "shirts"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Men's Clothing",
+  "subId": "mens-clothing",
+  "mini": "T-Shirts & Polos",
+  "miniId": "t-shirts"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Men's Clothing",
+  "subId": "mens-clothing",
+  "mini": "Jeans & Bottoms",
+  "miniId": "jeans-bottoms-men"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Men's Clothing",
+  "subId": "mens-clothing",
+  "mini": "Suits & Blazers",
+  "miniId": "suits"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Men's Clothing",
+  "subId": "mens-clothing",
+  "mini": "Outerwear & Jackets",
+  "miniId": "outerwear-men"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Men's Clothing",
+  "subId": "mens-clothing",
+  "mini": "Underwear & Sleepwear",
+  "miniId": "underwear-men"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Kids' Clothing",
+  "subId": "kids-clothing",
+  "mini": "Boys' Clothing",
+  "miniId": "boys"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Kids' Clothing",
+  "subId": "kids-clothing",
+  "mini": "Girls' Clothing",
+  "miniId": "girls"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Kids' Clothing",
+  "subId": "kids-clothing",
+  "mini": "Baby & Toddler",
+  "miniId": "baby-toddler"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Kids' Clothing",
+  "subId": "kids-clothing",
+  "mini": "School Uniforms",
+  "miniId": "school-uniforms"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Footwear",
+  "subId": "footwear",
+  "mini": "Sneakers & Trainers",
+  "miniId": "sneakers"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Footwear",
+  "subId": "footwear",
+  "mini": "Heels & Flats",
+  "miniId": "heels-flats"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Footwear",
+  "subId": "footwear",
+  "mini": "Boots",
+  "miniId": "boots"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Footwear",
+  "subId": "footwear",
+  "mini": "Sandals & Slippers",
+  "miniId": "sandals-slippers"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Footwear",
+  "subId": "footwear",
+  "mini": "Loafers & Dress Shoes",
+  "miniId": "loafers"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Footwear",
+  "subId": "footwear",
+  "mini": "Men's Shoes",
+  "miniId": "mens-shoes"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Footwear",
+  "subId": "footwear",
+  "mini": "Women's Shoes",
+  "miniId": "womens-shoes"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Footwear",
+  "subId": "footwear",
+  "mini": "Kids' Shoes",
+  "miniId": "kids-shoes"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Bags & Luggage",
+  "subId": "bags-luggage",
+  "mini": "Handbags",
+  "miniId": "handbags"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Bags & Luggage",
+  "subId": "bags-luggage",
+  "mini": "Backpacks & Rucksacks",
+  "miniId": "backpacks"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Bags & Luggage",
+  "subId": "bags-luggage",
+  "mini": "Wallets & Cardholders",
+  "miniId": "wallets"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Bags & Luggage",
+  "subId": "bags-luggage",
+  "mini": "Luggage & Travel",
+  "miniId": "luggage"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Bags & Luggage",
+  "subId": "bags-luggage",
+  "mini": "Tote Bags",
+  "miniId": "tote-bags"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Bags & Luggage",
+  "subId": "bags-luggage",
+  "mini": "Clutches & Evening Bags",
+  "miniId": "clutches"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Jewellery & Watches",
+  "subId": "jewellery-watches",
+  "mini": "Rings",
+  "miniId": "rings"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Jewellery & Watches",
+  "subId": "jewellery-watches",
+  "mini": "Necklaces & Pendants",
+  "miniId": "necklaces"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Jewellery & Watches",
+  "subId": "jewellery-watches",
+  "mini": "Bracelets & Bangles",
+  "miniId": "bracelets"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Jewellery & Watches",
+  "subId": "jewellery-watches",
+  "mini": "Earrings",
+  "miniId": "earrings"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Jewellery & Watches",
+  "subId": "jewellery-watches",
+  "mini": "Watches",
+  "miniId": "watches"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Jewellery & Watches",
+  "subId": "jewellery-watches",
+  "mini": "Body Jewellery",
+  "miniId": "body-jewellery"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Accessories",
+  "subId": "fashion-accessories",
+  "mini": "Sunglasses & Eyewear",
+  "miniId": "sunglasses"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Accessories",
+  "subId": "fashion-accessories",
+  "mini": "Belts",
+  "miniId": "belts"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Accessories",
+  "subId": "fashion-accessories",
+  "mini": "Hats & Caps",
+  "miniId": "hats-caps"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Accessories",
+  "subId": "fashion-accessories",
+  "mini": "Scarves & Gloves",
+  "miniId": "scarves-gloves"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Accessories",
+  "subId": "fashion-accessories",
+  "mini": "Hair Accessories",
+  "miniId": "hair-accessories"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Accessories",
+  "subId": "fashion-accessories",
+  "mini": "Socks & Tights",
+  "miniId": "socks-tights"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Traditional & Cultural Wear",
+  "subId": "traditional-wear",
+  "mini": "Kente & Prints",
+  "miniId": "kente-prints"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Traditional & Cultural Wear",
+  "subId": "traditional-wear",
+  "mini": "Dashiki & Shirts",
+  "miniId": "dashiki"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Traditional & Cultural Wear",
+  "subId": "traditional-wear",
+  "mini": "Agbada & Boubous",
+  "miniId": "agbada"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Traditional & Cultural Wear",
+  "subId": "traditional-wear",
+  "mini": "Beads & Adornments",
+  "miniId": "beads"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Uniforms & Workwear",
+  "subId": "uniforms-workwear",
+  "mini": "School Uniforms",
+  "miniId": "school-uniforms-uniforms"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Uniforms & Workwear",
+  "subId": "uniforms-workwear",
+  "mini": "Scrubs & Medical",
+  "miniId": "scrubs"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Uniforms & Workwear",
+  "subId": "uniforms-workwear",
+  "mini": "Chef & Service Wear",
+  "miniId": "chef-service"
+ },
+ {
+  "main": "Fashion",
+  "mainId": "fashion",
+  "sub": "Uniforms & Workwear",
+  "subId": "uniforms-workwear",
+  "mini": "Safety & Construction",
+  "miniId": "safety-workwear"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Skin Care",
+  "subId": "skin-care",
+  "mini": "Moisturizers & Creams",
+  "miniId": "moisturizers"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Skin Care",
+  "subId": "skin-care",
+  "mini": "Cleansers & Toners",
+  "miniId": "cleansers"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Skin Care",
+  "subId": "skin-care",
+  "mini": "Serums & Treatments",
+  "miniId": "serums"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Skin Care",
+  "subId": "skin-care",
+  "mini": "Sun Care & Tanning",
+  "miniId": "sun-care"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Skin Care",
+  "subId": "skin-care",
+  "mini": "Face Masks & Sheets",
+  "miniId": "face-masks"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Makeup",
+  "subId": "makeup",
+  "mini": "Face Makeup",
+  "miniId": "face-makeup"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Makeup",
+  "subId": "makeup",
+  "mini": "Lip Makeup",
+  "miniId": "lip-makeup"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Makeup",
+  "subId": "makeup",
+  "mini": "Eye Makeup",
+  "miniId": "eye-makeup"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Makeup",
+  "subId": "makeup",
+  "mini": "Makeup Tools & Bags",
+  "miniId": "makeup-tools"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Makeup",
+  "subId": "makeup",
+  "mini": "Makeup Sets & Kits",
+  "miniId": "makeup-sets"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Hair Care & Wigs",
+  "subId": "hair-care",
+  "mini": "Shampoo & Conditioner",
+  "miniId": "shampoo-conditioner"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Hair Care & Wigs",
+  "subId": "hair-care",
+  "mini": "Wigs & Extensions",
+  "miniId": "wigs-extensions"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Hair Care & Wigs",
+  "subId": "hair-care",
+  "mini": "Styling Products",
+  "miniId": "styling"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Hair Care & Wigs",
+  "subId": "hair-care",
+  "mini": "Hair Tools & Dryers",
+  "miniId": "hair-tools"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Hair Care & Wigs",
+  "subId": "hair-care",
+  "mini": "Hair Color",
+  "miniId": "hair-color"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Fragrances & Perfumes",
+  "subId": "fragrances",
+  "mini": "Women's Fragrances",
+  "miniId": "womens-fragrance"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Fragrances & Perfumes",
+  "subId": "fragrances",
+  "mini": "Men's Fragrances",
+  "miniId": "mens-fragrance"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Fragrances & Perfumes",
+  "subId": "fragrances",
+  "mini": "Unisex Fragrances",
+  "miniId": "unisex-fragrance"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Fragrances & Perfumes",
+  "subId": "fragrances",
+  "mini": "Deodorants & Body Sprays",
+  "miniId": "deodorants"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Men's Grooming",
+  "subId": "mens-grooming",
+  "mini": "Shaving & Razors",
+  "miniId": "shaving"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Men's Grooming",
+  "subId": "mens-grooming",
+  "mini": "Beard Care",
+  "miniId": "beard-care"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Men's Grooming",
+  "subId": "mens-grooming",
+  "mini": "Trimmers & Clippers",
+  "miniId": "trimmers"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Bath & Body",
+  "subId": "bath-body",
+  "mini": "Body Wash & Shower Gel",
+  "miniId": "body-wash"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Bath & Body",
+  "subId": "bath-body",
+  "mini": "Bar Soaps",
+  "miniId": "soaps"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Bath & Body",
+  "subId": "bath-body",
+  "mini": "Body Lotion & Oil",
+  "miniId": "body-lotion"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Bath & Body",
+  "subId": "bath-body",
+  "mini": "Oral Care",
+  "miniId": "oral-care"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Bath & Body",
+  "subId": "bath-body",
+  "mini": "Nail Care",
+  "miniId": "nail-care"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Health Care & Wellness",
+  "subId": "health-wellness",
+  "mini": "First Aid",
+  "miniId": "first-aid"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Health Care & Wellness",
+  "subId": "health-wellness",
+  "mini": "Medical Equipment & Monitors",
+  "miniId": "medical-equipment"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Health Care & Wellness",
+  "subId": "health-wellness",
+  "mini": "Mobility Aids",
+  "miniId": "mobility-aids"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Health Care & Wellness",
+  "subId": "health-wellness",
+  "mini": "Massage & Relaxation",
+  "miniId": "massage"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Health Care & Wellness",
+  "subId": "health-wellness",
+  "mini": "Sexual Wellness",
+  "miniId": "sexual-wellness"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Vitamins & Supplements",
+  "subId": "vitamins-supplements",
+  "mini": "Vitamins & Minerals",
+  "miniId": "vitamins"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Vitamins & Supplements",
+  "subId": "vitamins-supplements",
+  "mini": "Herbal & Natural",
+  "miniId": "herbal"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Vitamins & Supplements",
+  "subId": "vitamins-supplements",
+  "mini": "Weight Management",
+  "miniId": "weight-management"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Vitamins & Supplements",
+  "subId": "vitamins-supplements",
+  "mini": "Sports Supplements",
+  "miniId": "sports-supplements"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Beauty Tools",
+  "subId": "beauty-tools",
+  "mini": "Mirrors & Lighting",
+  "miniId": "mirrors"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Beauty Tools",
+  "subId": "beauty-tools",
+  "mini": "Beauty Devices",
+  "miniId": "devices"
+ },
+ {
+  "main": "Health & Beauty",
+  "mainId": "health-beauty",
+  "sub": "Beauty Tools",
+  "subId": "beauty-tools",
+  "mini": "Brushes & Sponges",
+  "miniId": "brushes"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Furniture",
+  "subId": "furniture",
+  "mini": "Living Room Furniture",
+  "miniId": "living-room"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Furniture",
+  "subId": "furniture",
+  "mini": "Bedroom Furniture",
+  "miniId": "bedroom"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Furniture",
+  "subId": "furniture",
+  "mini": "Dining & Kitchen Furniture",
+  "miniId": "dining"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Furniture",
+  "subId": "furniture",
+  "mini": "Office Furniture",
+  "miniId": "office-furniture"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Furniture",
+  "subId": "furniture",
+  "mini": "Outdoor & Garden Furniture",
+  "miniId": "outdoor-furniture"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Furniture",
+  "subId": "furniture",
+  "mini": "Mattresses & Bedding Bases",
+  "miniId": "mattresses"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Kitchen & Dining",
+  "subId": "kitchen-dining",
+  "mini": "Cookware & Pots",
+  "miniId": "cookware"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Kitchen & Dining",
+  "subId": "kitchen-dining",
+  "mini": "Cutlery & Knives",
+  "miniId": "cutlery"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Kitchen & Dining",
+  "subId": "kitchen-dining",
+  "mini": "Utensils & Gadgets",
+  "miniId": "utensils"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Kitchen & Dining",
+  "subId": "kitchen-dining",
+  "mini": "Dinnerware & Serveware",
+  "miniId": "dinnerware"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Kitchen & Dining",
+  "subId": "kitchen-dining",
+  "mini": "Kitchen Storage",
+  "miniId": "kitchen-storage"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Kitchen & Dining",
+  "subId": "kitchen-dining",
+  "mini": "Coffee, Tea & Espresso",
+  "miniId": "coffee-tea"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Appliances",
+  "subId": "appliances",
+  "mini": "Refrigerators & Freezers",
+  "miniId": "refrigerators"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Appliances",
+  "subId": "appliances",
+  "mini": "Cookers & Ovens",
+  "miniId": "cookers"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Appliances",
+  "subId": "appliances",
+  "mini": "Washing Machines",
+  "miniId": "washing-machines"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Appliances",
+  "subId": "appliances",
+  "mini": "Microwaves",
+  "miniId": "microwaves"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Appliances",
+  "subId": "appliances",
+  "mini": "Air Conditioners",
+  "miniId": "air-conditioners"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Appliances",
+  "subId": "appliances",
+  "mini": "Small Appliances",
+  "miniId": "small-appliances"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Appliances",
+  "subId": "appliances",
+  "mini": "Fans & Air Purifiers",
+  "miniId": "fans"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Appliances",
+  "subId": "appliances",
+  "mini": "Water Dispensers",
+  "miniId": "water-dispensers"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Bedding & Bath",
+  "subId": "bedding-bath",
+  "mini": "Bed Sheets & Covers",
+  "miniId": "bed-sheets"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Bedding & Bath",
+  "subId": "bedding-bath",
+  "mini": "Blankets & Throws",
+  "miniId": "blankets"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Bedding & Bath",
+  "subId": "bedding-bath",
+  "mini": "Pillows & Cushions",
+  "miniId": "pillows"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Bedding & Bath",
+  "subId": "bedding-bath",
+  "mini": "Towels",
+  "miniId": "towels"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Bedding & Bath",
+  "subId": "bedding-bath",
+  "mini": "Bath Accessories",
+  "miniId": "bath-accessories"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Home Decor",
+  "subId": "home-decor",
+  "mini": "Wall Art & Frames",
+  "miniId": "wall-art"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Home Decor",
+  "subId": "home-decor",
+  "mini": "Vases & Decorative Accessories",
+  "miniId": "vases"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Home Decor",
+  "subId": "home-decor",
+  "mini": "Clocks & Mirrors",
+  "miniId": "clocks"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Home Decor",
+  "subId": "home-decor",
+  "mini": "Candles & Home Fragrance",
+  "miniId": "candles"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Home Decor",
+  "subId": "home-decor",
+  "mini": "Rugs & Carpets",
+  "miniId": "rugs"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Home Decor",
+  "subId": "home-decor",
+  "mini": "Party & Event Supplies",
+  "miniId": "party-supplies"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Lighting",
+  "subId": "lighting",
+  "mini": "Lamps & Floor Lights",
+  "miniId": "lamps"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Lighting",
+  "subId": "lighting",
+  "mini": "Ceiling & Pendant Lights",
+  "miniId": "ceiling"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Lighting",
+  "subId": "lighting",
+  "mini": "Light Bulbs",
+  "miniId": "bulbs"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Lighting",
+  "subId": "lighting",
+  "mini": "String & Decorative Lights",
+  "miniId": "string-lights"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Tools & Home Improvement",
+  "subId": "tools-improvement",
+  "mini": "Power Tools",
+  "miniId": "power-tools"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Tools & Home Improvement",
+  "subId": "tools-improvement",
+  "mini": "Hand Tools",
+  "miniId": "hand-tools"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Tools & Home Improvement",
+  "subId": "tools-improvement",
+  "mini": "Plumbing & Fixtures",
+  "miniId": "plumbing"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Tools & Home Improvement",
+  "subId": "tools-improvement",
+  "mini": "Electrical Supplies",
+  "miniId": "electrical"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Tools & Home Improvement",
+  "subId": "tools-improvement",
+  "mini": "Paint & Wallpaper",
+  "miniId": "paint"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Tools & Home Improvement",
+  "subId": "tools-improvement",
+  "mini": "Hardware & Fasteners",
+  "miniId": "hardware"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Garden & Outdoor",
+  "subId": "garden-outdoor",
+  "mini": "Garden Tools & Equipment",
+  "miniId": "garden-tools"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Garden & Outdoor",
+  "subId": "garden-outdoor",
+  "mini": "Plants & Seeds",
+  "miniId": "plants"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Garden & Outdoor",
+  "subId": "garden-outdoor",
+  "mini": "Pools & Spas",
+  "miniId": "pools"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Garden & Outdoor",
+  "subId": "garden-outdoor",
+  "mini": "Barbecues & Outdoor Cooking",
+  "miniId": "barbecues"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Garden & Outdoor",
+  "subId": "garden-outdoor",
+  "mini": "Storage & Sheds",
+  "miniId": "storage-sheds"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Storage & Organization",
+  "subId": "storage-organization",
+  "mini": "Storage Boxes & Baskets",
+  "miniId": "boxes"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Storage & Organization",
+  "subId": "storage-organization",
+  "mini": "Shelving & Racks",
+  "miniId": "shelving"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Storage & Organization",
+  "subId": "storage-organization",
+  "mini": "Wardrobes & Closets",
+  "miniId": "wardrobes"
+ },
+ {
+  "main": "Home & Garden",
+  "mainId": "home-garden",
+  "sub": "Storage & Organization",
+  "subId": "storage-organization",
+  "mini": "Organizers",
+  "miniId": "organizers"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Baby Clothing",
+  "subId": "baby-clothing",
+  "mini": "Onesies & Bodysuits",
+  "miniId": "onesies"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Baby Clothing",
+  "subId": "baby-clothing",
+  "mini": "Outfits & Sets",
+  "miniId": "baby-outfits"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Baby Clothing",
+  "subId": "baby-clothing",
+  "mini": "Baby Shoes",
+  "miniId": "baby-shoes"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Baby Clothing",
+  "subId": "baby-clothing",
+  "mini": "Baby Accessories",
+  "miniId": "baby-accessories"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Strollers & Prams",
+  "subId": "strollers",
+  "mini": "Strollers",
+  "miniId": "strollers"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Strollers & Prams",
+  "subId": "strollers",
+  "mini": "Prams & Travel Systems",
+  "miniId": "prams"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Strollers & Prams",
+  "subId": "strollers",
+  "mini": "Stroller Parts & Accessories",
+  "miniId": "stroller-parts"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Feeding",
+  "subId": "feeding",
+  "mini": "Bottles & Cups",
+  "miniId": "bottles"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Feeding",
+  "subId": "feeding",
+  "mini": "Breastfeeding",
+  "miniId": "breastfeeding"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Feeding",
+  "subId": "feeding",
+  "mini": "Baby Food & Formulas",
+  "miniId": "baby-food"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Feeding",
+  "subId": "feeding",
+  "mini": "Highchairs & Booster Seats",
+  "miniId": "highchairs"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Feeding",
+  "subId": "feeding",
+  "mini": "Baby Utensils & Dishes",
+  "miniId": "utensils-baby"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Diapering",
+  "subId": "diapering",
+  "mini": "Diapers",
+  "miniId": "diapers"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Diapering",
+  "subId": "diapering",
+  "mini": "Wipes & Holders",
+  "miniId": "wipes"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Diapering",
+  "subId": "diapering",
+  "mini": "Diaper Bags",
+  "miniId": "diaper-bags"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Diapering",
+  "subId": "diapering",
+  "mini": "Changing Pads & Mats",
+  "miniId": "changing"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Nursery & Furniture",
+  "subId": "nursery",
+  "mini": "Cribs & Cradles",
+  "miniId": "cribs"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Nursery & Furniture",
+  "subId": "nursery",
+  "mini": "Nursery Bedding",
+  "miniId": "nursery-bedding"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Nursery & Furniture",
+  "subId": "nursery",
+  "mini": "Changing Tables",
+  "miniId": "changing-tables"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Nursery & Furniture",
+  "subId": "nursery",
+  "mini": "Nursery Decor",
+  "miniId": "nursery-decor"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Baby Care & Safety",
+  "subId": "baby-care",
+  "mini": "Bathing & Grooming",
+  "miniId": "bathing"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Baby Care & Safety",
+  "subId": "baby-care",
+  "mini": "Car Seats",
+  "miniId": "car-seats"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Baby Care & Safety",
+  "subId": "baby-care",
+  "mini": "Carriers, Slings & Backpacks",
+  "miniId": "carriers"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Baby Care & Safety",
+  "subId": "baby-care",
+  "mini": "Safety Gates & Guards",
+  "miniId": "safety"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Baby Care & Safety",
+  "subId": "baby-care",
+  "mini": "Baby Monitors",
+  "miniId": "monitors"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Kids' Toys",
+  "subId": "kids-toys",
+  "mini": "Baby Toys",
+  "miniId": "baby-toys"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Kids' Toys",
+  "subId": "kids-toys",
+  "mini": "Educational Toys",
+  "miniId": "educational-toys"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Kids' Toys",
+  "subId": "kids-toys",
+  "mini": "Building Toys",
+  "miniId": "building-toys"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Kids' Toys",
+  "subId": "kids-toys",
+  "mini": "Stuffed Animals & Dolls",
+  "miniId": "stuffed-toys"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Bikes & Ride-ons",
+  "subId": "bikes-rideons",
+  "mini": "Kids' Bicycles",
+  "miniId": "bicycles-kids"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Bikes & Ride-ons",
+  "subId": "bikes-rideons",
+  "mini": "Scooters",
+  "miniId": "scooters-kids"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Bikes & Ride-ons",
+  "subId": "bikes-rideons",
+  "mini": "Ride-on Cars & Toys",
+  "miniId": "rideons"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "Bikes & Ride-ons",
+  "subId": "bikes-rideons",
+  "mini": "Balance & Training Bikes",
+  "miniId": "balance-bikes"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "School & Stationery",
+  "subId": "school-stationery",
+  "mini": "Backpacks & Bags",
+  "miniId": "backpacks-kids"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "School & Stationery",
+  "subId": "school-stationery",
+  "mini": "Stationery & Supplies",
+  "miniId": "stationery"
+ },
+ {
+  "main": "Baby & Kids",
+  "mainId": "baby-kids",
+  "sub": "School & Stationery",
+  "subId": "school-stationery",
+  "mini": "Lunch Boxes",
+  "miniId": "lunch-boxes"
+ },
+ {
+  "main": "Toys & Games",
+  "mainId": "toys-games",
+  "sub": "Action Figures",
+  "subId": "action-figures",
+  "mini": "Action Figures",
+  "miniId": "action-figures"
+ },
+ {
+  "main": "Toys & Games",
+  "mainId": "toys-games",
+  "sub": "Action Figures",
+  "subId": "action-figures",
+  "mini": "Playsets & Vehicles",
+  "miniId": "playsets"
+ },
+ {
+  "main": "Toys & Games",
+  "mainId": "toys-games",
+  "sub": "Action Figures",
+  "subId": "action-figures",
+  "mini": "Collectible Figures",
+  "miniId": "collectible-figures"
+ },
+ {
+  "main": "Toys & Games",
+  "mainId": "toys-games",
+  "sub": "Building & Blocks",
+  "subId": "building-blocks",
+  "mini": "LEGO & Bricks",
+  "miniId": "lego"
+ },
+ {
+  "main": "Toys & Games",
+  "mainId": "toys-games",
+  "sub": "Building & Blocks",
+  "subId": "building-blocks",
+  "mini": "Blocks & Construction",
+  "miniId": "blocks"
+ },
+ {
+  "main": "Toys & Games",
+  "mainId": "toys-games",
+  "sub": "Building & Blocks",
+  "subId": "building-blocks",
+  "mini": "Model Kits",
+  "miniId": "model-kits"
+ },
+ {
+  "main": "Toys & Games",
+  "mainId": "toys-games",
+  "sub": "Board & Card Games",
+  "subId": "board-games",
+  "mini": "Board Games",
+  "miniId": "board-games"
+ },
+ {
+  "main": "Toys & Games",
+  "mainId": "toys-games",
+  "sub": "Board & Card Games",
+  "subId": "board-games",
+  "mini": "Card Games",
+  "miniId": "card-games"
+ },
+ {
+  "main": "Toys & Games",
+  "mainId": "toys-games",
+  "sub": "Board & Card Games",
+  "subId": "board-games",
+  "mini": "Chess & Strategy",
+  "miniId": "chess"
+ },
+ {
+  "main": "Toys & Games",
+  "mainId": "toys-games",
+  "sub": "Board & Card Games",
+  "subId": "board-games",
+  "mini": "Dice & Party Games",
+  "miniId": "dice"
+ },
+ {
+  "main": "Toys & Games",
+  "mainId": "toys-games",
+  "sub": "Puzzles",
+  "subId": "puzzles",
+  "mini": "Jigsaw Puzzles",
+  "miniId": "jigsaw"
+ },
+ {
+  "main": "Toys & Games",
+  "mainId": "toys-games",
+  "sub": "Puzzles",
+  "subId": "puzzles",
+  "mini": "3D Puzzles",
+  "miniId": "3d-puzzles"
+ },
+ {
+  "main": "Toys & Games",
+  "mainId": "toys-games",
+  "sub": "Puzzles",
+  "subId": "puzzles",
+  "mini": "Brain Teasers",
+  "miniId": "brain-teasers"
+ },
+ {
+  "main": "Toys & Games",
+  "mainId": "toys-games",
+  "sub": "Dolls & Playsets",
+  "subId": "dolls-playsets",
+  "mini": "Dolls & Dollhouses",
+  "miniId": "dolls"
+ },
+ {
+  "main": "Toys & Games",
+  "mainId": "toys-games",
+  "sub": "Dolls & Playsets",
+  "subId": "dolls-playsets",
+  "mini": "Pretend Play",
+  "miniId": "pretend-play"
+ },
+ {
+  "main": "Toys & Games",
+  "mainId": "toys-games",
+  "sub": "Dolls & Playsets",
+  "subId": "dolls-playsets",
+  "mini": "Play Kitchens & Food",
+  "miniId": "kitchen-sets"
+ },
+ {
+  "main": "Toys & Games",
+  "mainId": "toys-games",
+  "sub": "Remote Control",
+  "subId": "remote-control",
+  "mini": "RC Cars & Trucks",
+  "miniId": "rc-cars"
+ },
+ {
+  "main": "Toys & Games",
+  "mainId": "toys-games",
+  "sub": "Remote Control",
+  "subId": "remote-control",
+  "mini": "RC Drones & Helicopters",
+  "miniId": "rc-drones"
+ },
+ {
+  "main": "Toys & Games",
+  "mainId": "toys-games",
+  "sub": "Remote Control",
+  "subId": "remote-control",
+  "mini": "RC Boats",
+  "miniId": "rc-boats"
+ },
+ {
+  "main": "Toys & Games",
+  "mainId": "toys-games",
+  "sub": "Outdoor Play",
+  "subId": "outdoor-play",
+  "mini": "Trampolines",
+  "miniId": "trampolines"
+ },
+ {
+  "main": "Toys & Games",
+  "mainId": "toys-games",
+  "sub": "Outdoor Play",
+  "subId": "outdoor-play",
+  "mini": "Slides & Swings",
+  "miniId": "slides-swings"
+ },
+ {
+  "main": "Toys & Games",
+  "mainId": "toys-games",
+  "sub": "Outdoor Play",
+  "subId": "outdoor-play",
+  "mini": "Water & Sand Toys",
+  "miniId": "water-toys"
+ },
+ {
+  "main": "Toys & Games",
+  "mainId": "toys-games",
+  "sub": "Outdoor Play",
+  "subId": "outdoor-play",
+  "mini": "Sport Toys & Games",
+  "miniId": "sport-toys"
+ },
+ {
+  "main": "Toys & Games",
+  "mainId": "toys-games",
+  "sub": "Educational & STEM",
+  "subId": "educational",
+  "mini": "STEM & Science Kits",
+  "miniId": "stem-kits"
+ },
+ {
+  "main": "Toys & Games",
+  "mainId": "toys-games",
+  "sub": "Educational & STEM",
+  "subId": "educational",
+  "mini": "Learning & Alphabet Toys",
+  "miniId": "learning"
+ },
+ {
+  "main": "Toys & Games",
+  "mainId": "toys-games",
+  "sub": "Educational & STEM",
+  "subId": "educational",
+  "mini": "Art & Craft Supplies",
+  "miniId": "art-supplies"
+ },
+ {
+  "main": "Toys & Games",
+  "mainId": "toys-games",
+  "sub": "Educational & STEM",
+  "subId": "educational",
+  "mini": "Musical Toys",
+  "miniId": "musical-toys"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Fitness & Gym",
+  "subId": "fitness-gym",
+  "mini": "Weights & Dumbbells",
+  "miniId": "weights"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Fitness & Gym",
+  "subId": "fitness-gym",
+  "mini": "Home Gym Equipment",
+  "miniId": "home-gym"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Fitness & Gym",
+  "subId": "fitness-gym",
+  "mini": "Yoga & Pilates",
+  "miniId": "yoga"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Fitness & Gym",
+  "subId": "fitness-gym",
+  "mini": "Treadmills & Bikes",
+  "miniId": "treadmills"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Sports Clothing & Shoes",
+  "subId": "sports-clothing",
+  "mini": "Activewear & Gym Wear",
+  "miniId": "activewear"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Sports Clothing & Shoes",
+  "subId": "sports-clothing",
+  "mini": "Jerseys & Kits",
+  "miniId": "jerseys-kits"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Sports Clothing & Shoes",
+  "subId": "sports-clothing",
+  "mini": "Sports Shoes",
+  "miniId": "sports-shoes"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Sports Clothing & Shoes",
+  "subId": "sports-clothing",
+  "mini": "Sports Accessories",
+  "miniId": "sports-accessories"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Football (Soccer)",
+  "subId": "football",
+  "mini": "Football Boots",
+  "miniId": "footballs"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Football (Soccer)",
+  "subId": "football",
+  "mini": "Football Boots",
+  "miniId": "balls"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Football (Soccer)",
+  "subId": "football",
+  "mini": "Kits & Uniforms",
+  "miniId": "kit"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Football (Soccer)",
+  "subId": "football",
+  "mini": "Goals & Accessories",
+  "miniId": "goalpost"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Basketball",
+  "subId": "basketball",
+  "mini": "Basketballs",
+  "miniId": "basketballs"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Basketball",
+  "subId": "basketball",
+  "mini": "Basketball Shoes",
+  "miniId": "basketball-shoes"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Basketball",
+  "subId": "basketball",
+  "mini": "Hoops & Backboards",
+  "miniId": "hoops"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Cycling",
+  "subId": "cycling",
+  "mini": "Bicycles",
+  "miniId": "bicycles"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Cycling",
+  "subId": "cycling",
+  "mini": "Cycling Accessories",
+  "miniId": "accessories-cycling"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Cycling",
+  "subId": "cycling",
+  "mini": "Helmets & Safety",
+  "miniId": "helmets"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Cycling",
+  "subId": "cycling",
+  "mini": "Bike Parts",
+  "miniId": "parts-cycling"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Swimming",
+  "subId": "swimming",
+  "mini": "Swimwear",
+  "miniId": "swimwear"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Swimming",
+  "subId": "swimming",
+  "mini": "Goggles & Caps",
+  "miniId": "goggles"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Swimming",
+  "subId": "swimming",
+  "mini": "Pool & Water Gear",
+  "miniId": "pool-gear"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Camping & Hiking",
+  "subId": "camping-hiking",
+  "mini": "Tents & Shelters",
+  "miniId": "tents"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Camping & Hiking",
+  "subId": "camping-hiking",
+  "mini": "Sleeping Bags & Mats",
+  "miniId": "sleeping"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Camping & Hiking",
+  "subId": "camping-hiking",
+  "mini": "Backpacks & Gear",
+  "miniId": "backpacks-camping"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Camping & Hiking",
+  "subId": "camping-hiking",
+  "mini": "Hiking & Trekking",
+  "miniId": "hiking"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Fishing",
+  "subId": "fishing",
+  "mini": "Rods & Reels",
+  "miniId": "rods"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Fishing",
+  "subId": "fishing",
+  "mini": "Tackle & Lures",
+  "miniId": "tackle"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Fishing",
+  "subId": "fishing",
+  "mini": "Fishing Accessories",
+  "miniId": "accessories-fishing"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Other Sports",
+  "subId": "other-sports",
+  "mini": "Tennis & Racquet Sports",
+  "miniId": "tennis"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Other Sports",
+  "subId": "other-sports",
+  "mini": "Boxing & Martial Arts",
+  "miniId": "boxing"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Other Sports",
+  "subId": "other-sports",
+  "mini": "Golf",
+  "miniId": "golf"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Other Sports",
+  "subId": "other-sports",
+  "mini": "Running & Jogging",
+  "miniId": "running"
+ },
+ {
+  "main": "Sports & Outdoors",
+  "mainId": "sports-outdoors",
+  "sub": "Other Sports",
+  "subId": "other-sports",
+  "mini": "Outdoor Recreation",
+  "miniId": "outdoor-recreation"
+ },
+ {
+  "main": "Vehicles",
+  "mainId": "vehicles",
+  "sub": "Cars",
+  "subId": "cars",
+  "mini": "Sedans",
+  "miniId": "sedans"
+ },
+ {
+  "main": "Vehicles",
+  "mainId": "vehicles",
+  "sub": "Cars",
+  "subId": "cars",
+  "mini": "SUVs & Crossovers",
+  "miniId": "suvs"
+ },
+ {
+  "main": "Vehicles",
+  "mainId": "vehicles",
+  "sub": "Cars",
+  "subId": "cars",
+  "mini": "Hatchbacks",
+  "miniId": "hatchbacks"
+ },
+ {
+  "main": "Vehicles",
+  "mainId": "vehicles",
+  "sub": "Cars",
+  "subId": "cars",
+  "mini": "Trucks & Pickups",
+  "miniId": "trucks-pickups"
+ },
+ {
+  "main": "Vehicles",
+  "mainId": "vehicles",
+  "sub": "Cars",
+  "subId": "cars",
+  "mini": "Vans & Minivans",
+  "miniId": "vans"
+ },
+ {
+  "main": "Vehicles",
+  "mainId": "vehicles",
+  "sub": "Cars",
+  "subId": "cars",
+  "mini": "Luxury Cars",
+  "miniId": "luxury"
+ },
+ {
+  "main": "Vehicles",
+  "mainId": "vehicles",
+  "sub": "Cars",
+  "subId": "cars",
+  "mini": "Electric & Hybrid",
+  "miniId": "electric"
+ },
+ {
+  "main": "Vehicles",
+  "mainId": "vehicles",
+  "sub": "Motorcycles",
+  "subId": "motorcycles",
+  "mini": "Scooters & Mopeds",
+  "miniId": "scooters"
+ },
+ {
+  "main": "Vehicles",
+  "mainId": "vehicles",
+  "sub": "Motorcycles",
+  "subId": "motorcycles",
+  "mini": "Motorcycles",
+  "miniId": "motorcycles"
+ },
+ {
+  "main": "Vehicles",
+  "mainId": "vehicles",
+  "sub": "Motorcycles",
+  "subId": "motorcycles",
+  "mini": "ATVs & Off-road",
+  "miniId": "atvs"
+ },
+ {
+  "main": "Vehicles",
+  "mainId": "vehicles",
+  "sub": "Motorcycles",
+  "subId": "motorcycles",
+  "mini": "Helmets & Gear",
+  "miniId": "motorcycle-gear"
+ },
+ {
+  "main": "Vehicles",
+  "mainId": "vehicles",
+  "sub": "Buses & Trucks",
+  "subId": "trucks-buses",
+  "mini": "Commercial Trucks",
+  "miniId": "commercial-trucks"
+ },
+ {
+  "main": "Vehicles",
+  "mainId": "vehicles",
+  "sub": "Buses & Trucks",
+  "subId": "trucks-buses",
+  "mini": "Buses",
+  "miniId": "buses"
+ },
+ {
+  "main": "Vehicles",
+  "mainId": "vehicles",
+  "sub": "Buses & Trucks",
+  "subId": "trucks-buses",
+  "mini": "Trailers",
+  "miniId": "trailers"
+ },
+ {
+  "main": "Vehicles",
+  "mainId": "vehicles",
+  "sub": "Buses & Trucks",
+  "subId": "trucks-buses",
+  "mini": "Construction & Farm Vehicles",
+  "miniId": "construction"
+ },
+ {
+  "main": "Vehicles",
+  "mainId": "vehicles",
+  "sub": "Boats & Watercraft",
+  "subId": "boats",
+  "mini": "Boats",
+  "miniId": "boats"
+ },
+ {
+  "main": "Vehicles",
+  "mainId": "vehicles",
+  "sub": "Boats & Watercraft",
+  "subId": "boats",
+  "mini": "Jet Skis & Watercraft",
+  "miniId": "jet-skis"
+ },
+ {
+  "main": "Vehicles",
+  "mainId": "vehicles",
+  "sub": "Boats & Watercraft",
+  "subId": "boats",
+  "mini": "Boat Parts & Accessories",
+  "miniId": "boat-parts"
+ },
+ {
+  "main": "Vehicles",
+  "mainId": "vehicles",
+  "sub": "Vehicle Parts & Accessories",
+  "subId": "vehicle-parts",
+  "mini": "Car Parts",
+  "miniId": "car-parts"
+ },
+ {
+  "main": "Vehicles",
+  "mainId": "vehicles",
+  "sub": "Vehicle Parts & Accessories",
+  "subId": "vehicle-parts",
+  "mini": "Tyres & Wheels",
+  "miniId": "tyres"
+ },
+ {
+  "main": "Vehicles",
+  "mainId": "vehicles",
+  "sub": "Vehicle Parts & Accessories",
+  "subId": "vehicle-parts",
+  "mini": "Car Accessories",
+  "miniId": "car-accessories"
+ },
+ {
+  "main": "Vehicles",
+  "mainId": "vehicles",
+  "sub": "Vehicle Parts & Accessories",
+  "subId": "vehicle-parts",
+  "mini": "Car Audio & Electronics",
+  "miniId": "audio-electronics"
+ },
+ {
+  "main": "Vehicles",
+  "mainId": "vehicles",
+  "sub": "Vehicle Parts & Accessories",
+  "subId": "vehicle-parts",
+  "mini": "Motorcycle Parts",
+  "miniId": "motorcycle-parts"
+ },
+ {
+  "main": "Vehicles",
+  "mainId": "vehicles",
+  "sub": "Vehicle Care & Tools",
+  "subId": "vehicle-care",
+  "mini": "Automotive Tools",
+  "miniId": "tools"
+ },
+ {
+  "main": "Vehicles",
+  "mainId": "vehicles",
+  "sub": "Vehicle Care & Tools",
+  "subId": "vehicle-care",
+  "mini": "Detailing & Care Products",
+  "miniId": "detailing"
+ },
+ {
+  "main": "Vehicles",
+  "mainId": "vehicles",
+  "sub": "Vehicle Care & Tools",
+  "subId": "vehicle-care",
+  "mini": "Diagnostics & Testing",
+  "miniId": "diagnostics"
+ },
+ {
+  "main": "Books, Movies & Music",
+  "mainId": "books-music",
+  "sub": "Books",
+  "subId": "books",
+  "mini": "Fiction",
+  "miniId": "fiction"
+ },
+ {
+  "main": "Books, Movies & Music",
+  "mainId": "books-music",
+  "sub": "Books",
+  "subId": "books",
+  "mini": "Non-Fiction",
+  "miniId": "nonfiction"
+ },
+ {
+  "main": "Books, Movies & Music",
+  "mainId": "books-music",
+  "sub": "Books",
+  "subId": "books",
+  "mini": "Textbooks & Academic",
+  "miniId": "textbooks"
+ },
+ {
+  "main": "Books, Movies & Music",
+  "mainId": "books-music",
+  "sub": "Books",
+  "subId": "books",
+  "mini": "Children's Books",
+  "miniId": "childrens-books"
+ },
+ {
+  "main": "Books, Movies & Music",
+  "mainId": "books-music",
+  "sub": "Books",
+  "subId": "books",
+  "mini": "Comics & Graphic Novels",
+  "miniId": "comics"
+ },
+ {
+  "main": "Books, Movies & Music",
+  "mainId": "books-music",
+  "sub": "Books",
+  "subId": "books",
+  "mini": "Religious & Inspirational",
+  "miniId": "religious"
+ },
+ {
+  "main": "Books, Movies & Music",
+  "mainId": "books-music",
+  "sub": "Movies & DVDs",
+  "subId": "movies",
+  "mini": "Movies",
+  "miniId": "movies"
+ },
+ {
+  "main": "Books, Movies & Music",
+  "mainId": "books-music",
+  "sub": "Movies & DVDs",
+  "subId": "movies",
+  "mini": "TV Series",
+  "miniId": "series"
+ },
+ {
+  "main": "Books, Movies & Music",
+  "mainId": "books-music",
+  "sub": "Movies & DVDs",
+  "subId": "movies",
+  "mini": "Documentaries",
+  "miniId": "documentaries"
+ },
+ {
+  "main": "Books, Movies & Music",
+  "mainId": "books-music",
+  "sub": "Music & Vinyl",
+  "subId": "music",
+  "mini": "CDs & Albums",
+  "miniId": "cds"
+ },
+ {
+  "main": "Books, Movies & Music",
+  "mainId": "books-music",
+  "sub": "Music & Vinyl",
+  "subId": "music",
+  "mini": "Vinyl Records",
+  "miniId": "vinyl"
+ },
+ {
+  "main": "Books, Movies & Music",
+  "mainId": "books-music",
+  "sub": "Music & Vinyl",
+  "subId": "music",
+  "mini": "Streaming & Gift Cards",
+  "miniId": "streaming-cards"
+ },
+ {
+  "main": "Books, Movies & Music",
+  "mainId": "books-music",
+  "sub": "Musical Instruments",
+  "subId": "instruments",
+  "mini": "Guitars & Bass",
+  "miniId": "guitars"
+ },
+ {
+  "main": "Books, Movies & Music",
+  "mainId": "books-music",
+  "sub": "Musical Instruments",
+  "subId": "instruments",
+  "mini": "Keyboards & Pianos",
+  "miniId": "keyboards"
+ },
+ {
+  "main": "Books, Movies & Music",
+  "mainId": "books-music",
+  "sub": "Musical Instruments",
+  "subId": "instruments",
+  "mini": "Drums & Percussion",
+  "miniId": "drums"
+ },
+ {
+  "main": "Books, Movies & Music",
+  "mainId": "books-music",
+  "sub": "Musical Instruments",
+  "subId": "instruments",
+  "mini": "African Instruments",
+  "miniId": "african-instruments"
+ },
+ {
+  "main": "Books, Movies & Music",
+  "mainId": "books-music",
+  "sub": "Musical Instruments",
+  "subId": "instruments",
+  "mini": "Studio & DJ Equipment",
+  "miniId": "pro-audio"
+ },
+ {
+  "main": "Pet Supplies",
+  "mainId": "pet-supplies",
+  "sub": "Dogs",
+  "subId": "dogs",
+  "mini": "Dog Food & Treats",
+  "miniId": "dog-food"
+ },
+ {
+  "main": "Pet Supplies",
+  "mainId": "pet-supplies",
+  "sub": "Dogs",
+  "subId": "dogs",
+  "mini": "Collars, Leashes & Accessories",
+  "miniId": "dog-accessories"
+ },
+ {
+  "main": "Pet Supplies",
+  "mainId": "pet-supplies",
+  "sub": "Dogs",
+  "subId": "dogs",
+  "mini": "Dog Toys",
+  "miniId": "dog-toys"
+ },
+ {
+  "main": "Pet Supplies",
+  "mainId": "pet-supplies",
+  "sub": "Dogs",
+  "subId": "dogs",
+  "mini": "Dog Health & Grooming",
+  "miniId": "dog-health"
+ },
+ {
+  "main": "Pet Supplies",
+  "mainId": "pet-supplies",
+  "sub": "Cats",
+  "subId": "cats",
+  "mini": "Cat Food & Treats",
+  "miniId": "cat-food"
+ },
+ {
+  "main": "Pet Supplies",
+  "mainId": "pet-supplies",
+  "sub": "Cats",
+  "subId": "cats",
+  "mini": "Litter & Litter Boxes",
+  "miniId": "cat-litter"
+ },
+ {
+  "main": "Pet Supplies",
+  "mainId": "pet-supplies",
+  "sub": "Cats",
+  "subId": "cats",
+  "mini": "Cat Toys & Scratching",
+  "miniId": "cat-toys"
+ },
+ {
+  "main": "Pet Supplies",
+  "mainId": "pet-supplies",
+  "sub": "Cats",
+  "subId": "cats",
+  "mini": "Cat Health & Grooming",
+  "miniId": "cat-health"
+ },
+ {
+  "main": "Pet Supplies",
+  "mainId": "pet-supplies",
+  "sub": "Birds",
+  "subId": "birds",
+  "mini": "Bird Food",
+  "miniId": "bird-food"
+ },
+ {
+  "main": "Pet Supplies",
+  "mainId": "pet-supplies",
+  "sub": "Birds",
+  "subId": "birds",
+  "mini": "Cages & Aviaries",
+  "miniId": "cages"
+ },
+ {
+  "main": "Pet Supplies",
+  "mainId": "pet-supplies",
+  "sub": "Birds",
+  "subId": "birds",
+  "mini": "Bird Accessories",
+  "miniId": "bird-accessories"
+ },
+ {
+  "main": "Pet Supplies",
+  "mainId": "pet-supplies",
+  "sub": "Fish & Aquariums",
+  "subId": "fish-aquariums",
+  "mini": "Aquariums & Tanks",
+  "miniId": "aquariums"
+ },
+ {
+  "main": "Pet Supplies",
+  "mainId": "pet-supplies",
+  "sub": "Fish & Aquariums",
+  "subId": "fish-aquariums",
+  "mini": "Fish Food",
+  "miniId": "fish-food"
+ },
+ {
+  "main": "Pet Supplies",
+  "mainId": "pet-supplies",
+  "sub": "Fish & Aquariums",
+  "subId": "fish-aquariums",
+  "mini": "Filters & Accessories",
+  "miniId": "aquarium-supplies"
+ },
+ {
+  "main": "Pet Supplies",
+  "mainId": "pet-supplies",
+  "sub": "Small Animals",
+  "subId": "small-animals",
+  "mini": "Food & Treats",
+  "miniId": "small-animal-food"
+ },
+ {
+  "main": "Pet Supplies",
+  "mainId": "pet-supplies",
+  "sub": "Small Animals",
+  "subId": "small-animals",
+  "mini": "Cages & Habitats",
+  "miniId": "cages-habitats"
+ },
+ {
+  "main": "Pet Supplies",
+  "mainId": "pet-supplies",
+  "sub": "Livestock & Farm",
+  "subId": "livestock",
+  "mini": "Poultry & Fowl",
+  "miniId": "poultry"
+ },
+ {
+  "main": "Pet Supplies",
+  "mainId": "pet-supplies",
+  "sub": "Livestock & Farm",
+  "subId": "livestock",
+  "mini": "Farm Supplies",
+  "miniId": "livestock-supplies"
+ },
+ {
+  "main": "Food & Beverages",
+  "mainId": "food-beverages",
+  "sub": "Groceries & Pantry",
+  "subId": "groceries",
+  "mini": "Grains, Rice & Staples",
+  "miniId": "grains"
+ },
+ {
+  "main": "Food & Beverages",
+  "mainId": "food-beverages",
+  "sub": "Groceries & Pantry",
+  "subId": "groceries",
+  "mini": "Canned & Jarred Foods",
+  "miniId": "canned"
+ },
+ {
+  "main": "Food & Beverages",
+  "mainId": "food-beverages",
+  "sub": "Groceries & Pantry",
+  "subId": "groceries",
+  "mini": "Spices & Cooking Ingredients",
+  "miniId": "spices"
+ },
+ {
+  "main": "Food & Beverages",
+  "mainId": "food-beverages",
+  "sub": "Groceries & Pantry",
+  "subId": "groceries",
+  "mini": "Cereals & Breakfast",
+  "miniId": "cereals"
+ },
+ {
+  "main": "Food & Beverages",
+  "mainId": "food-beverages",
+  "sub": "Groceries & Pantry",
+  "subId": "groceries",
+  "mini": "Snacks & Sweets",
+  "miniId": "snacks"
+ },
+ {
+  "main": "Food & Beverages",
+  "mainId": "food-beverages",
+  "sub": "Beverages",
+  "subId": "beverages",
+  "mini": "Soft Drinks & Juices",
+  "miniId": "soft-drinks"
+ },
+ {
+  "main": "Food & Beverages",
+  "mainId": "food-beverages",
+  "sub": "Beverages",
+  "subId": "beverages",
+  "mini": "Coffee & Tea",
+  "miniId": "coffee-tea"
+ },
+ {
+  "main": "Food & Beverages",
+  "mainId": "food-beverages",
+  "sub": "Beverages",
+  "subId": "beverages",
+  "mini": "Milk & Cream",
+  "miniId": "milk"
+ },
+ {
+  "main": "Food & Beverages",
+  "mainId": "food-beverages",
+  "sub": "Beverages",
+  "subId": "beverages",
+  "mini": "Water & Sachet",
+  "miniId": "water"
+ },
+ {
+  "main": "Food & Beverages",
+  "mainId": "food-beverages",
+  "sub": "Household Supplies",
+  "subId": "household-supplies",
+  "mini": "Cleaning Supplies",
+  "miniId": "cleaning"
+ },
+ {
+  "main": "Food & Beverages",
+  "mainId": "food-beverages",
+  "sub": "Household Supplies",
+  "subId": "household-supplies",
+  "mini": "Laundry",
+  "miniId": "laundry"
+ },
+ {
+  "main": "Food & Beverages",
+  "mainId": "food-beverages",
+  "sub": "Household Supplies",
+  "subId": "household-supplies",
+  "mini": "Toiletries",
+  "miniId": "toiletries"
+ },
+ {
+  "main": "Food & Beverages",
+  "mainId": "food-beverages",
+  "sub": "Household Supplies",
+  "subId": "household-supplies",
+  "mini": "Air Fresheners",
+  "miniId": "air-fresheners"
+ },
+ {
+  "main": "Services",
+  "mainId": "services",
+  "sub": "Airtime & Data",
+  "subId": "airtime-data",
+  "mini": "Mobile Top-up",
+  "miniId": "mobile-top-up"
+ },
+ {
+  "main": "Services",
+  "mainId": "services",
+  "sub": "Airtime & Data",
+  "subId": "airtime-data",
+  "mini": "Data Bundles",
+  "miniId": "data-bundles"
+ },
+ {
+  "main": "Services",
+  "mainId": "services",
+  "sub": "Airtime & Data",
+  "subId": "airtime-data",
+  "mini": "Subscriptions & Vouchers",
+  "miniId": "subscriptions"
+ },
+ {
+  "main": "Services",
+  "mainId": "services",
+  "sub": "Repair Services",
+  "subId": "repairs",
+  "mini": "Phone & Tablet Repairs",
+  "miniId": "phone-repairs"
+ },
+ {
+  "main": "Services",
+  "mainId": "services",
+  "sub": "Repair Services",
+  "subId": "repairs",
+  "mini": "Electronics Repairs",
+  "miniId": "electronics-repairs"
+ },
+ {
+  "main": "Services",
+  "mainId": "services",
+  "sub": "Repair Services",
+  "subId": "repairs",
+  "mini": "Auto Repairs",
+  "miniId": "car-repairs"
+ },
+ {
+  "main": "Services",
+  "mainId": "services",
+  "sub": "Repair Services",
+  "subId": "repairs",
+  "mini": "Appliance Repairs",
+  "miniId": "appliance-repairs"
+ },
+ {
+  "main": "Services",
+  "mainId": "services",
+  "sub": "Home & Salon Services",
+  "subId": "home-services",
+  "mini": "Cleaning & Janitorial",
+  "miniId": "cleaning-services"
+ },
+ {
+  "main": "Services",
+  "mainId": "services",
+  "sub": "Home & Salon Services",
+  "subId": "home-services",
+  "mini": "Beauty & Salon",
+  "miniId": "beauty-services"
+ },
+ {
+  "main": "Services",
+  "mainId": "services",
+  "sub": "Home & Salon Services",
+  "subId": "home-services",
+  "mini": "Tailoring & Fashion",
+  "miniId": "tailoring"
+ },
+ {
+  "main": "Services",
+  "mainId": "services",
+  "sub": "Home & Salon Services",
+  "subId": "home-services",
+  "mini": "Plumbing & Electrical",
+  "miniId": "plumbing-electric"
+ },
+ {
+  "main": "Services",
+  "mainId": "services",
+  "sub": "Lessons & Tutoring",
+  "subId": "lessons",
+  "mini": "Academic Tutoring",
+  "miniId": "academic"
+ },
+ {
+  "main": "Services",
+  "mainId": "services",
+  "sub": "Lessons & Tutoring",
+  "subId": "lessons",
+  "mini": "Music Lessons",
+  "miniId": "music-lessons"
+ },
+ {
+  "main": "Services",
+  "mainId": "services",
+  "sub": "Lessons & Tutoring",
+  "subId": "lessons",
+  "mini": "Driving Lessons",
+  "miniId": "driving"
+ },
+ {
+  "main": "Services",
+  "mainId": "services",
+  "sub": "Lessons & Tutoring",
+  "subId": "lessons",
+  "mini": "Fitness & Coaching",
+  "miniId": "fitness-coaching"
+ },
+ {
+  "main": "Services",
+  "mainId": "services",
+  "sub": "Events & Weddings",
+  "subId": "events-weddings",
+  "mini": "Photography & Videography",
+  "miniId": "photography"
+ },
+ {
+  "main": "Services",
+  "mainId": "services",
+  "sub": "Events & Weddings",
+  "subId": "events-weddings",
+  "mini": "Catering & Event Planning",
+  "miniId": "catering"
+ },
+ {
+  "main": "Services",
+  "mainId": "services",
+  "sub": "Events & Weddings",
+  "subId": "events-weddings",
+  "mini": "Decor & Rentals",
+  "miniId": "decor"
+ },
+ {
+  "main": "Services",
+  "mainId": "services",
+  "sub": "Web & Design",
+  "subId": "web-design",
+  "mini": "Graphic Design",
+  "miniId": "graphic-design"
+ },
+ {
+  "main": "Services",
+  "mainId": "services",
+  "sub": "Web & Design",
+  "subId": "web-design",
+  "mini": "Web Development",
+  "miniId": "web-development"
+ },
+ {
+  "main": "Services",
+  "mainId": "services",
+  "sub": "Web & Design",
+  "subId": "web-design",
+  "mini": "Printing & Branding",
+  "miniId": "printing"
+ },
+ {
+  "main": "Services",
+  "mainId": "services",
+  "sub": "Web & Design",
+  "subId": "web-design",
+  "mini": "Digital Marketing",
+  "miniId": "digital-marketing"
+ },
+ {
+  "main": "Other",
+  "mainId": "other",
+  "sub": "Other Items",
+  "subId": "other-items",
+  "mini": "Miscellaneous",
+  "miniId": "miscellaneous"
+ },
+ {
+  "main": "Other",
+  "mainId": "other",
+  "sub": "Other Items",
+  "subId": "other-items",
+  "mini": "Gift Cards & Vouchers",
+  "miniId": "gift-cards"
+ },
+ {
+  "main": "Other",
+  "mainId": "other",
+  "sub": "Other Items",
+  "subId": "other-items",
+  "mini": "Collectibles",
+  "miniId": "collectibles"
+ },
+ {
+  "main": "Other",
+  "mainId": "other",
+  "sub": "Other Items",
+  "subId": "other-items",
+  "mini": "Industrial & Office",
+  "miniId": "industrial"
+ }
+]

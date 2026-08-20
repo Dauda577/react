@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 const PROTECTED_PATHS = ["/account", "/admin", "/sell", "/listings/new"];
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
+  const response = NextResponse.next({
     request: {
       headers: request.headers,
     },
