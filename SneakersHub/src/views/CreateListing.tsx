@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "@/lib/router";
 import {
-  ArrowLeft, Upload, X, CheckCircle, Tag,
-  ChevronDown, FileText, Image, Phone, Truck, BadgeCheck,
+  ArrowLeft, Upload, X, CheckCircle, Tag, Check,
+  ChevronDown, FileText, Image, Phone, Truck, BadgeCheck, ChevronRight,
 } from "lucide-react";
 import { useListings, Listing } from "@/context/ListingContext";
 import { usePublicListings } from "@/context/PublicListingsContext";
@@ -34,6 +34,13 @@ const CONDITIONS = [
   { value: "good",      label: "Good",      sub: "Normal wear, no major flaws" },
   { value: "fair",      label: "Fair",      sub: "Visible wear, fully functional" },
   { value: "poor",      label: "Poor",      sub: "Heavy wear or minor damage" },
+];
+
+const STEPS = [
+  { id: "category",  label: "Category",           icon: Tag },
+  { id: "details",   label: "Details",            icon: FileText },
+  { id: "photos",    label: "Photos",             icon: Image },
+  { id: "contact",   label: "Location & Contact", icon: Phone },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -136,6 +143,9 @@ const CreateListing = () => {
     delivery:    editing?.deliveryAvailable ?? false,
   });
 
+  const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
@@ -229,23 +239,51 @@ const CreateListing = () => {
     setImageFiles((prev) => [...prev, ...compressed].slice(0, MAX_IMAGES));
   };
 
-  // Submit
-  const [loading, setLoading] = useState(false);
-
   const path = resolvePath(form.mainId, form.subId || null, form.miniId || null);
   const kind: SizeKind = sizeKindFor(path?.main.label, path?.sub?.label, path?.mini?.label);
 
-  const handleSubmit = async () => {
-    const { title, brand, price, description, region, phone, condition } = form;
+  const showSneakerSizes = kind === "sneaker";
+  const showClothingSizes = kind === "clothing";
+  const showSizes = showSneakerSizes || showClothingSizes;
+  const sizeCount = showSneakerSizes ? selectedSizes.length : showClothingSizes ? selectedClothingSizes.length : 0;
 
-    if (!path) { toast.error("Select a category"); return; }
-    if (!title.trim()) { toast.error("Give your listing a title"); return; }
-    if (!price || isNaN(Number(price)) || Number(price) <= 0) { toast.error("Enter a valid price"); return; }
-    if (!description.trim()) { toast.error("Add a description"); return; }
-    if (!region) { toast.error("Select your region"); return; }
-    if (!phone.trim()) { toast.error("Add a contact number for buyers"); return; }
-    if (kind === "sneaker" && selectedSizes.length === 0) { toast.error("Select at least one size"); return; }
-    if (kind === "clothing" && selectedClothingSizes.length === 0) { toast.error("Select at least one size"); return; }
+  const selectedMain = TAXONOMY.find((m) => m.id === form.mainId);
+  const selectedSub = selectedMain?.children?.find((s) => s.id === form.subId);
+  const subOptions = selectedMain?.children ?? [];
+  const miniOptions = selectedSub?.children ?? [];
+  const titlePlaceholder = getTitlePlaceholder(selectedMain?.label ?? "", selectedSub?.children?.find((m) => m.id === form.miniId)?.label ?? null);
+  const descriptionPlaceholder = getDescriptionPlaceholder(selectedMain?.label ?? "", selectedSub?.children?.find((m) => m.id === form.miniId)?.label ?? null);
+
+  // Validation per step — returns error message or null
+  const validateStep = (s: number): string | null => {
+    const { title, price, description, region, phone } = form;
+    if (s === 2) {
+      if (!title.trim()) return "Give your listing a title";
+      if (!price || isNaN(Number(price)) || Number(price) <= 0) return "Enter a valid price";
+      if (kind === "sneaker" && selectedSizes.length === 0) return "Select at least one size";
+      if (kind === "clothing" && selectedClothingSizes.length === 0) return "Select at least one size";
+      if (!description.trim()) return "Add a description";
+    }
+    if (s === 4) {
+      if (!region) return "Select your region";
+      if (!phone.trim()) return "Add a contact number for buyers";
+    }
+    return null;
+  };
+
+  const goTo = (n: number) => {
+    if (n < 1 || n > STEPS.length) return;
+    if (n > step) {
+      const err = validateStep(step);
+      if (err) { toast.error(err); return; }
+    }
+    setStep(n);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleSubmit = async () => {
+    const err = validateStep(4);
+    if (err) { toast.error(err); return; }
 
     const sizesToSave = kind === "sneaker"
       ? [...new Set(selectedSizes)].sort((a, b) => a - b).map(String)
@@ -255,19 +293,19 @@ const CreateListing = () => {
 
     const payload = {
       // support both title and name fields during migration
-      title:       title.trim(),
-      name:        title.trim(),
-      brand:       (brand.trim() || null) as string,
-      price:       Number(price),
-      category:    path.main.label,
-      subcategory: path.sub?.label ?? null,
-      subcategory2: path.mini?.label ?? null,
-      description: description.trim(),
+      title:       form.title.trim(),
+      name:        form.title.trim(),
+      brand:       (form.brand.trim() || null) as string,
+      price:       Number(form.price),
+      category:    path!.main.label,
+      subcategory: path?.sub?.label ?? null,
+      subcategory2: path?.mini?.label ?? null,
+      description: form.description.trim(),
       sizes:       sizesToSave as unknown as number[],
       city:        form.city.trim() || null,
-      region:      region || null,
-      phone:       phone.trim(),
-      condition,
+      region:      form.region || null,
+      phone:       form.phone.trim(),
+      condition:   form.condition,
       negotiable:  form.negotiable,
       deliveryAvailable: form.delivery,
       image:       null,
@@ -293,17 +331,6 @@ const CreateListing = () => {
     }
   };
 
-  const showSneakerSizes = kind === "sneaker";
-  const showClothingSizes = kind === "clothing";
-  const showSizes = showSneakerSizes || showClothingSizes;
-
-  const selectedMain = TAXONOMY.find((m) => m.id === form.mainId);
-  const selectedSub = selectedMain?.children?.find((s) => s.id === form.subId);
-  const subOptions = selectedMain?.children ?? [];
-  const miniOptions = selectedSub?.children ?? [];
-  const titlePlaceholder = getTitlePlaceholder(selectedMain?.label ?? "", selectedSub?.children?.find((m) => m.id === form.miniId)?.label ?? null);
-  const descriptionPlaceholder = getDescriptionPlaceholder(selectedMain?.label ?? "", selectedSub?.children?.find((m) => m.id === form.miniId)?.label ?? null);
-
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -313,7 +340,7 @@ const CreateListing = () => {
         style={{ paddingTop: `calc(88px + env(safe-area-inset-top, 0px))` }}
       >
         {/* Header */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
           <button
             onClick={() => navigate("/account")}
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
@@ -328,361 +355,478 @@ const CreateListing = () => {
           </h1>
         </motion.div>
 
-        <div className="space-y-5">
-
-          {/* ── Photos ── */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-            className="rounded-2xl border border-border p-6"
-          >
-            <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-4 flex items-center gap-1.5">
-              <Image className="w-3.5 h-3.5" /> Photos
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              {images.map((img, idx) => (
-                <div key={idx} className="relative aspect-square rounded-xl overflow-hidden bg-secondary border border-border">
-                  <img src={img} alt={`Photo ${idx + 1}`} className="w-full h-full object-contain p-2" />
-                  <button
-                    onClick={() => {
-                      setImages((prev) => prev.filter((_, i) => i !== idx));
-                      setImageFiles((prev) => prev.filter((_, i) => i !== idx));
-                    }}
-                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-background/90 border border-border flex items-center justify-center hover:bg-background transition-colors"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                  {idx === 0 && (
-                    <span className="absolute bottom-1 left-1 text-[10px] font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">
-                      Cover
-                    </span>
-                  )}
-                </div>
-              ))}
-              {images.length < MAX_IMAGES && (
+        {/* Stepper */}
+        <div className="flex items-center gap-2 mb-8">
+          {STEPS.map((s, i) => {
+            const n = i + 1;
+            const done = step > n;
+            const active = step === n;
+            return (
+              <div key={s.id} className="flex items-center gap-2 flex-1 min-w-0">
                 <button
-                  onClick={() => fileRef.current?.click()}
-                  className="aspect-square rounded-xl border-2 border-dashed border-border hover:border-primary/50
-                    flex flex-col items-center justify-center gap-1 transition-colors group"
+                  onClick={() => n < step && goTo(n)}
+                  disabled={n >= step}
+                  className={`flex items-center gap-2 min-w-0 flex-1 ${n >= step ? "cursor-default" : "cursor-pointer"}`}
                 >
-                  <Upload className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-                  <p className="text-[11px] text-muted-foreground">
-                    {images.length === 0 ? "Add photo" : "Add more"}
-                  </p>
+                  <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-all
+                    ${done ? "bg-primary text-primary-foreground"
+                      : active ? "bg-primary/10 text-primary border border-primary/40"
+                      : "bg-muted text-muted-foreground border border-border"}`}>
+                    {done ? <Check className="w-3.5 h-3.5" /> : n}
+                  </span>
+                  <span className={`hidden sm:block text-xs font-medium truncate ${active ? "text-foreground" : "text-muted-foreground"}`}>
+                    {s.label}
+                  </span>
                 </button>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground mt-2 text-center">
-              {images.length}/{MAX_IMAGES} photos · First photo is the cover
-            </p>
-            <input ref={fileRef} type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" />
-          </motion.div>
-
-          {/* ── Details ── */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-            className="rounded-2xl border border-border p-6 space-y-4"
-          >
-            <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-1.5">
-              <FileText className="w-3.5 h-3.5" /> Details
-            </p>
-
-            {/* Category — 3-level picker */}
-            <div className="space-y-3">
-              <div>
-                <label className="form-label">Category <span className="text-red-400">*</span></label>
-                <div className="relative">
-                  <select
-                    name="mainId"
-                    value={form.mainId}
-                    onChange={(e) => handleMainChange(e.target.value)}
-                    className="input-base appearance-none cursor-pointer"
-                  >
-                    {TAXONOMY.map((m) => (
-                      <option key={m.id} value={m.id}>{m.label}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                </div>
+                {n < STEPS.length && (
+                  <div className={`h-px flex-1 ${done ? "bg-primary/50" : "bg-border"}`} />
+                )}
               </div>
+            );
+          })}
+        </div>
 
-              {subOptions.length > 0 && (
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={step}
+            initial={{ opacity: 0, x: 16 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -16 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-5"
+          >
+
+            {/* ── Step 1: Category ── */}
+            {step === 1 && (
+              <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-border p-6 space-y-3">
+                <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-1.5 mb-4">
+                  <Tag className="w-3.5 h-3.5" /> Category
+                </p>
+
                 <div>
-                  <label className="form-label">Sub-category</label>
+                  <label className="form-label">Category <span className="text-red-400">*</span></label>
                   <div className="relative">
                     <select
-                      name="subId"
-                      value={form.subId}
-                      onChange={(e) => handleSubChange(e.target.value)}
-                      className={`input-base appearance-none cursor-pointer ${form.subId ? "" : "text-muted-foreground"}`}
+                      name="mainId"
+                      value={form.mainId}
+                      onChange={(e) => handleMainChange(e.target.value)}
+                      className="input-base appearance-none cursor-pointer"
                     >
-                      <option value="">Select sub-category</option>
-                      {subOptions.map((s) => (
-                        <option key={s.id} value={s.id}>{s.label}</option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                  </div>
-                </div>
-              )}
-
-              {miniOptions.length > 0 && (
-                <div>
-                  <label className="form-label">Type</label>
-                  <div className="relative">
-                    <select
-                      name="miniId"
-                      value={form.miniId}
-                      onChange={(e) => handleMiniChange(e.target.value)}
-                      className={`input-base appearance-none cursor-pointer ${form.miniId ? "" : "text-muted-foreground"}`}
-                    >
-                      <option value="">Select type</option>
-                      {miniOptions.map((m) => (
+                      {TAXONOMY.map((m) => (
                         <option key={m.id} value={m.id}>{m.label}</option>
                       ))}
                     </select>
                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                   </div>
                 </div>
-              )}
-            </div>
 
-            {/* Title */}
-            <div>
-              <label className="form-label">Title</label>
-              <input
-                name="title"
-                value={form.title}
-                onChange={handleChange}
-                placeholder={titlePlaceholder}
-                className="input-base"
-              />
-              <p className="text-[11px] text-muted-foreground mt-1">Be specific — include brand, model, size, colour.</p>
-            </div>
-
-            {/* Brand (optional free text) */}
-            <div>
-              <label className="form-label">Brand <span className="text-muted-foreground font-normal normal-case">(optional)</span></label>
-              <input
-                name="brand"
-                value={form.brand}
-                onChange={handleChange}
-                placeholder="e.g. Nike, Samsung, IKEA"
-                className="input-base"
-              />
-            </div>
-
-            {/* Price */}
-            <div>
-              <label className="form-label">Price (GHS)</label>
-              <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-display font-semibold">₵</span>
-                <input
-                  name="price"
-                  value={form.price}
-                  onChange={handleChange}
-                  placeholder="0.00"
-                  type="number"
-                  min="0"
-                  className="input-base pl-10"
-                />
-              </div>
-            </div>
-
-            {/* Negotiable toggle */}
-            <div className="flex items-center justify-between py-1">
-              <div>
-                <p className="text-sm font-semibold text-foreground">Negotiable</p>
-                <p className="text-xs text-muted-foreground">Buyers can haggle on the price</p>
-              </div>
-              <button
-                onClick={() => toggleBool("negotiable")}
-                className={`relative w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none ${form.negotiable ? "bg-primary" : "bg-muted border border-border"}`}
-              >
-                <span
-                  className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${form.negotiable ? "translate-x-5" : "translate-x-0"}`}
-                />
-              </button>
-            </div>
-
-            {/* City + Region */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="form-label">City</label>
-                <input
-                  name="city"
-                  value={form.city}
-                  onChange={handleChange}
-                  placeholder="e.g. Kumasi"
-                  className="input-base"
-                />
-              </div>
-              <div>
-                <label className="form-label">Region <span className="text-red-400">*</span></label>
-                <div className="relative">
-                  <select
-                    name="region"
-                    value={form.region}
-                    onChange={handleChange}
-                    className="input-base appearance-none cursor-pointer"
-                  >
-                    <option value="">Select region</option>
-                    {ghanaRegions.map((r) => <option key={r}>{r}</option>)}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-                </div>
-              </div>
-            </div>
-
-            {/* Description */}
-            <div>
-              <label className="form-label">Description</label>
-              <textarea
-                name="description"
-                value={form.description}
-                onChange={handleChange}
-                rows={4}
-                placeholder={descriptionPlaceholder}
-                className="input-base resize-none h-auto min-h-32 py-3"
-              />
-            </div>
-          </motion.div>
-
-          {/* ── Condition ── */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.13 }}
-            className="rounded-2xl border border-border p-6"
-          >
-            <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-4 flex items-center gap-1.5">
-              <BadgeCheck className="w-3.5 h-3.5" /> Condition
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {CONDITIONS.map((c) => (
-                <button
-                  key={c.value}
-                  onClick={() => setForm((prev) => ({ ...prev, condition: c.value }))}
-                  className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${
-                    form.condition === c.value
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/40"
-                  }`}
-                >
-                  <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
-                    form.condition === c.value ? "border-primary" : "border-muted-foreground/40"
-                  }`}>
-                    {form.condition === c.value && <div className="w-2 h-2 rounded-full bg-primary" />}
-                  </div>
+                {subOptions.length > 0 && (
                   <div>
-                    <p className="text-sm font-semibold text-foreground leading-none mb-0.5">{c.label}</p>
-                    <p className="text-xs text-muted-foreground">{c.sub}</p>
+                    <label className="form-label">Sub-category</label>
+                    <div className="relative">
+                      <select
+                        name="subId"
+                        value={form.subId}
+                        onChange={(e) => handleSubChange(e.target.value)}
+                        className={`input-base appearance-none cursor-pointer ${form.subId ? "" : "text-muted-foreground"}`}
+                      >
+                        <option value="">Select sub-category</option>
+                        {subOptions.map((s) => (
+                          <option key={s.id} value={s.id}>{s.label}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    </div>
                   </div>
-                </button>
-              ))}
-            </div>
-          </motion.div>
+                )}
 
-          {/* ── Sizes (conditional) ── */}
-          {showSizes && (
-            <motion.div
-              initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
-              className="rounded-2xl border border-border p-6"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-1.5">
-                  <Tag className="w-3.5 h-3.5" />
-                  {showSneakerSizes ? "Available Sizes (EU)" : "Available Sizes"}
-                </p>
-                {(showSneakerSizes ? selectedSizes.length : selectedClothingSizes.length) > 0 && (
-                  <span className="text-xs text-muted-foreground">
-                    {showSneakerSizes ? selectedSizes.length : selectedClothingSizes.length} selected
-                  </span>
+                {miniOptions.length > 0 && (
+                  <div>
+                    <label className="form-label">Type</label>
+                    <div className="relative">
+                      <select
+                        name="miniId"
+                        value={form.miniId}
+                        onChange={(e) => handleMiniChange(e.target.value)}
+                        className={`input-base appearance-none cursor-pointer ${form.miniId ? "" : "text-muted-foreground"}`}
+                      >
+                        <option value="">Select type</option>
+                        {miniOptions.map((m) => (
+                          <option key={m.id} value={m.id}>{m.label}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {/* ── Step 2: Details ── */}
+            {step === 2 && (
+              <div className="space-y-5">
+                <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-border p-6 space-y-4">
+                  <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5" /> Details
+                  </p>
+
+                  {/* Title */}
+                  <div>
+                    <label className="form-label">Title <span className="text-red-400">*</span></label>
+                    <input
+                      name="title"
+                      value={form.title}
+                      onChange={handleChange}
+                      placeholder={titlePlaceholder}
+                      className="input-base"
+                    />
+                    <p className="text-[11px] text-muted-foreground mt-1">Be specific — include brand, model, size, colour.</p>
+                  </div>
+
+                  {/* Brand (optional free text) */}
+                  <div>
+                    <label className="form-label">Brand <span className="text-muted-foreground font-normal normal-case">(optional)</span></label>
+                    <input
+                      name="brand"
+                      value={form.brand}
+                      onChange={handleChange}
+                      placeholder="e.g. Nike, Samsung, IKEA"
+                      className="input-base"
+                    />
+                  </div>
+
+                  {/* Price */}
+                  <div>
+                    <label className="form-label">Price (GHS) <span className="text-red-400">*</span></label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground font-display font-semibold">₵</span>
+                      <input
+                        name="price"
+                        value={form.price}
+                        onChange={handleChange}
+                        placeholder="0.00"
+                        type="number"
+                        min="0"
+                        className="input-base pl-10"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Negotiable toggle */}
+                  <div className="flex items-center justify-between py-1">
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Negotiable</p>
+                      <p className="text-xs text-muted-foreground">Buyers can haggle on the price</p>
+                    </div>
+                    <button
+                      onClick={() => toggleBool("negotiable")}
+                      className={`relative w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none ${form.negotiable ? "bg-primary" : "bg-muted border border-border"}`}
+                    >
+                      <span
+                        className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${form.negotiable ? "translate-x-5" : "translate-x-0"}`}
+                      />
+                    </button>
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <label className="form-label">Description <span className="text-red-400">*</span></label>
+                    <textarea
+                      name="description"
+                      value={form.description}
+                      onChange={handleChange}
+                      rows={4}
+                      placeholder={descriptionPlaceholder}
+                      className="input-base resize-none h-auto min-h-32 py-3"
+                    />
+                  </div>
+                </motion.div>
+
+                {/* Condition */}
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+                  className="rounded-2xl border border-border p-6"
+                >
+                  <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-4 flex items-center gap-1.5">
+                    <BadgeCheck className="w-3.5 h-3.5" /> Condition
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {CONDITIONS.map((c) => (
+                      <button
+                        key={c.value}
+                        onClick={() => setForm((prev) => ({ ...prev, condition: c.value }))}
+                        className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${
+                          form.condition === c.value
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:border-primary/40"
+                        }`}
+                      >
+                        <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center ${
+                          form.condition === c.value ? "border-primary" : "border-muted-foreground/40"
+                        }`}>
+                          {form.condition === c.value && <div className="w-2 h-2 rounded-full bg-primary" />}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-foreground leading-none mb-0.5">{c.label}</p>
+                          <p className="text-xs text-muted-foreground">{c.sub}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+
+                {/* Sizes (conditional) */}
+                {showSizes && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+                    className="rounded-2xl border border-border p-6"
+                  >
+                    <div className="flex items-center justify-between mb-4">
+                      <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-1.5">
+                        <Tag className="w-3.5 h-3.5" />
+                        {showSneakerSizes ? "Available Sizes (EU)" : "Available Sizes"}
+                      </p>
+                      {(showSneakerSizes ? selectedSizes.length : selectedClothingSizes.length) > 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          {showSneakerSizes ? selectedSizes.length : selectedClothingSizes.length} selected
+                        </span>
+                      )}
+                    </div>
+                    {showSneakerSizes && (
+                      <div className="flex flex-wrap gap-2">
+                        {sneakerSizes.map((size) => (
+                          <button
+                            key={size}
+                            onClick={() => toggleSneakerSize(size)}
+                            className={`w-12 h-12 rounded-xl text-sm font-display font-semibold transition-all border ${
+                              selectedSizes.includes(size)
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "bg-background text-muted-foreground border-border hover:border-primary/50 hover:text-foreground"
+                            }`}
+                          >
+                            {size}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {showClothingSizes && (
+                      <div className="flex flex-wrap gap-2">
+                        {clothingSizes.map((size) => (
+                          <button
+                            key={size}
+                            onClick={() => toggleClothingSize(size)}
+                            className={`px-4 h-12 rounded-xl text-sm font-display font-semibold transition-all border ${
+                              selectedClothingSizes.includes(size)
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "bg-background text-muted-foreground border-border hover:border-primary/50 hover:text-foreground"
+                            }`}
+                          >
+                            {size}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </motion.div>
                 )}
               </div>
-              {showSneakerSizes && (
-                <div className="flex flex-wrap gap-2">
-                  {sneakerSizes.map((size) => (
-                    <button
-                      key={size}
-                      onClick={() => toggleSneakerSize(size)}
-                      className={`w-12 h-12 rounded-xl text-sm font-display font-semibold transition-all border ${
-                        selectedSizes.includes(size)
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-background text-muted-foreground border-border hover:border-primary/50 hover:text-foreground"
-                      }`}
-                    >
-                      {size}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {showClothingSizes && (
-                <div className="flex flex-wrap gap-2">
-                  {clothingSizes.map((size) => (
-                    <button
-                      key={size}
-                      onClick={() => toggleClothingSize(size)}
-                      className={`px-4 h-12 rounded-xl text-sm font-display font-semibold transition-all border ${
-                        selectedClothingSizes.includes(size)
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-background text-muted-foreground border-border hover:border-primary/50 hover:text-foreground"
-                      }`}
-                    >
-                      {size}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </motion.div>
-          )}
+            )}
 
-          {/* ── Contact & Delivery ── */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.17 }}
-            className="rounded-2xl border border-border p-6 space-y-4"
-          >
-            <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-1.5">
-              <Phone className="w-3.5 h-3.5" /> Contact & Delivery
-            </p>
-
-            {/* Phone */}
-            <div>
-              <label className="form-label">WhatsApp / Phone <span className="text-red-400">*</span></label>
-              <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">🇬🇭</span>
-                <input
-                  name="phone"
-                  value={form.phone}
-                  onChange={handleChange}
-                  placeholder="0XX XXX XXXX"
-                  type="tel"
-                  className="input-base pl-10"
-                />
-              </div>
-              <p className="text-[11px] text-muted-foreground mt-1">Buyers will contact you on this number.</p>
-            </div>
-
-            {/* Delivery toggle */}
-            <div className="flex items-center justify-between py-1">
-              <div className="flex items-center gap-2">
-                <Truck className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Delivery available</p>
-                  <p className="text-xs text-muted-foreground">You can deliver to the buyer</p>
-                </div>
-              </div>
-              <button
-                onClick={() => toggleBool("delivery")}
-                className={`relative w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none ${form.delivery ? "bg-primary" : "bg-muted border border-border"}`}
+            {/* ── Step 3: Photos ── */}
+            {step === 3 && (
+              <motion.div
+                initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+                className="rounded-2xl border border-border p-6"
               >
-                <span
-                  className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${form.delivery ? "translate-x-5" : "translate-x-0"}`}
-                />
-              </button>
-            </div>
-          </motion.div>
+                <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-4 flex items-center gap-1.5">
+                  <Image className="w-3.5 h-3.5" /> Photos
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  {images.map((img, idx) => (
+                    <div key={idx} className="relative aspect-square rounded-xl overflow-hidden bg-secondary border border-border">
+                      <img src={img} alt={`Photo ${idx + 1}`} className="w-full h-full object-contain p-2" />
+                      <button
+                        onClick={() => {
+                          setImages((prev) => prev.filter((_, i) => i !== idx));
+                          setImageFiles((prev) => prev.filter((_, i) => i !== idx));
+                        }}
+                        className="absolute top-1 right-1 w-6 h-6 rounded-full bg-background/90 border border-border flex items-center justify-center hover:bg-background transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                      {idx === 0 && (
+                        <span className="absolute bottom-1 left-1 text-[10px] font-bold bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">
+                          Cover
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                  {images.length < MAX_IMAGES && (
+                    <button
+                      onClick={() => fileRef.current?.click()}
+                      className="aspect-square rounded-xl border-2 border-dashed border-border hover:border-primary/50
+                        flex flex-col items-center justify-center gap-1 transition-colors group"
+                    >
+                      <Upload className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                      <p className="text-[11px] text-muted-foreground">
+                        {images.length === 0 ? "Add photo" : "Add more"}
+                      </p>
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  {images.length}/{MAX_IMAGES} photos · First photo is the cover
+                </p>
+                <input ref={fileRef} type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" />
+              </motion.div>
+            )}
 
-          {/* ── Submit ── */}
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-            <Button onClick={handleSubmit} disabled={loading} className="btn-primary w-full h-12 rounded-full text-sm">
+            {/* ── Step 4: Location & Contact + Review ── */}
+            {step === 4 && (
+              <div className="space-y-5">
+                <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-border p-6 space-y-4">
+                  <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-1.5">
+                    <Phone className="w-3.5 h-3.5" /> Location & Contact
+                  </p>
+
+                  {/* City + Region */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="form-label">City</label>
+                      <input
+                        name="city"
+                        value={form.city}
+                        onChange={handleChange}
+                        placeholder="e.g. Kumasi"
+                        className="input-base"
+                      />
+                    </div>
+                    <div>
+                      <label className="form-label">Region <span className="text-red-400">*</span></label>
+                      <div className="relative">
+                        <select
+                          name="region"
+                          value={form.region}
+                          onChange={handleChange}
+                          className="input-base appearance-none cursor-pointer"
+                        >
+                          <option value="">Select region</option>
+                          {ghanaRegions.map((r) => <option key={r}>{r}</option>)}
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Phone */}
+                  <div>
+                    <label className="form-label">WhatsApp / Phone <span className="text-red-400">*</span></label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">🇬🇭</span>
+                      <input
+                        name="phone"
+                        value={form.phone}
+                        onChange={handleChange}
+                        placeholder="0XX XXX XXXX"
+                        type="tel"
+                        className="input-base pl-10"
+                      />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-1">Buyers will contact you on this number.</p>
+                  </div>
+
+                  {/* Delivery toggle */}
+                  <div className="flex items-center justify-between py-1">
+                    <div className="flex items-center gap-2">
+                      <Truck className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">Delivery available</p>
+                        <p className="text-xs text-muted-foreground">You can deliver to the buyer</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => toggleBool("delivery")}
+                      className={`relative w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none ${form.delivery ? "bg-primary" : "bg-muted border border-border"}`}
+                    >
+                      <span
+                        className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${form.delivery ? "translate-x-5" : "translate-x-0"}`}
+                      />
+                    </button>
+                  </div>
+                </motion.div>
+
+                {/* Review summary */}
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
+                  className="rounded-2xl border border-border p-6"
+                >
+                  <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-4 flex items-center gap-1.5">
+                    <CheckCircle className="w-3.5 h-3.5" /> Review
+                  </p>
+                  <dl className="space-y-2.5 text-sm">
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-muted-foreground">Category</dt>
+                      <dd className="text-right font-medium">
+                        {[path?.main.label, path?.sub?.label, path?.mini?.label].filter(Boolean).join(" · ") || "—"}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-muted-foreground">Title</dt>
+                      <dd className="text-right font-medium truncate max-w-[60%]">{form.title || "—"}</dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-muted-foreground">Price</dt>
+                      <dd className="text-right font-semibold text-primary">₵{Number(form.price || 0).toFixed(2)}</dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-muted-foreground">Condition</dt>
+                      <dd className="text-right font-medium">{CONDITIONS.find((c) => c.value === form.condition)?.label ?? form.condition}</dd>
+                    </div>
+                    {showSizes && (
+                      <div className="flex justify-between gap-4">
+                        <dt className="text-muted-foreground">Sizes</dt>
+                        <dd className="text-right font-medium">
+                          {showSneakerSizes
+                            ? [...selectedSizes].sort((a, b) => a - b).join(", ") || "—"
+                            : selectedClothingSizes.join(", ") || "—"}
+                        </dd>
+                      </div>
+                    )}
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-muted-foreground">Photos</dt>
+                      <dd className="text-right font-medium">{images.length}/5</dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-muted-foreground">Location</dt>
+                      <dd className="text-right font-medium">{[form.city, form.region].filter(Boolean).join(", ") || "—"}</dd>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <dt className="text-muted-foreground">Contact</dt>
+                      <dd className="text-right font-medium">{form.phone || "—"}</dd>
+                    </div>
+                  </dl>
+                </motion.div>
+              </div>
+            )}
+
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Step nav */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+          className="flex items-center gap-3 mt-8"
+        >
+          {step > 1 && (
+            <Button variant="outline" className="rounded-full h-12 px-6 text-sm flex-1" onClick={() => goTo(step - 1)}>
+              <ArrowLeft className="w-4 h-4 mr-1.5" /> Back
+            </Button>
+          )}
+          {step < STEPS.length ? (
+            <Button className="btn-primary w-full sm:flex-none sm:flex-1 rounded-full h-12 text-sm" onClick={() => goTo(step + 1)}>
+              Continue <ChevronRight className="w-4 h-4 ml-1.5" />
+            </Button>
+          ) : (
+            <Button onClick={handleSubmit} disabled={loading} className="btn-primary w-full sm:flex-none sm:flex-1 rounded-full h-12 text-sm">
               {loading ? (
                 <span className="flex items-center gap-2">
                   <motion.div
@@ -699,9 +843,8 @@ const CreateListing = () => {
                 </span>
               )}
             </Button>
-          </motion.div>
-
-        </div>
+          )}
+        </motion.div>
       </div>
 
       <Footer />

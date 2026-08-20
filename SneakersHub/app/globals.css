@@ -7,6 +7,9 @@
     --background: 0 0% 4%;
     --foreground: 0 0% 96%;
 
+    --font-body: "Roboto", system-ui, -apple-system, sans-serif;
+    --font-display: "Roboto", system-ui, -apple-system, sans-serif;
+
     --card: 0 0% 7%;
     --card-foreground: 0 0% 96%;
 

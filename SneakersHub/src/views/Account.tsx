@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "@/lib/router";
 import {
   User, LayoutGrid, Heart, Settings,
-  MapPin, Store, BadgeCheck, Sparkles, BarChart2,
+  MapPin, Store, BadgeCheck, Sparkles, BarChart2, LogOut,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -65,10 +65,55 @@ const TabSkeleton = () => (
   </div>
 );
 
+const LogoutConfirm = ({ open, onClose, onConfirm }: { open: boolean; onClose: () => void; onConfirm: () => void }) => (
+  <AnimatePresence>
+    {open && (
+      <motion.div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        onClick={onClose}
+      >
+        <motion.div
+          className="w-full max-w-sm rounded-2xl bg-background border border-border p-6 shadow-2xl"
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 20, scale: 0.95 }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="text-center">
+            <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
+              <LogOut className="w-6 h-6 text-red-500" />
+            </div>
+            <h3 className="font-display text-lg font-bold mb-2">Sign Out</h3>
+            <p className="text-sm text-muted-foreground mb-6">
+              Are you sure you want to sign out?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={onClose}
+                className="flex-1 rounded-xl border border-border px-4 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted/10 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { onClose(); onConfirm(); }}
+                className="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 transition"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
+
 const Account = () => {
   const { user, isGuest, logout } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("profile");
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const { saved, toggleSaved } = useSaved();
   const { listings, boostListing } = useListings();
@@ -218,145 +263,175 @@ const Account = () => {
       <Navbar />
 
       <section
-        className="relative pt-16 border-b border-border"
+        className="section-padding max-w-5xl mx-auto"
         style={{ paddingTop: `calc(64px + env(safe-area-inset-top, 0px))` }}
       >
-        <div className="section-padding max-w-4xl mx-auto pt-14 pb-0">
+        <div className="pt-12 pb-10">
           <AdminLink />
 
-          <motion.div {...fadeUp} className="flex items-center gap-5 pb-8">
-            <div className="relative flex-shrink-0">
-              <div className="relative w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                {avatarUrl
-                  ? <Image src={avatarUrl} alt={user?.name ?? "avatar"} fill sizes="64px" className="object-cover" />
-                  : <span className="font-display text-xl font-bold text-primary">{initials}</span>
-                }
-              </div>
-              <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-green-500 border-2 border-background" />
-            </div>
+          <div className="lg:grid lg:grid-cols-[260px_1fr] lg:gap-10 lg:items-start">
 
-            <div className="flex-1">
-              <div className="flex items-center gap-2 flex-wrap mb-2">
-                <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold
-                  ${isGuest
-                    ? "bg-muted text-muted-foreground border border-border"
-                    : "bg-primary/10 text-primary border border-primary/20"}`}>
-                  {isGuest
-                    ? <><User className="w-3 h-3" /> Guest</>
-                    : <><Store className="w-3 h-3" /> Member</>}
+            {/* ── Sidebar ── */}
+            <aside className="lg:sticky lg:top-24">
+              <div className="rounded-2xl border border-border overflow-hidden bg-background">
+
+                {/* Profile card */}
+                <div className="p-6 border-b border-border">
+                  <div className="flex items-center gap-4">
+                    <div className="relative flex-shrink-0">
+                      <div className="relative w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                        {avatarUrl
+                          ? <Image src={avatarUrl} alt={user?.name ?? "avatar"} fill sizes="56px" className="object-cover" />
+                          : <span className="font-display text-lg font-bold text-primary">{initials}</span>
+                        }
+                      </div>
+                      <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-green-500 border-2 border-background" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h1 className="font-display text-lg font-bold tracking-tight truncate">
+                        {isGuest ? "Guest" : profileForm.name || user?.name || "User"}
+                      </h1>
+                      <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1 truncate">
+                        <MapPin className="w-3 h-3 text-primary flex-shrink-0" />
+                        <span className="truncate">
+                          {isGuest ? "Ghana" : [profileForm.city, profileForm.region].filter(Boolean).join(", ") || "Ghana"}
+                        </span>
+                      </p>
+                      {!isGuest && profileLoaded && (
+                        <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                          {isOfficial && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border border-violet-500/40 bg-gradient-to-r from-violet-700 to-indigo-800 text-violet-200">
+                              <Sparkles className="w-2.5 h-2.5" /> Official
+                            </span>
+                          )}
+                          {!isOfficial && isVerified && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold text-green-600 bg-green-500/10 border border-green-500/20">
+                              <BadgeCheck className="w-2.5 h-2.5" /> Verified
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 mt-4">
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold
+                      ${isGuest
+                        ? "bg-muted text-muted-foreground border border-border"
+                        : "bg-primary/10 text-primary border border-primary/20"}`}>
+                      {isGuest
+                        ? <><User className="w-3 h-3" /> Guest</>
+                        : <><Store className="w-3 h-3" /> Member</>}
+                    </span>
+                    {!isGuest && (
+                      <Button
+                        onClick={() => { setActiveTab("profile"); setEditMode(e => !e); }}
+                        variant="outline" className="rounded-full h-8 px-4 text-xs ml-auto"
+                      >
+                        {editMode ? "Done" : "Edit"}
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
-                {!isGuest && profileLoaded && (
-                  <>
-                    {isOfficial && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border border-violet-500/40 bg-gradient-to-r from-violet-700 to-indigo-800 text-violet-200">
-                        <Sparkles className="w-3 h-3" /> Official
-                      </span>
-                    )}
-                    {!isOfficial && isVerified && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold text-green-600 bg-green-500/10 border border-green-500/20">
-                        <BadgeCheck className="w-3 h-3" /> Verified
-                      </span>
-                    )}
-                  </>
-                )}
+                {/* Vertical nav */}
+                <nav className="p-3 flex flex-col gap-1">
+                  {activeTabs.map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id)}
+                      className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium transition-all
+                        ${activeTab === tab.id
+                          ? "bg-primary/10 text-primary"
+                          : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"}`}
+                    >
+                      <tab.icon className="w-4 h-4 flex-shrink-0" />
+                      <span className="flex-1 text-left">{tab.label}</span>
+                      {tab.id === "saved" && saved.length > 0 && (
+                        <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+                          {saved.length}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+
+                  <div className="border-t border-border mt-2 pt-2">
+                    <button
+                      onClick={() => setShowLogoutConfirm(true)}
+                      className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium text-red-500 hover:bg-red-500/10 transition-all"
+                    >
+                      <LogOut className="w-4 h-4 flex-shrink-0" />
+                      <span className="flex-1 text-left">Sign out</span>
+                    </button>
+                  </div>
+                </nav>
               </div>
+            </aside>
 
-              <h1 className="font-display text-2xl font-bold tracking-tight">
-                {isGuest ? "Guest" : profileForm.name || user?.name || "User"}
-              </h1>
-              <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
-                <MapPin className="w-3 h-3 text-primary" />
-                {isGuest ? "Ghana" : [profileForm.city, profileForm.region].filter(Boolean).join(", ") || "Ghana"}
-              </p>
-            </div>
+            {/* ── Content ── */}
+            <section className="mt-6 lg:mt-0">
+              <AnimatePresence mode="wait">
+                <motion.div key={activeTab} {...fadeUp}>
+                  <Suspense fallback={<TabSkeleton />}>
 
-            {!isGuest && (
-              <Button
-                onClick={() => { setActiveTab("profile"); setEditMode(e => !e); }}
-                variant="outline" className="rounded-full h-9 px-5 text-sm hidden sm:flex"
-              >
-                {editMode ? "Done" : "Edit"}
-              </Button>
-            )}
-          </motion.div>
+                    {activeTab === "profile" && (
+                      <AccountProfile
+                        user={user} isGuest={isGuest}
+                        role={user?.role ?? "buyer"} verificationLoading={false}
+                        isVerified={isVerified} isOfficial={isOfficial}
+                        editMode={editMode} setEditMode={setEditMode}
+                        profileForm={profileForm} setProfileForm={setProfileForm}
+                        avatarUrl={avatarUrl}
+                        onSaveProfile={handleSaveProfile}
+                        onLogout={handleLogout}
+                      />
+                    )}
 
-          {/* Tabs */}
-          <div className="flex overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 no-scrollbar">
-            {activeTabs.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`relative flex flex-col sm:flex-row items-center gap-1 sm:gap-1.5 flex-1 sm:flex-none
-                  px-3 sm:px-5 py-3 sm:py-3.5 text-xs sm:text-sm font-medium whitespace-nowrap border-b-2 transition-all duration-200
-                  ${activeTab === tab.id ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-              >
-                <tab.icon className="w-5 h-5 sm:w-4 sm:h-4" />
-                <span>{tab.label}</span>
-                {tab.id === "saved" && saved.length > 0 && (
-                  <span className="absolute top-2 right-2 sm:static sm:ml-1 w-4 h-4 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
-                    {saved.length}
-                  </span>
-                )}
-              </button>
-            ))}
+                    {activeTab === "listings" && !isGuest && (
+                      <AccountListings
+                        listings={listings}
+                        isVerified={isVerified} isOfficial={isOfficial}
+                        totalListingsCreated={totalListingsCreated}
+                        showFirstListingBanner={showFirstListingBanner}
+                        setShowFirstListingBanner={setShowFirstListingBanner}
+                        boostingListing={boostingListing}
+                        setBoostingListing={setBoostingListing}
+                      />
+                    )}
+
+                    {activeTab === "saved" && (
+                      <AccountSaved saved={saved} toggleSaved={toggleSaved} />
+                    )}
+
+                    {activeTab === "analytics" && (
+                      isGuest ? <GuestAuthBanner action="view analytics" /> : <AccountAnalytics />
+                    )}
+
+                    {activeTab === "settings" && (
+                      isGuest
+                        ? <GuestAuthBanner action="access settings" />
+                        : <AccountSettings
+                          user={user}
+                          onDeleteAccount={handleDeleteAccount}
+                        />
+                    )}
+
+                  </Suspense>
+                </motion.div>
+              </AnimatePresence>
+            </section>
+
           </div>
         </div>
       </section>
 
-      <section className="section-padding max-w-4xl mx-auto py-10">
-        <AnimatePresence mode="wait">
-          <motion.div key={activeTab} {...fadeUp}>
-            <Suspense fallback={<TabSkeleton />}>
-
-              {activeTab === "profile" && (
-                <AccountProfile
-                  user={user} isGuest={isGuest}
-                  role={user?.role ?? "buyer"} verificationLoading={false}
-                  isVerified={isVerified} isOfficial={isOfficial}
-                  editMode={editMode} setEditMode={setEditMode}
-                  profileForm={profileForm} setProfileForm={setProfileForm}
-                  avatarUrl={avatarUrl}
-                  onSaveProfile={handleSaveProfile}
-                  onLogout={handleLogout}
-                />
-              )}
-
-              {activeTab === "listings" && !isGuest && (
-                <AccountListings
-                  listings={listings}
-                  isVerified={isVerified} isOfficial={isOfficial}
-                  totalListingsCreated={totalListingsCreated}
-                  showFirstListingBanner={showFirstListingBanner}
-                  setShowFirstListingBanner={setShowFirstListingBanner}
-                  boostingListing={boostingListing}
-                  setBoostingListing={setBoostingListing}
-                />
-              )}
-
-              {activeTab === "saved" && (
-                <AccountSaved saved={saved} toggleSaved={toggleSaved} />
-              )}
-
-              {activeTab === "analytics" && (
-                isGuest ? <GuestAuthBanner action="view analytics" /> : <AccountAnalytics />
-              )}
-
-              {activeTab === "settings" && (
-                isGuest
-                  ? <GuestAuthBanner action="access settings" />
-                  : <AccountSettings
-                    user={user}
-                    onDeleteAccount={handleDeleteAccount}
-                  />
-              )}
-
-            </Suspense>
-          </motion.div>
-        </AnimatePresence>
-      </section>
-
       <Footer />
+
+      <LogoutConfirm
+        open={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={handleLogout}
+      />
     </div>
   );
 };
