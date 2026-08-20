@@ -6,6 +6,8 @@ import { useNavigate, useSearchParams } from "@/lib/router";
 import { Lock, Eye, EyeOff, CheckCircle, AlertCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import AuthVisualPanel from "@/components/AuthVisualPanel";
 import { toast } from "sonner";
 
 const ResetPassword = () => {
@@ -79,11 +81,13 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center relative overflow-hidden">
-      <div className="absolute inset-0 opacity-20 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[120px]" />
-      </div>
-      <div className="relative z-10 w-full max-w-md px-6 py-10">
+    <div className="min-h-screen bg-background lg:grid lg:grid-cols-2 relative overflow-hidden">
+      <AuthVisualPanel />
+      <div className="relative flex items-center justify-center min-h-screen">
+        <div className="absolute inset-0 opacity-20 pointer-events-none">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[120px]" />
+        </div>
+        <div className="relative z-10 w-full max-w-md px-6 py-10">
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
           <p className="text-primary font-display text-xs font-semibold uppercase tracking-[0.3em] mb-2">Sneakers Hub</p>
           <h1 className="font-display text-4xl font-bold tracking-tighter">Reset Password</h1>
@@ -108,10 +112,12 @@ const ResetPassword = () => {
               </button>
             </div>
           ) : !ready ? (
-            <div className="flex flex-col items-center gap-3 py-6">
-              <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                className="w-8 h-8 border-2 border-border border-t-primary rounded-full" />
-              <p className="text-sm text-muted-foreground">Verifying reset link...</p>
+            <div className="py-6 space-y-3">
+              <Skeleton className="h-4 w-40 mx-auto" />
+              <Skeleton className="h-3 w-56 mx-auto" />
+              <Skeleton className="h-10 w-full rounded-xl" />
+              <Skeleton className="h-10 w-full rounded-xl" />
+              <Skeleton className="h-11 w-full rounded-full" />
             </div>
           ) : (
             <>
@@ -149,6 +155,7 @@ const ResetPassword = () => {
             </>
           )}
         </motion.div>
+        </div>
       </div>
     </div>
   );

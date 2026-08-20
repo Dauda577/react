@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import InstallPrompt from "@/components/InstallPrompt";
+import AuthVisualPanel from "@/components/AuthVisualPanel";
 import { supabase } from "@/lib/supabase";
 import { envVar } from "@/lib/env";
 
@@ -169,16 +170,18 @@ const Auth = () => {
     const savedRef = sessionStorage.getItem("pending_referral_code");
 
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center relative overflow-hidden">
-        <div className="absolute inset-0 opacity-20 pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[120px]" />
-        </div>
-        <div className="relative z-10 w-full max-w-md px-6 py-10">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
-            <p className="text-primary font-display text-xs font-semibold uppercase tracking-[0.3em] mb-2">One last step</p>
-            <h1 className="font-display text-3xl font-bold tracking-tighter">Almost there!</h1>
-            <p className="text-muted-foreground text-sm mt-2">Just add your phone number to complete your account.</p>
-          </motion.div>
+      <div className="min-h-screen bg-background lg:grid lg:grid-cols-2 relative overflow-hidden">
+        <AuthVisualPanel />
+        <div className="relative flex items-center justify-center min-h-screen">
+          <div className="absolute inset-0 opacity-20 pointer-events-none">
+            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[120px]" />
+          </div>
+          <div className="relative z-10 w-full max-w-md px-6 py-10">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
+              <p className="text-primary font-display text-xs font-semibold uppercase tracking-[0.3em] mb-2">One last step</p>
+              <h1 className="font-display text-3xl font-bold tracking-tighter">Almost there!</h1>
+              <p className="text-muted-foreground text-sm mt-2">Just add your phone number to complete your account.</p>
+            </motion.div>
 
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
             className="rounded-2xl border border-border bg-background p-6 shadow-sm space-y-4">
@@ -259,6 +262,7 @@ const Auth = () => {
             </button>
             <p className="text-xs text-muted-foreground text-center">You can start selling anytime from your Account settings.</p>
           </motion.div>
+          </div>
         </div>
         <InstallPrompt triggerAfterAuth={triggerInstall} />
       </div>
@@ -267,13 +271,16 @@ const Auth = () => {
 
   // ── Main auth form ───────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center relative overflow-hidden">
-      <div className="absolute inset-0 opacity-20 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[120px]" />
-        <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-primary/10 rounded-full blur-[100px]" />
-      </div>
+    <div className="min-h-screen bg-background lg:grid lg:grid-cols-2 relative overflow-hidden">
+      <AuthVisualPanel />
 
-      <div className="relative z-10 w-full max-w-md px-6 py-10">
+      <div className="relative flex items-center justify-center min-h-screen">
+        <div className="absolute inset-0 opacity-20 pointer-events-none">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[120px]" />
+          <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-primary/10 rounded-full blur-[100px]" />
+        </div>
+
+        <div className="relative z-10 w-full max-w-md px-6 py-10">
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
           className="text-center mb-8">
           <p className="text-primary font-display text-xs font-semibold uppercase tracking-[0.3em] mb-2">Sneakers Hub</p>
@@ -492,6 +499,7 @@ const Auth = () => {
             </button>
           </motion.p>
         )}
+        </div>
       </div>
 
       <InstallPrompt triggerAfterAuth={triggerInstall} />
