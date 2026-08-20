@@ -7,8 +7,13 @@ import {
   useSearchParams as useNextSearchParams,
   useParams as useNextParams,
 } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
-import type { AnchorHTMLAttributes, ComponentProps, MouseEvent, ReactNode, Ref } from "react";
+import { forwardRef, useCallback, useEffect, useState } from "react";
+import type {
+  AnchorHTMLAttributes,
+  ComponentProps,
+  MouseEvent,
+  ReactNode,
+} from "react";
 
 export type CompatLinkProps = Omit<ComponentProps<typeof NextLink>, "href" | "onClick"> & {
   to: string;
@@ -16,15 +21,12 @@ export type CompatLinkProps = Omit<ComponentProps<typeof NextLink>, "href" | "on
   onClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
 };
 
-export function Link({
-  to,
-  state,
-  onClick,
+export const Link = forwardRef<HTMLAnchorElement, CompatLinkProps>(function Link(
+  { to, state: _state, onClick, ...props },
   ref,
-  ...props
-}: CompatLinkProps & { ref?: Ref<HTMLAnchorElement> }) {
+) {
   return <NextLink ref={ref} href={to} onClick={onClick} {...props} />;
-}
+});
 
 export type NavLinkProps = {
   to: string;
@@ -37,16 +39,18 @@ export type NavLinkProps = {
   onClick?: (event: MouseEvent<HTMLAnchorElement>) => void;
 };
 
-export function NavLink({
-  to,
-  replace,
-  className,
-  children,
+export const NavLink = forwardRef<HTMLAnchorElement, NavLinkProps>(function NavLink(
+  {
+    to,
+    replace,
+    className,
+    children,
+    state: _state,
+    end: _end,
+    ...props
+  },
   ref,
-  state: _state,
-  end: _end,
-  ...props
-}: NavLinkProps & { ref?: Ref<HTMLAnchorElement> }) {
+) {
   const pathname = usePathname();
   const isActive = to === "/" ? pathname === to : pathname.startsWith(to);
   const cls = typeof className === "function" ? className({ isActive, isPending: false }) : className;
@@ -55,7 +59,7 @@ export function NavLink({
       {children}
     </Link>
   );
-}
+});
 
 export function useNavigate() {
   const router = useRouter();
