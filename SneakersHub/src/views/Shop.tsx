@@ -312,11 +312,18 @@ const Shop = () => {
                 <button
                   key={s.id}
                   onClick={() => setNode(mainNode!.id, s.id)}
-                  className="group flex items-center justify-between gap-2 p-4 rounded-2xl border border-border bg-card
+                  className="group flex items-center gap-3 p-4 rounded-2xl border border-border bg-card text-left
                     hover:border-primary/50 hover:shadow-md transition-all"
                 >
-                  <div>
-                    <p className="text-sm font-display font-semibold leading-tight">{s.label}</p>
+                  <div className="w-11 h-11 rounded-xl bg-primary/10 border border-primary/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {s.icon ? (
+                      <img src={s.icon} alt="" loading="lazy" className="w-7 h-7 object-contain" />
+                    ) : (
+                      <ChevronRight className="w-5 h-5 text-primary" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-display font-semibold leading-tight truncate">{s.label}</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">
                       {count} {count === 1 ? "item" : "items"}
                     </p>

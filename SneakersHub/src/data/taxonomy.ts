@@ -5,6 +5,7 @@ export type CategoryNode = {
   id: string;
   label: string;
   img?: string;
+  icon?: string;
   children?: CategoryNode[];
 };
 
@@ -23,6 +24,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "mobile-phones",
         label: "Mobile Phones",
+        icon: "/subcategory-icons/mobile-phones.png",
         children: [
           { id: "smartphones", label: "Smartphones" },
           { id: "ios-phones", label: "iOS Phones" },
@@ -34,6 +36,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "tablets",
         label: "Tablets",
+        icon: "/subcategory-icons/tablets.png",
         children: [
           { id: "ipads", label: "iPads" },
           { id: "android-tablets", label: "Android Tablets" },
@@ -45,6 +48,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "phone-accessories",
         label: "Phone Accessories",
+        icon: "/subcategory-icons/phone-accessories.png",
         children: [
           { id: "cases-covers", label: "Cases & Covers" },
           { id: "screen-protectors", label: "Screen Protectors" },
@@ -58,6 +62,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "phone-parts",
         label: "Phone Parts",
+        icon: "/subcategory-icons/phone-parts.png",
         children: [
           { id: "screens", label: "Screens" },
           { id: "batteries", label: "Batteries" },
@@ -76,6 +81,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "tvs-video",
         label: "TVs & Video",
+        icon: "/subcategory-icons/tvs-video.png",
         children: [
           { id: "smart-tvs", label: "Smart TVs" },
           { id: "led-tvs", label: "LED & LCD TVs" },
@@ -87,6 +93,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "audio-speakers",
         label: "Audio & Speakers",
+        icon: "/subcategory-icons/audio-speakers.png",
         children: [
           { id: "bluetooth-speakers", label: "Bluetooth Speakers" },
           { id: "soundbars", label: "Soundbars & Home Theatre" },
@@ -98,6 +105,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "cameras-drones",
         label: "Cameras & Drones",
+        icon: "/subcategory-icons/cameras-drones.png",
         children: [
           { id: "dslr-mirrorless", label: "DSLR & Mirrorless" },
           { id: "point-shoot", label: "Point & Shoot" },
@@ -110,6 +118,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "gaming",
         label: "Gaming",
+        icon: "/subcategory-icons/gaming.png",
         children: [
           { id: "consoles", label: "Consoles" },
           { id: "games", label: "Games" },
@@ -122,6 +131,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "wearables",
         label: "Wearables",
+        icon: "/subcategory-icons/wearables.png",
         children: [
           { id: "smartwatches", label: "Smartwatches" },
           { id: "fitness-trackers", label: "Fitness Trackers" },
@@ -132,6 +142,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "computers",
         label: "Computers & Laptops",
+        icon: "/subcategory-icons/computers.png",
         children: [
           { id: "laptops", label: "Laptops" },
           { id: "macbooks", label: "MacBooks" },
@@ -143,6 +154,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "computer-accessories",
         label: "Computer Accessories",
+        icon: "/subcategory-icons/computer-accessories.png",
         children: [
           { id: "keyboards-mice", label: "Keyboards & Mice" },
           { id: "webcams-headsets", label: "Webcams & Headsets" },
@@ -155,6 +167,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "networking-smart-home",
         label: "Networking & Smart Home",
+        icon: "/subcategory-icons/networking-smart-home.png",
         children: [
           { id: "routers", label: "Routers & Modems" },
           { id: "wi-fi", label: "Wi-Fi Extenders" },
@@ -173,6 +186,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "womens-clothing",
         label: "Women's Clothing",
+        icon: "/subcategory-icons/womens-clothing.png",
         children: [
           { id: "dresses", label: "Dresses & Jumpsuits" },
           { id: "tops-tees", label: "Tops & Tees" },
@@ -187,6 +201,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "mens-clothing",
         label: "Men's Clothing",
+        icon: "/subcategory-icons/mens-clothing.png",
         children: [
           { id: "shirts", label: "Shirts" },
           { id: "t-shirts", label: "T-Shirts & Polos" },
@@ -199,6 +214,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "kids-clothing",
         label: "Kids' Clothing",
+        icon: "/subcategory-icons/kids-clothing.png",
         children: [
           { id: "boys", label: "Boys' Clothing" },
           { id: "girls", label: "Girls' Clothing" },
@@ -209,6 +225,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "footwear",
         label: "Footwear",
+        icon: "/subcategory-icons/footwear.png",
         children: [
           { id: "sneakers", label: "Sneakers & Trainers" },
           { id: "heels-flats", label: "Heels & Flats" },
@@ -223,6 +240,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "bags-luggage",
         label: "Bags & Luggage",
+        icon: "/subcategory-icons/bags-luggage.png",
         children: [
           { id: "handbags", label: "Handbags" },
           { id: "backpacks", label: "Backpacks & Rucksacks" },
@@ -235,6 +253,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "jewellery-watches",
         label: "Jewellery & Watches",
+        icon: "/subcategory-icons/jewellery-watches.png",
         children: [
           { id: "rings", label: "Rings" },
           { id: "necklaces", label: "Necklaces & Pendants" },
@@ -247,6 +266,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "fashion-accessories",
         label: "Accessories",
+        icon: "/subcategory-icons/fashion-accessories.png",
         children: [
           { id: "sunglasses", label: "Sunglasses & Eyewear" },
           { id: "belts", label: "Belts" },
@@ -259,6 +279,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "traditional-wear",
         label: "Traditional & Cultural Wear",
+        icon: "/subcategory-icons/traditional-wear.png",
         children: [
           { id: "kente-prints", label: "Kente & Prints" },
           { id: "dashiki", label: "Dashiki & Shirts" },
@@ -269,6 +290,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "uniforms-workwear",
         label: "Uniforms & Workwear",
+        icon: "/subcategory-icons/uniforms-workwear.png",
         children: [
           { id: "school-uniforms-uniforms", label: "School Uniforms" },
           { id: "scrubs", label: "Scrubs & Medical" },
@@ -286,6 +308,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "skin-care",
         label: "Skin Care",
+        icon: "/subcategory-icons/skin-care.png",
         children: [
           { id: "moisturizers", label: "Moisturizers & Creams" },
           { id: "cleansers", label: "Cleansers & Toners" },
@@ -297,6 +320,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "makeup",
         label: "Makeup",
+        icon: "/subcategory-icons/makeup.png",
         children: [
           { id: "face-makeup", label: "Face Makeup" },
           { id: "lip-makeup", label: "Lip Makeup" },
@@ -308,6 +332,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "hair-care",
         label: "Hair Care & Wigs",
+        icon: "/subcategory-icons/hair-care.png",
         children: [
           { id: "shampoo-conditioner", label: "Shampoo & Conditioner" },
           { id: "wigs-extensions", label: "Wigs & Extensions" },
@@ -319,6 +344,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "fragrances",
         label: "Fragrances & Perfumes",
+        icon: "/subcategory-icons/fragrances.png",
         children: [
           { id: "womens-fragrance", label: "Women's Fragrances" },
           { id: "mens-fragrance", label: "Men's Fragrances" },
@@ -329,6 +355,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "mens-grooming",
         label: "Men's Grooming",
+        icon: "/subcategory-icons/mens-grooming.png",
         children: [
           { id: "shaving", label: "Shaving & Razors" },
           { id: "beard-care", label: "Beard Care" },
@@ -338,6 +365,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "bath-body",
         label: "Bath & Body",
+        icon: "/subcategory-icons/bath-body.png",
         children: [
           { id: "body-wash", label: "Body Wash & Shower Gel" },
           { id: "soaps", label: "Bar Soaps" },
@@ -349,6 +377,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "health-wellness",
         label: "Health Care & Wellness",
+        icon: "/subcategory-icons/health-wellness.png",
         children: [
           { id: "first-aid", label: "First Aid" },
           { id: "medical-equipment", label: "Medical Equipment & Monitors" },
@@ -360,6 +389,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "vitamins-supplements",
         label: "Vitamins & Supplements",
+        icon: "/subcategory-icons/vitamins-supplements.png",
         children: [
           { id: "vitamins", label: "Vitamins & Minerals" },
           { id: "herbal", label: "Herbal & Natural" },
@@ -370,6 +400,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "beauty-tools",
         label: "Beauty Tools",
+        icon: "/subcategory-icons/beauty-tools.png",
         children: [
           { id: "mirrors", label: "Mirrors & Lighting" },
           { id: "devices", label: "Beauty Devices" },
@@ -386,6 +417,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "furniture",
         label: "Furniture",
+        icon: "/subcategory-icons/furniture.png",
         children: [
           { id: "living-room", label: "Living Room Furniture" },
           { id: "bedroom", label: "Bedroom Furniture" },
@@ -398,6 +430,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "kitchen-dining",
         label: "Kitchen & Dining",
+        icon: "/subcategory-icons/kitchen-dining.png",
         children: [
           { id: "cookware", label: "Cookware & Pots" },
           { id: "cutlery", label: "Cutlery & Knives" },
@@ -410,6 +443,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "appliances",
         label: "Appliances",
+        icon: "/subcategory-icons/appliances.png",
         children: [
           { id: "refrigerators", label: "Refrigerators & Freezers" },
           { id: "cookers", label: "Cookers & Ovens" },
@@ -424,6 +458,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "bedding-bath",
         label: "Bedding & Bath",
+        icon: "/subcategory-icons/bedding-bath.png",
         children: [
           { id: "bed-sheets", label: "Bed Sheets & Covers" },
           { id: "blankets", label: "Blankets & Throws" },
@@ -435,6 +470,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "home-decor",
         label: "Home Decor",
+        icon: "/subcategory-icons/home-decor.png",
         children: [
           { id: "wall-art", label: "Wall Art & Frames" },
           { id: "vases", label: "Vases & Decorative Accessories" },
@@ -447,6 +483,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "lighting",
         label: "Lighting",
+        icon: "/subcategory-icons/lighting.png",
         children: [
           { id: "lamps", label: "Lamps & Floor Lights" },
           { id: "ceiling", label: "Ceiling & Pendant Lights" },
@@ -457,6 +494,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "tools-improvement",
         label: "Tools & Home Improvement",
+        icon: "/subcategory-icons/tools-improvement.png",
         children: [
           { id: "power-tools", label: "Power Tools" },
           { id: "hand-tools", label: "Hand Tools" },
@@ -469,6 +507,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "garden-outdoor",
         label: "Garden & Outdoor",
+        icon: "/subcategory-icons/garden-outdoor.png",
         children: [
           { id: "garden-tools", label: "Garden Tools & Equipment" },
           { id: "plants", label: "Plants & Seeds" },
@@ -480,6 +519,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "storage-organization",
         label: "Storage & Organization",
+        icon: "/subcategory-icons/storage-organization.png",
         children: [
           { id: "boxes", label: "Storage Boxes & Baskets" },
           { id: "shelving", label: "Shelving & Racks" },
@@ -497,6 +537,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "baby-clothing",
         label: "Baby Clothing",
+        icon: "/subcategory-icons/baby-clothing.png",
         children: [
           { id: "onesies", label: "Onesies & Bodysuits" },
           { id: "baby-outfits", label: "Outfits & Sets" },
@@ -507,6 +548,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "strollers",
         label: "Strollers & Prams",
+        icon: "/subcategory-icons/strollers.png",
         children: [
           { id: "strollers", label: "Strollers" },
           { id: "prams", label: "Prams & Travel Systems" },
@@ -516,6 +558,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "feeding",
         label: "Feeding",
+        icon: "/subcategory-icons/feeding.png",
         children: [
           { id: "bottles", label: "Bottles & Cups" },
           { id: "breastfeeding", label: "Breastfeeding" },
@@ -527,6 +570,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "diapering",
         label: "Diapering",
+        icon: "/subcategory-icons/diapering.png",
         children: [
           { id: "diapers", label: "Diapers" },
           { id: "wipes", label: "Wipes & Holders" },
@@ -537,6 +581,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "nursery",
         label: "Nursery & Furniture",
+        icon: "/subcategory-icons/nursery.png",
         children: [
           { id: "cribs", label: "Cribs & Cradles" },
           { id: "nursery-bedding", label: "Nursery Bedding" },
@@ -547,6 +592,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "baby-care",
         label: "Baby Care & Safety",
+        icon: "/subcategory-icons/baby-care.png",
         children: [
           { id: "bathing", label: "Bathing & Grooming" },
           { id: "car-seats", label: "Car Seats" },
@@ -558,6 +604,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "kids-toys",
         label: "Kids' Toys",
+        icon: "/subcategory-icons/kids-toys.png",
         children: [
           { id: "baby-toys", label: "Baby Toys" },
           { id: "educational-toys", label: "Educational Toys" },
@@ -568,6 +615,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "bikes-rideons",
         label: "Bikes & Ride-ons",
+        icon: "/subcategory-icons/bikes-rideons.png",
         children: [
           { id: "bicycles-kids", label: "Kids' Bicycles" },
           { id: "scooters-kids", label: "Scooters" },
@@ -578,6 +626,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "school-stationery",
         label: "School & Stationery",
+        icon: "/subcategory-icons/school-stationery.png",
         children: [
           { id: "backpacks-kids", label: "Backpacks & Bags" },
           { id: "stationery", label: "Stationery & Supplies" },
@@ -594,6 +643,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "action-figures",
         label: "Action Figures",
+        icon: "/subcategory-icons/action-figures.png",
         children: [
           { id: "action-figures", label: "Action Figures" },
           { id: "playsets", label: "Playsets & Vehicles" },
@@ -603,6 +653,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "building-blocks",
         label: "Building & Blocks",
+        icon: "/subcategory-icons/building-blocks.png",
         children: [
           { id: "lego", label: "LEGO & Bricks" },
           { id: "blocks", label: "Blocks & Construction" },
@@ -612,6 +663,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "board-games",
         label: "Board & Card Games",
+        icon: "/subcategory-icons/board-games.png",
         children: [
           { id: "board-games", label: "Board Games" },
           { id: "card-games", label: "Card Games" },
@@ -622,6 +674,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "puzzles",
         label: "Puzzles",
+        icon: "/subcategory-icons/puzzles.png",
         children: [
           { id: "jigsaw", label: "Jigsaw Puzzles" },
           { id: "3d-puzzles", label: "3D Puzzles" },
@@ -631,6 +684,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "dolls-playsets",
         label: "Dolls & Playsets",
+        icon: "/subcategory-icons/dolls-playsets.png",
         children: [
           { id: "dolls", label: "Dolls & Dollhouses" },
           { id: "pretend-play", label: "Pretend Play" },
@@ -640,6 +694,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "remote-control",
         label: "Remote Control",
+        icon: "/subcategory-icons/remote-control.png",
         children: [
           { id: "rc-cars", label: "RC Cars & Trucks" },
           { id: "rc-drones", label: "RC Drones & Helicopters" },
@@ -649,6 +704,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "outdoor-play",
         label: "Outdoor Play",
+        icon: "/subcategory-icons/outdoor-play.png",
         children: [
           { id: "trampolines", label: "Trampolines" },
           { id: "slides-swings", label: "Slides & Swings" },
@@ -659,6 +715,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "educational",
         label: "Educational & STEM",
+        icon: "/subcategory-icons/educational.png",
         children: [
           { id: "stem-kits", label: "STEM & Science Kits" },
           { id: "learning", label: "Learning & Alphabet Toys" },
@@ -676,6 +733,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "fitness-gym",
         label: "Fitness & Gym",
+        icon: "/subcategory-icons/fitness-gym.png",
         children: [
           { id: "weights", label: "Weights & Dumbbells" },
           { id: "home-gym", label: "Home Gym Equipment" },
@@ -686,6 +744,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "sports-clothing",
         label: "Sports Clothing & Shoes",
+        icon: "/subcategory-icons/sports-clothing.png",
         children: [
           { id: "activewear", label: "Activewear & Gym Wear" },
           { id: "jerseys-kits", label: "Jerseys & Kits" },
@@ -696,6 +755,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "football",
         label: "Football (Soccer)",
+        icon: "/subcategory-icons/football.png",
         children: [
           { id: "footballs", label: "Football Boots" },
           { id: "balls", label: "Football Boots" },
@@ -706,6 +766,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "basketball",
         label: "Basketball",
+        icon: "/subcategory-icons/basketball.png",
         children: [
           { id: "basketballs", label: "Basketballs" },
           { id: "basketball-shoes", label: "Basketball Shoes" },
@@ -715,6 +776,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "cycling",
         label: "Cycling",
+        icon: "/subcategory-icons/cycling.png",
         children: [
           { id: "bicycles", label: "Bicycles" },
           { id: "accessories-cycling", label: "Cycling Accessories" },
@@ -725,6 +787,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "swimming",
         label: "Swimming",
+        icon: "/subcategory-icons/swimming.png",
         children: [
           { id: "swimwear", label: "Swimwear" },
           { id: "goggles", label: "Goggles & Caps" },
@@ -734,6 +797,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "camping-hiking",
         label: "Camping & Hiking",
+        icon: "/subcategory-icons/camping-hiking.png",
         children: [
           { id: "tents", label: "Tents & Shelters" },
           { id: "sleeping", label: "Sleeping Bags & Mats" },
@@ -744,6 +808,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "fishing",
         label: "Fishing",
+        icon: "/subcategory-icons/fishing.png",
         children: [
           { id: "rods", label: "Rods & Reels" },
           { id: "tackle", label: "Tackle & Lures" },
@@ -753,6 +818,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "other-sports",
         label: "Other Sports",
+        icon: "/subcategory-icons/other-sports.png",
         children: [
           { id: "tennis", label: "Tennis & Racquet Sports" },
           { id: "boxing", label: "Boxing & Martial Arts" },
@@ -771,6 +837,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "cars",
         label: "Cars",
+        icon: "/subcategory-icons/cars.png",
         children: [
           { id: "sedans", label: "Sedans" },
           { id: "suvs", label: "SUVs & Crossovers" },
@@ -784,6 +851,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "motorcycles",
         label: "Motorcycles",
+        icon: "/subcategory-icons/motorcycles.png",
         children: [
           { id: "scooters", label: "Scooters & Mopeds" },
           { id: "motorcycles", label: "Motorcycles" },
@@ -794,6 +862,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "trucks-buses",
         label: "Buses & Trucks",
+        icon: "/subcategory-icons/trucks-buses.png",
         children: [
           { id: "commercial-trucks", label: "Commercial Trucks" },
           { id: "buses", label: "Buses" },
@@ -804,6 +873,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "boats",
         label: "Boats & Watercraft",
+        icon: "/subcategory-icons/boats.png",
         children: [
           { id: "boats", label: "Boats" },
           { id: "jet-skis", label: "Jet Skis & Watercraft" },
@@ -813,6 +883,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "vehicle-parts",
         label: "Vehicle Parts & Accessories",
+        icon: "/subcategory-icons/vehicle-parts.png",
         children: [
           { id: "car-parts", label: "Car Parts" },
           { id: "tyres", label: "Tyres & Wheels" },
@@ -824,6 +895,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "vehicle-care",
         label: "Vehicle Care & Tools",
+        icon: "/subcategory-icons/vehicle-care.png",
         children: [
           { id: "tools", label: "Automotive Tools" },
           { id: "detailing", label: "Detailing & Care Products" },
@@ -840,6 +912,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "books",
         label: "Books",
+        icon: "/subcategory-icons/books.png",
         children: [
           { id: "fiction", label: "Fiction" },
           { id: "nonfiction", label: "Non-Fiction" },
@@ -852,6 +925,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "movies",
         label: "Movies & DVDs",
+        icon: "/subcategory-icons/movies.png",
         children: [
           { id: "movies", label: "Movies" },
           { id: "series", label: "TV Series" },
@@ -861,6 +935,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "music",
         label: "Music & Vinyl",
+        icon: "/subcategory-icons/music.png",
         children: [
           { id: "cds", label: "CDs & Albums" },
           { id: "vinyl", label: "Vinyl Records" },
@@ -870,6 +945,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "instruments",
         label: "Musical Instruments",
+        icon: "/subcategory-icons/instruments.png",
         children: [
           { id: "guitars", label: "Guitars & Bass" },
           { id: "keyboards", label: "Keyboards & Pianos" },
@@ -888,6 +964,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "dogs",
         label: "Dogs",
+        icon: "/subcategory-icons/dogs.png",
         children: [
           { id: "dog-food", label: "Dog Food & Treats" },
           { id: "dog-accessories", label: "Collars, Leashes & Accessories" },
@@ -898,6 +975,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "cats",
         label: "Cats",
+        icon: "/subcategory-icons/cats.png",
         children: [
           { id: "cat-food", label: "Cat Food & Treats" },
           { id: "cat-litter", label: "Litter & Litter Boxes" },
@@ -908,6 +986,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "birds",
         label: "Birds",
+        icon: "/subcategory-icons/birds.png",
         children: [
           { id: "bird-food", label: "Bird Food" },
           { id: "cages", label: "Cages & Aviaries" },
@@ -917,6 +996,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "fish-aquariums",
         label: "Fish & Aquariums",
+        icon: "/subcategory-icons/fish-aquariums.png",
         children: [
           { id: "aquariums", label: "Aquariums & Tanks" },
           { id: "fish-food", label: "Fish Food" },
@@ -926,6 +1006,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "small-animals",
         label: "Small Animals",
+        icon: "/subcategory-icons/small-animals.png",
         children: [
           { id: "small-animal-food", label: "Food & Treats" },
           { id: "cages-habitats", label: "Cages & Habitats" },
@@ -934,6 +1015,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "livestock",
         label: "Livestock & Farm",
+        icon: "/subcategory-icons/livestock.png",
         children: [
           { id: "poultry", label: "Poultry & Fowl" },
           { id: "livestock-supplies", label: "Farm Supplies" },
@@ -949,6 +1031,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "groceries",
         label: "Groceries & Pantry",
+        icon: "/subcategory-icons/groceries.png",
         children: [
           { id: "grains", label: "Grains, Rice & Staples" },
           { id: "canned", label: "Canned & Jarred Foods" },
@@ -960,6 +1043,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "beverages",
         label: "Beverages",
+        icon: "/subcategory-icons/beverages.png",
         children: [
           { id: "soft-drinks", label: "Soft Drinks & Juices" },
           { id: "coffee-tea", label: "Coffee & Tea" },
@@ -970,6 +1054,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "household-supplies",
         label: "Household Supplies",
+        icon: "/subcategory-icons/household-supplies.png",
         children: [
           { id: "cleaning", label: "Cleaning Supplies" },
           { id: "laundry", label: "Laundry" },
@@ -987,6 +1072,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "airtime-data",
         label: "Airtime & Data",
+        icon: "/subcategory-icons/airtime-data.png",
         children: [
           { id: "mobile-top-up", label: "Mobile Top-up" },
           { id: "data-bundles", label: "Data Bundles" },
@@ -996,6 +1082,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "repairs",
         label: "Repair Services",
+        icon: "/subcategory-icons/repairs.png",
         children: [
           { id: "phone-repairs", label: "Phone & Tablet Repairs" },
           { id: "electronics-repairs", label: "Electronics Repairs" },
@@ -1006,6 +1093,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "home-services",
         label: "Home & Salon Services",
+        icon: "/subcategory-icons/home-services.png",
         children: [
           { id: "cleaning-services", label: "Cleaning & Janitorial" },
           { id: "beauty-services", label: "Beauty & Salon" },
@@ -1016,6 +1104,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "lessons",
         label: "Lessons & Tutoring",
+        icon: "/subcategory-icons/lessons.png",
         children: [
           { id: "academic", label: "Academic Tutoring" },
           { id: "music-lessons", label: "Music Lessons" },
@@ -1026,6 +1115,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "events-weddings",
         label: "Events & Weddings",
+        icon: "/subcategory-icons/events-weddings.png",
         children: [
           { id: "photography", label: "Photography & Videography" },
           { id: "catering", label: "Catering & Event Planning" },
@@ -1035,6 +1125,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "web-design",
         label: "Web & Design",
+        icon: "/subcategory-icons/web-design.png",
         children: [
           { id: "graphic-design", label: "Graphic Design" },
           { id: "web-development", label: "Web Development" },
@@ -1052,6 +1143,7 @@ export const TAXONOMY: CategoryNode[] = [
       {
         id: "other-items",
         label: "Other Items",
+        icon: "/subcategory-icons/other-items.png",
         children: [
           { id: "miscellaneous", label: "Miscellaneous" },
           { id: "gift-cards", label: "Gift Cards & Vouchers" },
