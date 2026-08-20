@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { apiPost, apiPatch, apiDelete } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import {
   Ticket, Copy, Trash2, Plus, RefreshCw, Save, X,
@@ -275,7 +276,17 @@ export const PromoCodeManager = () => {
         </div>
 
         {codesLoading ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">Loading...</div>
+          <div className="divide-y divide-border">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="flex items-center justify-between gap-3 px-4 py-3.5">
+                <div className="space-y-2">
+                  <Skeleton className="h-3.5 w-28" />
+                  <Skeleton className="h-2.5 w-44" />
+                </div>
+                <Skeleton className="h-6 w-16 rounded-full flex-shrink-0" />
+              </div>
+            ))}
+          </div>
         ) : promoCodes.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">No promo codes yet.</div>
         ) : (

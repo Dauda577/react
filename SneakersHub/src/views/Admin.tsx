@@ -10,6 +10,7 @@ import {
   Filter, Search, Phone, MapPin, Users, Percent, BadgeCheck, Ticket, Send,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { envVar } from "@/lib/env";
@@ -371,10 +372,21 @@ const Admin = () => {
   }, [authChecked, fetchData]);
 
   if (authLoading || (!authChecked && !accessDenied)) return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-        <p className="text-sm text-muted-foreground">Verifying access...</p>
+    <div className="min-h-screen bg-background">
+      <Navbar />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-9 w-28 rounded-full" />
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-28 rounded-2xl" />
+          ))}
+        </div>
+        <Skeleton className="h-10 w-72 rounded-lg" />
+        <Skeleton className="h-80 rounded-2xl" />
+        <Skeleton className="h-64 rounded-2xl" />
       </div>
     </div>
   );

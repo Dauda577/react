@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "@/lib/router";
 import { useAuth } from "@/context/AuthContext";
-import { motion } from "framer-motion";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const AuthCallback = () => {
   const navigate = useNavigate();
@@ -25,18 +25,13 @@ const AuthCallback = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="flex flex-col items-center gap-4"
-      >
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          className="w-8 h-8 border-2 border-border border-t-primary rounded-full"
-        />
-        <p className="text-sm text-muted-foreground font-medium">Signing you in...</p>
-      </motion.div>
+      <div className="flex flex-col items-center gap-4 w-full max-w-[220px]">
+        <Skeleton className="w-14 h-14 rounded-full" />
+        <div className="space-y-2.5 w-full">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-3 w-3/4 mx-auto" />
+        </div>
+      </div>
     </div>
   );
 };

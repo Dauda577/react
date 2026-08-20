@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabase";
 import { apiPost } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import {
   Send, Users, UserPlus, Store, BadgeCheck, RefreshCw, CheckCircle2,
@@ -160,7 +161,17 @@ export const MessagingTab = () => {
 
         {/* Individual picker */}
         {loading ? (
-          <p className="text-sm text-muted-foreground text-center py-4">Loading users...</p>
+          <div className="space-y-2 py-2">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="flex items-center gap-3 px-3">
+                <Skeleton className="w-8 h-8 rounded-full flex-shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <Skeleton className="h-3 w-1/3" />
+                  <Skeleton className="h-2.5 w-1/2" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="max-h-48 overflow-y-auto rounded-xl border border-border divide-y divide-border">
             {recipients.filter((u) => u.phone).map((u) => {

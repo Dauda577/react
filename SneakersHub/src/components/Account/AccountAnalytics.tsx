@@ -6,12 +6,38 @@ import { useListings, isBoostActive, boostDaysLeft } from "@/context/ListingCont
 import { Link, useNavigate } from "@/lib/router";
 import { Store, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const AccountAnalytics = memo(() => {
   const { listings, loading } = useListings();
   const navigate = useNavigate();
 
-  if (loading) return <p className="text-sm text-muted-foreground p-4">Loading...</p>;
+  if (loading) return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="rounded-2xl border border-border bg-card p-4 space-y-2">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-7 w-10" />
+          </div>
+        ))}
+      </div>
+      <div>
+        <Skeleton className="h-3 w-28 mb-3" />
+        <div className="rounded-xl border divide-y divide-border">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="flex items-center gap-3 p-3">
+              <Skeleton className="w-12 h-12 rounded-xl flex-shrink-0" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-3 w-1/3" />
+                <Skeleton className="h-2.5 w-1/4" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 
   const total = listings.length;
   const active = listings.filter((l) => l.status === "active").length;
