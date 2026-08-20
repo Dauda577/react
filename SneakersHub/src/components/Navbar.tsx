@@ -110,7 +110,7 @@ const Navbar = () => {
 
             {/* Account */}
             <Link
-              to={user ? "/account" : "/auth"}
+              to={user ? "/account/profile" : "/auth"}
               className="p-2 rounded-full hover:bg-muted/50 transition-colors"
               aria-label="Account"
             >
@@ -183,7 +183,7 @@ const Navbar = () => {
             {user && (
               <div className="border-t border-border pt-4 mt-1">
                 <Link
-                  to="/account"
+                  to="/account/profile"
                   className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 hover:bg-muted/50 transition-colors"
                 >
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center flex-shrink-0">

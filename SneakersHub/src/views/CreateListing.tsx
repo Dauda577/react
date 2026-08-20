@@ -323,7 +323,7 @@ const CreateListing = () => {
         await addListing(payload, imageFiles[0] ?? undefined, imageFiles.slice(1));
         toast.success("Listing published!");
       }
-      navigate(editing ? "/account" : "/account?tab=listings");
+      navigate(editing ? "/account/profile" : "/account/listings");
     } catch (err: any) {
       toast.error(err.message ?? "Something went wrong");
     } finally {
@@ -342,7 +342,7 @@ const CreateListing = () => {
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
           <button
-            onClick={() => navigate("/account")}
+            onClick={() => navigate("/account/profile")}
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
           >
             <ArrowLeft className="w-4 h-4" /> Back to Account

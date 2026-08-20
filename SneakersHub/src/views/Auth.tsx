@@ -157,7 +157,7 @@ const Auth = () => {
     }
   };
 
-  const handleSkip = () => { continueAsGuest(); navigate("/account"); };
+  const handleSkip = () => { continueAsGuest(); navigate("/account/profile"); };
 
   const switchMode = (newMode: Mode) => {
     setMode(newMode);

@@ -424,7 +424,7 @@ const ProductDetail = () => {
                 <div>
                   <p className="text-sm font-semibold mb-1">This is your listing</p>
                   <p className="text-xs text-muted-foreground mb-3">Manage it from your account.</p>
-                  <Button variant="outline" className="rounded-xl h-9 text-sm" onClick={() => navigate("/account?tab=listings")}>
+                  <Button variant="outline" className="rounded-xl h-9 text-sm" onClick={() => navigate("/account/listings")}>
                     Manage Listings
                   </Button>
                 </div>

@@ -149,8 +149,8 @@ admin.post("/applications/:id/action", async (req, res, next) => {
 
     const message =
       action === "approve"
-        ? `Congratulations! Your seller application has been approved. Pay the GH₵ 50 verification fee to start selling. Tap here: https://sneakershub.site/account?tab=settings`
-        : `Your seller application was not approved. You can re-apply anytime. Tap here: https://sneakershub.site/account`;
+        ? `Congratulations! Your seller application has been approved. Pay the GH₵ 50 verification fee to start selling. Tap here: https://sneakershub.site/account/settings`
+        : `Your seller application was not approved. You can re-apply anytime. Tap here: https://sneakershub.site/account/profile`;
 
     if (app.phone) {
       await sendSms(app.phone, message);
@@ -162,7 +162,7 @@ admin.post("/applications/:id/action", async (req, res, next) => {
         action === "approve"
           ? `Your store "${app.store_name}" is approved! Pay the GH₵ 50 fee to activate your seller account.`
           : `Your application for "${app.store_name}" was not approved. You can re-apply.`,
-      url: "/account?tab=settings",
+      url: "/account/settings",
     });
 
     res.json({ success: true, status: newStatus });

@@ -1,12 +1,17 @@
-import { AppProviders } from "@/components/Providers";
-import Account from "@/views/Account";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
+const TAB_ROUTES: Record<string, string> = {
+  listings: "/account/listings",
+  saved: "/account/saved",
+  analytics: "/account/analytics",
+  settings: "/account/settings",
+};
 
-export default function AccountPage() {
-  return (
-    <AppProviders>
-      <Account />
-    </AppProviders>
-  );
+export default async function AccountIndex({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
+  const { tab } = await searchParams;
+  redirect(TAB_ROUTES[tab ?? ""] ?? "/account/profile");
 }

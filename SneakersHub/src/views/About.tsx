@@ -364,7 +364,7 @@ const About = () => {
             <div className="relative inline-block">
               <div className="absolute inset-0 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full blur-xl opacity-50 animate-pulse" />
               <Link
-                to="/account?tab=settings"
+                to="/account/settings"
                 className="relative inline-flex items-center gap-3 px-8 py-4 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-display font-semibold text-base transition-all duration-300 shadow-lg shadow-green-500/30 hover:shadow-green-500/50 hover:scale-105"
               >
                 <Store className="w-5 h-5" />
