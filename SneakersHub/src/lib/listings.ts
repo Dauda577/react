@@ -18,6 +18,8 @@ export type PublicListing = {
   brand: string;
   price: number;
   category: string;
+  subcategory: string | null;
+  subcategory2: string | null;
   sizes: number[];
   description: string;
   image: string | null;
@@ -33,7 +35,7 @@ export type PublicListing = {
 };
 
 export const SELECT_QUERY = `
-  id, seller_id, name, brand, price, category, sizes,
+  id, seller_id, name, brand, price, category, subcategory, subcategory2, sizes,
   description, image_url, images, boosted, boost_expires_at,
   views, created_at, city, region, condition, negotiable, delivery_available, whatsapp, phone,
   profiles ( name, phone, city, region, verified, is_official, created_at )
@@ -61,6 +63,8 @@ export const mapRow = (row: any): PublicListing => {
     brand: row.brand,
     price: row.price,
     category: row.category,
+    subcategory: row.subcategory ?? null,
+    subcategory2: row.subcategory2 ?? null,
     sizes: row.sizes,
     description: row.description ?? "",
     image: row.image_url,

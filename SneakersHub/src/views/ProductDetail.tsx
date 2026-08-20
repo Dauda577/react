@@ -18,15 +18,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { sizeKindFor, MAIN_CATEGORIES } from "@/data/taxonomy";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const isSneakerCategory = (cat: string) => cat === "Sneakers";
-const isClothingCategory = (cat: string) =>
-  ["Tops", "Bottoms", "Outerwear", "Activewear", "Clothes"].includes(cat);
-const getSizeLabel = (cat: string) => {
-  if (isSneakerCategory(cat)) return "Size (EU)";
-  if (isClothingCategory(cat)) return "Size";
+const getSizeLabel = (cat: string, sub?: string | null, mini?: string | null) => {
+  const kind = sizeKindFor(cat, sub, mini);
+  if (kind === "sneaker") return "Size (EU)";
+  if (kind === "clothing") return "Size";
   return null;
 };
 
@@ -236,8 +235,8 @@ const ProductDetail = () => {
   }
 
   const isOwnListing = !!user && listing.sellerId === user.id;
-  const sizeLabel = getSizeLabel(listing.category);
-  const parsedSizes = isSneakerCategory(listing.category)
+  const sizeLabel = getSizeLabel(listing.category, listing.subcategory, listing.subcategory2);
+  const parsedSizes = sizeKindFor(listing.category, listing.subcategory, listing.subcategory2) === "sneaker"
     ? listing.sizes.map(Number)
     : listing.sizes;
   const sellerInitial = listing.sellerName?.[0]?.toUpperCase() ?? "S";
@@ -340,7 +339,11 @@ const ProductDetail = () => {
             {/* Category + Title */}
             <div>
               <div className="flex items-center gap-2 mb-2 flex-wrap">
-                <Badge variant="outline" className="text-[10px] font-semibold">{listing.category}</Badge>
+                <Badge variant="outline" className="text-[10px] font-semibold">
+                  {listing.category}
+                  {listing.subcategory ? ` · ${listing.subcategory}` : ""}
+                  {listing.subcategory2 ? ` · ${listing.subcategory2}` : ""}
+                </Badge>
                 {conditionMeta && (
                   <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-lg border ${conditionMeta.color}`}>
                     <BadgeCheck className="w-3 h-3" /> {conditionMeta.label}
@@ -522,7 +525,7 @@ const ProductDetail = () => {
                 <p className="text-xs text-muted-foreground">Similar listings you might like</p>
               </div>
               <Link
-                to={`/shop?category=${encodeURIComponent(listing.category)}`}
+                to={`/shop?main=${MAIN_CATEGORIES.find((m) => m.label === listing.category)?.id ?? ""}`}
                 className="text-xs text-primary font-semibold hover:opacity-70 transition-opacity flex items-center gap-1 group"
               >
                 View all <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />

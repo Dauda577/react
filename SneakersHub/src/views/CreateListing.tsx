@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
-import { PRODUCT_CATEGORIES } from "@/data/sneakers";
+import { TAXONOMY, resolvePath, resolvePathByLabels, sizeKindFor, type SizeKind } from "@/data/taxonomy";
 
 // ─── Static data ──────────────────────────────────────────────────────────────
 
@@ -38,36 +38,38 @@ const CONDITIONS = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const categoryLabels = PRODUCT_CATEGORIES.map((c) => c.label);
-
-const usesSneakerSizes = (cat: string) => cat === "Sneakers";
-const usesClothingSizes = (cat: string) =>
-  ["Tops", "Bottoms", "Outerwear", "Activewear", "Clothes"].includes(cat);
-
-const getTitlePlaceholder = (category: string) => {
-  const map: Record<string, string> = {
-    Sneakers:   "e.g. Air Jordan 1 Retro High OG, Size 42",
-    Watches:    "e.g. Casio G-Shock GA-2100, Black",
-    Tops:       "e.g. Nike Oversized Tee, Large",
-    Bottoms:    "e.g. Levi's 501 Slim Jeans, Size 32",
-    Phones:     "e.g. iPhone 13 Pro, 256GB, Midnight",
-    Electronics:"e.g. JBL Flip 6 Bluetooth Speaker",
-    Bags:       "e.g. Nike Gym Bag, Black",
-    Furniture:  "e.g. Wooden 4-Seater Dining Table",
-    Accessories:"e.g. Oakley Sunglasses",
+const getTitlePlaceholder = (mainLabel: string, miniLabel: string | null) => {
+  const byMini: Record<string, string> = {
+    "Sneakers & Trainers": "e.g. Air Jordan 1 Retro High OG, Size 42",
+    "Watches":             "e.g. Casio G-Shock GA-2100, Black",
+    "Tops & Tees":         "e.g. Nike Oversized Tee, Large",
+    "Jeans & Bottoms":     "e.g. Levi's 501 Slim Jeans, Size 32",
+    "Smartphones":         "e.g. iPhone 13 Pro, 256GB, Midnight",
   };
-  return map[category] ?? "Give your listing a clear title";
+  if (miniLabel && byMini[miniLabel]) return byMini[miniLabel];
+  const byMain: Record<string, string> = {
+    "Phones & Tablets": "e.g. iPhone 13 Pro, 256GB, Midnight",
+    "Electronics":      "e.g. JBL Flip 6 Bluetooth Speaker",
+    "Home & Garden":    "e.g. Wooden 4-Seater Dining Table",
+    "Vehicles":         "e.g. Toyota Corolla 2018, Good condition",
+  };
+  return byMain[mainLabel] ?? "Give your listing a clear title";
 };
 
-const getDescriptionPlaceholder = (category: string) => {
-  const map: Record<string, string> = {
-    Sneakers:    "Condition, box included, any flaws, reason for selling...",
-    Watches:     "Condition, box/papers included, any scratches, reason for selling...",
-    Phones:      "Storage, colour, battery health, any cracks or faults, accessories included...",
-    Electronics: "Working condition, what's included in the box, any faults...",
-    Furniture:   "Dimensions, material, condition, reason for selling...",
+const getDescriptionPlaceholder = (mainLabel: string, miniLabel: string | null) => {
+  const byMini: Record<string, string> = {
+    "Sneakers & Trainers": "Condition, box included, any flaws, reason for selling...",
+    "Watches":             "Condition, box/papers included, any scratches, reason for selling...",
+    "Smartphones":         "Storage, colour, battery health, any cracks or faults, accessories included...",
   };
-  return map[category] ?? "Describe the item — condition, what's included, why you're selling...";
+  if (miniLabel && byMini[miniLabel]) return byMini[miniLabel];
+  const byMain: Record<string, string> = {
+    "Phones & Tablets": "Storage, colour, battery health, any cracks or faults, accessories included...",
+    "Electronics":      "Working condition, what's included in the box, any faults...",
+    "Home & Garden":    "Dimensions, material, condition, reason for selling...",
+    "Vehicles":         "Mileage, year, service history, condition, reason for selling...",
+  };
+  return byMain[mainLabel] ?? "Describe the item — condition, what's included, why you're selling...";
 };
 
 // ─── Image compression ────────────────────────────────────────────────────────
@@ -114,11 +116,17 @@ const CreateListing = () => {
 
   const editing = location.state?.listing as Listing | undefined;
 
+  const initialPath = editing
+    ? resolvePathByLabels(editing.category, editing.subcategory, editing.subcategory2)
+    : null;
+
   const [form, setForm] = useState({
     title:       editing?.name ?? "",
     brand:       editing?.brand ?? "",
     price:       editing?.price?.toString() ?? "",
-    category:    editing?.category ?? categoryLabels[0],
+    mainId:      initialPath?.main.id ?? TAXONOMY[0].id,
+    subId:       initialPath?.sub?.id ?? "",
+    miniId:      initialPath?.mini?.id ?? "",
     description: editing?.description ?? "",
     city:        editing?.city ?? "",
     region:      editing?.region ?? "",
@@ -132,6 +140,24 @@ const CreateListing = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleMainChange = (mainId: string) => {
+    setForm((prev) => ({ ...prev, mainId, subId: "", miniId: "" }));
+    setSelectedSizes([]);
+    setSelectedClothingSizes([]);
+  };
+
+  const handleSubChange = (subId: string) => {
+    setForm((prev) => ({ ...prev, subId, miniId: "" }));
+    setSelectedSizes([]);
+    setSelectedClothingSizes([]);
+  };
+
+  const handleMiniChange = (miniId: string) => {
+    setForm((prev) => ({ ...prev, miniId }));
+    setSelectedSizes([]);
+    setSelectedClothingSizes([]);
   };
 
   const toggleBool = (key: "negotiable" | "delivery") => {
@@ -159,10 +185,13 @@ const CreateListing = () => {
   }, [user?.id]);
 
   // Sizes
-  const initialSneakerSizes = editing?.sizes && usesSneakerSizes(editing.category)
+  const initialKind: SizeKind = sizeKindFor(
+    initialPath?.main.label, initialPath?.sub?.label, initialPath?.mini?.label
+  );
+  const initialSneakerSizes = editing?.sizes && initialKind === "sneaker"
     ? (editing.sizes as (string | number)[]).map((s) => Number(s)).filter((s) => !Number.isNaN(s))
     : [];
-  const initialClothingSizes = editing?.sizes && usesClothingSizes(editing.category)
+  const initialClothingSizes = editing?.sizes && initialKind === "clothing"
     ? (editing.sizes as (string | number)[]).map((s) => String(s))
     : [];
 
@@ -203,20 +232,24 @@ const CreateListing = () => {
   // Submit
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async () => {
-    const { title, brand, price, category, description, region, phone, condition } = form;
+  const path = resolvePath(form.mainId, form.subId || null, form.miniId || null);
+  const kind: SizeKind = sizeKindFor(path?.main.label, path?.sub?.label, path?.mini?.label);
 
+  const handleSubmit = async () => {
+    const { title, brand, price, description, region, phone, condition } = form;
+
+    if (!path) { toast.error("Select a category"); return; }
     if (!title.trim()) { toast.error("Give your listing a title"); return; }
     if (!price || isNaN(Number(price)) || Number(price) <= 0) { toast.error("Enter a valid price"); return; }
     if (!description.trim()) { toast.error("Add a description"); return; }
     if (!region) { toast.error("Select your region"); return; }
     if (!phone.trim()) { toast.error("Add a contact number for buyers"); return; }
-    if (usesSneakerSizes(category) && selectedSizes.length === 0) { toast.error("Select at least one size"); return; }
-    if (usesClothingSizes(category) && selectedClothingSizes.length === 0) { toast.error("Select at least one size"); return; }
+    if (kind === "sneaker" && selectedSizes.length === 0) { toast.error("Select at least one size"); return; }
+    if (kind === "clothing" && selectedClothingSizes.length === 0) { toast.error("Select at least one size"); return; }
 
-    const sizesToSave = usesSneakerSizes(category)
+    const sizesToSave = kind === "sneaker"
       ? [...new Set(selectedSizes)].sort((a, b) => a - b).map(String)
-      : usesClothingSizes(category)
+      : kind === "clothing"
         ? [...new Set(selectedClothingSizes)]
         : [];
 
@@ -226,7 +259,9 @@ const CreateListing = () => {
       name:        title.trim(),
       brand:       (brand.trim() || null) as string,
       price:       Number(price),
-      category,
+      category:    path.main.label,
+      subcategory: path.sub?.label ?? null,
+      subcategory2: path.mini?.label ?? null,
       description: description.trim(),
       sizes:       sizesToSave as unknown as number[],
       city:        form.city.trim() || null,
@@ -258,9 +293,16 @@ const CreateListing = () => {
     }
   };
 
-  const showSneakerSizes = usesSneakerSizes(form.category);
-  const showClothingSizes = usesClothingSizes(form.category);
+  const showSneakerSizes = kind === "sneaker";
+  const showClothingSizes = kind === "clothing";
   const showSizes = showSneakerSizes || showClothingSizes;
+
+  const selectedMain = TAXONOMY.find((m) => m.id === form.mainId);
+  const selectedSub = selectedMain?.children?.find((s) => s.id === form.subId);
+  const subOptions = selectedMain?.children ?? [];
+  const miniOptions = selectedSub?.children ?? [];
+  const titlePlaceholder = getTitlePlaceholder(selectedMain?.label ?? "", selectedSub?.children?.find((m) => m.id === form.miniId)?.label ?? null);
+  const descriptionPlaceholder = getDescriptionPlaceholder(selectedMain?.label ?? "", selectedSub?.children?.find((m) => m.id === form.miniId)?.label ?? null);
 
   return (
     <div className="min-h-screen bg-background">
@@ -344,22 +386,64 @@ const CreateListing = () => {
               <FileText className="w-3.5 h-3.5" /> Details
             </p>
 
-            {/* Category */}
-            <div>
-              <label className="form-label">Category</label>
-              <div className="relative">
-                <select
-                  name="category"
-                  value={form.category}
-                  onChange={handleChange}
-                  className="input-base appearance-none cursor-pointer"
-                >
-                  {PRODUCT_CATEGORIES.map((c) => (
-                    <option key={c.label} value={c.label}>{c.emoji}  {c.label}</option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            {/* Category — 3-level picker */}
+            <div className="space-y-3">
+              <div>
+                <label className="form-label">Category <span className="text-red-400">*</span></label>
+                <div className="relative">
+                  <select
+                    name="mainId"
+                    value={form.mainId}
+                    onChange={(e) => handleMainChange(e.target.value)}
+                    className="input-base appearance-none cursor-pointer"
+                  >
+                    {TAXONOMY.map((m) => (
+                      <option key={m.id} value={m.id}>{m.label}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                </div>
               </div>
+
+              {subOptions.length > 0 && (
+                <div>
+                  <label className="form-label">Sub-category</label>
+                  <div className="relative">
+                    <select
+                      name="subId"
+                      value={form.subId}
+                      onChange={(e) => handleSubChange(e.target.value)}
+                      className={`input-base appearance-none cursor-pointer ${form.subId ? "" : "text-muted-foreground"}`}
+                    >
+                      <option value="">Select sub-category</option>
+                      {subOptions.map((s) => (
+                        <option key={s.id} value={s.id}>{s.label}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  </div>
+                </div>
+              )}
+
+              {miniOptions.length > 0 && (
+                <div>
+                  <label className="form-label">Type</label>
+                  <div className="relative">
+                    <select
+                      name="miniId"
+                      value={form.miniId}
+                      onChange={(e) => handleMiniChange(e.target.value)}
+                      className={`input-base appearance-none cursor-pointer ${form.miniId ? "" : "text-muted-foreground"}`}
+                    >
+                      <option value="">Select type</option>
+                      {miniOptions.map((m) => (
+                        <option key={m.id} value={m.id}>{m.label}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Title */}
@@ -369,7 +453,7 @@ const CreateListing = () => {
                 name="title"
                 value={form.title}
                 onChange={handleChange}
-                placeholder={getTitlePlaceholder(form.category)}
+                placeholder={titlePlaceholder}
                 className="input-base"
               />
               <p className="text-[11px] text-muted-foreground mt-1">Be specific — include brand, model, size, colour.</p>
@@ -457,7 +541,7 @@ const CreateListing = () => {
                 value={form.description}
                 onChange={handleChange}
                 rows={4}
-                placeholder={getDescriptionPlaceholder(form.category)}
+                placeholder={descriptionPlaceholder}
                 className="input-base resize-none h-auto min-h-32 py-3"
               />
             </div>

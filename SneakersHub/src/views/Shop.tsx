@@ -2,24 +2,19 @@
 
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, Package, ChevronLeft, ChevronRight, ChevronDown, Check } from "lucide-react";
+import { Search, X, Package, ChevronDown, Check, ChevronRight, Home } from "lucide-react";
 import { useSearchParams } from "@/lib/router";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import SneakerCard from "@/components/ListingCard";
 import { usePublicListings } from "@/context/PublicListingsContext";
 import { Button } from "@/components/ui/button";
-import { PRODUCT_CATEGORIES, CATEGORY_SVGS } from "@/data/sneakers";
+import {
+  TAXONOMY, resolvePath, matchesUnder, matchesPath,
+  type CategoryNode, type TaxonomyPath,
+} from "@/data/taxonomy";
 
 const PAGE_SIZE = 30;
-
-const GROUPED_PILLS: { label: string; svg: string; groupStart?: string }[] = [
-  { label: "All", svg: "/categoryicons/all.svg" },
-  ...PRODUCT_CATEGORIES.map((c) => ({
-    label: c.label,
-    svg: CATEGORY_SVGS[c.label],
-  })),
-];
 
 const sortOptions = [
   { label: "Newest", value: "newest" },
@@ -27,8 +22,6 @@ const sortOptions = [
   { label: "Price: High to Low", value: "price_desc" },
   { label: "Featured", value: "featured" },
 ];
-
-const categoryHeading = (cat: string) => (cat === "All" ? "All Items" : cat);
 
 const Shop = () => {
   const { listings, loading } = usePublicListings();
@@ -40,10 +33,13 @@ const Shop = () => {
     return saved ? parseInt(saved, 10) : PAGE_SIZE;
   });
 
-  const pillsRef = useRef<HTMLDivElement>(null);
   const sortRef = useRef<HTMLDivElement>(null);
   const [sortOpen, setSortOpen] = useState(false);
-  const prevFilters = useRef({ search: "", category: searchParams.get("category") ?? "All", sort });
+
+  const mainId = searchParams.get("main");
+  const subId = searchParams.get("sub");
+  const miniId = searchParams.get("mini");
+  const path: TaxonomyPath | null = resolvePath(mainId, subId, miniId);
 
   // Close sort dropdown on outside click
   useEffect(() => {
@@ -60,13 +56,8 @@ const Shop = () => {
   }, []);
 
   // Persist visibleCount and sort
-  useEffect(() => {
-    sessionStorage.setItem("shop_visibleCount", String(visibleCount));
-  }, [visibleCount]);
-
-  useEffect(() => {
-    sessionStorage.setItem("shop_sort", sort);
-  }, [sort]);
+  useEffect(() => { sessionStorage.setItem("shop_visibleCount", String(visibleCount)); }, [visibleCount]);
+  useEffect(() => { sessionStorage.setItem("shop_sort", sort); }, [sort]);
 
   // Restore scroll after listings load
   useEffect(() => {
@@ -80,19 +71,21 @@ const Shop = () => {
 
   // Save scroll before navigating away
   useEffect(() => {
-    const handleUnload = () => {
-      sessionStorage.setItem("shop_scrollY", String(window.scrollY));
-    };
+    const handleUnload = () => sessionStorage.setItem("shop_scrollY", String(window.scrollY));
     window.addEventListener("pagehide", handleUnload);
     return () => window.removeEventListener("pagehide", handleUnload);
   }, []);
 
-  const category = searchParams.get("category") ?? "All";
-
-  const setCategory = (cat: string) => {
+  const setNode = (main: string | null, sub: string | null = null, mini: string | null = null) => {
     const next = new URLSearchParams(searchParams);
-    if (cat === "All") next.delete("category");
-    else next.set("category", cat);
+    if (main === null) { next.delete("main"); next.delete("sub"); next.delete("mini"); }
+    else {
+      next.set("main", main);
+      if (sub === null) next.delete("sub");
+      else next.set("sub", sub);
+      if (mini === null) next.delete("mini");
+      else next.set("mini", mini);
+    }
     setSearchParams(next, { replace: true });
     setVisibleCount(PAGE_SIZE);
   };
@@ -107,34 +100,24 @@ const Shop = () => {
     setVisibleCount(PAGE_SIZE);
   };
 
-  // Reset pagination only when filters actually change (not on back-navigation mount)
-  useEffect(() => {
-    const prev = prevFilters.current;
-    const changed =
-      prev.search !== search ||
-      prev.category !== category ||
-      prev.sort !== sort;
-
-    if (changed) {
-      prevFilters.current = { search, category, sort };
-      // Don't reset on mount — only on genuine filter changes after mount
-    }
-  }, [search, category, sort]);
-
   const now = new Date();
   const isActiveBoost = (l: (typeof listings)[0]) =>
     !!(l.boosted && l.boostExpiresAt && new Date(l.boostExpiresAt) > now);
 
-  const filtered = listings
+  // Listings scoped to the current node (parents include children listings).
+  const scoped = path
+    ? listings.filter((l) => path.mini ? matchesPath(l, path) : matchesUnder(l, path))
+    : listings;
+
+  const filtered = scoped
     .filter((l) => {
       if (sort === "featured" && !isActiveBoost(l)) return false;
-      const matchesCategory = category === "All" || l.category === category;
       const q = search.toLowerCase();
       const matchesSearch =
         l.name.toLowerCase().includes(q) ||
         l.brand.toLowerCase().includes(q) ||
         (l.description ?? "").toLowerCase().includes(q);
-      return matchesCategory && matchesSearch;
+      return matchesSearch;
     })
     .sort((a, b) => {
       const aFeatured = isActiveBoost(a) ? 1 : 0;
@@ -148,11 +131,21 @@ const Shop = () => {
   const visible = filtered.slice(0, visibleCount);
   const hasMore = visibleCount < filtered.length;
 
-  const emptySvg = CATEGORY_SVGS[category] ?? "/categoryicons/all.svg";
+  // ── Node counts for tiles ──
+  const countMain = (node: CategoryNode) => listings.filter((l) => l.category === node.label).length;
+  const countSub = (node: CategoryNode) =>
+    listings.filter((l) => l.category === path?.main.label && l.subcategory === node.label).length;
+  const countMini = (node: CategoryNode) =>
+    listings.filter((l) => path?.sub && l.subcategory === path.sub.label && l.subcategory2 === node.label).length;
 
-  const scrollPills = (dir: "left" | "right") => {
-    pillsRef.current?.scrollBy({ left: dir === "right" ? 200 : -200, behavior: "smooth" });
-  };
+  const mainNode = path?.main ?? null;
+  const subNode = path?.sub ?? null;
+  const showRootTiles = !mainNode;
+  const showSubTiles = !!mainNode && !subNode;
+  const showMiniTiles = !!mainNode && !!subNode && !miniId && (subNode?.children?.length ?? 0) > 0;
+
+  const title = path?.mini?.label ?? path?.sub?.label ?? path?.main?.label ?? "All Categories";
+  const subtitle = path?.main?.label ?? "Every item on the marketplace";
 
   return (
     <div className="min-h-screen bg-background">
@@ -163,71 +156,64 @@ const Shop = () => {
         style={{ paddingTop: `calc(88px + env(safe-area-inset-top, 0px))` }}
       >
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-          <p className="text-primary font-display text-xs font-semibold uppercase tracking-[0.3em] mb-2">Browse</p>
-          <h1 className="font-display text-4xl md:text-5xl font-bold tracking-tight">
-            {categoryHeading(category)}
-          </h1>
+          {/* Breadcrumb */}
+          <nav className="flex items-center gap-1.5 text-sm text-muted-foreground mb-3 flex-wrap">
+            <button
+              onClick={() => setNode(null)}
+              className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+            >
+              <Home className="w-3.5 h-3.5" />
+              All Categories
+            </button>
+            {mainNode && (
+              <>
+                <ChevronRight className="w-3 h-3 text-muted-foreground/50" />
+                {subNode ? (
+                  <button
+                    onClick={() => setNode(mainNode.id)}
+                    className="hover:text-foreground transition-colors"
+                  >
+                    {mainNode.label}
+                  </button>
+                ) : (
+                  <span className="text-foreground font-medium">{mainNode.label}</span>
+                )}
+              </>
+            )}
+            {subNode && (
+              <>
+                <ChevronRight className="w-3 h-3 text-muted-foreground/50" />
+                {path?.mini ? (
+                  <button
+                    onClick={() => setNode(mainNode!.id, subNode.id)}
+                    className="hover:text-foreground transition-colors"
+                  >
+                    {subNode.label}
+                  </button>
+                ) : (
+                  <span className="text-foreground font-medium">{subNode.label}</span>
+                )}
+              </>
+            )}
+            {path?.mini && (
+              <>
+                <ChevronRight className="w-3 h-3 text-muted-foreground/50" />
+                <span className="text-foreground font-medium">{path.mini.label}</span>
+              </>
+            )}
+          </nav>
+
+          <h1 className="font-display text-4xl md:text-5xl font-bold tracking-tight">{title}</h1>
           <p className="text-muted-foreground mt-2 text-sm">
+            {subtitle}
             {loading
-              ? "Loading..."
-              : `${filtered.length} ${filtered.length === 1 ? "listing" : "listings"} available`}
+              ? " · Loading..."
+              : ` · ${filtered.length} ${filtered.length === 1 ? "listing" : "listings"}`}
           </p>
         </motion.div>
 
-        {/* Category pills */}
-        <div className="relative mb-5 group">
-          <button
-            onClick={() => scrollPills("left")}
-            className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 z-10
-              w-7 h-7 rounded-full bg-background border border-border shadow-sm items-center justify-center
-              text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all
-              opacity-0 group-hover:opacity-100"
-            aria-label="Scroll categories left"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-
-          <div
-            ref={pillsRef}
-            className="flex gap-2 overflow-x-auto pb-3 no-scrollbar items-center scroll-smooth"
-          >
-            {GROUPED_PILLS.map((pill, i) => {
-              const showDivider = i > 1 && pill.groupStart !== undefined;
-              return (
-                <div key={pill.label} className="flex items-center gap-2 flex-shrink-0">
-                  {showDivider && (
-                    <span className="w-px h-5 bg-border rounded-full opacity-60 flex-shrink-0" />
-                  )}
-                  <button
-                    onClick={() => setCategory(pill.label)}
-                    className={`flex items-center gap-1.5 flex-shrink-0 px-3.5 py-1.5 rounded-full border text-sm font-medium transition-all
-                      ${category === pill.label
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"
-                      }`}
-                  >
-                    <img src={pill.svg} alt={pill.label} className="w-4 h-4" />
-                    {pill.label}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-
-          <button
-            onClick={() => scrollPills("right")}
-            className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 z-10
-              w-7 h-7 rounded-full bg-background border border-border shadow-sm items-center justify-center
-              text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all
-              opacity-0 group-hover:opacity-100"
-            aria-label="Scroll categories right"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </div>
-
         {/* Search + Sort */}
-        <div className="flex gap-3 mb-8 flex-wrap">
+        <div className="flex gap-3 mb-6 flex-wrap">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <input
@@ -287,14 +273,83 @@ const Shop = () => {
               )}
             </AnimatePresence>
           </div>
-          {!loading && filtered.length > 0 && (
-            <p className="text-sm text-muted-foreground ml-auto flex items-center self-center whitespace-nowrap">
-              Showing {visible.length} of {filtered.length}
-            </p>
-          )}
         </div>
 
-        {/* Grid */}
+        {/* ── Drill-down tiles ── */}
+        {showRootTiles && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-10">
+            {TAXONOMY.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => setNode(m.id)}
+                className="group rounded-2xl border border-border overflow-hidden bg-card text-left
+                  hover:border-primary/50 hover:shadow-lg transition-all"
+              >
+                <div className="aspect-[4/3] overflow-hidden">
+                  <img
+                    src={m.img ?? "/categoryimages/other.jpg"}
+                    alt={m.label}
+                    loading="lazy"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                </div>
+                <div className="p-2.5">
+                  <p className="text-sm font-display font-semibold leading-tight">{m.label}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    {countMain(m)} {countMain(m) === 1 ? "item" : "items"}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {showSubTiles && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-10">
+            {(mainNode?.children ?? []).map((s) => {
+              const count = countSub(s);
+              return (
+                <button
+                  key={s.id}
+                  onClick={() => setNode(mainNode!.id, s.id)}
+                  className="group flex items-center justify-between gap-2 p-4 rounded-2xl border border-border bg-card
+                    hover:border-primary/50 hover:shadow-md transition-all"
+                >
+                  <div>
+                    <p className="text-sm font-display font-semibold leading-tight">{s.label}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      {count} {count === 1 ? "item" : "items"}
+                    </p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {showMiniTiles && (
+          <div className="flex flex-wrap gap-2 mb-8">
+            {(subNode?.children ?? []).map((mini) => {
+              const count = countMini(mini);
+              return (
+                <button
+                  key={mini.id}
+                  onClick={() => setNode(mainNode!.id, subNode!.id, mini.id)}
+                  className={`px-4 py-2 rounded-full border text-sm font-medium transition-all
+                    ${count === 0
+                      ? "border-border text-muted-foreground/60 cursor-default"
+                      : "border-border text-muted-foreground hover:border-primary/50 hover:text-foreground"}`}
+                >
+                  {mini.label}
+                  <span className="ml-1.5 text-xs text-muted-foreground/60">({count})</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── Grid ── */}
         {loading ? (
           <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
             {[...Array(8)].map((_, i) => (
@@ -304,21 +359,19 @@ const Shop = () => {
         ) : filtered.length === 0 ? (
           <div className="text-center py-20 border border-dashed border-border rounded-2xl">
             <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-              {search
-                ? <Package className="w-7 h-7 text-primary" />
-                : <img src={emptySvg} alt={category} className="w-7 h-7 text-primary" />}
+              <Package className="w-7 h-7 text-primary" />
             </div>
             <p className="font-display font-bold text-lg mb-1">No listings found</p>
             <p className="text-sm text-muted-foreground mb-4">
               {search
                 ? `No results for "${search}"`
-                : `No ${category === "All" ? "" : category + " "}items listed yet.`}
+                : `Nothing listed in ${title} yet.`}
             </p>
-            {(search || category !== "All") && (
+            {(search || path) && (
               <Button
                 variant="outline"
                 className="rounded-full text-sm"
-                onClick={() => { handleSearch(""); setCategory("All"); handleSort("newest"); }}
+                onClick={() => { handleSearch(""); setNode(null); handleSort("newest"); }}
               >
                 Clear filters
               </Button>
@@ -326,44 +379,44 @@ const Shop = () => {
           </div>
         ) : (
           <>
-                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
-                  {visible.map((l, i) => (
-                    <SneakerCard
-                      key={l.id}
-                      sneaker={{
-                        id: l.id, name: l.name, brand: l.brand, price: l.price,
-                        image: l.image ?? "", category: l.category, sizes: l.sizes,
-                        description: l.description, isBoosted: l.boosted,
-                        sellerVerified: l.sellerVerified, sellerIsOfficial: l.sellerIsOfficial,
-                        sellerId: l.sellerId,
-                      }}
-                      index={i}
-                    />
-                  ))}
-                </div>
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
+              {visible.map((l, i) => (
+                <SneakerCard
+                  key={l.id}
+                  sneaker={{
+                    id: l.id, name: l.name, brand: l.brand, price: l.price,
+                    image: l.image ?? "", category: l.category, sizes: l.sizes,
+                    description: l.description, isBoosted: l.boosted,
+                    sellerVerified: l.sellerVerified, sellerIsOfficial: l.sellerIsOfficial,
+                    sellerId: l.sellerId,
+                  }}
+                  index={i}
+                />
+              ))}
+            </div>
 
-{hasMore && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex flex-col items-center gap-2 mt-10"
-                    >
-                    <Button
-                      variant="outline"
-                      className="rounded-full px-8 h-11 text-sm font-semibold border-border hover:border-primary/50 hover:bg-primary/5 transition-all"
-                      onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
-                    >
-                      Load more
-                    </Button>
-                  </motion.div>
-                )}
+            {hasMore && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col items-center gap-2 mt-10"
+              >
+                <Button
+                  variant="outline"
+                  className="rounded-full px-8 h-11 text-sm font-semibold border-border hover:border-primary/50 hover:bg-primary/5 transition-all"
+                  onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                >
+                  Load more
+                </Button>
+              </motion.div>
+            )}
 
-                {!hasMore && filtered.length > PAGE_SIZE && (
-                  <p className="text-center text-xs text-muted-foreground mt-10">
-                    All {filtered.length} listings shown
-                  </p>
-                )}
-              </>
+            {!hasMore && filtered.length > PAGE_SIZE && (
+              <p className="text-center text-xs text-muted-foreground mt-10">
+                All {filtered.length} listings shown
+              </p>
+            )}
+          </>
         )}
       </div>
       <Footer />

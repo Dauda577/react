@@ -10,6 +10,8 @@ export type Listing = {
   brand: string;
   price: number;
   category: string;
+  subcategory: string | null;
+  subcategory2: string | null;
   sizes: number[];
   description: string;
   image: string | null;
@@ -52,6 +54,8 @@ const rowToListing = (r: ListingRow): Listing => ({
   brand: r.brand,
   price: r.price,
   category: r.category,
+  subcategory: r.subcategory ?? null,
+  subcategory2: r.subcategory2 ?? null,
   sizes: Array.isArray(r.sizes)
     ? (r.sizes as (string | number)[]).map((s) => Number(s)).filter((n) => !Number.isNaN(n))
     : [],
@@ -139,7 +143,7 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     const { data, error } = await supabase
       .from("listings")
-      .select("id, seller_id, name, brand, price, category, sizes, description, image_url, images, status, boosted, boost_expires_at, views, created_at, city, region, condition, negotiable, delivery_available, whatsapp, phone")
+      .select("id, seller_id, name, brand, price, category, subcategory, subcategory2, sizes, description, image_url, images, status, boosted, boost_expires_at, views, created_at, city, region, condition, negotiable, delivery_available, whatsapp, phone")
       .eq("seller_id", user.id)
       .order("created_at", { ascending: false });
     if (!error && data) setListings((data as ListingRow[]).map(rowToListing));
@@ -210,6 +214,8 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
       brand: listing.brand,
       price: listing.price,
       category: listing.category,
+      subcategory: listing.subcategory ?? null,
+      subcategory2: listing.subcategory2 ?? null,
       sizes: listing.sizes,
       description: listing.description,
       city: listing.city ?? sellerProfile?.city ?? null,
@@ -247,6 +253,8 @@ export const ListingProvider = ({ children }: { children: ReactNode }) => {
     if (updates.brand !== undefined) dbUpdates.brand = updates.brand;
     if (updates.price !== undefined) dbUpdates.price = updates.price;
     if (updates.category !== undefined) dbUpdates.category = updates.category;
+    if (updates.subcategory !== undefined) dbUpdates.subcategory = updates.subcategory;
+    if (updates.subcategory2 !== undefined) dbUpdates.subcategory2 = updates.subcategory2;
     if (updates.sizes !== undefined) dbUpdates.sizes = updates.sizes;
     if (updates.description !== undefined) dbUpdates.description = updates.description;
     if (updates.status !== undefined) dbUpdates.status = updates.status;

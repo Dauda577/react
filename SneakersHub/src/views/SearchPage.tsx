@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Search, X, ArrowLeft } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import SneakerCard from "@/components/ListingCard";
-import { PRODUCT_CATEGORIES } from "@/data/sneakers";
+import { MAIN_CATEGORIES } from "@/data/taxonomy";
 import { usePublicListings } from "@/context/PublicListingsContext";
 
 const SearchPage = () => {
@@ -16,7 +16,7 @@ const SearchPage = () => {
   const { listings } = usePublicListings();
 
   const initialQuery = searchParams.get("q") ?? "";
-  const initialCategory = searchParams.get("category") ?? "All";
+  const initialCategory = searchParams.get("main") ?? "All";
 
   const [query, setQuery] = useState(initialQuery);
   const [activeCategory, setActiveCategory] = useState(initialCategory);
@@ -31,7 +31,7 @@ const SearchPage = () => {
       setDebouncedQuery(query);
       const params: Record<string, string> = {};
       if (query.trim()) params.q = query.trim();
-      if (activeCategory !== "All") params.category = activeCategory;
+      if (activeCategory !== "All") params.main = activeCategory;
       setSearchParams(params, { replace: true });
     }, 250);
     return () => clearTimeout(timer);
@@ -53,7 +53,7 @@ const SearchPage = () => {
 
   const hasSearched = debouncedQuery.trim().length > 0;
   const clearQuery = () => { setQuery(""); inputRef.current?.focus(); };
-  const categories = ["All", ...PRODUCT_CATEGORIES.map((c) => c.label)];
+  const categories = ["All", ...MAIN_CATEGORIES.map((c) => c.label)];
 
   return (
     <div className="min-h-screen bg-background">

@@ -10,6 +10,7 @@ import { cardImage } from "@/lib/imageutils";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { useState, useCallback, useMemo, memo } from "react";
+import { MAIN_CATEGORIES } from "@/data/taxonomy";
 
 interface CardShape {
   id: string;
@@ -53,8 +54,8 @@ const ListingCard = memo(({ sneaker: listing, index }: ListingCardProps) => {
 
   const saved = useMemo(() => isSaved(listing.id), [isSaved, listing.id]);
 
-  const fallbackSvg = useMemo(() =>
-    `/categoryicons/${listing.category.toLowerCase()}.svg`,
+  const fallbackImg = useMemo(() =>
+    MAIN_CATEGORIES.find((m) => m.label === listing.category)?.img ?? "/categoryimages/other.jpg",
     [listing.category]
   );
 
@@ -139,9 +140,9 @@ const ListingCard = memo(({ sneaker: listing, index }: ListingCardProps) => {
             ) : (
               <div className="absolute inset-0 flex items-center justify-center p-6">
                 <img
-                  src={fallbackSvg}
+                  src={fallbackImg}
                   alt={listing.category}
-                  className="w-14 h-14 opacity-40 transition-opacity group-hover:opacity-60"
+                  className="w-14 h-14 rounded-xl object-cover opacity-40 transition-opacity group-hover:opacity-60"
                   loading="lazy"
                 />
               </div>

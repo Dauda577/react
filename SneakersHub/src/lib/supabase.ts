@@ -45,6 +45,8 @@ export type ListingRow = {
   brand: string;
   price: number;
   category: string;
+  subcategory: string | null;
+  subcategory2: string | null;
   sizes: number[];
   description: string | null;
   image_url: string | null;

@@ -1,17 +1,18 @@
 "use client";
 
 import { Link, useLocation, useNavigate } from "@/lib/router";
-import { Menu, X, Zap, Search, User, PlusCircle } from "lucide-react";
+import { Menu, X, Zap, Search, User, PlusCircle, Smartphone, Tv, Shirt, Sparkles, Home, Baby, Puzzle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { useState, useEffect } from "react";
 
 const QUICK_CATEGORIES = [
-  { label: "Sneakers",    svg: "/categoryicons/sneakers.svg",    color: "from-blue-500/20 to-blue-600/20" },
-  { label: "Phones",      svg: "/categoryicons/phones.svg",      color: "from-green-500/20 to-green-600/20" },
-  { label: "Clothes",     svg: "/categoryicons/tops.svg",        color: "from-pink-500/20 to-pink-600/20" },
-  { label: "Electronics", svg: "/categoryicons/electronics.svg", color: "from-violet-500/20 to-violet-600/20" },
-  { label: "Bags",        svg: "/categoryicons/bags.svg",        color: "from-amber-500/20 to-amber-600/20" },
-  { label: "Accessories", svg: "/categoryicons/accessories.svg", color: "from-emerald-500/20 to-emerald-600/20" },
+  { id: "phones-tablets", label: "Phones & Tablets", icon: Smartphone, color: "from-green-500/20 to-green-600/20" },
+  { id: "electronics",    label: "Electronics",      icon: Tv,         color: "from-violet-500/20 to-violet-600/20" },
+  { id: "fashion",        label: "Fashion",          icon: Shirt,      color: "from-pink-500/20 to-pink-600/20" },
+  { id: "health-beauty",  label: "Health & Beauty",  icon: Sparkles,   color: "from-rose-500/20 to-rose-600/20" },
+  { id: "home-garden",    label: "Home & Garden",    icon: Home,       color: "from-amber-500/20 to-amber-600/20" },
+  { id: "baby-kids",      label: "Baby & Kids",      icon: Baby,       color: "from-sky-500/20 to-sky-600/20" },
+  { id: "toys-games",     label: "Toys & Games",     icon: Puzzle,     color: "from-orange-500/20 to-orange-600/20" },
 ];
 
 const Navbar = () => {
@@ -167,11 +168,11 @@ const Navbar = () => {
               <div className="grid grid-cols-2 gap-2">
                 {QUICK_CATEGORIES.map((c) => (
                   <Link
-                    key={c.label}
-                    to={`/shop?category=${c.label}`}
+                    key={c.id}
+                    to={`/shop?main=${c.id}`}
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-xl bg-gradient-to-r ${c.color} border border-border/50 text-sm font-medium text-foreground hover:scale-[1.02] transition-all`}
                   >
-                    <img src={c.svg} alt="" className="w-5 h-5" onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                    <c.icon className="w-4 h-4 text-muted-foreground" />
                     {c.label}
                   </Link>
                 ))}

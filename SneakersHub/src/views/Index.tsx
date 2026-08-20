@@ -13,25 +13,9 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { usePublicListings } from "@/context/PublicListingsContext";
 import { useAuth } from "@/context/AuthContext";
+import { MAIN_CATEGORIES } from "@/data/taxonomy";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-
-const CATEGORIES = [
-  { label: "Sneakers",     img: "/categoryimages/sneakers.jpg" },
-  { label: "Phones",       img: "/categoryimages/phones.jpg" },
-  { label: "Clothes",      img: "/categoryimages/clothes.jpg" },
-  { label: "Electronics",  img: "/categoryimages/electronics.jpg" },
-  { label: "Watches",      img: "/categoryimages/watches.jpg" },
-  { label: "Bags",         img: "/categoryimages/bags.jpg" },
-  { label: "Furniture",    img: "/categoryimages/furniture.jpg" },
-  { label: "Accessories",  img: "/categoryimages/accessories.jpg" },
-  { label: "Tops",         img: "/categoryimages/tops.jpg" },
-  { label: "Bottoms",      img: "/categoryimages/bottoms.jpg" },
-  { label: "Outerwear",    img: "/categoryimages/outerwear.jpg" },
-  { label: "Activewear",   img: "/categoryimages/activewear.jpg" },
-  { label: "Jewellery",    img: "/categoryimages/jewellery.jpg" },
-  { label: "Other",        img: "/categoryimages/other.jpg" },
-];
 
 const TRUST_ITEMS = [
   {
@@ -73,14 +57,13 @@ const HOW_IT_WORKS = [
 
 const Index = () => {
   const { listings, loading } = usePublicListings();
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [visible, setVisible] = useState(24);
   const gridRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
 
   useEffect(() => {
     setVisible(24);
-  }, [activeCategory]);
+  }, []);
 
   const now = Date.now();
   const isActiveBoost = (l: typeof listings[0]) => {
@@ -89,20 +72,15 @@ const Index = () => {
     return new Date(l.boostExpiresAt).getTime() > now;
   };
 
-  // Boosted first, then newest. Filtered by category.
-  const filtered = listings
-    .filter((l) => {
-      if (activeCategory && l.category !== activeCategory) return false;
-      return true;
-    })
-    .sort((a, b) => {
-      const aBoost = isActiveBoost(a) ? 1 : 0;
-      const bBoost = isActiveBoost(b) ? 1 : 0;
-      if (aBoost !== bBoost) return bBoost - aBoost;
-      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return bTime - aTime;
-    });
+  // Boosted first, then newest.
+  const filtered = [...listings].sort((a, b) => {
+    const aBoost = isActiveBoost(a) ? 1 : 0;
+    const bBoost = isActiveBoost(b) ? 1 : 0;
+    if (aBoost !== bBoost) return bBoost - aBoost;
+    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return bTime - aTime;
+  });
 
   const toCardShape = (l: typeof listings[0], isBoosted = false) => ({
     id: l.id,
@@ -121,12 +99,6 @@ const Index = () => {
   });
 
   const handleReset = () => {
-    setActiveCategory(null);
-    gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
-  const selectCategory = (label: string | null) => {
-    setActiveCategory((prev) => (prev === label ? null : label));
     gridRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
@@ -145,18 +117,11 @@ const Index = () => {
           Categories for you
         </p>
         <div className="grid grid-cols-4 sm:grid-cols-7 gap-3 sm:gap-4">
-          {CATEGORIES.map((c) => {
-            const active = activeCategory === c.label;
-            return (
-              <button
-                key={c.label}
-                onClick={() => selectCategory(c.label)}
-                className="flex flex-col items-center gap-2 group"
-              >
+          {MAIN_CATEGORIES.map((c) => (
+            <Link key={c.id} to={`/shop?main=${c.id}`}>
+              <span className="flex flex-col items-center gap-2 group">
                 <span
-                  className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border transition-all duration-300 group-hover:scale-105 ${
-                    active ? "border-primary ring-2 ring-primary/30" : "border-border/60 group-hover:border-primary/50"
-                  }`}
+                  className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border transition-all duration-300 group-hover:scale-105 border-border/60 group-hover:border-primary/50`}
                 >
                   <img
                     src={c.img}
@@ -165,16 +130,12 @@ const Index = () => {
                     className="w-full h-full object-cover"
                   />
                 </span>
-                <span
-                  className={`text-[11px] sm:text-xs font-medium transition-colors ${
-                    active ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
-                  }`}
-                >
+                <span className={`text-[11px] sm:text-xs font-medium transition-colors text-muted-foreground group-hover:text-foreground`}>
                   {c.label}
                 </span>
-              </button>
-            );
-          })}
+              </span>
+            </Link>
+          ))}
         </div>
       </section>
 
@@ -202,7 +163,7 @@ const Index = () => {
       <section ref={gridRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 scroll-mt-24">
         <div className="flex items-center justify-between mb-3 sm:mb-4">
           <h1 className="font-display text-lg sm:text-xl font-bold tracking-tight">
-            {activeCategory ? activeCategory : "All Products"}
+            All Products
           </h1>
           <p className="text-xs text-muted-foreground">
             {loading ? "Loading…" : `${filtered.length} ${filtered.length === 1 ? "item" : "items"}`}

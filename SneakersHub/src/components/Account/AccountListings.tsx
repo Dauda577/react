@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { useListings, boostDaysLeft, isBoostActive, type Listing } from "@/context/ListingContext";
 import { itemVariant, fadeUp } from "../Account/accountHelpers";
 import { toast } from "sonner";
+import { MAIN_CATEGORIES } from "@/data/taxonomy";
 
 const BoostModal = lazy(() => import("@/components/BoostModal"));
 
@@ -197,7 +198,7 @@ const AccountListings = memo(({
                 <div className="relative w-16 h-16 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0 overflow-hidden">
                   {listing.image
                     ? <Image src={listing.image} alt={listing.name} fill sizes="64px" className="object-contain p-1" />
-                    : <img src="/categoryicons/other.svg" alt={listing.category} className="w-6 h-6 text-muted-foreground" />
+                    : <img src={MAIN_CATEGORIES.find((m) => m.label === listing.category)?.img ?? "/categoryimages/other.jpg"} alt={listing.category} className="w-6 h-6 rounded object-cover text-muted-foreground" />
                   }
                 </div>
                 <div className="flex-1 min-w-0">
@@ -215,7 +216,11 @@ const AccountListings = memo(({
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{listing.brand} · {listing.category}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                      {listing.brand} · {listing.category}
+                      {listing.subcategory ? ` · ${listing.subcategory}` : ""}
+                      {listing.subcategory2 ? ` · ${listing.subcategory2}` : ""}
+                    </p>
                   <div className="flex items-center gap-3 mt-1 flex-wrap">
                     <span className="flex items-center gap-1 text-xs text-muted-foreground"><Eye className="w-3 h-3" /> {listing.views} views</span>
                     {listing.sizes?.length > 0 && (
