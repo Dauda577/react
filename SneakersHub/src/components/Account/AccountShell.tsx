@@ -9,7 +9,6 @@ import {
   MapPin, Store, BadgeCheck, Sparkles, BarChart2, LogOut,
 } from "lucide-react";
 import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import AdminLink from "@/components/admin/AdminLink";
 import { Button } from "@/components/ui/button";
 import { useSaved } from "@/context/SavedContext";
@@ -248,7 +247,7 @@ const AccountShell = ({ children }: { children: ReactNode }) => (
       <Navbar />
 
       <section
-        className="section-padding max-w-5xl mx-auto"
+        className="section-padding max-w-7xl mx-auto"
         style={{ paddingTop: `calc(64px + env(safe-area-inset-top, 0px))` }}
       >
         <div className="pt-12 pb-10">
@@ -261,8 +260,6 @@ const AccountShell = ({ children }: { children: ReactNode }) => (
           </div>
         </div>
       </section>
-
-      <Footer />
     </div>
   </ProfileProvider>
 );

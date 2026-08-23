@@ -3,7 +3,6 @@
 import { useNavigate } from "@/lib/router";
 import { ArrowLeft } from "lucide-react";
 import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 
 const Privacy = () => {
   const navigate = useNavigate();
@@ -134,7 +133,6 @@ const Privacy = () => {
 
         </div>
       </div>
-      <Footer />
     </div>
   );
 };

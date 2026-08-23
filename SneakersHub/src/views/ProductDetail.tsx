@@ -203,7 +203,7 @@ const ProductDetail = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-20" style={safeTopStyle}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-20" style={safeTopStyle}>
           <div className="grid md:grid-cols-2 gap-8 mt-6">
             <div className="rounded-3xl bg-muted h-[320px] lg:h-[500px] animate-pulse" />
             <div className="space-y-3">
@@ -251,7 +251,7 @@ const ProductDetail = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-16" style={safeTopStyle}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-16" style={safeTopStyle}>
 
         {/* Breadcrumb */}
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-4 mt-2">

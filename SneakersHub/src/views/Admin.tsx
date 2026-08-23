@@ -453,7 +453,7 @@ const Admin = () => {
 
       {/* Header */}
       <section className="border-b border-border pt-16" style={{ paddingTop: `calc(64px + env(safe-area-inset-top, 0px))` }}>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-0">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-10 pb-0">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
             className="flex items-center gap-4 pb-6">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -487,7 +487,7 @@ const Admin = () => {
         </div>
       </section>
 
-      <section className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         <AnimatePresence mode="wait">
           <motion.div key={activeTab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
