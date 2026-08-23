@@ -157,7 +157,7 @@ const ListingCard = memo(({ sneaker: listing, index }: ListingCardProps) => {
                 </Badge>
               )}
               {!listing.sellerIsOfficial && listing.isBoosted && (
-                <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg shadow-orange-500/25 px-2 py-1 text-[9px] font-semibold tracking-wider flex items-center gap-1">
+                <Badge className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0 shadow-lg shadow-blue-500/25 px-2 py-1 text-[9px] font-semibold tracking-wider flex items-center gap-1">
                   <Zap className="w-2.5 h-2.5" />
                   FEATURED
                 </Badge>

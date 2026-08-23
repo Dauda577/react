@@ -33,7 +33,7 @@ const CONDITION_LABELS: Record<string, { label: string; color: string }> = {
   new:      { label: "New",       color: "text-emerald-600 bg-emerald-500/10 border-emerald-500/30" },
   like_new: { label: "Like New",  color: "text-blue-600 bg-blue-500/10 border-blue-500/30" },
   good:     { label: "Good",      color: "text-primary bg-primary/10 border-primary/30" },
-  fair:     { label: "Fair",      color: "text-amber-600 bg-amber-500/10 border-amber-500/30" },
+  fair:     { label: "Fair",      color: "text-yellow-600 bg-yellow-500/10 border-yellow-500/30" },
   poor:     { label: "Poor",      color: "text-red-600 bg-red-500/10 border-red-500/30" },
 };
 

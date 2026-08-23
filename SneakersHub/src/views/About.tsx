@@ -72,7 +72,7 @@ const About = () => {
     { value: userCount, label: "Happy Customers", icon: Users, gradient: "from-blue-500 to-cyan-500" },
     { value: listingCount, label: "Products Listed", icon: Package, gradient: "from-purple-500 to-pink-500" },
     { value: "100%", label: "Authentic", icon: ShieldCheck, gradient: "from-green-500 to-emerald-500" },
-    { value: "24/7", label: "Support", icon: Clock, gradient: "from-orange-500 to-red-500" },
+    { value: "24/7", label: "Support", icon: Clock, gradient: "from-blue-500 to-blue-700" },
   ];
 
   const benefits = [
@@ -88,9 +88,9 @@ const About = () => {
       icon: BadgeCheck,
       title: "Verified Badge",
       desc: "A verified badge appears on all your listings and your seller profile, building instant trust with buyers.",
-      color: "text-amber-500",
-      bg: "bg-amber-500/10",
-      gradient: "from-amber-500/20 to-orange-500/20",
+      color: "text-blue-500",
+      bg: "bg-blue-500/10",
+      gradient: "from-blue-500/20 to-blue-600/20",
     },
     {
       icon: TrendingUp,
@@ -130,7 +130,7 @@ const About = () => {
       icon: CreditCard,
       title: "One-Time Payment",
       desc: "Pay the GH₵ 50 fee via card or Mobile Money to activate your verified seller account.",
-      color: "from-orange-500 to-red-500",
+      color: "from-blue-500 to-blue-700",
     },
     {
       step: "04",
@@ -151,7 +151,7 @@ const About = () => {
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/20 rounded-full blur-3xl animate-pulse" />
           <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
         </div>
 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -237,7 +237,7 @@ const About = () => {
               <div className="relative grid grid-cols-2 gap-4">
                 {[
                   { icon: ShieldCheck, label: "Authentic", color: "text-green-500", bg: "bg-green-500/10" },
-                  { icon: Zap, label: "Fast Delivery", color: "text-amber-500", bg: "bg-amber-500/10" },
+                  { icon: Zap, label: "Fast Delivery", color: "text-blue-500", bg: "bg-blue-500/10" },
                   { icon: Star, label: "Top Quality", color: "text-primary", bg: "bg-primary/10" },
                   { icon: Users, label: "Trusted", color: "text-blue-500", bg: "bg-blue-500/10" },
                 ].map((item, i) => (
@@ -378,7 +378,7 @@ const About = () => {
                 Free to apply
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Wallet className="w-3.5 h-3.5 text-amber-500" />
+                <Wallet className="w-3.5 h-3.5 text-blue-500" />
                 GH₵ 50 one-time fee on approval
               </div>
               <div className="flex items-center gap-2 text-xs text-muted-foreground">

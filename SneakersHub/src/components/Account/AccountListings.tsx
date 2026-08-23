@@ -153,7 +153,7 @@ const AccountListings = memo(({
             <p className="text-xs text-muted-foreground mt-1">
               {totalListingsCreated}/20 listings used
               {totalListingsCreated >= 20 && (
-                <span className="text-amber-500 font-semibold ml-1">· Limit reached</span>
+                <span className="text-blue-500 font-semibold ml-1">· Limit reached</span>
               )}
             </p>
           )}
@@ -211,7 +211,7 @@ const AccountListings = memo(({
                       {listing.status === "active" ? "Active" : "Sold"}
                     </span>
                     {listing.status === "active" && isBoostActive(listing) && (
-                      <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                      <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-blue-500/10 text-blue-600 border border-blue-500/20">
                         <Zap className="w-2.5 h-2.5" /> {listing.boostExpiresAt ? "Featured" : "Official · Always Featured"}
                       </span>
                     )}
@@ -249,20 +249,20 @@ const AccountListings = memo(({
 
                 {listing.status === "active" && !isBoostActive(listing) && (
                   <button onClick={() => setBoostingListing(listing)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-500/30 bg-amber-500/5 text-xs font-medium hover:bg-amber-500/15 transition-colors text-amber-600 dark:text-amber-400">
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-500/30 bg-blue-500/5 text-xs font-medium hover:bg-blue-500/15 transition-colors text-blue-600 dark:text-blue-400">
                     <Zap className="w-3 h-3" /> {listing.boostExpiresAt ? "Re-boost" : "Boost"} · GHS 5
                   </button>
                 )}
 
                 {listing.status === "active" && isBoostActive(listing) && listing.boostExpiresAt && (
                   <div className="flex items-center gap-2">
-                    <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                    <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-xs font-semibold text-blue-600 dark:text-blue-400">
                       <Zap className="w-3 h-3 fill-current" />
                       {boostDaysLeft(listing) === 0 ? "Expires today" : boostDaysLeft(listing) === 1 ? "1 day left" : `${boostDaysLeft(listing)} days left`}
                     </span>
                     {boostDaysLeft(listing) <= 3 && (
                       <button onClick={() => setBoostingListing(listing)}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-amber-500/40 text-[10px] font-semibold text-amber-600 hover:bg-amber-500/15 transition-colors">
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-blue-500/40 text-[10px] font-semibold text-blue-600 hover:bg-blue-500/15 transition-colors">
                         Extend
                       </button>
                     )}

@@ -244,9 +244,9 @@ const AccountProfile = memo(({
         </div>
 
         {!hasCompleteProfile && editMode && (
-          <div className="mt-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-2">
-            <X className="w-4 h-4 text-amber-500 flex-shrink-0" />
-            <p className="text-xs text-amber-600">Please complete your name, phone, and region.</p>
+          <div className="mt-4 p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center gap-2">
+            <X className="w-4 h-4 text-blue-500 flex-shrink-0" />
+            <p className="text-xs text-blue-600">Please complete your name, phone, and region.</p>
           </div>
         )}
 

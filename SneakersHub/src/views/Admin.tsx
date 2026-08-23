@@ -56,7 +56,7 @@ const formatGHS = (n: number) =>
   `GH₵ ${n.toLocaleString("en-GH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const payoutColors: Record<string, string> = {
-  pending: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+  pending: "bg-blue-500/10 text-blue-600 border-blue-500/20",
   released: "bg-green-500/10 text-green-600 border-green-500/20",
   auto_released: "bg-blue-500/10 text-blue-600 border-blue-500/20",
   disputed: "bg-red-500/10 text-red-600 border-red-500/20",
@@ -499,10 +499,10 @@ const Admin = () => {
                   <SectionHeader title="Platform Activity" icon={Package} />
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <StatCard label="Pending Transfers" value={formatGHS(pendingOrders.reduce((s, o) => s + o.total, 0))}
-                      sub={`${pendingOrders.length} in progress`} icon={Clock} accent="bg-amber-500/10 text-amber-600" />
+                      sub={`${pendingOrders.length} in progress`} icon={Clock} accent="bg-blue-500/10 text-blue-600" />
                     {failedOrders.length > 0 && (
                       <StatCard label="Failed Transfers" value={formatGHS(failedOrders.reduce((s, o) => s + o.total, 0))}
-                        sub={`${failedOrders.length} need attention`} icon={AlertTriangle} accent="bg-orange-500/10 text-orange-600" />
+                        sub={`${failedOrders.length} need attention`} icon={AlertTriangle} accent="bg-blue-500/10 text-blue-600" />
                     )}
                     <StatCard label="Total Released" value={formatGHS(releasedOrders.reduce((s, o) => s + o.total, 0))}
                       sub={`${releasedOrders.length} orders`} icon={CheckCircle} accent="bg-green-500/10 text-green-600" />
@@ -539,17 +539,17 @@ const Admin = () => {
                     <div className="space-y-4">
                       {pendingApplications.map((app) => (
                         <motion.div key={app.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                          className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 space-y-3">
+                          className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-4 space-y-3">
                           <div className="flex items-start justify-between gap-3">
                             <div>
                               <p className="font-display font-bold">{app.store_name}</p>
                               <p className="text-xs text-muted-foreground mt-0.5">by {app.applicant_name ?? "—"} · {app.applicant_email ?? ""}</p>
                             </div>
-                            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20 whitespace-nowrap">
+                            <span className="px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-500/10 text-blue-600 border border-blue-500/20 whitespace-nowrap">
                               Pending Review
                             </span>
                           </div>
-                          <p className="text-sm text-muted-foreground leading-relaxed border-t border-amber-500/10 pt-3">{app.store_description}</p>
+                          <p className="text-sm text-muted-foreground leading-relaxed border-t border-blue-500/10 pt-3">{app.store_description}</p>
                           <div className="grid grid-cols-2 gap-2 text-xs">
                             <div className="flex items-center gap-1.5 text-muted-foreground">
                               <Phone className="w-3 h-3" /> {app.phone}
@@ -639,7 +639,7 @@ const Admin = () => {
                                   <CheckCircle className="w-3 h-3" /> Verified
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-500/10 text-blue-600 border border-blue-500/20">
                                   <Clock className="w-3 h-3" /> Pending
                                 </span>
                               )
@@ -695,10 +695,10 @@ const Admin = () => {
                   </div>
                 ) : (
                   <>
-                    <div className="flex items-start gap-3 p-4 rounded-2xl bg-orange-500/5 border border-orange-500/20">
-                      <AlertTriangle className="w-4 h-4 text-orange-500 flex-shrink-0 mt-0.5" />
+                    <div className="flex items-start gap-3 p-4 rounded-2xl bg-blue-500/5 border border-blue-500/20">
+                      <AlertTriangle className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-sm font-semibold text-orange-700 dark:text-orange-400">
+                        <p className="text-sm font-semibold text-blue-700 dark:text-blue-400">
                           {failedOrders.length} transfer{failedOrders.length > 1 ? "s" : ""} failed — action needed
                         </p>
                         <p className="text-xs text-muted-foreground mt-0.5">
@@ -707,7 +707,7 @@ const Admin = () => {
                       </div>
                     </div>
                     {failedOrders.map((order) => (
-                      <div key={order.id} className="rounded-2xl border border-orange-500/20 bg-orange-500/5 p-5 space-y-3">
+                      <div key={order.id} className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-5 space-y-3">
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <p className="font-display font-bold text-sm">{order.seller_name}</p>
@@ -715,12 +715,12 @@ const Admin = () => {
                               {formatId(order.id)} · GH₵ {order.total} · {order.transfer_attempts ?? 1} attempt{(order.transfer_attempts ?? 1) > 1 ? "s" : ""}
                             </p>
                             {order.transfer_failure_reason && (
-                              <p className="text-xs text-orange-600 mt-1 font-medium">
+                              <p className="text-xs text-blue-600 mt-1 font-medium">
                                 {order.transfer_failure_reason}
                               </p>
                             )}
                           </div>
-                          <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-orange-500/10 text-orange-600 border border-orange-500/20 flex-shrink-0">Failed</span>
+                          <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-600 border border-blue-500/20 flex-shrink-0">Failed</span>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                           <button
@@ -732,7 +732,7 @@ const Admin = () => {
                                 setTimeout(() => fetchData(), 3000);
                               } catch { toast.error("Retry failed — try Paystack dashboard"); }
                             }}
-                            className="py-2.5 rounded-xl border border-orange-500/30 text-xs font-semibold text-orange-600 hover:bg-orange-500/10 transition-colors">
+                            className="py-2.5 rounded-xl border border-blue-500/30 text-xs font-semibold text-blue-600 hover:bg-blue-500/10 transition-colors">
                             Retry Transfer
                           </button>
                           <a href="https://dashboard.paystack.com/#/transfers" target="_blank" rel="noreferrer"
@@ -1004,8 +1004,8 @@ const Admin = () => {
               </div>
 
               {refundOrder.paystack_reference ? (
-                <div className="mb-4 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/20">
-                  <p className="text-xs text-amber-600 font-medium flex items-center gap-2">
+                <div className="mb-4 px-4 py-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                  <p className="text-xs text-blue-600 font-medium flex items-center gap-2">
                     <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
                     This reverses the Paystack payment of {formatGHS(refundOrder.total)} to the buyer. The seller will be notified by SMS.
                   </p>

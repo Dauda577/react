@@ -223,8 +223,8 @@ const TermsOfService = () => {
                   <p>For verified sellers, payments are split at checkout: 95% goes directly to the seller's MoMo/bank, settled next business day. SneakersHub keeps 5% automatically.</p>
                 </div>
               </div>
-              <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-500/5 border border-amber-500/10">
-                <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0" />
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-blue-500/5 border border-blue-500/10">
+                <AlertCircle className="w-5 h-5 text-blue-500 flex-shrink-0" />
                 <div>
                   <p className="font-semibold mb-1">Listing Limits</p>
                   <p>Unverified sellers can create up to 20 listings total. Verified sellers have no listing limits.</p>

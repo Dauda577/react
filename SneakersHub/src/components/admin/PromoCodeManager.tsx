@@ -332,7 +332,7 @@ export const PromoCodeManager = () => {
                             <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">Inactive</span>
                           )}
                           {usageLeft === 0 && promo.active && (
-                            <span className="text-xs bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-full">Used Up</span>
+                            <span className="text-xs bg-blue-500/10 text-blue-500 px-2 py-0.5 rounded-full">Used Up</span>
                           )}
                           {promo.source === "referral" && (
                             <span className="text-xs bg-purple-500/10 text-purple-600 px-2 py-0.5 rounded-full">Referral</span>

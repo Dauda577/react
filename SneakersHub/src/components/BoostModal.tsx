@@ -137,7 +137,7 @@ const BoostModal = ({ listing, onClose }: Props) => {
           {step === "confirm" && (
             <div className="p-6">
               <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center flex-shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center flex-shrink-0">
                   <Zap className="w-5 h-5 text-white" />
                 </div>
                 <div>
@@ -167,24 +167,24 @@ const BoostModal = ({ listing, onClose }: Props) => {
                   { icon: CheckCircle, text: "Higher visibility to all buyers" },
                 ].map(({ icon: Icon, text }) => (
                   <div key={text} className="flex items-center gap-2.5">
-                    <div className="w-5 h-5 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-                      <Icon className="w-3 h-3 text-amber-500" />
+                    <div className="w-5 h-5 rounded-full bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                      <Icon className="w-3 h-3 text-blue-500" />
                     </div>
                     <p className="text-sm text-muted-foreground">{text}</p>
                   </div>
                 ))}
               </div>
 
-              <div className="flex items-center justify-between p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 mb-4">
-                <span className="text-sm font-medium text-amber-700 dark:text-amber-400">Boost fee</span>
-                <span className="font-display font-bold text-xl text-amber-600">GHS {BOOST_FEE}</span>
+              <div className="flex items-center justify-between p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 mb-4">
+                <span className="text-sm font-medium text-blue-700 dark:text-blue-400">Boost fee</span>
+                <span className="font-display font-bold text-xl text-blue-600">GHS {BOOST_FEE}</span>
               </div>
 
               <Button
                 onClick={handlePay}
                 disabled={loading}
                 className="w-full h-11 rounded-full font-display font-semibold text-sm
-                  bg-gradient-to-r from-amber-400 to-orange-500 text-white hover:brightness-110 transition-all"
+                  bg-gradient-to-r from-blue-400 to-blue-600 text-white hover:brightness-110 transition-all"
               >
                 {loading ? (
                   <span className="flex items-center gap-2">
@@ -212,9 +212,9 @@ const BoostModal = ({ listing, onClose }: Props) => {
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.1 }}
-                className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-5"
+                className="w-16 h-16 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto mb-5"
               >
-                <Zap className="w-8 h-8 text-amber-500" />
+                <Zap className="w-8 h-8 text-blue-500" />
               </motion.div>
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
                 <p className="font-display font-bold text-xl tracking-tight mb-2">You're Featured! 🎉</p>

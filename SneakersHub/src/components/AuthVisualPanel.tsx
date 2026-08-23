@@ -19,7 +19,7 @@ const AuthVisualPanel = () => {
     <aside className="hidden lg:flex relative overflow-hidden">
       <div className="absolute inset-0">
         {videoFailed ? (
-          <div className="w-full h-full bg-gradient-to-br from-[hsl(14_100%_45%)] via-[hsl(20_100%_50%)] to-[hsl(30_100%_38%)]" />
+          <div className="w-full h-full bg-gradient-to-br from-[hsl(217_91%_50%)] via-[hsl(225_85%_45%)] to-[hsl(230_80%_40%)]" />
         ) : (
           <video
             autoPlay
@@ -46,12 +46,12 @@ const AuthVisualPanel = () => {
           <motion.div
             animate={{ scale: [1, 1.25, 1], opacity: [0.35, 0.55, 0.35] }}
             transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute top-1/4 -left-16 w-72 h-72 rounded-full bg-[hsl(14_100%_60%)]/40 blur-[100px]"
+            className="absolute top-1/4 -left-16 w-72 h-72 rounded-full bg-[hsl(217_91%_60%)]/40 blur-[100px]"
           />
           <motion.div
             animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.5, 0.3] }}
             transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-            className="absolute bottom-1/4 -right-10 w-80 h-80 rounded-full bg-[hsl(35_100%_55%)]/40 blur-[110px]"
+            className="absolute bottom-1/4 -right-10 w-80 h-80 rounded-full bg-[hsl(230_80%_55%)]/40 blur-[110px]"
           />
           <motion.div
             animate={{ y: [0, -18, 0], rotate: [0, 8, 0] }}
@@ -72,7 +72,7 @@ const AuthVisualPanel = () => {
       <div className="relative z-10 flex flex-col justify-between w-full p-10">
         <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
           <p className="font-display text-2xl font-bold tracking-tight text-white">
-            Sneakers<span className="text-[hsl(35_100%_65%)]">Hub</span>
+            Sneakers            <span className="text-[hsl(210_100%_70%)]">Hub</span>
           </p>
         </motion.div>
 
@@ -99,7 +99,7 @@ const AuthVisualPanel = () => {
                 className="flex items-center gap-3"
               >
                 <span className="w-8 h-8 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
-                  <Icon className="w-4 h-4 text-[hsl(35_100%_70%)]" />
+                  <Icon className="w-4 h-4 text-[hsl(210_100%_70%)]" />
                 </span>
                 <span className="text-sm text-white/80">{text}</span>
               </motion.div>

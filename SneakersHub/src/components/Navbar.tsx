@@ -10,9 +10,9 @@ const QUICK_CATEGORIES = [
   { id: "electronics",    label: "Electronics",      icon: Tv,         color: "from-violet-500/20 to-violet-600/20" },
   { id: "fashion",        label: "Fashion",          icon: Shirt,      color: "from-pink-500/20 to-pink-600/20" },
   { id: "health-beauty",  label: "Health & Beauty",  icon: Sparkles,   color: "from-rose-500/20 to-rose-600/20" },
-  { id: "home-garden",    label: "Home & Garden",    icon: Home,       color: "from-amber-500/20 to-amber-600/20" },
+  { id: "home-garden",    label: "Home & Garden",    icon: Home,       color: "from-blue-500/20 to-blue-600/20" },
   { id: "baby-kids",      label: "Baby & Kids",      icon: Baby,       color: "from-sky-500/20 to-sky-600/20" },
-  { id: "toys-games",     label: "Toys & Games",     icon: Puzzle,     color: "from-orange-500/20 to-orange-600/20" },
+  { id: "toys-games",     label: "Toys & Games",     icon: Puzzle,     color: "from-blue-500/20 to-blue-600/20" },
 ];
 
 const Navbar = () => {
@@ -73,7 +73,7 @@ const Navbar = () => {
                   ${location.pathname === link.to
                     ? "text-primary bg-primary/10"
                     : link.special
-                      ? "text-amber-700 hover:bg-amber-500/10 dark:text-amber-500"
+                      ? "text-blue-700 hover:bg-blue-500/10 dark:text-blue-400"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
               >
@@ -143,7 +143,7 @@ const Navbar = () => {
                   ${location.pathname === link.to
                     ? "bg-primary/10 text-primary"
                     : link.special
-                      ? "text-amber-700 hover:bg-amber-500/10 dark:text-amber-500"
+                      ? "text-blue-700 hover:bg-blue-500/10 dark:text-blue-400"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
               >

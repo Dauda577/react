@@ -273,14 +273,14 @@ const AccountSettings = memo(({
               <div className={`absolute w-6 h-6 rounded-full bg-background shadow-md flex items-center justify-center transition-transform duration-200 ${theme === "dark" ? "translate-x-6" : "translate-x-0"}`}>
                 {theme === "dark"
                   ? <Moon className="w-3.5 h-3.5 text-primary" />
-                  : <Sun className="w-3.5 h-3.5 text-amber-500" />
+                   : <Sun className="w-3.5 h-3.5 text-blue-500" />
                 }
               </div>
             </button>
           </div>
           <div className="mt-4 grid grid-cols-2 gap-2">
             {[
-              { id: "light", Icon: Sun, label: "Light", sub: "Default", iconClass: "text-amber-500" },
+              { id: "light", Icon: Sun, label: "Light", sub: "Default", iconClass: "text-blue-500" },
               { id: "dark", Icon: Moon, label: "Dark", sub: "Easier on eyes", iconClass: "text-primary" },
             ].map(({ id, Icon, label, sub, iconClass }) => (
               <div key={id} className={`p-3 rounded-xl border transition-all ${theme === id ? "border-primary bg-primary/5" : "border-border"}`}>
