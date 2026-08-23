@@ -9,14 +9,14 @@ import { X, ChevronDown, Mail, MapPin, Clock, Instagram, Twitter, Heart } from "
 
 const WHATSAPP = "https://wa.me/233256221777";
 const PHONE = "tel:+233256221777";
-const EMAIL = "mailto:support@sneakershub.com";
+const EMAIL = "mailto:support@shoplite.com";
 
 const faqs = [
-  { q: "How do I buy a sneaker?", a: "Browse the shop and open a listing. Choose your size, then tap WhatsApp or Call to arrange the purchase directly with the seller." },
-  { q: "How do I sell on SneakersHub?", a: "Create a seller account, then go to Account → Listings → New Listing. Fill in your sneaker details, upload a photo and publish." },
+  { q: "How do I buy?", a: "Browse the shop and open a listing. Choose your size or variant, then tap WhatsApp or Call to arrange the purchase directly with the seller." },
+  { q: "How do I sell on ShopLite?", a: "Create a seller account, then go to Account → Listings → New Listing. Fill in your item details, upload a photo and publish." },
   { q: "How does delivery work?", a: "Sellers and buyers coordinate delivery directly. Confirm the delivery method and details with the seller before you pay." },
   { q: "Is my payment secure?", a: "We don't process payments on the platform. Arrange payment directly with the seller, and prefer in-person meetups so you can verify the item first." },
-  { q: "Can I return a sneaker?", a: "Returns are handled directly between buyer and seller. Confirm the item's condition with the seller before you complete the deal." },
+  { q: "Can I return an item?", a: "Returns are handled directly between buyer and seller. Confirm the item's condition with the seller before you complete the deal." },
   { q: "How do I contact support?", a: "Reach us on WhatsApp or call us directly using the links in the footer. We're available Mon–Sat, 8am–8pm." },
 ];
 
@@ -148,7 +148,7 @@ const ContactModal = ({ onClose }: { onClose: () => void }) => (
           </div>
           <div className="flex-1">
             <p className="text-sm font-semibold group-hover:text-blue-600 transition-colors">Email</p>
-            <p className="text-xs text-muted-foreground">support@sneakershub.com</p>
+            <p className="text-xs text-muted-foreground">support@shoplite.com</p>
           </div>
           <ChevronDown className="w-4 h-4 text-muted-foreground -rotate-90 group-hover:translate-x-1 transition-transform" />
         </a>
@@ -163,7 +163,7 @@ const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   const socialLinks: { icon: ComponentType<{ className?: string }>; href: string; label: string }[] = [
-    { icon: Instagram, href: "https://www.instagram.com/sneakershub567?igsh=eXd2eng4anN3ZDIz&utm_source=qr", label: "Instagram" },
+    { icon: Instagram, href: "https://www.instagram.com/shoplite567?igsh=eXd2eng4anN3ZDIz&utm_source=qr", label: "Instagram" },
     { icon: Twitter, href: "https://twitter.com", label: "Twitter" },
     { icon: TikTokIcon, href: "https://www.tiktok.com/@.boy_spyce?is_from_webapp=1&sender_device=pc", label: "TikTok" },
   ];
@@ -175,18 +175,21 @@ const Footer = () => {
         {showContact && <ContactModal onClose={() => setShowContact(false)} />}
       </AnimatePresence>
 
-      <footer className="border-t border-border mt-20 bg-gradient-to-b from-background to-muted/20">
-        <div className="section-padding max-w-7xl mx-auto py-12">
+      <footer className="mt-20 relative overflow-hidden">
+        <div className="gradient-separator" />
+        <div className="dot-grid absolute inset-0 opacity-30" />
+        <div className="relative bg-gradient-to-b from-background/80 to-muted/20">
+        <div className="section-padding py-12">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             {/* Brand Column */}
             <div className="md:col-span-1">
               <Link to="/" className="inline-block mb-4">
                 <h3 className="font-display text-2xl font-bold tracking-tighter bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
-                  SneakersHub
+                  ShopLite
                 </h3>
               </Link>
               <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-                Premium sneakers for those who demand the best. Curated collections from top brands across Africa.
+                Ghana's marketplace for everything. Buy and sell with confidence — no fees, no middlemen.
               </p>
               <div className="flex items-center gap-3">
                 {socialLinks.map((social) => {
@@ -270,7 +273,7 @@ const Footer = () => {
                     <div className="w-7 h-7 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
                       <Mail className="w-3.5 h-3.5" />
                     </div>
-                    <span>support@sneakershub.com</span>
+                    <span>support@shoplite.com</span>
                   </a>
                 </li>
               </ul>
@@ -295,9 +298,10 @@ const Footer = () => {
           </div>
 
           {/* Bottom Bar */}
-          <div className="border-t border-border mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
+          <div className="mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
+            <div className="gradient-separator w-full absolute left-0 top-0" />
             <span className="flex items-center gap-1">
-              © {currentYear} SneakersHub · Made with
+              © {currentYear} ShopLite · Made with
               <Heart className="w-3 h-3 text-red-500 fill-red-500" />
               in Ghana 🇬🇭
             </span>
@@ -308,6 +312,7 @@ const Footer = () => {
               <button onClick={() => setShowFAQ(true)} className="hover:text-foreground transition-colors">FAQ</button>
             </div>
           </div>
+        </div>
         </div>
       </footer>
     </>

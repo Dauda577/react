@@ -5,7 +5,7 @@ const supabaseUrl = envVar("url");
 const supabaseAnonKey = envVar("anonKey");
 
 export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey, {
-  cookieOptions: { name: "sneakershub-auth-token" },
+  cookieOptions: { name: "shoplite-auth-token" },
   realtime: {
     params: {
       eventsPerSecond: 10,

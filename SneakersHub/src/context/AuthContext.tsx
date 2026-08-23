@@ -31,7 +31,7 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const CACHE_KEY = "sneakershub-user";
+const CACHE_KEY = "shoplite-user";
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60;
 
 const getCookie = (name: string): string | null => {

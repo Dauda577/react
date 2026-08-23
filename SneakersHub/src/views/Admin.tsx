@@ -276,8 +276,8 @@ const Admin = () => {
           record: {
             ...app,
             message: action === "approve"
-              ? `Congratulations! Your seller application has been approved. Pay the GH₵ 50 verification fee to start selling. Tap here: https://sneakershub.site/account/settings`
-              : `Your seller application was not approved. You can re-apply anytime. Tap here: https://sneakershub.site/account/profile`,
+              ? `Congratulations! Your seller application has been approved. Pay the GH₵ 50 verification fee to start selling. Tap here: https://shoplite.site/account/settings`
+              : `Your seller application was not approved. You can re-apply anytime. Tap here: https://shoplite.site/account/profile`,
           },
         }),
       }).catch(console.error);
@@ -374,7 +374,7 @@ const Admin = () => {
   if (authLoading || (!authChecked && !accessDenied)) return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         <div className="flex items-center justify-between">
           <Skeleton className="h-8 w-48" />
           <Skeleton className="h-9 w-28 rounded-full" />
@@ -461,7 +461,7 @@ const Admin = () => {
             </div>
             <div>
               <h1 className="font-display text-2xl font-bold tracking-tight">Admin Dashboard</h1>
-              <p className="text-xs text-muted-foreground mt-0.5">SneakersHub · Official accounts only</p>
+              <p className="text-xs text-muted-foreground mt-0.5">ShopLite · Official accounts only</p>
             </div>
             <button onClick={fetchData}
               className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border text-xs font-medium hover:bg-muted/40 transition-colors">

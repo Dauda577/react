@@ -247,7 +247,7 @@ const AccountShell = ({ children }: { children: ReactNode }) => (
       <Navbar />
 
       <section
-        className="section-padding max-w-7xl mx-auto"
+        className="section-padding"
         style={{ paddingTop: `calc(64px + env(safe-area-inset-top, 0px))` }}
       >
         <div className="pt-12 pb-10">

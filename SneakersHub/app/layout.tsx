@@ -8,35 +8,35 @@ import "./globals.css";
 import "@/styles/safari-fixes.css";
 import RegisterServiceWorker from "./register-service-worker";
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://sneakershub.site";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://shoplite.site";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "SneakersHub",
-    template: "%s | SneakersHub",
+    default: "ShopLite",
+    template: "%s | ShopLite",
   },
   description:
-    "Buy and sell authentic sneakers on SneakersHub. Discover exclusive drops, rare kicks, and verified pairs from a community of collectors.",
-  applicationName: "SneakersHub",
+    "Buy and sell anything on ShopLite. Discover great deals, verified sellers, and a trusted community marketplace.",
+  applicationName: "ShopLite",
   manifest: "/manifest.json",
   icons: {
     icon: "/icon-48x48.png",
     shortcut: "/icon-48x48.png",
   },
   openGraph: {
-    title: "SneakersHub",
+    title: "ShopLite",
     description:
-      "Buy and sell authentic sneakers. Discover exclusive drops and rare kicks.",
+      "Buy and sell anything. Great deals from verified sellers.",
     type: "website",
-    siteName: "SneakersHub",
+    siteName: "ShopLite",
     images: ["/og-image.png"],
   },
   twitter: {
     card: "summary_large_image",
-    title: "SneakersHub",
+    title: "ShopLite",
     description:
-      "Buy and sell authentic sneakers. Discover exclusive drops and rare kicks.",
+      "Buy and sell anything. Great deals from verified sellers.",
     images: ["/og-image.png"],
   },
 };

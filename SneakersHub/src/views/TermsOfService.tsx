@@ -50,7 +50,7 @@ const TermsOfService = () => {
             <div>
               <p className="text-sm font-semibold">Effective Date: {new Date().toLocaleDateString('en-GH', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
               <p className="text-xs text-muted-foreground mt-1">
-                By using SneakersHub, you agree to these terms. Please read them carefully.
+                By using ShopLite, you agree to these terms. Please read them carefully.
               </p>
             </div>
           </div>
@@ -66,8 +66,8 @@ const TermsOfService = () => {
               "1. Acceptance of Terms",
               "2. Definitions",
               "3. Account Registration",
-              "4. Buying on SneakersHub",
-              "5. Selling on SneakersHub",
+              "4. Buying on ShopLite",
+              "5. Selling on ShopLite",
               "6. Payments & Fees",
               "7. Shipping & Delivery",
               "8. Returns & Refunds",
@@ -96,7 +96,7 @@ const TermsOfService = () => {
               <span className="text-primary">1.</span> Acceptance of Terms
             </h2>
             <p className="text-muted-foreground leading-relaxed mb-3">
-              Welcome to SneakersHub ("we," "our," or "us"). By accessing or using our website, mobile application, or any of our services, you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, please do not use our platform.
+              Welcome to ShopLite ("we," "our," or "us"). By accessing or using our website, mobile application, or any of our services, you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, please do not use our platform.
             </p>
             <p className="text-muted-foreground leading-relaxed">
               We reserve the right to modify these Terms at any time. Your continued use of the platform after changes constitutes acceptance of the updated Terms.
@@ -109,7 +109,7 @@ const TermsOfService = () => {
               <span className="text-primary">2.</span> Definitions
             </h2>
             <ul className="space-y-2 text-muted-foreground">
-              <li>• <strong>"Platform"</strong> refers to SneakersHub website and mobile application.</li>
+              <li>• <strong>"Platform"</strong> refers to ShopLite website and mobile application.</li>
               <li>• <strong>"Buyer"</strong> refers to any user purchasing items on the platform.</li>
               <li>• <strong>"Seller"</strong> refers to any user listing items for sale on the platform.</li>
               <li>• <strong>"Listing"</strong> refers to any item posted for sale by a Seller.</li>
@@ -139,7 +139,7 @@ const TermsOfService = () => {
           {/* Section 4 */}
           <section id="section-4" className="scroll-mt-24">
             <h2 className="font-display text-xl font-bold mb-3 flex items-center gap-2">
-              <span className="text-primary">4.</span> Buying on SneakersHub
+              <span className="text-primary">4.</span> Buying on ShopLite
             </h2>
             <div className="space-y-3 text-muted-foreground">
               <p>When you purchase an item on our platform:</p>
@@ -159,7 +159,7 @@ const TermsOfService = () => {
           {/* Section 5 — UPDATED with Seller Policy reference */}
           <section id="section-5" className="scroll-mt-24">
             <h2 className="font-display text-xl font-bold mb-3 flex items-center gap-2">
-              <span className="text-primary">5.</span> Selling on SneakersHub
+              <span className="text-primary">5.</span> Selling on ShopLite
             </h2>
             <div className="space-y-3 text-muted-foreground">
               <p>As a Seller, you agree to:</p>
@@ -196,7 +196,7 @@ const TermsOfService = () => {
                   <p className="text-sm font-semibold text-green-600">Verification Program</p>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Verified sellers pay a one-time GH₵ 50 fee. Benefits include a verified badge, Paystack split payments (95% to seller, 5% to SneakersHub), and increased buyer trust.
+                  Verified sellers pay a one-time GH₵ 50 fee. Benefits include a verified badge, Paystack split payments (95% to seller, 5% to ShopLite), and increased buyer trust.
                 </p>
               </div>
             </div>
@@ -212,14 +212,14 @@ const TermsOfService = () => {
                 <Wallet className="w-5 h-5 text-primary flex-shrink-0" />
                 <div>
                   <p className="font-semibold mb-1">Commission Structure</p>
-                  <p>SneakersHub takes a 5% commission on all sales from verified sellers. Official sellers may have different arrangements.</p>
+                  <p>ShopLite takes a 5% commission on all sales from verified sellers. Official sellers may have different arrangements.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3 p-4 rounded-xl bg-blue-500/5 border border-blue-500/10">
                 <CreditCard className="w-5 h-5 text-blue-500 flex-shrink-0" />
                 <div>
                   <p className="font-semibold mb-1">Payment Processing</p>
-                  <p>For verified sellers, payments are split at checkout: 95% goes directly to the seller's MoMo/bank, settled next business day. SneakersHub keeps 5% automatically.</p>
+                  <p>For verified sellers, payments are split at checkout: 95% goes directly to the seller's MoMo/bank, settled next business day. ShopLite keeps 5% automatically.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3 p-4 rounded-xl bg-blue-500/5 border border-blue-500/10">
@@ -306,7 +306,7 @@ const TermsOfService = () => {
               <span className="text-primary">11.</span> Intellectual Property
             </h2>
             <p className="text-muted-foreground leading-relaxed">
-              All content on SneakersHub, including logos, designs, text, graphics, and code, is our intellectual property and may not be used without permission. Sellers retain ownership of their listing content but grant us a license to display it on our platform.
+              All content on ShopLite, including logos, designs, text, graphics, and code, is our intellectual property and may not be used without permission. Sellers retain ownership of their listing content but grant us a license to display it on our platform.
             </p>
           </section>
 
@@ -316,14 +316,14 @@ const TermsOfService = () => {
               <span className="text-primary">12.</span> Disclaimers
             </h2>
             <p className="text-muted-foreground leading-relaxed mb-3">
-              SneakersHub is a marketplace connecting buyers and sellers. We do not guarantee the quality, safety, or legality of items listed. We are not responsible for transactions between users. Our role is limited to facilitating the platform and, for verified sellers, payment processing.
+              ShopLite is a marketplace connecting buyers and sellers. We do not guarantee the quality, safety, or legality of items listed. We are not responsible for transactions between users. Our role is limited to facilitating the platform and, for verified sellers, payment processing.
             </p>
             <div className="p-4 rounded-xl bg-muted/40 border border-border">
               <p className="text-sm text-muted-foreground leading-relaxed">
                 Brand names and trademarks such as Nike®, Adidas®, Timberland®, and others appearing
                 on this platform are the property of their respective owners. Their presence reflects
                 secondary market resale by independent sellers and does not imply any affiliation,
-                sponsorship, or endorsement of SneakersHub by those brands. For full details, see our{" "}
+                sponsorship, or endorsement of ShopLite by those brands. For full details, see our{" "}
                 <Link
                   to="/seller-policy"
                   className="text-primary underline underline-offset-2 hover:opacity-80 transition-opacity font-medium"
@@ -341,7 +341,7 @@ const TermsOfService = () => {
               <span className="text-primary">13.</span> Limitation of Liability
             </h2>
             <p className="text-muted-foreground leading-relaxed">
-              To the maximum extent permitted by law, SneakersHub shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits or revenues, whether incurred directly or indirectly, or any loss of data, use, goodwill, or other intangible losses, resulting from your use of our platform.
+              To the maximum extent permitted by law, ShopLite shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits or revenues, whether incurred directly or indirectly, or any loss of data, use, goodwill, or other intangible losses, resulting from your use of our platform.
             </p>
           </section>
 
@@ -377,8 +377,8 @@ const TermsOfService = () => {
               <div className="space-y-2">
                 <div className="flex items-center gap-3 text-sm">
                   <Mail className="w-4 h-4 text-primary" />
-                  <a href="mailto:support@sneakershub.com" className="hover:text-primary transition-colors">
-                    support@sneakershub.com
+                  <a href="mailto:support@shoplite.com" className="hover:text-primary transition-colors">
+                    support@shoplite.com
                   </a>
                 </div>
                 <div className="flex items-center gap-3 text-sm">
@@ -396,7 +396,7 @@ const TermsOfService = () => {
         {/* Acceptance Footer */}
         <div className="mt-12 p-6 rounded-2xl bg-primary/5 border border-primary/20 text-center">
           <CheckCircle className="w-8 h-8 text-primary mx-auto mb-3" />
-          <p className="text-sm font-semibold mb-1">By using SneakersHub, you acknowledge that you have read, understood, and agree to these Terms of Service.</p>
+          <p className="text-sm font-semibold mb-1">By using ShopLite, you acknowledge that you have read, understood, and agree to these Terms of Service.</p>
           <p className="text-xs text-muted-foreground">Last updated: {new Date().toLocaleDateString('en-GH', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
         </div>
 

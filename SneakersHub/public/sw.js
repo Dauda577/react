@@ -3,7 +3,7 @@
 //         Without this, the PWA serves cached/stale responses for Supabase
 //         requests and WebSocket upgrades silently fail.
 
-const CACHE_NAME = "sneakershub-v2";
+const CACHE_NAME = "shoplite-v2";
 
 const PRECACHE_URLS = [
   "/",
@@ -89,10 +89,10 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data.json();
   } catch {
-    data = { title: "SneakersHub", body: event.data.text() };
+    data = { title: "ShopLite", body: event.data.text() };
   }
 
-  const title = data.title ?? "SneakersHub";
+  const title = data.title ?? "ShopLite";
   const options = {
     body: data.body ?? "",
     icon: data.icon ?? "/icons/icon-192x192.png",

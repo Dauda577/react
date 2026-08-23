@@ -154,7 +154,7 @@ const About = () => {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -172,14 +172,14 @@ const About = () => {
             </motion.div>
 
             <h1 className="font-display text-5xl md:text-7xl font-bold tracking-tight mb-6">
-              Passion for{" "}
+              The Future of{" "}
               <span className="bg-gradient-to-r from-primary to-purple-500 bg-clip-text text-transparent">
-                Sneakers
+                Commerce
               </span>
             </h1>
 
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Where sneaker culture meets authenticity. We're building Africa's most trusted marketplace for premium footwear and fashion.
+              Where technology meets trade. ShopLite is building Africa's most trusted and intelligent marketplace.
             </p>
           </motion.div>
 
@@ -226,10 +226,10 @@ const About = () => {
                 <span className="text-gradient">Marketplace</span>
               </h2>
               <p className="text-muted-foreground leading-relaxed mb-4">
-                Sneakers Hub was born from an obsession with footwear culture. We believe every pair of sneakers tells a story — of innovation, self-expression, and the relentless pursuit of excellence.
+                ShopLite was born from a vision to redefine commerce in Africa. We believe every transaction tells a story — of innovation, trust, and the relentless pursuit of excellence.
               </p>
               <p className="text-muted-foreground leading-relaxed">
-                Our team hand-picks every product in our collection, ensuring authenticity and quality that meets the highest standards. From performance runners to timeless classics, we curate for those who appreciate craft.
+                Our platform connects buyers and sellers with zero fees, instant communication, and verified trust. From sneakers to electronics, fashion to services — if it's for sale, it's on ShopLite.
               </p>
             </div>
             <div className="relative">
@@ -261,7 +261,7 @@ const About = () => {
 
       {/* Get Verified Section */}
       <section className="py-20 bg-gradient-to-b from-background to-muted/30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}

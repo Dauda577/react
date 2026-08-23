@@ -94,26 +94,26 @@ const ListingCard = memo(({ sneaker: listing, index }: ListingCardProps) => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2, delay: Math.min(index, 6) * 0.03 }}
+      transition={{ duration: 0.35, delay: Math.min(index, 8) * 0.04, ease: [0.25, 0.46, 0.45, 0.94] }}
       className="group relative h-full"
     >
-      <div className="relative h-full flex flex-col rounded-2xl bg-card border border-border/50 overflow-hidden transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:border-border hover:-translate-y-1">
+      <div className="relative h-full flex flex-col rounded-2xl bg-card border border-border/50 overflow-hidden transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10 hover:border-primary/30 hover:-translate-y-1.5">
 
         {/* Save Button */}
         <motion.button
-          whileHover={{ scale: 1.1 }}
+          whileHover={{ scale: 1.15 }}
           whileTap={{ scale: 0.9 }}
           onClick={handleSave}
-          className={`absolute top-3 right-3 z-20 w-8 h-8 rounded-xl flex items-center justify-center backdrop-blur-md transition-all duration-300 shadow-lg ${
+          className={`absolute top-3 right-3 z-20 w-8 h-8 rounded-xl flex items-center justify-center backdrop-blur-md transition-all duration-300 shadow-lg spring-press ${
             saved
-              ? "bg-gradient-to-br from-red-500 to-rose-600 text-white border-0 shadow-red-500/25"
-              : "bg-white/90 dark:bg-gray-900/90 border border-gray-200/50 dark:border-gray-700/50 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 hover:border-red-200 dark:hover:border-red-800"
+              ? "bg-gradient-to-br from-red-500 to-rose-600 text-white border-0 shadow-red-500/30"
+              : "bg-black/40 dark:bg-white/10 border border-white/10 text-white/70 hover:text-red-400 hover:border-red-400/30"
           }`}
           aria-label={saved ? "Remove from saved" : "Save listing"}
         >
-          <Heart className={`w-3.5 h-3.5 transition-all duration-300 ${saved ? "fill-current scale-110" : "hover:scale-110"}`} />
+          <Heart className={`w-3.5 h-3.5 transition-all duration-300 ${saved ? "fill-current scale-110" : ""}`} />
         </motion.button>
 
         <Link to={`/product/${listing.id}`} className="flex flex-col flex-grow">
@@ -123,7 +123,7 @@ const ListingCard = memo(({ sneaker: listing, index }: ListingCardProps) => {
             {!imageError && listing.image ? (
               <>
                 {!imageLoaded && (
-                  <div className="absolute inset-0 bg-gray-200 dark:bg-gray-800 animate-pulse" />
+                  <div className="absolute inset-0 shimmer" />
                 )}
                 <Image
                   src={cardImage(listing.image)}
@@ -148,16 +148,19 @@ const ListingCard = memo(({ sneaker: listing, index }: ListingCardProps) => {
               </div>
             )}
 
+            {/* Glassmorphism overlay on hover */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
             {/* Badges */}
             <div className="absolute top-3 left-3 flex flex-col gap-1 z-10">
               {listing.sellerIsOfficial && (
-                <Badge className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-0 shadow-lg shadow-purple-500/25 px-2 py-1 text-[9px] font-semibold tracking-wider flex items-center gap-1 backdrop-blur-sm">
+                <Badge className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-0 shadow-lg shadow-purple-500/30 px-2 py-1 text-[9px] font-semibold tracking-wider flex items-center gap-1 backdrop-blur-sm">
                   <Sparkles className="w-2.5 h-2.5" />
                   OFFICIAL STORE
                 </Badge>
               )}
               {!listing.sellerIsOfficial && listing.isBoosted && (
-                <Badge className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0 shadow-lg shadow-blue-500/25 px-2 py-1 text-[9px] font-semibold tracking-wider flex items-center gap-1">
+                <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-0 shadow-lg shadow-blue-500/30 px-2 py-1 text-[9px] font-semibold tracking-wider flex items-center gap-1 backdrop-blur-sm">
                   <Zap className="w-2.5 h-2.5" />
                   FEATURED
                 </Badge>
@@ -168,7 +171,7 @@ const ListingCard = memo(({ sneaker: listing, index }: ListingCardProps) => {
           {/* Content */}
           <div className="p-3.5 flex flex-col flex-grow">
             {brandLabel && (
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1 line-clamp-1">
+              <p className="text-[10px] font-semibold text-primary uppercase tracking-wider mb-1 line-clamp-1">
                 {brandLabel}
               </p>
             )}
@@ -198,7 +201,7 @@ const ListingCard = memo(({ sneaker: listing, index }: ListingCardProps) => {
 
             {/* Price row */}
             <div className="flex items-center justify-between gap-2 mt-auto">
-              <span className="text-base font-bold text-foreground leading-tight whitespace-nowrap">
+              <span className="text-base font-bold text-foreground leading-tight whitespace-nowrap group-hover:text-primary transition-colors">
                 GH₵ {listing.price.toLocaleString()}
               </span>
 

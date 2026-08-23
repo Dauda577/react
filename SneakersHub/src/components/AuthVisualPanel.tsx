@@ -81,7 +81,7 @@ const AuthVisualPanel = () => {
             initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.15 }}
             className="font-display text-4xl font-bold tracking-tighter text-white leading-tight max-w-md"
           >
-            Step into the sneaker community.
+            Step into the marketplace.
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.3 }}

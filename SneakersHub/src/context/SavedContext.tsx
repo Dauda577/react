@@ -26,7 +26,7 @@ type SavedContextType = {
 
 const SavedContext = createContext<SavedContextType | null>(null);
 
-const GUEST_KEY = "sneakershub-saved-guest";
+const GUEST_KEY = "shoplite-saved-guest";
 
 const getGuestSaved = (): SavedSneaker[] => {
   try {

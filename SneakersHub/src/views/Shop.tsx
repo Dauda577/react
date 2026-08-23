@@ -152,7 +152,7 @@ const Shop = () => {
       <Navbar />
 
       <div
-        className="section-padding max-w-7xl mx-auto pb-20"
+        className="section-padding pb-20"
         style={{ paddingTop: `calc(88px + env(safe-area-inset-top, 0px))` }}
       >
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">

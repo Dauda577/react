@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Bell, X, CheckCircle } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
-const SAFARI_NOTIF_KEY = "sneakershub-safari-notif-prompted";
+const SAFARI_NOTIF_KEY = "shoplite-safari-notif-prompted";
 
 const isSafariStandalone = () => {
   if (typeof window === "undefined") return false;

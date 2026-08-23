@@ -203,7 +203,7 @@ const ProductDetail = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-20" style={safeTopStyle}>
+        <div className="px-4 sm:px-6 pb-20" style={safeTopStyle}>
           <div className="grid md:grid-cols-2 gap-8 mt-6">
             <div className="rounded-3xl bg-muted h-[320px] lg:h-[500px] animate-pulse" />
             <div className="space-y-3">
@@ -251,7 +251,7 @@ const ProductDetail = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-16" style={safeTopStyle}>
+      <div className="px-4 sm:px-6 pb-24 lg:pb-16" style={safeTopStyle}>
 
         {/* Breadcrumb */}
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-4 mt-2">
@@ -266,7 +266,7 @@ const ProductDetail = () => {
         <div className="flex items-center justify-between mb-6">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors group spring-press"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
             <span className="font-medium">Back</span>
@@ -313,19 +313,33 @@ const ProductDetail = () => {
 
             {/* Thumbnails */}
             {allImages.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {allImages.map((img, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setSelectedImage(img)}
-                    className={`relative flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all ${
-                      activeImage === img ? "border-primary" : "border-border hover:border-primary/40"
-                    }`}
-                  >
-                    <Image src={img} alt={`Thumbnail ${i + 1} of ${allImages.length}`} fill sizes="64px" className="object-cover" />
-                  </button>
-                ))}
-              </div>
+              <>
+                <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+                  {allImages.map((img, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setSelectedImage(img)}
+                      className={`relative flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-all spring-press ${
+                        activeImage === img ? "border-primary shadow-lg shadow-primary/20" : "border-border hover:border-primary/40"
+                      }`}
+                    >
+                      <Image src={img} alt={`Thumbnail ${i + 1} of ${allImages.length}`} fill sizes="64px" className="object-cover" />
+                    </button>
+                  ))}
+                </div>
+                {/* Dot indicators */}
+                <div className="flex justify-center gap-1.5 lg:hidden">
+                  {allImages.map((img, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setSelectedImage(img)}
+                      className={`rounded-full transition-all duration-300 ${
+                        activeImage === img ? "w-6 h-1.5 bg-primary" : "w-1.5 h-1.5 bg-muted-foreground/30"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </>
             )}
           </div>
 
@@ -438,7 +452,7 @@ const ProductDetail = () => {
             )}
 
             {/* Seller Card */}
-            <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+            <div className="rounded-2xl border border-border bg-card/80 backdrop-blur-xl p-4 space-y-3">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Posted by
               </p>
@@ -560,6 +574,41 @@ const ProductDetail = () => {
           </motion.div>
         )}
       </div>
+
+      {/* ══════ STICKY BUY BAR (mobile) ══════ */}
+      {!isOwnListing && phone && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden">
+          <div className="bg-card/95 backdrop-blur-xl border-t border-border px-4 py-3 flex items-center gap-3" style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom, 0px))" }}>
+            <div className="flex-1 min-w-0">
+              <p className="font-display text-lg font-bold text-foreground">GH₵ {listing.price.toLocaleString()}</p>
+              {negotiable && <p className="text-[10px] text-muted-foreground">Negotiable</p>}
+            </div>
+            {(() => {
+              const formatted = formatPhone(phone);
+              const waMessage = `Hi, I saw your listing for *${title}* — is it still available?`;
+              return (
+                <>
+                  <a
+                    href={`https://wa.me/${formatted}?text=${encodeURIComponent(waMessage)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-center gap-2 h-11 px-5 rounded-xl bg-[#25D366] text-white text-sm font-semibold spring-press"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    WhatsApp
+                  </a>
+                  <a
+                    href={`tel:${phone}`}
+                    className="flex items-center justify-center h-11 px-4 rounded-xl border border-border bg-card text-sm font-semibold spring-press"
+                  >
+                    <Phone className="w-4 h-4" />
+                  </a>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>

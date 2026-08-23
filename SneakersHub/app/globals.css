@@ -119,7 +119,11 @@
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
+    letter-spacing: -0.02em;
   }
+
+  h1 { letter-spacing: -0.04em; }
+  h2 { letter-spacing: -0.03em; }
 }
 
 /* Sonner toast — clear Dynamic Island / notch on iOS PWA */
@@ -154,21 +158,21 @@
     @apply px-4 sm:px-6 md:px-12 lg:px-20;
   }
 
-  .sneaker-card {
+  .product-card {
     @apply block w-full bg-card rounded-lg overflow-hidden border border-border transition-all duration-500 ease-out cursor-pointer;
   }
 
-  .sneaker-card:hover {
+  .product-card:hover {
     @apply border-primary/40;
     box-shadow: var(--shadow-glow);
     transform: translateY(-4px);
   }
 
-  .sneaker-card:hover .sneaker-image {
+  .product-card:hover .product-image {
     transform: scale(1.08) rotate(-3deg);
   }
 
-  .sneaker-image {
+  .product-image {
     @apply transition-transform duration-700 ease-out;
   }
 
@@ -212,6 +216,90 @@
     @apply w-full h-11 px-4 rounded-xl border border-border bg-card text-sm text-foreground
       placeholder:text-muted-foreground focus:outline-none focus:border-primary
       focus:ring-1 focus:ring-primary/20 transition-all;
+  }
+
+  /* ── Shimmer skeleton ── */
+  .shimmer {
+    position: relative;
+    overflow: hidden;
+    background: hsl(0 0% 12%);
+  }
+  .shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+    animation: shimmer 1.8s ease-in-out infinite;
+  }
+  .light .shimmer { background: hsl(0 0% 93%); }
+  .light .shimmer::after { background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent); }
+
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+
+  /* ── Dot grid background ── */
+  .dot-grid {
+    background-image: radial-gradient(circle, hsl(0 0% 100% / 0.04) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  .light .dot-grid {
+    background-image: radial-gradient(circle, hsl(0 0% 0% / 0.06) 1px, transparent 1px);
+  }
+
+  /* ── Gradient border ── */
+  .gradient-border {
+    position: relative;
+    border: none;
+  }
+  .gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: var(--gradient-hero);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* ── Gradient separator ── */
+  .gradient-separator {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.12), transparent);
+  }
+  .light .gradient-separator {
+    background: linear-gradient(90deg, transparent, hsl(0 0% 0% / 0.1), transparent);
+  }
+
+  /* ── Glow pulse ── */
+  .glow-pulse {
+    animation: glow-pulse 3s ease-in-out infinite alternate;
+  }
+  @keyframes glow-pulse {
+    0% { box-shadow: 0 0 20px hsl(217 91% 60% / 0.1); }
+    100% { box-shadow: 0 0 40px hsl(217 91% 60% / 0.25); }
+  }
+
+  /* ── Float animation ── */
+  .float {
+    animation: float 6s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+  }
+
+  /* ── Spring press ── */
+  .spring-press {
+    transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .spring-press:active {
+    transform: scale(0.97);
   }
 }
 

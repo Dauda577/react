@@ -27,19 +27,19 @@ const Privacy = () => {
           <section className="space-y-3">
             <h2 className="font-display font-bold text-base text-foreground">1. Who We Are</h2>
             <p>
-              SneakersHub is an online marketplace for buying and selling sneakers in Ghana, accessible at{" "}
-              <a href="https://sneakershub.site" className="text-primary underline underline-offset-2">sneakershub.site</a>.
+              ShopLite is an online marketplace for buying and selling anything in Ghana, accessible at{" "}
+              <a href="https://shoplite.site" className="text-primary underline underline-offset-2">shoplite.site</a>.
               We connect buyers and sellers across Ghana in a safe, trusted environment.
             </p>
           </section>
 
           <section className="space-y-3">
             <h2 className="font-display font-bold text-base text-foreground">2. Information We Collect</h2>
-            <p>We collect the following information when you use SneakersHub:</p>
+            <p>We collect the following information when you use ShopLite:</p>
             <ul className="list-disc list-inside space-y-1.5 pl-2">
               <li><span className="text-foreground font-medium">Account information</span> — name, email address, and password when you register</li>
               <li><span className="text-foreground font-medium">Profile information</span> — phone number, city, and region you provide</li>
-              <li><span className="text-foreground font-medium">Listing data</span> — photos, descriptions, and prices of sneakers you list for sale</li>
+              <li><span className="text-foreground font-medium">Listing data</span> — photos, descriptions, and prices of items you list for sale</li>
               <li><span className="text-foreground font-medium">Order information</span> — delivery address, order history, and transaction records</li>
               <li><span className="text-foreground font-medium">Payment details</span> — MoMo number and account name for seller payouts (processed securely via Paystack)</li>
               <li><span className="text-foreground font-medium">Messages</span> — communications between buyers and sellers on the platform</li>
@@ -51,7 +51,7 @@ const Privacy = () => {
             <h2 className="font-display font-bold text-base text-foreground">3. How We Use Your Information</h2>
             <p>We use your information to:</p>
             <ul className="list-disc list-inside space-y-1.5 pl-2">
-              <li>Operate and improve the SneakersHub marketplace</li>
+              <li>Operate and improve the ShopLite marketplace</li>
               <li>Process orders and facilitate payments between buyers and sellers</li>
               <li>Send you order confirmations, SMS notifications, and account alerts</li>
               <li>Verify seller identities and prevent fraud</li>
@@ -111,7 +111,7 @@ const Privacy = () => {
           <section className="space-y-3">
             <h2 className="font-display font-bold text-base text-foreground">9. Children's Privacy</h2>
             <p>
-              SneakersHub is not intended for users under the age of 13. We do not knowingly collect personal information from children.
+              ShopLite is not intended for users under the age of 13. We do not knowingly collect personal information from children.
             </p>
           </section>
 
@@ -119,7 +119,7 @@ const Privacy = () => {
             <h2 className="font-display font-bold text-base text-foreground">10. Changes to This Policy</h2>
             <p>
               We may update this Privacy Policy from time to time. We will notify you of significant changes by posting a notice on the site
-              or sending you an email. Continued use of SneakersHub after changes constitutes your acceptance of the updated policy.
+              or sending you an email. Continued use of ShopLite after changes constitutes your acceptance of the updated policy.
             </p>
           </section>
 

@@ -258,7 +258,7 @@ const Auth = () => {
                 }
               }}
               className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-display font-semibold text-sm hover:bg-primary/90 transition-colors">
-              Continue to SneakersHub
+              Continue to ShopLite
             </button>
             <p className="text-xs text-muted-foreground text-center">You can start selling anytime from your Account settings.</p>
           </motion.div>
@@ -283,13 +283,13 @@ const Auth = () => {
         <div className="relative z-10 w-full max-w-md px-6 py-10">
         <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
           className="text-center mb-8">
-          <p className="text-primary font-display text-xs font-semibold uppercase tracking-[0.3em] mb-2">Sneakers Hub</p>
+          <p className="text-primary font-display text-xs font-semibold uppercase tracking-[0.3em] mb-2">ShopLite</p>
           <h1 className="font-display text-4xl font-bold tracking-tighter">
             {mode === "login" ? "Welcome back" : mode === "signup" ? "Create account" : "Reset Password"}
           </h1>
           <p className="text-muted-foreground text-sm mt-2">
             {mode === "login" ? "Sign in to access your account"
-              : mode === "signup" ? "Join the sneaker community"
+              : mode === "signup" ? "Join the marketplace"
                 : "We'll send you a reset link"}
           </p>
         </motion.div>

@@ -27,7 +27,7 @@ export async function middleware(request: NextRequest) {
           });
         },
       },
-      cookieOptions: { name: "sneakershub-auth-token" },
+      cookieOptions: { name: "shoplite-auth-token" },
     }
   );
 

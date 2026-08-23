@@ -85,7 +85,7 @@ const SearchPage = () => {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search phones, clothes, sneakers..."
+                placeholder="Search phones, clothes, electronics, anything..."
                 className="w-full pl-11 pr-10 py-3.5 rounded-2xl border border-border bg-card text-sm text-foreground
                   placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/15
                   transition-all font-[inherit] shadow-sm"

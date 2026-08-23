@@ -75,7 +75,7 @@ const InstallPrompt = ({ triggerAfterAuth = false }: { triggerAfterAuth?: boolea
                 <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center">
                   <Smartphone className="w-4 h-4 text-primary" />
                 </div>
-                <p className="font-display font-bold text-sm">Install SneakersHub</p>
+                <p className="font-display font-bold text-sm">Install ShopLite</p>
               </div>
               <button onClick={handleClose}
                 className="w-6 h-6 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">

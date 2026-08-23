@@ -16,7 +16,7 @@ import { MAIN_CATEGORIES } from "@/data/taxonomy";
 
 const BoostModal = lazy(() => import("@/components/BoostModal"));
 
-const FIRST_LISTING_BANNER_KEY = "sneakershub-first-listing-dismissed";
+const FIRST_LISTING_BANNER_KEY = "shoplite-first-listing-dismissed";
 
 const FirstListingBanner = ({ onDismiss, onStart }: { onDismiss: () => void; onStart: () => void }) => (
   <motion.div {...fadeUp}

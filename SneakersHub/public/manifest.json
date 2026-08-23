@@ -1,7 +1,7 @@
 {
-  "name": "SneakersHub",
-  "short_name": "SneakersHub",
-  "description": "Ghana's sneaker marketplace",
+  "name": "ShopLite",
+  "short_name": "ShopLite",
+  "description": "Ghana's marketplace for everything",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a0a",
